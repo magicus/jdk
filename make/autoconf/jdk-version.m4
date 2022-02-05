@@ -466,6 +466,8 @@ AC_DEFUN_ONCE([JDKVER_SETUP_JDK_VERSION_NUMBERS],
   fi
   VERSION_STRING=$version_with_build${VERSION_OPT:+-$VERSION_OPT}
 
+  # TODO Reset VERSION_BUILD to 0 after computing the string if it was 0 before?
+
   # The short version string, just VERSION_NUMBER and PRE, if present.
   VERSION_SHORT=$VERSION_NUMBER${VERSION_PRE:+-$VERSION_PRE}
 

@@ -61,11 +61,6 @@ else
   OPENJDK_TARGET_CPU_VM_VERSION := $(OPENJDK_TARGET_CPU)
 endif
 
-ifeq ($(VERSION_BUILD), )
-  # Hotspot cannot handle an empty build number
-  VERSION_BUILD := 0
-endif
-
 CFLAGS_VM_VERSION := \
     $(VERSION_CFLAGS) \
     -DHOTSPOT_VERSION_STRING='"$(VERSION_STRING)"' \

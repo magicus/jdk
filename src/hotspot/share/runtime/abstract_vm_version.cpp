@@ -82,7 +82,12 @@ int Abstract_VM_Version::_vm_major_version = VERSION_FEATURE;
 int Abstract_VM_Version::_vm_minor_version = VERSION_INTERIM;
 int Abstract_VM_Version::_vm_security_version = VERSION_UPDATE;
 int Abstract_VM_Version::_vm_patch_version = VERSION_PATCH;
+#if ~(~VERSION_BUILD + 0) == 0 && ~(~VERSION_BUILD + 1) == 1 // Gotta be a neater way to do this...
+int Abstract_VM_Version::_vm_build_number = 0;
+#else
 int Abstract_VM_Version::_vm_build_number = VERSION_BUILD;
+// Do we want to do this for everything else besides VERSION_BUILD too?
+#endif
 
 #if defined(_LP64)
   #define VMLP "64-Bit "
