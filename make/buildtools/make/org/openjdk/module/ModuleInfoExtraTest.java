@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
  * questions.
  */
 
-package build.tools.module;
+package org.openjdk.buildtools.module;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -38,7 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import build.tools.module.GenModuleInfoSource.Statement;
+import org.openjdk.buildtools.module.GenModuleInfoSource.Statement;
 
 /**
  * Sanity test for GenModuleInfoSource tool

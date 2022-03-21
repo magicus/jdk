@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
  * questions.
  */
 
-package build.tools.fixuppandoc;
+package org.openjdk.buildtools.fixuppandoc;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -92,7 +92,7 @@ public class Main {
      * Runs the program.
      *
      * <pre>
-     *     java build.tools.fixuppandoc.Main [-o output-file] [input-file]
+     *     java org.openjdk.buildtools.fixuppandoc.Main [-o output-file] [input-file]
      * </pre>
      *
      * If no input file is specified, the program will read from standard input.

@@ -1,10 +1,10 @@
-package build.tools.pandocfilter;
+package org.openjdk.buildtools.pandocfilter;
 
-import build.tools.pandocfilter.json.JSON;
-import build.tools.pandocfilter.json.JSONArray;
-import build.tools.pandocfilter.json.JSONObject;
-import build.tools.pandocfilter.json.JSONString;
-import build.tools.pandocfilter.json.JSONValue;
+import org.openjdk.buildtools.pandocfilter.json.JSON;
+import org.openjdk.buildtools.pandocfilter.json.JSONArray;
+import org.openjdk.buildtools.pandocfilter.json.JSONObject;
+import org.openjdk.buildtools.pandocfilter.json.JSONString;
+import org.openjdk.buildtools.pandocfilter.json.JSONValue;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;

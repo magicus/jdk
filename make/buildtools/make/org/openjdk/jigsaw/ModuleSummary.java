@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
  * questions.
  */
 
-package build.tools.jigsaw;
+package org.openjdk.buildtools.jigsaw;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -49,8 +49,8 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import static java.lang.module.ModuleDescriptor.*;
-import static build.tools.jigsaw.ModuleSummary.HtmlDocument.Selector.*;
-import static build.tools.jigsaw.ModuleSummary.HtmlDocument.Division.*;
+import static org.openjdk.buildtools.jigsaw.ModuleSummary.HtmlDocument.Selector.*;
+import static org.openjdk.buildtools.jigsaw.ModuleSummary.HtmlDocument.Division.*;
 
 public class ModuleSummary {
     private static final String USAGE = "Usage: ModuleSummary --module-path <dir> -o <outfile> [--root mn]*";

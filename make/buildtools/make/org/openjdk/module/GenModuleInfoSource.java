@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package build.tools.module;
+package org.openjdk.buildtools.module;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -55,7 +55,7 @@ import static java.util.stream.Collectors.*;
  * in module-info.java.extra.
  * Injecting platform-specific requires is not supported.
  *
- * @see build.tools.module.ModuleInfoExtraTest for basic testing
+ * @see org.openjdk.buildtools.module.ModuleInfoExtraTest for basic testing
  */
 public class GenModuleInfoSource {
     private final static String USAGE =

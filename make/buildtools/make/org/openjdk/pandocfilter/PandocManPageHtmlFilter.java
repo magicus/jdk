@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,11 +21,11 @@
  * questions.
  */
 
-package build.tools.pandocfilter;
+package org.openjdk.buildtools.pandocfilter;
 
-import build.tools.pandocfilter.json.JSONArray;
-import build.tools.pandocfilter.json.JSONObject;
-import build.tools.pandocfilter.json.JSONValue;
+import org.openjdk.buildtools.pandocfilter.json.JSONArray;
+import org.openjdk.buildtools.pandocfilter.json.JSONObject;
+import org.openjdk.buildtools.pandocfilter.json.JSONValue;
 
 import java.io.FileNotFoundException;
 import java.util.regex.Matcher;
