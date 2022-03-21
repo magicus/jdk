@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -85,7 +85,7 @@ DEPEND_SERVICE_PROVIDER := $(BUILDTOOLS_OUTPUTDIR)/depend/META-INF/services/com.
 
 $(DEPEND_SERVICE_PROVIDER):
 	$(call MakeDir, $(BUILDTOOLS_OUTPUTDIR)/depend/META-INF/services)
-	$(ECHO) build.tools.depend.Depend > $@
+	$(ECHO) org.openjdk.buildtools.depend.Depend > $@
 
 TARGETS += $(COMPILE_DEPEND) $(DEPEND_SERVICE_PROVIDER)
 

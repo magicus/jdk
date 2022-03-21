@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -68,7 +68,7 @@ $(CLASSLIST_FILE): $(INTERIM_IMAGE_DIR)/bin/java$(EXECUTABLE_SUFFIX) $(CLASSLIST
 	$(FIXPATH) $(INTERIM_IMAGE_DIR)/bin/java -XX:DumpLoadedClassList=$@.raw \
 	    -Duser.language=en -Duser.country=US \
 	    -cp $(SUPPORT_OUTPUTDIR)/classlist.jar \
-	    build.tools.classlist.HelloClasslist $(LOG_DEBUG)
+	    org.openjdk.buildtools.classlist.HelloClasslist $(LOG_DEBUG)
 	$(GREP) -v HelloClasslist $@.raw > $@.interim
 	$(FIXPATH) $(INTERIM_IMAGE_DIR)/bin/java -Xshare:dump \
 	    -XX:SharedClassListFile=$@.interim -XX:SharedArchiveFile=$@.jsa \
@@ -79,7 +79,7 @@ $(CLASSLIST_FILE): $(INTERIM_IMAGE_DIR)/bin/java$(EXECUTABLE_SUFFIX) $(CLASSLIST
 	    -Duser.language=en -Duser.country=US \
 	    --module-path $(SUPPORT_OUTPUTDIR)/classlist.jar \
 	    -cp $(SUPPORT_OUTPUTDIR)/classlist.jar \
-	    build.tools.classlist.HelloClasslist \
+	    org.openjdk.buildtools.classlist.HelloClasslist \
 	    2> $(LINK_OPT_DIR)/stderr > $(JLI_TRACE_FILE) \
 	    || ( \
 	        exitcode=$$? ; \
@@ -91,7 +91,7 @@ $(CLASSLIST_FILE): $(INTERIM_IMAGE_DIR)/bin/java$(EXECUTABLE_SUFFIX) $(CLASSLIST
 	$(GREP) -v HelloClasslist $@.raw.2 > $@.raw.3
 	$(FIXPATH) $(INTERIM_IMAGE_DIR)/bin/java \
 	    -cp $(SUPPORT_OUTPUTDIR)/classlist.jar \
-	    build.tools.classlist.SortClasslist $@.raw.3 > $@
+	    org.openjdk.buildtools.classlist.SortClasslist $@.raw.3 > $@
 
 # The jli trace is created by the same recipe as classlist. By declaring these
 # dependencies, make will correctly rebuild both jli trace and classlist
