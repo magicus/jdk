@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,12 +23,12 @@
  * questions.
  */
 
-package propertiesparser.parser;
+package org.openjdk.buildtools.propertiesparser.parser;
 
-import propertiesparser.parser.MessageType.CompoundType;
-import propertiesparser.parser.MessageType.OrType;
-import propertiesparser.parser.MessageType.SimpleType;
-import propertiesparser.parser.MessageType.UnionType;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType.CompoundType;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType.OrType;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType.SimpleType;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType.UnionType;
 
 import java.util.ArrayList;
 import java.util.List;

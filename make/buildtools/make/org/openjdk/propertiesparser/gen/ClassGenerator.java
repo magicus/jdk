@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,20 +23,20 @@
  * questions.
  */
 
-package propertiesparser.gen;
+package org.openjdk.buildtools.propertiesparser.gen;
 
 import static java.util.stream.Collectors.toList;
 
-import propertiesparser.parser.Message;
-import propertiesparser.parser.MessageFile;
-import propertiesparser.parser.MessageInfo;
-import propertiesparser.parser.MessageLine;
-import propertiesparser.parser.MessageType;
-import propertiesparser.parser.MessageType.CompoundType;
-import propertiesparser.parser.MessageType.CustomType;
-import propertiesparser.parser.MessageType.SimpleType;
-import propertiesparser.parser.MessageType.UnionType;
-import propertiesparser.parser.MessageType.Visitor;
+import org.openjdk.buildtools.propertiesparser.parser.Message;
+import org.openjdk.buildtools.propertiesparser.parser.MessageFile;
+import org.openjdk.buildtools.propertiesparser.parser.MessageInfo;
+import org.openjdk.buildtools.propertiesparser.parser.MessageLine;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType.CompoundType;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType.CustomType;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType.SimpleType;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType.UnionType;
+import org.openjdk.buildtools.propertiesparser.parser.MessageType.Visitor;
 
 import java.io.File;
 import java.io.FileWriter;
