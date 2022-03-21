@@ -30,7 +30,7 @@ include GensrcCommonJdk.gmk
 # Java implementation (JDWP.java), a back-end C header file (JDWPCommands.h) and
 # an HTML documentation file (jdwp-protocol.html).
 
-TOOL_JDWPGEN = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+TOOL_JDWPGEN = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     org.openjdk.buildtools.jdwpgen.Main
 
 JDWP_SPEC_FILE := $(TOPDIR)/src/java.se/share/data/jdwp/jdwp.spec

@@ -31,7 +31,7 @@ include JavaCompilation.gmk
 
 ################################################################################
 
-TOOLS_CLASSES_DIR := $(BUILDTOOLS_OUTPUTDIR)/tools_jigsaw_classes
+TOOLS_CLASSES_DIR := $(BUILDTOOLS_OUTPUTDIR)/classes
 
 # When using an external BUILDJDK, make it possible to shortcut building of
 # these tools using the BUILD_JAVAC instead of having to build the complete

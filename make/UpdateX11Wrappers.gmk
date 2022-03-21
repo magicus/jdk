@@ -47,7 +47,7 @@ ifeq ($(COMPILE_TYPE), cross)
   $(error It is not possible to update the x11wrappers when cross-compiling)
 endif
 
-TOOL_WRAPPERGENERATOR = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+TOOL_WRAPPERGENERATOR = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     org.openjdk.buildtools.x11wrappergen.WrapperGenerator
 
 X11WRAPPERS_OUTPUT := $(SUPPORT_OUTPUTDIR)/x11wrappers

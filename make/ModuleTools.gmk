@@ -28,7 +28,7 @@ _MODULE_TOOLS_GMK := 1
 
 include JavaCompilation.gmk
 
-TOOLS_CLASSES_DIR := $(BUILDTOOLS_OUTPUTDIR)/tools_jigsaw_classes
+TOOLS_CLASSES_DIR := $(BUILDTOOLS_OUTPUTDIR)/classes
 
 # To avoid reevaluating the compilation setup for the tools each time this file
 # is included, the actual compilation is handled by CompileModuleTools.gmk. The

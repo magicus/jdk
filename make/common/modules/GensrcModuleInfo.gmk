@@ -55,7 +55,7 @@ include Modules.gmk
 # make directory. Should probably move some tools away from the jdk repo.
 TOOL_GENMODULEINFOSOURCE = $(JAVA_SMALL) \
     $(INTERIM_LANGTOOLS_ARGS) \
-    -cp "$(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes" \
+    -cp "$(BUILDTOOLS_OUTPUTDIR)/classes" \
     org.openjdk.buildtools.module.GenModuleInfoSource
 
 ################################################################################

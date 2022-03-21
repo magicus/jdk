@@ -23,7 +23,7 @@
 # questions.
 #
 
-TOOL_COMPILEFONTCONFIG = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+TOOL_COMPILEFONTCONFIG = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     --add-exports java.desktop/sun.awt=ALL-UNNAMED \
     org.openjdk.buildtools.compilefontconfig.CompileFontConfig
 

@@ -23,7 +23,7 @@
 # questions.
 #
 
-TOOL_BLOCKED_CERTS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+TOOL_BLOCKED_CERTS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     --add-exports java.base/sun.security.util=ALL-UNNAMED \
     org.openjdk.buildtools.blockedcertsconverter.BlockedCertsConverter
 

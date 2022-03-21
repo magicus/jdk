@@ -25,7 +25,7 @@
 
 include $(SPEC)
 
-TOOL_PUBLICSUFFIXLIST = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+TOOL_PUBLICSUFFIXLIST = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     org.openjdk.buildtools.publicsuffixlist.GeneratePublicSuffixList
 
 GENDATA_PUBLICSUFFIXLIST_SRC += $(MODULE_SRC)/share/data/publicsuffixlist/public_suffix_list.dat

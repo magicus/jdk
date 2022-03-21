@@ -27,7 +27,7 @@
 # Generate java files for javax.swing.plaf package
 #
 
-TOOL_GENERATENIMBUS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+TOOL_GENERATENIMBUS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     org.openjdk.buildtools.generatenimbus.Generator
 
 NIMBUS_PACKAGE = javax.swing.plaf

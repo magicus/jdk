@@ -28,7 +28,7 @@ _TOOLS_HOTSPOT_GMK := 1
 
 include JavaCompilation.gmk
 
-HOTSPOT_TOOLS_OUTPUTDIR := $(BUILDTOOLS_OUTPUTDIR)/buildtools/hotspot_tools_classes
+HOTSPOT_TOOLS_OUTPUTDIR := $(BUILDTOOLS_OUTPUTDIR)/classes
 
 ################################################################################
 # To avoid reevaluating the compilation setup for the tools each time this file

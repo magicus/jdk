@@ -77,7 +77,7 @@ BREAK_ITERATOR_BOOTCLASSPATH := \
 UNICODEDATA := $(MODULE_SRC)/share/data/unicodedata/UnicodeData.txt
 
 TOOL_GENERATEBREAKITERATORDATA = $(JAVA_SMALL) \
-    -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+    -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     org.openjdk.buildtools.generatebreakiteratordata.GenerateBreakIteratorData
 
 # output

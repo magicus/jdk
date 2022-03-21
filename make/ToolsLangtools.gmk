@@ -39,7 +39,7 @@ $(eval $(call SetupJavaCompilation, BUILD_TOOLS_LANGTOOLS, \
     SRC := $(TOPDIR)/make/buildtools/make, \
     INCLUDES := compilepropertieslangtools propertiesparser, \
     COPY := .properties, \
-    BIN := $(BUILDTOOLS_OUTPUTDIR)/langtools_tools_classes, \
+    BIN := $(BUILDTOOLS_OUTPUTDIR)/classes, \
 ))
 
 all: $(BUILD_TOOLS_LANGTOOLS)

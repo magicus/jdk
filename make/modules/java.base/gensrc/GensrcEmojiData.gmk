@@ -27,7 +27,7 @@
 # Rules to create $(SUPPORT_OUTPUTDIR)/gensrc/java.base/java/util/regex/EmojiData.java
 #
 
-TOOL_GENERATEEMOJIDATA = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+TOOL_GENERATEEMOJIDATA = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     org.openjdk.buildtools.generateemojidata.GenerateEmojiData
 
 GENSRC_EMOJIDATA := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/java/util/regex/EmojiData.java
