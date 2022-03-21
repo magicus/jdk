@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -32,7 +32,7 @@ include ModuleTools.gmk
 
 GENGRAPHS_DIR := $(IMAGES_OUTPUTDIR)/gengraphs
 SPEC_DOTFILES_DIR := $(GENGRAPHS_DIR)/spec-dotfiles
-TOOLS_MODULE_SRCDIR := $(TOPDIR)/make/jdk/src/classes/build/tools/jigsaw
+TOOLS_MODULE_SRCDIR := $(TOPDIR)/make/buildtools/make/org/openjdk/buildtools/jigsaw
 
 $(GENGRAPHS_DIR)/jdk.dot: $(BUILD_JIGSAW_TOOLS)
 	$(call MakeTargetDir)

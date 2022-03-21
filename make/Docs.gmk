@@ -386,7 +386,7 @@ define SetupApiDocsGenerationBody
     # First we run the GenGraph tool. It will query the module structure of the
     # running JVM and output .dot files for all existing modules.
     GENGRAPHS_PROPS := \
-        $$(TOPDIR)/make/jdk/src/classes/build/tools/jigsaw/javadoc-graphs.properties
+        $$(TOPDIR)/make/buildtools/make/org/openjdk/buildtools/jigsaw/javadoc-graphs.properties
 
     $1_GENGRAPHS_DIR := $$(SUPPORT_OUTPUTDIR)/docs/$1-gengraphs
 
@@ -626,7 +626,7 @@ ifeq ($(ENABLE_PANDOC), true)
 
   # We should also depend on the source code for the filter
   PANDOC_HTML_MANPAGE_FILTER_SOURCE := $(call FindFiles, \
-      $(TOPDIR)/make/jdk/src/classes/build/tools/pandocfilter)
+      $(TOPDIR)/buildtools/make/org/openjdk/buildtools/pandocfilter)
 
   $(foreach m, $(ALL_MODULES), \
     $(eval MAN_$m := $(call FindModuleManDirs, $m)) \
