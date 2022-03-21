@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2020, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -25,6 +25,7 @@
 
 #include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
+#include "compiler/compiler_globals.hpp"
 #include "gc/shared/barrierSet.hpp"
 #include "gc/shared/barrierSetAssembler.hpp"
 #include "interp_masm_aarch64.hpp"
@@ -38,7 +39,6 @@
 #include "prims/jvmtiExport.hpp"
 #include "prims/jvmtiThreadState.hpp"
 #include "runtime/basicLock.hpp"
-#include "runtime/biasedLocking.hpp"
 #include "runtime/frame.inline.hpp"
 #include "runtime/safepointMechanism.hpp"
 #include "runtime/sharedRuntime.hpp"
@@ -473,7 +473,7 @@ void InterpreterMacroAssembler::dispatch_base(TosState state,
 
   if (needs_thread_local_poll) {
     NOT_PRODUCT(block_comment("Thread-local Safepoint poll"));
-    ldr(rscratch2, Address(rthread, Thread::polling_word_offset()));
+    ldr(rscratch2, Address(rthread, JavaThread::polling_word_offset()));
     tbnz(rscratch2, exact_log2(SafepointMechanism::poll_bit()), safepoint);
   }
 
@@ -746,15 +746,11 @@ void InterpreterMacroAssembler::lock_object(Register lock_reg)
     // Load object pointer into obj_reg %c_rarg3
     ldr(obj_reg, Address(lock_reg, obj_offset));
 
-    if (DiagnoseSyncOnPrimitiveWrappers != 0) {
+    if (DiagnoseSyncOnValueBasedClasses != 0) {
       load_klass(tmp, obj_reg);
       ldrw(tmp, Address(tmp, Klass::access_flags_offset()));
-      tstw(tmp, JVM_ACC_IS_BOX_CLASS);
+      tstw(tmp, JVM_ACC_IS_VALUE_BASED_CLASS);
       br(Assembler::NE, slow_case);
-    }
-
-    if (UseBiasedLocking) {
-      biased_locking_enter(lock_reg, obj_reg, swap_reg, tmp, false, done, &slow_case);
     }
 
     // Load (object->mark() | 1) into swap_reg
@@ -768,17 +764,7 @@ void InterpreterMacroAssembler::lock_object(Register lock_reg)
            "displached header must be first word in BasicObjectLock");
 
     Label fail;
-    if (PrintBiasedLockingStatistics) {
-      Label fast;
-      cmpxchg_obj_header(swap_reg, lock_reg, obj_reg, rscratch1, fast, &fail);
-      bind(fast);
-      atomic_incw(Address((address)BiasedLocking::fast_path_entry_count_addr()),
-                  rscratch2, rscratch1, tmp);
-      b(done);
-      bind(fail);
-    } else {
-      cmpxchg_obj_header(swap_reg, lock_reg, obj_reg, rscratch1, done, /*fallthrough*/NULL);
-    }
+    cmpxchg_obj_header(swap_reg, lock_reg, obj_reg, rscratch1, done, /*fallthrough*/NULL);
 
     // Fast check for recursive lock.
     //
@@ -815,12 +801,6 @@ void InterpreterMacroAssembler::lock_object(Register lock_reg)
 
     // Save the test result, for recursive case, the result is zero
     str(swap_reg, Address(lock_reg, mark_offset));
-
-    if (PrintBiasedLockingStatistics) {
-      br(Assembler::NE, slow_case);
-      atomic_incw(Address((address)BiasedLocking::fast_path_entry_count_addr()),
-                  rscratch2, rscratch1, tmp);
-    }
     br(Assembler::EQ, done);
 
     bind(slow_case);
@@ -870,10 +850,6 @@ void InterpreterMacroAssembler::unlock_object(Register lock_reg)
 
     // Free entry
     str(zr, Address(lock_reg, BasicObjectLock::obj_offset_in_bytes()));
-
-    if (UseBiasedLocking) {
-      biased_locking_exit(obj_reg, header_reg, done);
-    }
 
     // Load the old header from BasicLock structure
     ldr(header_reg, Address(swap_reg,

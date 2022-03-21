@@ -42,10 +42,11 @@ import java.util.stream.Stream;
  * {@link #ifPresent(Consumer) ifPresent()} (performs an
  * action if a value is present).
  *
- * <p>This is a <a href="../lang/doc-files/ValueBased.html">value-based</a>
- * class; use of identity-sensitive operations (including reference equality
- * ({@code ==}), identity hash code, or synchronization) on instances of
- * {@code Optional} may have unpredictable results and should be avoided.
+ * <p>This is a <a href="{@docRoot}/java.base/java/lang/doc-files/ValueBased.html">value-based</a>
+ * class; programmers should treat instances that are
+ * {@linkplain #equals(Object) equal} as interchangeable and should not
+ * use instances for synchronization, or unpredictable behavior may
+ * occur. For example, in a future release, synchronization may fail.
  *
  * @apiNote
  * {@code Optional} is primarily intended for use as a method return type where
@@ -57,6 +58,7 @@ import java.util.stream.Stream;
  * @param <T> the type of value
  * @since 1.8
  */
+@jdk.internal.ValueBased
 public final class Optional<T> {
     /**
      * Common instance for {@code empty()}.
@@ -421,12 +423,8 @@ public final class Optional<T> {
             return true;
         }
 
-        if (!(obj instanceof Optional)) {
-            return false;
-        }
-
-        Optional<?> other = (Optional<?>) obj;
-        return Objects.equals(value, other.value);
+        return obj instanceof Optional<?> other
+                && Objects.equals(value, other.value);
     }
 
     /**
@@ -456,7 +454,7 @@ public final class Optional<T> {
     @Override
     public String toString() {
         return value != null
-            ? String.format("Optional[%s]", value)
+            ? ("Optional[" + value + "]")
             : "Optional.empty";
     }
 }

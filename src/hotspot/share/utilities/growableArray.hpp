@@ -252,6 +252,14 @@ public:
     _len--;
   }
 
+  // Remove all elements up to the index (exclusive). The order is preserved.
+  void remove_till(int idx) {
+    for (int i = 0, j = idx; j < length(); i++, j++) {
+      at_put(i, at(j));
+    }
+    trunc_to(length() - idx);
+  }
+
   // The order is changed.
   void delete_at(int index) {
     assert(0 <= index && index < _len, "illegal index");
@@ -310,6 +318,17 @@ public:
       }
     }
     return min;
+  }
+
+  void truncate_to(int idx) {
+    for (int i = 0, j = idx; j < length(); i++, j++) {
+      at_put(i, at(j));
+    }
+    trunc_to(length() - idx);
+  }
+
+  void truncate_from(int idx) {
+    trunc_to(idx);
   }
 
   size_t data_size_in_bytes() const {
@@ -439,7 +458,7 @@ public:
 
   // Binary search and insertion utility.  Search array for element
   // matching key according to the static compare function.  Insert
-  // that element is not already in the list.  Assumes the list is
+  // that element if not already in the list.  Assumes the list is
   // already sorted according to compare function.
   template <int compare(const E&, const E&)> E insert_sorted(const E& key) {
     bool found;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -135,7 +135,7 @@ inline XMMRegister as_XMMRegister(int encoding) {
 }
 
 
-// The implementation of XMM registers for the IA32 architecture
+// The implementation of XMM registers.
 class XMMRegisterImpl: public AbstractRegisterImpl {
  public:
   enum {
@@ -201,11 +201,7 @@ CONSTANT_REGISTER_DECLARATION(XMMRegister, xmm30,    (30));
 CONSTANT_REGISTER_DECLARATION(XMMRegister, xmm31,    (31));
 #endif // AMD64
 
-// Only used by the 32bit stubGenerator. These can't be described by vmreg and hence
-// can't be described in oopMaps and therefore can't be used by the compilers (at least
-// were deopt might wan't to see them).
-
-// Use XMMRegister as shortcut
+// Use KRegister as shortcut
 class KRegisterImpl;
 typedef KRegisterImpl* KRegister;
 
@@ -213,12 +209,14 @@ inline KRegister as_KRegister(int encoding) {
   return (KRegister)(intptr_t)encoding;
 }
 
-// The implementation of XMM registers for the IA32 architecture
+// The implementation of AVX-3 (AVX-512) opmask registers.
 class KRegisterImpl : public AbstractRegisterImpl {
 public:
   enum {
     number_of_registers = 8,
-    max_slots_per_register = 1
+    // opmask registers are 64bit wide on both 32 and 64 bit targets.
+    // thus two slots are reserved per register.
+    max_slots_per_register = 2
   };
 
   // construction
@@ -256,10 +254,14 @@ class ConcreteRegisterImpl : public AbstractRegisterImpl {
   // There is no requirement that any ordering here matches any ordering c2 gives
   // it's optoregs.
 
+  // x86_32.ad defines additional dummy FILL0-FILL7 registers, in order to tally
+  // REG_COUNT (computed by ADLC based on the number of reg_defs seen in .ad files)
+  // with ConcreteRegisterImpl::number_of_registers additional count of 8 is being
+  // added for 32 bit jvm.
     number_of_registers = RegisterImpl::number_of_registers * RegisterImpl::max_slots_per_register +
-      2 * FloatRegisterImpl::number_of_registers +
+      2 * FloatRegisterImpl::number_of_registers + NOT_LP64(8) LP64_ONLY(0) +
       XMMRegisterImpl::max_slots_per_register * XMMRegisterImpl::number_of_registers +
-      KRegisterImpl::number_of_registers + // mask registers
+      KRegisterImpl::number_of_registers * KRegisterImpl::max_slots_per_register + // mask registers
       1 // eflags
   };
 

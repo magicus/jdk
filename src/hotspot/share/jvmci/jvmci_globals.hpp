@@ -25,9 +25,12 @@
 #ifndef SHARE_JVMCI_JVMCI_GLOBALS_HPP
 #define SHARE_JVMCI_JVMCI_GLOBALS_HPP
 
+#include "runtime/globals_shared.hpp"
 #include "utilities/vmEnums.hpp"
 
 class fileStream;
+
+#define LIBJVMCI_ERR_FILE "hs_err_pid%p_libjvmci.log"
 
 //
 // Declare all global flags used by the JVMCI compiler. Only flags that need
@@ -122,6 +125,11 @@ class fileStream;
           "on the HotSpot heap. Defaults to true if EnableJVMCIProduct is " \
           "true and a JVMCI native library is available.")                  \
                                                                             \
+  product(ccstr, JVMCINativeLibraryErrorFile, NULL, EXPERIMENTAL,           \
+          "If an error in the JVMCI native library occurs, save the "       \
+          "error data to this file"                                         \
+          "[default: ./" LIBJVMCI_ERR_FILE "] (%p replaced with pid)")      \
+                                                                            \
   NOT_COMPILER2(product(bool, UseMultiplyToLenIntrinsic, false, DIAGNOSTIC, \
           "Enables intrinsification of BigInteger.multiplyToLen()"))        \
                                                                             \
@@ -138,6 +146,8 @@ class fileStream;
           "Enables intrinsification of BigInteger.montgomerySquare()"))
 
 // end of JVMCI_FLAGS
+
+DECLARE_FLAGS(JVMCI_FLAGS)
 
 // The base name for the shared library containing the JVMCI based compiler
 #define JVMCI_SHARED_LIBRARY_NAME "jvmcicompiler"

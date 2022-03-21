@@ -41,10 +41,11 @@ import java.util.stream.DoubleStream;
  * {@link #ifPresent(DoubleConsumer) ifPresent()} (performs
  * an action if a value is present).
  *
- * <p>This is a <a href="../lang/doc-files/ValueBased.html">value-based</a>
- * class; use of identity-sensitive operations (including reference equality
- * ({@code ==}), identity hash code, or synchronization) on instances of
- * {@code OptionalDouble} may have unpredictable results and should be avoided.
+ * <p>This is a <a href="{@docRoot}/java.base/java/lang/doc-files/ValueBased.html">value-based</a>
+ * class; programmers should treat instances that are
+ * {@linkplain #equals(Object) equal} as interchangeable and should not
+ * use instances for synchronization, or unpredictable behavior may
+ * occur. For example, in a future release, synchronization may fail.
  *
  * @apiNote
  * {@code OptionalDouble} is primarily intended for use as a method return type where
@@ -54,6 +55,7 @@ import java.util.stream.DoubleStream;
  *
  * @since 1.8
  */
+@jdk.internal.ValueBased
 public final class OptionalDouble {
     /**
      * Common instance for {@code empty()}.
@@ -293,14 +295,10 @@ public final class OptionalDouble {
             return true;
         }
 
-        if (!(obj instanceof OptionalDouble)) {
-            return false;
-        }
-
-        OptionalDouble other = (OptionalDouble) obj;
-        return (isPresent && other.isPresent)
-               ? Double.compare(value, other.value) == 0
-               : isPresent == other.isPresent;
+        return obj instanceof OptionalDouble other
+                && (isPresent && other.isPresent
+                ? Double.compare(value, other.value) == 0
+                : isPresent == other.isPresent);
     }
 
     /**
@@ -330,7 +328,7 @@ public final class OptionalDouble {
     @Override
     public String toString() {
         return isPresent
-                ? String.format("OptionalDouble[%s]", value)
+                ? ("OptionalDouble[" + value + "]")
                 : "OptionalDouble.empty";
     }
 }

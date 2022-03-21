@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -107,7 +107,22 @@ public enum Source {
     /**
       * 16, tbd
       */
-    JDK16("16");
+    JDK16("16"),
+
+    /**
+      * 17, tbd
+      */
+    JDK17("17"),
+
+    /**
+      * 18, tbd
+      */
+    JDK18("18"),
+
+    /**
+      * 19, tbd
+      */
+    JDK19("19");
 
     private static final Context.Key<Source> sourceKey = new Context.Key<>();
 
@@ -159,6 +174,9 @@ public enum Source {
 
     public Target requiredTarget() {
         return switch(this) {
+        case JDK19  -> Target.JDK1_19;
+        case JDK18  -> Target.JDK1_18;
+        case JDK17  -> Target.JDK1_17;
         case JDK16  -> Target.JDK1_16;
         case JDK15  -> Target.JDK1_15;
         case JDK14  -> Target.JDK1_14;
@@ -217,7 +235,10 @@ public enum Source {
         PATTERN_MATCHING_IN_INSTANCEOF(JDK16, Fragments.FeaturePatternMatchingInstanceof, DiagKind.NORMAL),
         REIFIABLE_TYPES_INSTANCEOF(JDK16, Fragments.FeatureReifiableTypesInstanceof, DiagKind.PLURAL),
         RECORDS(JDK16, Fragments.FeatureRecords, DiagKind.PLURAL),
-        SEALED_CLASSES(JDK16, Fragments.FeatureSealedClasses, DiagKind.PLURAL),
+        SEALED_CLASSES(JDK17, Fragments.FeatureSealedClasses, DiagKind.PLURAL),
+        CASE_NULL(JDK17, Fragments.FeatureCaseNull, DiagKind.NORMAL),
+        PATTERN_SWITCH(JDK17, Fragments.FeaturePatternSwitch, DiagKind.PLURAL),
+        REDUNDANT_STRICTFP(JDK17),
         ;
 
         enum DiagKind {
@@ -296,6 +317,9 @@ public enum Source {
         case JDK14  -> RELEASE_14;
         case JDK15  -> RELEASE_15;
         case JDK16  -> RELEASE_16;
+        case JDK17  -> RELEASE_17;
+        case JDK18  -> RELEASE_18;
+        case JDK19  -> RELEASE_19;
         default     -> null;
         };
     }
