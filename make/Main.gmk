@@ -233,6 +233,7 @@ ALL_TARGETS += $(LAUNCHER_TARGETS)
 HOTSPOT_VARIANT_TARGETS := $(addprefix hotspot-, $(JVM_VARIANTS))
 HOTSPOT_VARIANT_GENSRC_TARGETS := $(addsuffix -gensrc, $(HOTSPOT_VARIANT_TARGETS))
 HOTSPOT_VARIANT_LIBS_TARGETS := $(addsuffix -libs, $(HOTSPOT_VARIANT_TARGETS))
+HOTSPOT_VARIANT_GTEST_TARGETS := $(addsuffix -gtest, $(HOTSPOT_VARIANT_TARGETS))
 
 define DeclareHotspotGensrcRecipe
   hotspot-$1-gensrc:
@@ -244,12 +245,30 @@ endef
 $(foreach v, $(JVM_VARIANTS), $(eval $(call DeclareHotspotGensrcRecipe,$v)))
 
 define DeclareHotspotLibsRecipe
-  hotspot-$1-libs:
+  hotspot-$1-libs1:
 	+($(CD) $(TOPDIR)/make/hotspot && $(MAKE) $(MAKE_ARGS) -f lib/CompileLibraries.gmk \
 	    JVM_VARIANT=$1)
 endef
 
 $(foreach v, $(JVM_VARIANTS), $(eval $(call DeclareHotspotLibsRecipe,$v)))
+
+ifneq ($(GTEST_FRAMEWORK_SRC), )
+  define DeclareHotspotGtestRecipe
+    hotspot-$1-gtest:
+	+($(CD) $(TOPDIR)/make/hotspot && $(MAKE) $(MAKE_ARGS) -f lib/CompileTests.gmk \
+	    JVM_VARIANT=$1)
+  endef
+
+  $(foreach v, $(JVM_VARIANTS), $(eval $(call DeclareHotspotGtestRecipe,$v)))
+endif
+
+define DeclareHotspotLibsRecipe2
+  hotspot-$1-libs: hotspot-$1-libs1 hotspot-$1-gtest
+
+  hotspot-$1-gtest: hotspot-$1-libs1
+endef
+
+$(foreach v, $(JVM_VARIANTS), $(eval $(call DeclareHotspotLibsRecipe2,$v)))
 
 $(eval $(call SetupTarget, hotspot-ide-project, \
     MAKEFILE := ide/visualstudio/hotspot/CreateVSProject, \
@@ -258,7 +277,7 @@ $(eval $(call SetupTarget, hotspot-ide-project, \
 ))
 
 ALL_TARGETS += $(HOTSPOT_VARIANT_TARGETS) $(HOTSPOT_VARIANT_GENSRC_TARGETS) \
-    $(HOTSPOT_VARIANT_LIBS_TARGETS)
+    $(HOTSPOT_VARIANT_LIBS_TARGETS) $(HOTSPOT_VARIANT_GTEST_TARGETS)
 
 ################################################################################
 # Generate libs and launcher targets for creating compile_commands.json fragments
@@ -675,7 +694,7 @@ $(eval $(call SetupTarget, test-image-libtest-jtreg-native, \
 ifneq ($(GTEST_FRAMEWORK_SRC), )
   $(eval $(call SetupTarget, test-image-hotspot-gtest, \
       MAKEFILE := hotspot/test/GtestImage, \
-      DEPS := hotspot, \
+      DEPS := hotspot hotspot-gtest, \
   ))
 endif
 
@@ -825,11 +844,11 @@ else
   # Declare dependencies between hotspot-<variant>* targets
   $(foreach v, $(JVM_VARIANTS), \
       $(eval hotspot-$v-gensrc: java.base-copy buildtools-hotspot) \
-      $(eval hotspot-$v-libs: hotspot-$v-gensrc java.base-copy) \
+      $(eval hotspot-$v-libs1: hotspot-$v-gensrc java.base-copy) \
   )
 
   # If not already set, set the JVM variant target so that the JVM will be built.
-  JVM_MAIN_LIB_TARGETS ?= hotspot-$(JVM_VARIANT_MAIN)-libs
+  JVM_MAIN_LIB_TARGETS ?= hotspot-$(JVM_VARIANT_MAIN)-libs1
   JVM_MAIN_GENSRC_TARGETS ?= hotspot-$(JVM_VARIANT_MAIN)-gensrc
 
   # Building one JVM variant is enough to start building the other libs
@@ -1011,8 +1030,8 @@ else
 
   interim-image: $(INTERIM_JMOD_TARGETS)
 
-  build-test-hotspot-jtreg-native: hotspot-$(JVM_VARIANT_MAIN)-libs
-  build-test-libtest-jtreg-native: hotspot-$(JVM_VARIANT_MAIN)-libs
+  build-test-hotspot-jtreg-native: hotspot-$(JVM_VARIANT_MAIN)-libs1
+  build-test-libtest-jtreg-native: hotspot-$(JVM_VARIANT_MAIN)-libs1
 
 endif
 
@@ -1026,14 +1045,15 @@ buildtools: buildtools-langtools interim-langtools \
 
 # Declare dependencies from hotspot-<variant> targets
 $(foreach v, $(JVM_VARIANTS), \
-  $(eval hotspot-$v: hotspot-$v-gensrc hotspot-$v-libs) \
+  $(eval hotspot-$v: hotspot-$v-gensrc hotspot-$v-libs1) \
 )
 hotspot: $(HOTSPOT_VARIANT_TARGETS)
 
 # Create targets hotspot-libs and hotspot-gensrc.
 $(foreach v, $(JVM_VARIANTS), \
-  $(eval hotspot-libs: hotspot-$v-libs) \
+  $(eval hotspot-libs: hotspot-$v-libs1) \
   $(eval hotspot-gensrc: hotspot-$v-gensrc) \
+  $(eval hotspot-gtest: hotspot-$v-gtest) \
 )
 
 gensrc: $(GENSRC_TARGETS)

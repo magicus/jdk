@@ -29,9 +29,7 @@ include $(SPEC)
 include MakeBase.gmk
 include JdkNativeCompilation.gmk
 
-include lib/CompileJvm.gmk
-
-include CopyToExplodedJdk.gmk
+include lib/CompileGtest.gmk
 
 all: $(TARGETS)
 

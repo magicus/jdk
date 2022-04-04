@@ -23,7 +23,7 @@
 # questions.
 #
 
-$(eval $(call IncludeCustomExtension, hotspot/lib/CompileGtest.gmk))
+include lib/SetupJvm.gmk
 
 GTEST_TEST_SRC += $(TOPDIR)/test/hotspot/gtest
 GTEST_LAUNCHER_SRC := $(TOPDIR)/test/hotspot/gtest/gtestLauncher.cpp
@@ -67,6 +67,7 @@ $(eval $(call SetupJdkLibrary, BUILD_GTEST_LIBGTEST, \
 TARGETS += $(BUILD_GTEST_LIBGTEST)
 
 ################################################################################
+BUILD_LIBJVM_ALL_OBJS := $(wildcard $(JVM_OUTPUTDIR)/objs/*$(OBJ_SUFFIX))
 
 ifeq ($(call isTargetOs, windows), true)
   GTEST_JVM_MAPFILE := $(JVM_MAPFILE)
@@ -124,6 +125,8 @@ $(eval $(call SetupJdkLibrary, BUILD_GTEST_LIBJVM, \
 $(BUILD_GTEST_LIBJVM) : $(BUILD_GTEST_LIBGTEST)
 
 TARGETS += $(BUILD_GTEST_LIBJVM)
+
+include lib/JvmMapfile.gmk
 
 ################################################################################
 
