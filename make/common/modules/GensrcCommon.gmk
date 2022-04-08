@@ -24,8 +24,6 @@
 #
 
 include Execute.gmk
-include JavaCompilation.gmk
-include NativeCompilation.gmk
 include TextFileProcessing.gmk
 # Still needed to be able to depend on BUILD_TOOLS_JD
 include ToolsJdk.gmk
@@ -37,3 +35,18 @@ TOOL_CHARSETMAPPING = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
 # shared by java.base and jdk.localedata
 TOOL_CLDRCONVERTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     org.openjdk.buildtools.cldrconverter.CLDRConverter
+
+################################################################################
+# Sets up a rule that creates a version.properties file in the gensrc output
+# directory.
+# Param 1 - Variable to add generated file name to
+# Param 2 - Name of version.properties file including packages from the src
+#           root.
+define SetupVersionProperties
+  $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/$$(strip $2):
+	$$(call MakeTargetDir)
+	$(PRINTF) "jdk=$(VERSION_NUMBER)\nfull=$(VERSION_STRING)\nrelease=$(VERSION_SHORT)\n" \
+	    > $$@
+
+  $$(strip $1) += $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/$$(strip $2)
+endef

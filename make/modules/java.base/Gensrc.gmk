@@ -23,7 +23,7 @@
 # questions.
 #
 
-include GensrcCommonJdk.gmk
+include GensrcCommon.gmk
 
 # Used by GensrcBuffer.gmk, GensrcCharsetCoder.gmk and GensrcVarHandles.gmk
 TOOL_SPP = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
