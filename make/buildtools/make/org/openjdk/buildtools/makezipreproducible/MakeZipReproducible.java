@@ -204,6 +204,10 @@ public class MakeZipReproducible {
             entry.setTimeLocal(timestamp);
         }
 
+        // Ensure "extra" field is not set from original ZipEntry info that may be not deterministic
+        // eg.may contain specific UID/GID
+        entry.setExtra(null);
+
         zos.putNextEntry(entry);
         if (entry.getSize() > 0 && entryInputStream != null) {
             entryInputStream.transferTo(zos);
