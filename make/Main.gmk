@@ -96,6 +96,17 @@ $(eval $(call SetupTarget, buildtools-hotspot, \
     MAKEFILE := CompileToolsHotspot, \
 ))
 
+$(eval $(call SetupTarget, java.base-buildtools, \
+    MAKEFILE := Buildtools, \
+    ARGS := java.base-buildtools, \
+    DEPS := interim-langtools, \
+))
+
+$(eval $(call SetupTarget, interim-buildtools, \
+    MAKEFILE := Buildtools, \
+    ARGS := interim-buildtools, \
+))
+
 ################################################################################
 # Special targets for certain modules
 
