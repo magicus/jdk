@@ -580,7 +580,6 @@ AC_DEFUN([UTIL_CHECK_TYPE_features],
 #   TYPE: The type of the value. Can be one of "string", "integer", "file",
 #     "directory", "literal", "multivalue" or "features". Required.
 #   DEFAULT: The default value for this option. Can be any valid string.
-#     Required.
 #   OPTIONAL: If this feature can be disabled. Defaults to false. If true,
 #     the feature can be disabled using --without-FOO, --with-FOO=no, or
 #     --with-FOO=. Check the ENABLED_RESULT variable for the enabled/disabled
@@ -595,7 +594,7 @@ AC_DEFUN([UTIL_CHECK_TYPE_features],
 #   DESC: A description of this option. Defaults to a generic and unhelpful
 #     string.
 #   DEFAULT_DESC: A message describing the default value, for the help. Defaults
-#     to the literal value of DEFAULT, or "<none>" if DEFAULT is empty.
+#     to the literal value of DEFAULT, or "<none>" if DEFAULT is empty or not given.
 #   CHECKING_MSG: The message to present to user when checking this option.
 #     Defaults to a generic message.
 #   CHECK_AVAILABLE: An optional code block to execute to determine if the
@@ -618,7 +617,7 @@ AC_DEFUN([UTIL_CHECK_TYPE_features],
 #     on the command line (regardless of the value).
 #
 UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
-    [*NAME *TYPE *DEFAULT OPTIONAL RESULT ENABLED_DEFAULT ENABLED_RESULT
+    [*NAME *TYPE DEFAULT OPTIONAL RESULT ENABLED_DEFAULT ENABLED_RESULT
     AVAILABLE DESC DEFAULT_DESC CHECKING_MSG CHECK_AVAILABLE VALID_VALUES
     CHECK_VALUE CHECK_FOR_FILES IF_AUTO IF_GIVEN IF_NOT_GIVEN], [$@],
 [
@@ -730,6 +729,11 @@ UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
           fi
         else
           if test "x$ARG_OPTION" = xyes; then
+            if test "[x]ARG_DEFAULT" = "x"; then
+              AC_MSG_RESULT([invalid])
+              AC_MSG_ERROR([You must specify a value for [--with-]ARG_NAME, since it has no default value])
+            fi
+            echo "we got ARG_DEFAULT"
             ARG_RESULT="ARG_DEFAULT"
             ARG_ENABLED_RESULT=true
             REASON="default as enabled from command line"
