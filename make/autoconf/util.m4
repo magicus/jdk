@@ -404,8 +404,7 @@ UTIL_DEFUN_NAMED([UTIL_ARG_ENABLE],
     AC_MSG_ERROR([Internal error: Argument AVAILABLE to [UTIL_ARG_ENABLE] can only be true or false, was: 'ARG_AVAILABLE'])
   fi
 
-  AC_ARG_ENABLE(ARG_NAME, AS_HELP_STRING([--enable-]ARG_NAME,
-      [ARG_DESC [ARG_DEFAULT_DESC]]), [ARG_GIVEN=true], [ARG_GIVEN=false])
+  AC_ARG_ENABLE(ARG_NAME, AS_HELP_STRING([--enable-]ARG_NAME, m4_bpatsubst(ARG_DESC,(,),[[,]]) @<:@ARG_DEFAULT_DESC@:>@), [ARG_GIVEN=true], [ARG_GIVEN=false])
 
   # Check if the option is available
   AVAILABLE=ARG_AVAILABLE
@@ -661,7 +660,6 @@ UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
   # tripping up bash.
   m4_define([ARG_CHECK_AVAILABLE], m4_if(ARG_CHECK_AVAILABLE, , :, ARG_CHECK_AVAILABLE))
   m4_define([ARG_CHECK_VALUE], m4_if(ARG_CHECK_VALUE, , :, ARG_CHECK_VALUE))
-  m4_define([ARG_CHECK_FOR_FILES], m4_if(ARG_CHECK_FOR_FILES, , :, ARG_CHECK_FOR_FILES))
   m4_define([ARG_IF_AUTO], m4_if(ARG_IF_AUTO, , :, ARG_IF_AUTO))
   m4_define([ARG_IF_GIVEN], m4_if(ARG_IF_GIVEN, , :, ARG_IF_GIVEN))
   m4_define([ARG_IF_NOT_GIVEN], m4_if(ARG_IF_NOT_GIVEN, , :, ARG_IF_NOT_GIVEN))
@@ -693,8 +691,7 @@ UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
     AC_MSG_ERROR([Internal error: Argument TYPE to [UTIL_ARG_WITH] must be a valid type, was: 'ARG_TYPE'])
   fi
 
-  AC_ARG_WITH(ARG_NAME, AS_HELP_STRING([--with-]ARG_NAME,
-      [ARG_DESC [ARG_DEFAULT_DESC]]), [ARG_GIVEN=true], [ARG_GIVEN=false])
+  AC_ARG_WITH(ARG_NAME, AS_HELP_STRING([--with-]ARG_NAME, m4_bpatsubst(ARG_DESC,(,),[[,]]) @<:@ARG_DEFAULT_DESC@:>@), [ARG_GIVEN=true], [ARG_GIVEN=false])
 
   # Check if the option is available
   AVAILABLE=ARG_AVAILABLE
@@ -776,25 +773,25 @@ UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
     else
       AC_MSG_RESULT([$ARG_RESULT, $REASON])
     fi
-  fi
 
-  # Verify value
-  # First use our dispatcher to verify that type requirements are satisfied
-  UTIL_CHECK_TYPE(ARG_TYPE, $ARG_RESULT)
+    # Verify value
+    # First use our dispatcher to verify that type requirements are satisfied
+    UTIL_CHECK_TYPE(ARG_TYPE, $ARG_RESULT)
 
-  if test "x$FAILURE" = x; then
-    # Execute custom verification payload, if present
-    RESULT="$ARG_RESULT"
+    if test "x$FAILURE" = x; then
+      # Execute custom verification payload, if present
+      RESULT="$ARG_RESULT"
 
-    ARG_CHECK_VALUE
+      ARG_CHECK_VALUE
 
-    ARG_RESULT="$RESULT"
-  fi
+      ARG_RESULT="$RESULT"
+    fi
 
-  if test "x$FAILURE" != x; then
-    AC_MSG_NOTICE([Invalid value for [--with-]ARG_NAME: "$ARG_RESULT"])
-    AC_MSG_NOTICE([$FAILURE])
-    AC_MSG_ERROR([Cannot continue])
+    if test "x$FAILURE" != x; then
+      AC_MSG_NOTICE([Invalid value for [--with-]ARG_NAME: "$ARG_RESULT"])
+      AC_MSG_NOTICE([$FAILURE])
+      AC_MSG_ERROR([Cannot continue])
+    fi
   fi
 
   # Execute result payloads, if present
