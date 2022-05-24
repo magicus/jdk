@@ -117,16 +117,91 @@ AC_DEFUN([BASIC_EVAL_BUILD_DEVKIT_VARIABLE],
 ])
 
 ###############################################################################
+AC_DEFUN([BASIC_SETUP_XCODE_SYSROOT],
+[
+  # If a devkit has been supplied, find xcodebuild in the toolchain_path.
+  # If not, detect if Xcode is installed by running xcodebuild -version
+  # if no Xcode installed, xcodebuild exits with 1
+  # if Xcode is installed, even if xcode-select is misconfigured, then it exits with 0
+  if test "x$DEVKIT_ROOT" != x || /usr/bin/xcodebuild -version >/dev/null 2>&1; then
+    # We need to use xcodebuild in the toolchain dir provided by the user
+    UTIL_LOOKUP_PROGS(XCODEBUILD, xcodebuild, $TOOLCHAIN_PATH)
+    if test x$XCODEBUILD = x; then
+      # fall back on the stub binary in /usr/bin/xcodebuild
+      XCODEBUILD=/usr/bin/xcodebuild
+    fi
+  else
+    # this should result in SYSROOT being empty, unless --with-sysroot is provided
+    # when only the command line tools are installed there are no SDKs, so headers
+    # are copied into the system frameworks
+    XCODEBUILD=
+    AC_SUBST(XCODEBUILD)
+  fi
+
+  AC_MSG_CHECKING([for sdk name])
+  AC_ARG_WITH([sdk-name], [AS_HELP_STRING([--with-sdk-name],
+      [use the platform SDK of the given name. @<:@macosx@:>@])],
+      [SDKNAME=$with_sdk_name]
+  )
+  AC_MSG_RESULT([$SDKNAME])
+
+  # if toolchain path is specified then don't rely on system headers, they may not compile
+  HAVE_SYSTEM_FRAMEWORK_HEADERS=0
+  test -z "$TOOLCHAIN_PATH" && \
+    HAVE_SYSTEM_FRAMEWORK_HEADERS=`test ! -f /System/Library/Frameworks/Foundation.framework/Headers/Foundation.h; echo $?`
+
+  if test -z "$SYSROOT"; then
+    if test -n "$XCODEBUILD"; then
+      # if we don't have system headers, use default SDK name (last resort)
+      if test -z "$SDKNAME" -a $HAVE_SYSTEM_FRAMEWORK_HEADERS -eq 0; then
+        SDKNAME=${SDKNAME:-macosx}
+      fi
+
+      if test -n "$SDKNAME"; then
+        # Call xcodebuild to determine SYSROOT
+        SYSROOT=`"$XCODEBUILD" -sdk $SDKNAME -version | $GREP '^Path: ' | $SED 's/Path: //'`
+      fi
+    else
+      if test $HAVE_SYSTEM_FRAMEWORK_HEADERS -eq 0; then
+        AC_MSG_ERROR([No xcodebuild tool and no system framework headers found, use --with-sysroot or --with-sdk-name to provide a path to a valid SDK])
+      fi
+    fi
+  else
+    # warn user if --with-sdk-name was also set
+    if test -n "$with_sdk_name"; then
+      AC_MSG_WARN([Both SYSROOT and --with-sdk-name are set, only SYSROOT will be used])
+    fi
+  fi
+
+  if test $HAVE_SYSTEM_FRAMEWORK_HEADERS -eq 0 -a -z "$SYSROOT"; then
+    # If no system framework headers, then SYSROOT must be set, or we won't build
+    AC_MSG_ERROR([Unable to determine SYSROOT and no headers found in /System/Library/Frameworks. Check Xcode configuration, --with-sysroot or --with-sdk-name arguments.])
+  fi
+
+  # Perform a basic sanity test
+  if test ! -f "$SYSROOT/System/Library/Frameworks/Foundation.framework/Headers/Foundation.h"; then
+    if test -z "$SYSROOT"; then
+      AC_MSG_ERROR([Unable to find required framework headers, provide a path to an SDK via --with-sysroot or --with-sdk-name and be sure Xcode is installed properly])
+    else
+      AC_MSG_ERROR([Invalid SDK or SYSROOT path, dependent framework headers not found])
+    fi
+  fi
+
+  # set SDKROOT too, Xcode tools will pick it up
+  SDKROOT="$SYSROOT"
+  AC_SUBST(SDKROOT)
+])
+
+###############################################################################
 AC_DEFUN_ONCE([BASIC_SETUP_DEVKIT],
 [
-  AC_ARG_WITH([devkit], [AS_HELP_STRING([--with-devkit],
-      [use this devkit for compilers, tools and resources])])
+  UTIL_ARG_WITH(NAME: devkit, TYPE: directory,
+      OPTIONAL: true, RESULT: DEVKIT_ROOT,
+      CHECKING_MSG: [for devkit path],
+      DESC: [use this devkit for compilers(,) tools and resources]
+  )
 
-  if test "x$with_devkit" = xyes; then
-    AC_MSG_ERROR([--with-devkit must have a value])
-  elif test "x$with_devkit" != x && test "x$with_devkit" != xno; then
-    UTIL_FIXUP_PATH([with_devkit])
-    DEVKIT_ROOT="$with_devkit"
+  if test "x$DEVKIT_ROOT" != x; then
     # Check for a meta data info file in the root of the devkit
     if test -f "$DEVKIT_ROOT/devkit.info"; then
       . $DEVKIT_ROOT/devkit.info
@@ -156,20 +231,20 @@ AC_DEFUN_ONCE([BASIC_SETUP_DEVKIT],
       BASIC_EVAL_DEVKIT_VARIABLE([DEVKIT_UCRT_DLL_DIR])
     fi
 
-    AC_MSG_CHECKING([for devkit])
+    AC_MSG_CHECKING([for devkit metadata])
     if test "x$DEVKIT_NAME" != x; then
-      AC_MSG_RESULT([$DEVKIT_NAME in $DEVKIT_ROOT])
+      AC_MSG_RESULT([found, devkit is $DEVKIT_NAME in $DEVKIT_ROOT])
     else
-      AC_MSG_RESULT([$DEVKIT_ROOT])
+      AC_MSG_RESULT([not found for $DEVKIT_ROOT])
     fi
 
-    UTIL_PREPEND_TO_PATH([EXTRA_PATH],$DEVKIT_EXTRA_PATH)
+    UTIL_PREPEND_TO_PATH([EXTRA_PATH], $DEVKIT_EXTRA_PATH)
 
     # Fallback default of just /bin if DEVKIT_PATH is not defined
     if test "x$DEVKIT_TOOLCHAIN_PATH" = x; then
       DEVKIT_TOOLCHAIN_PATH="$DEVKIT_ROOT/bin"
     fi
-    UTIL_PREPEND_TO_PATH([TOOLCHAIN_PATH],$DEVKIT_TOOLCHAIN_PATH)
+    UTIL_PREPEND_TO_PATH([TOOLCHAIN_PATH], $DEVKIT_TOOLCHAIN_PATH)
 
     # If DEVKIT_SYSROOT is set, use that, otherwise try a couple of known
     # places for backwards compatibility.
@@ -181,126 +256,55 @@ AC_DEFUN_ONCE([BASIC_SETUP_DEVKIT],
       SYSROOT="$DEVKIT_ROOT/$host/sys-root"
     fi
 
-    if test "x$DEVKIT_ROOT" != x; then
-      DEVKIT_LIB_DIR="$DEVKIT_ROOT/lib"
-      if test "x$OPENJDK_TARGET_CPU_BITS" = x64; then
-        DEVKIT_LIB_DIR="$DEVKIT_ROOT/lib64"
-      fi
-      AC_SUBST(DEVKIT_LIB_DIR)
+    DEVKIT_LIB_DIR="$DEVKIT_ROOT/lib"
+    if test "x$OPENJDK_TARGET_CPU_BITS" = x64; then
+      DEVKIT_LIB_DIR="$DEVKIT_ROOT/lib64"
     fi
+    AC_SUBST(DEVKIT_LIB_DIR)
   fi
+
+  UTIL_DEPRECATED_ARG_WITH(sys-root)
+  UTIL_DEPRECATED_ARG_WITH(tools-dir)
 
   # You can force the sysroot if the sysroot encoded into the compiler tools
   # is not correct.
-  AC_ARG_WITH(sys-root, [AS_HELP_STRING([--with-sys-root],
-      [alias for --with-sysroot for backwards compatibility])],
-      [SYSROOT=$with_sys_root]
-  )
-
-  AC_ARG_WITH(sysroot, [AS_HELP_STRING([--with-sysroot],
-      [use this directory as sysroot])],
-      [SYSROOT=$with_sysroot]
-  )
-
-  AC_ARG_WITH([tools-dir], [AS_HELP_STRING([--with-tools-dir],
-      [alias for --with-toolchain-path for backwards compatibility])],
-      [UTIL_PREPEND_TO_PATH([TOOLCHAIN_PATH],$with_tools_dir)]
-  )
-
-  AC_ARG_WITH([toolchain-path], [AS_HELP_STRING([--with-toolchain-path],
-      [prepend these directories when searching for toolchain binaries (compilers etc)])],
-      [UTIL_PREPEND_TO_PATH([TOOLCHAIN_PATH],$with_toolchain_path)]
-  )
-
-  AC_ARG_WITH([extra-path], [AS_HELP_STRING([--with-extra-path],
-      [prepend these directories to the default path])],
-      [UTIL_PREPEND_TO_PATH([EXTRA_PATH],$with_extra_path)]
+  UTIL_ARG_WITH(NAME: sysroot, TYPE: directory,
+      OPTIONAL: true, RESULT: SYSROOT_OVERRIDE,
+      CHECKING_MSG: [for sysroot override],
+      DESC: [use this directory instead as sysroot],
+      IF_ENABLED: [
+        SYSROOT="$SYSROOT_OVERRIDE"
+      ]
   )
 
   if test "x$OPENJDK_BUILD_OS" = "xmacosx"; then
-    # If a devkit has been supplied, find xcodebuild in the toolchain_path.
-    # If not, detect if Xcode is installed by running xcodebuild -version
-    # if no Xcode installed, xcodebuild exits with 1
-    # if Xcode is installed, even if xcode-select is misconfigured, then it exits with 0
-    if test "x$DEVKIT_ROOT" != x || /usr/bin/xcodebuild -version >/dev/null 2>&1; then
-      # We need to use xcodebuild in the toolchain dir provided by the user
-      UTIL_LOOKUP_PROGS(XCODEBUILD, xcodebuild, $TOOLCHAIN_PATH)
-      if test x$XCODEBUILD = x; then
-        # fall back on the stub binary in /usr/bin/xcodebuild
-        XCODEBUILD=/usr/bin/xcodebuild
-      fi
-    else
-      # this should result in SYSROOT being empty, unless --with-sysroot is provided
-      # when only the command line tools are installed there are no SDKs, so headers
-      # are copied into the system frameworks
-      XCODEBUILD=
-      AC_SUBST(XCODEBUILD)
-    fi
-
-    AC_MSG_CHECKING([for sdk name])
-    AC_ARG_WITH([sdk-name], [AS_HELP_STRING([--with-sdk-name],
-        [use the platform SDK of the given name. @<:@macosx@:>@])],
-        [SDKNAME=$with_sdk_name]
-    )
-    AC_MSG_RESULT([$SDKNAME])
-
-    # if toolchain path is specified then don't rely on system headers, they may not compile
-    HAVE_SYSTEM_FRAMEWORK_HEADERS=0
-    test -z "$TOOLCHAIN_PATH" && \
-      HAVE_SYSTEM_FRAMEWORK_HEADERS=`test ! -f /System/Library/Frameworks/Foundation.framework/Headers/Foundation.h; echo $?`
-
-    if test -z "$SYSROOT"; then
-      if test -n "$XCODEBUILD"; then
-        # if we don't have system headers, use default SDK name (last resort)
-        if test -z "$SDKNAME" -a $HAVE_SYSTEM_FRAMEWORK_HEADERS -eq 0; then
-          SDKNAME=${SDKNAME:-macosx}
-        fi
-
-        if test -n "$SDKNAME"; then
-          # Call xcodebuild to determine SYSROOT
-          SYSROOT=`"$XCODEBUILD" -sdk $SDKNAME -version | $GREP '^Path: ' | $SED 's/Path: //'`
-        fi
-      else
-        if test $HAVE_SYSTEM_FRAMEWORK_HEADERS -eq 0; then
-          AC_MSG_ERROR([No xcodebuild tool and no system framework headers found, use --with-sysroot or --with-sdk-name to provide a path to a valid SDK])
-        fi
-      fi
-    else
-      # warn user if --with-sdk-name was also set
-      if test -n "$with_sdk_name"; then
-        AC_MSG_WARN([Both SYSROOT and --with-sdk-name are set, only SYSROOT will be used])
-      fi
-    fi
-
-    if test $HAVE_SYSTEM_FRAMEWORK_HEADERS -eq 0 -a -z "$SYSROOT"; then
-      # If no system framework headers, then SYSROOT must be set, or we won't build
-      AC_MSG_ERROR([Unable to determine SYSROOT and no headers found in /System/Library/Frameworks. Check Xcode configuration, --with-sysroot or --with-sdk-name arguments.])
-    fi
-
-    # Perform a basic sanity test
-    if test ! -f "$SYSROOT/System/Library/Frameworks/Foundation.framework/Headers/Foundation.h"; then
-      if test -z "$SYSROOT"; then
-        AC_MSG_ERROR([Unable to find required framework headers, provide a path to an SDK via --with-sysroot or --with-sdk-name and be sure Xcode is installed properly])
-      else
-        AC_MSG_ERROR([Invalid SDK or SYSROOT path, dependent framework headers not found])
-      fi
-    fi
-
-    # set SDKROOT too, Xcode tools will pick it up
-    SDKROOT="$SYSROOT"
-    AC_SUBST(SDKROOT)
+    # This both depends on SYSROOT and sets SYSROOT.
+    BASIC_SETUP_XCODE_SYSROOT
   fi
 
-  # Prepend the extra path to the global path
-  UTIL_PREPEND_TO_PATH([PATH],$EXTRA_PATH)
-
+  # Display the resulting sysroot
   AC_MSG_CHECKING([for sysroot])
   AC_MSG_RESULT([$SYSROOT])
-  AC_MSG_CHECKING([for toolchain path])
-  AC_MSG_RESULT([$TOOLCHAIN_PATH])
+
+  UTIL_ARG_WITH(NAME: toolchain-path, TYPE: string,
+      OPTIONAL: true, RESULT: ADDITIONAL_TOOLCHAIN_PATH,
+      CHECKING_MSG: [for additional toolchain path],
+      DESC: [prepend these directories when searching for toolchain binaries (compilers etc)],
+      IF_ENABLED: [
+        UTIL_PREPEND_TO_PATH([TOOLCHAIN_PATH], $ADDITIONAL_TOOLCHAIN_PATH)
+      ]
+  )
   AC_SUBST(TOOLCHAIN_PATH)
-  AC_MSG_CHECKING([for extra path])
-  AC_MSG_RESULT([$EXTRA_PATH])
+
+  # Prepend the extra path to the global path, if present
+  UTIL_ARG_WITH(NAME: extra-path, TYPE: string,
+      OPTIONAL: true, RESULT: EXTRA_PATH,
+      CHECKING_MSG: [for extra path],
+      DESC: [prepend these directories to the default path],
+      IF_ENABLED: [
+        UTIL_PREPEND_TO_PATH([PATH], $EXTRA_PATH)
+      ]
+  )
 ])
 
 ###############################################################################

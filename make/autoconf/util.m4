@@ -469,9 +469,12 @@ UTIL_DEFUN_NAMED([UTIL_ARG_ENABLE],
 # Helper functions for ARG_WITH, to validate different types of argument
 
 # Dispatcher to call the correct UTIL_CHECK_TYPE_* function depending on the ARG_TYPE
+# Param $1: type
+# Param $2: value
+# Param $3: name of result variable
 AC_DEFUN([UTIL_CHECK_TYPE],
 [
-  UTIL_CHECK_TYPE_$1($2)
+  UTIL_CHECK_TYPE_$1($2, $3)
 ])
 
 AC_DEFUN([UTIL_CHECK_TYPE_string],
@@ -493,6 +496,8 @@ AC_DEFUN([UTIL_CHECK_TYPE_file],
   # Check that the argument is an existing file
   if test ! -f "$1" ; then
     FAILURE="File $1 does not exist or is not readable"
+  else
+    UTIL_FIXUP_PATH([$2])
   fi
 ])
 
@@ -501,6 +506,8 @@ AC_DEFUN([UTIL_CHECK_TYPE_directory],
   # Check that the argument is an existing directory
   if test ! -d "$1" ; then
     FAILURE="Directory $1 does not exist or is not readable"
+  else
+    UTIL_FIXUP_PATH([$2])
   fi
 
   if test "[x]ARG_CHECK_FOR_FILES" != x; then
@@ -611,6 +618,7 @@ AC_DEFUN([UTIL_CHECK_TYPE_features],
 #   IF_AUTO: An optional code block to execute if the value is "auto", either by
 #     default or given by the command line. Must set RESULT to the calculated
 #     value.
+#   IF_ENABLED: An optional code block to execute if the option is enabled.
 #   IF_GIVEN:  An optional code block to execute if the option was given on the
 #     command line (regardless of the value).
 #   IF_NOT_GIVEN:  An optional code block to execute if the option was not given
@@ -660,6 +668,7 @@ UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
   m4_define([ARG_CHECK_AVAILABLE], m4_if(ARG_CHECK_AVAILABLE, , :, ARG_CHECK_AVAILABLE))
   m4_define([ARG_CHECK_VALUE], m4_if(ARG_CHECK_VALUE, , :, ARG_CHECK_VALUE))
   m4_define([ARG_IF_AUTO], m4_if(ARG_IF_AUTO, , :, ARG_IF_AUTO))
+  m4_define([ARG_IF_ENABLED], m4_if(ARG_IF_ENABLED, , :, ARG_IF_ENABLED))
   m4_define([ARG_IF_GIVEN], m4_if(ARG_IF_GIVEN, , :, ARG_IF_GIVEN))
   m4_define([ARG_IF_NOT_GIVEN], m4_if(ARG_IF_NOT_GIVEN, , :, ARG_IF_NOT_GIVEN))
 
@@ -700,12 +709,12 @@ UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
   # Check if the option should be turned on
   AC_MSG_CHECKING(ARG_CHECKING_MSG)
 
-  if test x$AVAILABLE = xfalse; then
+  if test "x$AVAILABLE" = xfalse; then
     ARG_RESULT="$ARG_OPTION"
     ARG_ENABLED_RESULT=false
     REASON="not available"
   else
-    if test x$ARG_GIVEN = xfalse; then
+    if test "x$ARG_GIVEN" = xfalse; then
       ARG_RESULT="ARG_DEFAULT"
       if test "[x]ARG_OPTIONAL" = xtrue; then
         ARG_ENABLED_RESULT=ARG_ENABLED_DEFAULT
@@ -764,7 +773,7 @@ UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
     fi
     ARG_RESULT=""
   else
-    if test [x]ARG_HAS_AUTO_BLOCK = xtrue && test "x$ARG_RESULT" = xauto; then
+    if test "[x]ARG_HAS_AUTO_BLOCK" = xtrue && test "x$ARG_RESULT" = xauto; then
       # Execute "auto" payload
       ARG_IF_AUTO
 
@@ -780,7 +789,7 @@ UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
 
     # Verify value
     # First use our dispatcher to verify that type requirements are satisfied
-    UTIL_CHECK_TYPE(ARG_TYPE, $ARG_RESULT)
+    UTIL_CHECK_TYPE(ARG_TYPE, $ARG_RESULT, ARG_RESULT)
 
     if test "x$FAILURE" = x; then
       # Execute custom verification payload, if present
@@ -799,7 +808,11 @@ UTIL_DEFUN_NAMED([UTIL_ARG_WITH],
   fi
 
   # Execute result payloads, if present
-  if test x$ARG_GIVEN = xtrue; then
+  if test "x$ARG_ENABLED_RESULT" = xtrue; then
+    ARG_IF_ENABLED
+  fi
+
+  if test "x$ARG_GIVEN" = xtrue; then
     ARG_IF_GIVEN
   else
     ARG_IF_NOT_GIVEN
