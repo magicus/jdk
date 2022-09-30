@@ -23,6 +23,7 @@
 # questions.
 #
 
+include MakeBase.gmk
 include CopyCommon.gmk
 include Modules.gmk
 include TextFileProcessing.gmk
@@ -94,23 +95,24 @@ endif
 
 BuildExtraJvm = $(NamedParamsMacroTemplate)
 define BuildExtraJvmBody
-  $1_CONF_NAME := $(CONF_NAME)-extra-jvm-$1
-  $1_SRC_DIR := $(TOPDIR)/build/$($1_CONF_NAME)/hotspot
+  $1_CONF_NAME := $$(CONF_NAME)-extra-jvm-$1
+  $1_SRC_DIR := $$(TOPDIR)/build/$($1_CONF_NAME)/hotspot
 
-  BUILD_EXTRA_JVM_VARIANT_$v:
-	$(call LogInfo, Building extra JVM variant '$1')
-	echo bash configure --with-jvm-variant=$1 --with-conf-name=$($1_CONF_NAME)
-	echo make hotspot CONF_NAME=$($1_CONF_NAME)
-	$(call MakeDir, $(LIB_DST_DIR)/$1)
+  BUILD_EXTRA_JVM_VARIANT_$1:
+	$$(call LogInfo, Building extra JVM variant '$1')
+	$$(call MakeDir, $$(LIB_DST_DIR)/$1)
+	echo bash configure --with-jvm-variant=$1 --with-conf-name=$$($1_CONF_NAME)
+	echo make hotspot CONF_NAME=$$($1_CONF_NAME)
 
   # FIXME: File list is not correctly done. Needs wildcard and/or findfiles.
-  $(eval $(call SetupCopyFiles, COPY_EXTRA_JVM_VARIANT_$v, \
-      FILES := $(TOPDIR)/build/$($1_CONF_NAME)/jdk/lib/$1/* $($1_SRC_DIR)/gtest , \
-      DEST := $(LIB_DST_DIR)/$1, \
+  $$(eval $$(call SetupCopyFiles, COPY_EXTRA_JVM_VARIANT_$1, \
+      FILES := $$(TOPDIR)/build/$$($1_CONF_NAME)/jdk/lib/$1/* $$($1_SRC_DIR)/gtest , \
+      DEST := $$(LIB_DST_DIR)/$1, \
   ))
 
-  COPY_EXTRA_JVM_VARIANT_$v: BUILD_EXTRA_JVM_VARIANT_$v
-  TARGETS += COPY_EXTRA_JVM_VARIANT_$v
+  COPY_EXTRA_JVM_VARIANT_$1: BUILD_EXTRA_JVM_VARIANT_$1
+  TARGETS += COPY_EXTRA_JVM_VARIANT_$1
+  TARGETS += BUILD_EXTRA_JVM_VARIANT_$1
 endef
 
 ifneq ($(BUILD_EXTRA_JVM_VARIANTS), )
@@ -118,7 +120,6 @@ ifneq ($(BUILD_EXTRA_JVM_VARIANTS), )
     $(eval $(call BuildExtraJvm, $v)))
 endif
 
-TARGETS += BUILD_EXTRA_JVM_VARIANT_$v
 
 ################################################################################
 # In jvm.cfg, the first listed KNOWN variant is the default.
