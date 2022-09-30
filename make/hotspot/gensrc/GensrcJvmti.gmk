@@ -30,7 +30,7 @@ $(eval $(call IncludeCustomExtension, hotspot/gensrc/GensrcJvmti.gmk))
 
 # FIXME: jvmtiGen.java should move to make/src, jvmtiEnvFill.java should be removed.
 JVMTI_TOOLS_SRCDIR := $(TOPDIR)/src/hotspot/share/prims
-JVMTI_TOOLS_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/tools/jvmti
+JVMTI_TOOLS_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/tools/jvmti
 
 $(eval $(call SetupJavaCompilation, BUILD_JVMTI_TOOLS, \
     COMPILER := bootjdk, \
@@ -76,7 +76,7 @@ endef
 # Create JVMTI files in gensrc/jvmtifiles
 
 JVMTI_SRCDIR := $(TOPDIR)/src/hotspot/share/prims
-JVMTI_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/gensrc/jvmtifiles
+JVMTI_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/gensrc/jvmtifiles
 
 # Setup rule for generating a jvmti file
 #

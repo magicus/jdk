@@ -28,7 +28,16 @@ default: all
 include $(SPEC)
 include MakeBase.gmk
 
-$(foreach v, $(JVM_VARIANT) $(BUILD_EXTRA_JVM_VARIANTS), \
+$(eval $(call SetupCopyFiles, COPY_GTEST, \
+    SRC := $(HOTSPOT_OUTPUTDIR)/libjvm/gtest, \
+    DEST := $(TEST_IMAGE_DIR)/hotspot/gtest/$(JVM_VARIANT), \
+    FILES := $(call SHARED_LIBRARY,jvm) gtestLauncher$(EXECUTABLE_SUFFIX), \
+))
+
+TARGETS += $(COPY_GTEST)
+
+# FIXME: get the correct path for SRC
+$(foreach v, $(BUILD_EXTRA_JVM_VARIANTS), \
   $(eval $(call SetupCopyFiles, COPY_GTEST_$v, \
       SRC := $(HOTSPOT_OUTPUTDIR)/variant-$v/libjvm/gtest, \
       DEST := $(TEST_IMAGE_DIR)/hotspot/gtest/$v, \

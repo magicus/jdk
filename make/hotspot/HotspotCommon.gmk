@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -23,9 +23,8 @@
 # questions.
 #
 
-JVM_VARIANT_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/variant-$(JVM_VARIANT)
-JVM_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/libjvm
-JVM_SUPPORT_DIR := $(JVM_VARIANT_OUTPUTDIR)/support
+JVM_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/libjvm
+JVM_SUPPORT_DIR := $(HOTSPOT_OUTPUTDIR)/support
 
 DTRACE_SUPPORT_DIR := $(JVM_SUPPORT_DIR)/dtrace
 

@@ -32,7 +32,7 @@ include lib/JvmFlags.gmk
 ################################################################################
 # Setup compilation of the main Hotspot native library (libjvm).
 
-JVM_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/libjvm
+JVM_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/libjvm
 JVM_MAPFILE := $(JVM_OUTPUTDIR)/mapfile
 
 ################################################################################

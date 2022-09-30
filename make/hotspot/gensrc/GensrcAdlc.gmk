@@ -68,8 +68,8 @@ ifeq ($(call check-jvm-feature, compiler2), true)
       CFLAGS := $(ADLC_CFLAGS) $(ADLC_CFLAGS_WARNINGS), \
       LDFLAGS := $(ADLC_LDFLAGS), \
       LIBS := $(ADLC_LIBS), \
-      OBJECT_DIR := $(JVM_VARIANT_OUTPUTDIR)/tools/adlc/objs, \
-      OUTPUT_DIR := $(JVM_VARIANT_OUTPUTDIR)/tools/adlc, \
+      OBJECT_DIR := $(HOTSPOT_OUTPUTDIR)/tools/adlc/objs, \
+      OUTPUT_DIR := $(HOTSPOT_OUTPUTDIR)/tools/adlc, \
       DEBUG_SYMBOLS := false, \
       DISABLED_WARNINGS_clang := tautological-compare, \
   ))
@@ -200,7 +200,7 @@ ifeq ($(call check-jvm-feature, compiler2), true)
   # Finally copy the generated files from support/adlc into gensrc/adfiles,
   # and postprocess them by fixing dummy #line directives.
 
-  ADLC_GENERATED_FILES := $(addprefix $(JVM_VARIANT_OUTPUTDIR)/gensrc/adfiles/, \
+  ADLC_GENERATED_FILES := $(addprefix $(HOTSPOT_OUTPUTDIR)/gensrc/adfiles/, \
       ad_$(HOTSPOT_TARGET_CPU_ARCH).cpp \
       ad_$(HOTSPOT_TARGET_CPU_ARCH).hpp \
       ad_$(HOTSPOT_TARGET_CPU_ARCH)_clone.cpp \
@@ -214,7 +214,7 @@ ifeq ($(call check-jvm-feature, compiler2), true)
       dfa_$(HOTSPOT_TARGET_CPU_ARCH).cpp \
   )
 
-  $(JVM_VARIANT_OUTPUTDIR)/gensrc/adfiles/%: $(adlc_run_TARGET)
+  $(HOTSPOT_OUTPUTDIR)/gensrc/adfiles/%: $(adlc_run_TARGET)
 	$(call LogInfo, Postprocessing adlc file $*)
 	$(call MakeDir, $(@D))
 	$(AWK) \

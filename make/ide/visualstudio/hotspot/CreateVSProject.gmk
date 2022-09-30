@@ -121,8 +121,8 @@ ifeq ($(call isTargetOs, windows), true)
       -buildSpace $(call FixPath, $(IDE_OUTPUTDIR)) \
       -makeBinary $(call FixLinuxExecutable, $(MAKE)) \
       -makeOutput $(call FixPath, $(JDK_OUTPUTDIR)/bin/server) \
-      -absoluteInclude $(call FixPath, $(HOTSPOT_OUTPUTDIR)/variant-server/gensrc) \
-      -absoluteSrcInclude $(call FixPath, $(HOTSPOT_OUTPUTDIR)/variant-server/gensrc) \
+      -absoluteInclude $(call FixPath, $(HOTSPOT_OUTPUTDIR)/gensrc) \
+      -absoluteSrcInclude $(call FixPath, $(HOTSPOT_OUTPUTDIR)/gensrc) \
       $(EXTRACTED_DEFINES_client) \
       $(EXTRACTED_INCLUDES_client) \
       $(ADDITIONAL_VARIANT_ARGS) \

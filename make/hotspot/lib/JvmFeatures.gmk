@@ -37,7 +37,7 @@ endif
 
 ifeq ($(call check-jvm-feature, compiler2), true)
   JVM_CFLAGS_FEATURES += -DCOMPILER2
-  JVM_SRC_DIRS += $(JVM_VARIANT_OUTPUTDIR)/gensrc/adfiles
+  JVM_SRC_DIRS += $(HOTSPOT_OUTPUTDIR)/gensrc/adfiles
 else
   JVM_EXCLUDES += opto libadt
   JVM_EXCLUDE_FILES += bcEscapeAnalyzer.cpp ciTypeFlow.cpp
