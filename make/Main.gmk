@@ -231,7 +231,7 @@ ALL_TARGETS += $(LAUNCHER_TARGETS)
 # Build hotspot target
 
 hotspot-gensrc:
-	$$(call LogInfo, Building JVM variant '$(JVM_VARIANT)' with features '$(JVM_FEATURES)')
+	$(call LogInfo, Building JVM variant '$(JVM_VARIANT)' with features '$(JVM_FEATURES)')
 	+($(CD) $(TOPDIR)/make/hotspot && $(MAKE) $(MAKE_ARGS) -f gensrc/GenerateSources.gmk)
 
 hotspot-libs:
@@ -243,7 +243,7 @@ $(eval $(call SetupTarget, hotspot-ide-project, \
     ARGS := -I$(TOPDIR)/make/hotspot, \
 ))
 
-ALL_TARGETS += hotspot hotspot-gensrc hotspot-libs
+ALL_TARGETS += hotspot-gensrc hotspot-libs
 
 ################################################################################
 # Help and user support
