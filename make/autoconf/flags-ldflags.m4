@@ -33,7 +33,7 @@ AC_DEFUN([FLAGS_SETUP_LDFLAGS],
   # Setup the target toolchain
 
   # The target dir matches the name of VM variant
-  TARGET_JVM_VARIANT_PATH=$JVM_VARIANT_MAIN
+  TARGET_JVM_VARIANT_PATH=$JVM_VARIANT
 
   # On some platforms (mac) the linker warns about non existing -L dirs.
   FLAGS_SETUP_LDFLAGS_CPU_DEP([TARGET])

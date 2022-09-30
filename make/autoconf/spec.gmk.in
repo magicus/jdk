@@ -307,11 +307,9 @@ HOTSPOT_DEBUG_LEVEL:=@HOTSPOT_DEBUG_LEVEL@
 # Which JVM variant to build
 JVM_VARIANT := @JVM_VARIANT@
 BUILD_EXTRA_JVM_VARIANTS := @BUILD_EXTRA_JVM_VARIANTS@
-JVM_VARIANTS := @JVM_VARIANTS@
-JVM_VARIANT_MAIN := @JVM_VARIANT_MAIN@
 
-# Lists of features per variant. Only relevant for the variants listed in
-# JVM_VARIANTS.
+# Lists of features per variant. Only relevant for the variant listed in
+# JVM_VARIANT.
 JVM_FEATURES_server := @JVM_FEATURES_server@
 JVM_FEATURES_client := @JVM_FEATURES_client@
 JVM_FEATURES_core := @JVM_FEATURES_core@
@@ -321,7 +319,6 @@ JVM_FEATURES_custom := @JVM_FEATURES_custom@
 
 # Used for make-time verifications
 VALID_JVM_FEATURES := @VALID_JVM_FEATURES@
-VALID_JVM_VARIANTS := @VALID_JVM_VARIANTS@
 
 # Allow overriding the default hotspot library path
 HOTSPOT_OVERRIDE_LIBPATH := @HOTSPOT_OVERRIDE_LIBPATH@

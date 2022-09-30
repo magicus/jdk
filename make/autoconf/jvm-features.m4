@@ -554,7 +554,7 @@ AC_DEFUN_ONCE([JVM_FEATURES_SETUP],
   INCLUDE_JVMCI="true"
   INCLUDE_COMPILER2="false"
 
-  for variant in $JVM_VARIANTS; do
+  for variant in $JVM_VARIANT; do
     # Figure out if any features are unavailable, or should be filtered out
     # by default, for this variant.
     # Store the result in JVM_FEATURES_VARIANT_UNAVAILABLE and

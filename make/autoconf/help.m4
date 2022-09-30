@@ -288,10 +288,10 @@ AC_DEFUN_ONCE([HELP_PRINT_SUMMARY_AND_WARNINGS],
   printf "* Name:           $CONF_NAME\n"
   printf "* Debug level:    $DEBUG_LEVEL\n"
   printf "* HS debug level: $HOTSPOT_DEBUG_LEVEL\n"
-  printf "* JVM variants:   $JVM_VARIANTS\n"
+  printf "* JVM variant:    $JVM_VARIANT\n"
   printf "* JVM features:   "
 
-  for variant in $JVM_VARIANTS; do
+  for variant in $JVM_VARIANT; do
     features_var_name=JVM_FEATURES_$variant
     JVM_FEATURES_FOR_VARIANT=${!features_var_name}
     printf "$variant: \'$JVM_FEATURES_FOR_VARIANT\' "

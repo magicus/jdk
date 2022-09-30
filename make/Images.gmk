@@ -165,12 +165,13 @@ define CreateCDSArchive
 endef
 
 ifeq ($(BUILD_CDS_ARCHIVE), true)
-  $(foreach v, $(JVM_VARIANTS), \
+  # Build CDS archives even for extra JVM variants
+  $(foreach v, $(JVM_VARIANT) $(BUILD_EXTRA_JVM_VARIANTS), \
     $(eval $(call CreateCDSArchive,$v,)) \
   )
 
   ifeq ($(call isTargetCpuBits, 64), true)
-    $(foreach v, $(JVM_VARIANTS), \
+    $(foreach v, $(JVM_VARIANT) $(BUILD_EXTRA_JVM_VARIANTS), \
       $(eval $(call CreateCDSArchive,$v,_nocoops)) \
     )
   endif

@@ -58,17 +58,17 @@ ifeq ($(call isTargetOs, windows)+$(CREATING_BUILDJDK), true+false)
 
   # Use separate macro calls in case the source files are not in the same
   # directory.
-  $(eval $(call SetupCopyFiles,COPY_MSVCR, \
+  $(eval $(call SetupCopyFiles, COPY_MSVCR, \
       DEST := $(LIB_DST_DIR), \
       FILES := $(MSVCR_DLL), \
       MACRO := copy-and-chmod))
 
-  $(eval $(call SetupCopyFiles,COPY_VCRUNTIME_1, \
+  $(eval $(call SetupCopyFiles, COPY_VCRUNTIME_1, \
       DEST := $(LIB_DST_DIR), \
       FILES := $(VCRUNTIME_1_DLL), \
       MACRO := copy-and-chmod))
 
-  $(eval $(call SetupCopyFiles,COPY_MSVCP, \
+  $(eval $(call SetupCopyFiles, COPY_MSVCP, \
       DEST := $(LIB_DST_DIR), \
       FILES := $(MSVCP_DLL), \
       MACRO := copy-and-chmod))
@@ -88,17 +88,42 @@ ifeq ($(call isTargetOs, windows)+$(CREATING_BUILDJDK), true+false)
 endif
 
 ################################################################################
-# In jvm.cfg, the first listed KNOWN variant is the default. On most build
-# configurations, that is the server variant.
-ifeq ($(call And, $(call isTargetOs, windows) $(call isTargetCpu, x86)), true)
-  DEFAULT_CFG_VARIANT ?= client
-endif
-DEFAULT_CFG_VARIANT ?= server
+# If configure were run with the deprecated --with-jvm-variants argument,
+# listing multiple variants, then we must build each of the extra variants
+# and copy it into the right place.
 
-# Change the order to put the default variant first if present.
-ORDERED_CFG_VARIANTS := \
-    $(if $(filter $(DEFAULT_CFG_VARIANT), $(JVM_VARIANTS)), $(DEFAULT_CFG_VARIANT)) \
-    $(filter-out $(DEFAULT_CFG_VARIANT), $(JVM_VARIANTS))
+BuildExtraJvm = $(NamedParamsMacroTemplate)
+define BuildExtraJvmBody
+  $1_CONF_NAME := $(CONF_NAME)-extra-jvm-$1
+  $1_SRC_DIR := $(TOPDIR)/build/$($1_CONF_NAME)/hotspot
+
+  BUILD_EXTRA_JVM_VARIANT_$v:
+	$(call LogInfo, Building extra JVM variant '$1')
+	echo bash configure --with-jvm-variant=$1 --with-conf-name=$($1_CONF_NAME)
+	echo make hotspot CONF_NAME=$($1_CONF_NAME)
+	$(call MakeDir, $(LIB_DST_DIR)/$1)
+
+  # FIXME: File list is not correctly done. Needs wildcard and/or findfiles.
+  $(eval $(call SetupCopyFiles, COPY_EXTRA_JVM_VARIANT_$v, \
+      FILES := $(TOPDIR)/build/$($1_CONF_NAME)/jdk/lib/$1/* $($1_SRC_DIR)/gtest , \
+      DEST := $(LIB_DST_DIR)/$1, \
+  ))
+
+  COPY_EXTRA_JVM_VARIANT_$v: BUILD_EXTRA_JVM_VARIANT_$v
+  TARGETS += COPY_EXTRA_JVM_VARIANT_$v
+endef
+
+ifneq ($(BUILD_EXTRA_JVM_VARIANTS), )
+  $(foreach v, $(BUILD_EXTRA_JVM_VARIANTS), \
+    $(eval $(call BuildExtraJvm, $v)))
+endif
+
+TARGETS += BUILD_EXTRA_JVM_VARIANT_$v
+
+################################################################################
+# In jvm.cfg, the first listed KNOWN variant is the default.
+# Make sure our selected variant comes first
+ORDERED_CFG_VARIANTS := $(JVM_VARIANT) $(BUILD_EXTRA_JVM_VARIANTS)
 
 JVMCFG := $(LIB_DST_DIR)/jvm.cfg
 

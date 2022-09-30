@@ -156,7 +156,7 @@ ifeq ($(call isTargetOsType, unix), true)
       endef
 
       # The subdir is the same as the variant
-      $(foreach v, $(JVM_VARIANTS), $(eval $(call CreateSymlinks,$v)))
+      $(foreach v, $(JVM_VARIANT) $(BUILD_EXTRA_JVM_VARIANTS), $(eval $(call CreateSymlinks,$v)))
     endif
     ############################################################################
 
