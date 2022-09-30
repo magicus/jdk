@@ -92,6 +92,8 @@ endif
 # listing multiple variants, then we must build each of the extra variants
 # and copy it into the right place.
 
+# FIXME: This should move to a separate file in hotspot/, and only be called
+# after the main hotspot variant is built.
 BuildExtraJvm = $(NamedParamsMacroTemplate)
 define BuildExtraJvmBody
   $1_CONF_NAME := $$(CONF_NAME)-extra-jvm-$1
