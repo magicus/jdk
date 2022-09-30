@@ -95,7 +95,7 @@ DISABLE_WARNING_PREFIX := @BUILD_CC_DISABLE_WARNING_PREFIX@
 ENABLE_DEBUG_SYMBOLS := false
 
 JVM_VARIANT := server
-JVM_FEATURES_server := cds compiler1 compiler2 g1gc serialgc
+JVM_FEATURES := cds compiler1 compiler2 g1gc serialgc
 BUILD_EXTRA_JVM_VARIANTS :=
 
 # Some users still set EXTRA_*FLAGS on the make command line. Must

@@ -520,8 +520,14 @@ AC_DEFUN_ONCE([JDKOPT_ENABLE_DISABLE_GENERATE_CLASSLIST],
   # In GenerateLinkOptData.gmk, DumpLoadedClassList is used to generate the
   # classlist file. It never will work if CDS is disabled, since the VM will report
   # an error for DumpLoadedClassList.
+  if JVM_FEATURES_IS_ACTIVE(cds); then
+    CDS_AVAILABLE=true
+  else
+    CDS_AVAILABLE=false
+  fi
+
   UTIL_ARG_ENABLE(NAME: generate-classlist, DEFAULT: auto,
-      RESULT: ENABLE_GENERATE_CLASSLIST, AVAILABLE: $ENABLE_CDS,
+      RESULT: ENABLE_GENERATE_CLASSLIST, AVAILABLE: $CDS_AVAILABLE,
       DESC: [enable generation of a CDS classlist at build time],
       DEFAULT_DESC: [enabled if the JVM feature 'cds' is enabled for all JVM variants],
       CHECKING_MSG: [if the CDS classlist generation should be enabled])
@@ -574,7 +580,7 @@ AC_DEFUN([JDKOPT_ENABLE_DISABLE_CDS_ARCHIVE],
       CHECKING_MSG: [if a default CDS archive should be generated],
       CHECK_AVAILABLE: [
         AC_MSG_CHECKING([if CDS archive is available])
-        if test "x$ENABLE_CDS" = "xfalse"; then
+        if ! JVM_FEATURES_IS_ACTIVE(cds); then
           AC_MSG_RESULT([no (CDS is disabled)])
           AVAILABLE=false
         elif test "x$COMPILE_TYPE" = "xcross"; then
@@ -600,7 +606,7 @@ AC_DEFUN([JDKOPT_ENABLE_DISABLE_COMPATIBLE_CDS_ALIGNMENT],
       CHECKING_MSG: [if compatible cds region alignment enabled],
       CHECK_AVAILABLE: [
         AC_MSG_CHECKING([if CDS archive is available])
-        if test "x$ENABLE_CDS" = "xfalse"; then
+        if ! JVM_FEATURES_IS_ACTIVE(cds); then
           AVAILABLE=false
           AC_MSG_RESULT([no (CDS is disabled)])
         else

@@ -367,6 +367,17 @@ isCompiler = \
   $(strip $(if $(filter $(TOOLCHAIN_TYPE), $1), true, false))
 
 ################################################################################
+
+# Test if a feature is available for the current hotspot build. Will return
+# 'true' or 'false'.
+# $1 - the feature to test for
+check-jvm-feature = \
+  $(strip \
+    $(if $(filter-out $(VALID_JVM_FEATURES), $1), \
+      $(error Internal error: Invalid feature tested: $1)) \
+    $(if $(filter $1, $(JVM_FEATURES)), true, false))
+
+################################################################################
 # Converts a space separated list to a comma separated list.
 #
 # Replacing double-comma with a single comma is to workaround the issue with

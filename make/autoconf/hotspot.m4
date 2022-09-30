@@ -27,7 +27,7 @@
 VALID_JVM_VARIANTS="server client minimal core zero custom"
 
 ###############################################################################
-# Check which variants of the JVM that we want to build. Available variants are:
+# Check which variant of the JVM that we want to build. Available variants are:
 #   server: normal interpreter, and a tiered C1/C2 compiler
 #   client: normal interpreter, and C1 (no C2 compiler)
 #   minimal: reduced form of client with optional features stripped out
@@ -35,7 +35,7 @@ VALID_JVM_VARIANTS="server client minimal core zero custom"
 #   zero: C++ based interpreter only, no compiler
 #   custom: baseline JVM with no default features
 #
-AC_DEFUN_ONCE([HOTSPOT_SETUP_JVM_VARIANTS],
+AC_DEFUN_ONCE([HOTSPOT_SETUP_JVM_VARIANT],
 [
   AC_ARG_WITH([jvm-variant], [AS_HELP_STRING([--with-jvm-variant],
       [Which JVM variant to build (server client minimal core zero custom)

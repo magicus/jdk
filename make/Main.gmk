@@ -231,7 +231,7 @@ ALL_TARGETS += $(LAUNCHER_TARGETS)
 # Build hotspot target
 
 hotspot-gensrc:
-	$$(call LogInfo, Building JVM variant '$1' with features '$(JVM_FEATURES_$1)')
+	$$(call LogInfo, Building JVM variant '$(JVM_VARIANT)' with features '$(JVM_FEATURES)')
 	+($(CD) $(TOPDIR)/make/hotspot && $(MAKE) $(MAKE_ARGS) -f gensrc/GenerateSources.gmk)
 
 hotspot-libs:

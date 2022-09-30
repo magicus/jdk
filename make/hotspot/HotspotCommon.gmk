@@ -30,14 +30,3 @@ DTRACE_SUPPORT_DIR := $(JVM_SUPPORT_DIR)/dtrace
 
 LIB_OUTPUTDIR := $(call FindLibDirForModule, java.base)
 JVM_LIB_OUTPUTDIR := $(LIB_OUTPUTDIR)/$(JVM_VARIANT)
-
-################################################################################
-
-# Test if a feature is available in the present build of JVM_VARIANT. Will return
-# 'true' or 'false'.
-# $1 - the feature to test for
-check-jvm-feature = \
-  $(strip \
-    $(if $(filter-out $(VALID_JVM_FEATURES), $1), \
-      $(error Internal error: Invalid feature tested: $1)) \
-    $(if $(filter $1, $(JVM_FEATURES_$(JVM_VARIANT))), true, false))
