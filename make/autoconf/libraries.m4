@@ -82,7 +82,7 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
   fi
 
   # Check if ffi is needed
-  if HOTSPOT_CHECK_JVM_VARIANT(zero); then
+  if test "x$JVM_VARIANT" = xzero; then
     NEEDS_LIB_FFI=true
   else
     NEEDS_LIB_FFI=false
@@ -137,7 +137,7 @@ AC_DEFUN_ONCE([LIB_SETUP_LIBRARIES],
 
   # Atomic library
   # 32-bit platforms needs fallback library for 8-byte atomic ops on Zero
-  if HOTSPOT_CHECK_JVM_VARIANT(zero); then
+  if test "x$JVM_VARIANT" = xzero; then
     if test "x$OPENJDK_TARGET_OS" = xlinux &&
         (test "x$OPENJDK_TARGET_CPU" = xarm ||
          test "x$OPENJDK_TARGET_CPU" = xm68k ||

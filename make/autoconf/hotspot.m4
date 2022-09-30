@@ -27,18 +27,6 @@
 VALID_JVM_VARIANTS="server client minimal core zero custom"
 
 ###############################################################################
-# Check if the specified JVM variant should be built. To be used in shell if
-# constructs, like this:
-# if HOTSPOT_CHECK_JVM_VARIANT(server); then
-#
-# Only valid to use after HOTSPOT_SETUP_JVM_VARIANTS has setup variants.
-
-# Definition kept in one line to allow inlining in if statements.
-# Additional [] needed to keep m4 from mangling shell constructs.
-AC_DEFUN([HOTSPOT_CHECK_JVM_VARIANT],
-[ [ [[ " $JVM_VARIANTS " =~ " $1 " ]] ] ])
-
-###############################################################################
 # Check which variants of the JVM that we want to build. Available variants are:
 #   server: normal interpreter, and a tiered C1/C2 compiler
 #   client: normal interpreter, and C1 (no C2 compiler)
@@ -49,57 +37,80 @@ AC_DEFUN([HOTSPOT_CHECK_JVM_VARIANT],
 #
 AC_DEFUN_ONCE([HOTSPOT_SETUP_JVM_VARIANTS],
 [
+  AC_ARG_WITH([jvm-variant], [AS_HELP_STRING([--with-jvm-variant],
+      [Which JVM variant to build (server client minimal core zero custom)
+      @<:@server@:>@])])
+
   AC_ARG_WITH([jvm-variants], [AS_HELP_STRING([--with-jvm-variants],
-      [JVM variants to build, separated by commas (server client minimal core
+      [(DEPRECATED) JVM variants to build, separated by commas (server client minimal core
       zero custom) @<:@server@:>@])])
 
-  if test "x$with_jvm_variants" = x; then
-    with_jvm_variants="server"
+  if test "x$with_jvm_variant" != x && test "x$with_jvm_variants" != x; then
+    AC_MSG_ERROR([Cannot specify both --with-jvm-variant and --with-jvm-variants])
   fi
-  JVM_VARIANTS_OPT="$with_jvm_variants"
 
-  # Has the user listed more than one variant?
-  # Additional [] needed to keep m4 from mangling shell constructs.
-  if [ [[ "$JVM_VARIANTS_OPT" =~ "," ]] ]; then
-    BUILDING_MULTIPLE_JVM_VARIANTS=true
+  AC_MSG_CHECKING([which variant of the JVM to build])
+  if test "x$with_jvm_variants" = x && test "x$with_jvm_variant" = x; then
+    # No option given, use "server" as default
+    JVM_VARIANT="server"
+    AC_MSG_RESULT([$JVM_VARIANT] (default))
+  elif test "x$with_jvm_variants" != x; then
+    if [ [[ ! "$with_jvm_variants" =~ "," ]] ]; then
+      JVM_VARIANT="$with_jvm_variants"
+      AC_MSG_RESULT([$JVM_VARIANT])
+      AC_MSG_WARN([--with-jvm-variants is deprecated, use --with-jvm-variant instead])
+    else
+      # Multiple variants requested. This is deprecated, but we support it for
+      # now by creating a separate configuration for each "extra" variant.
+
+      jvm_variants_list=`$ECHO $with_jvm_variants | $SED -e 's/,/ /g'`
+
+      # We treat the first variant as the main variant, to be built by this
+      # configuration. The remaining variants are built separately.
+      JVM_VARIANT=`$ECHO $jvm_variants_list | $CUT -d " " -f 1`
+      AC_MSG_RESULT([$JVM_VARIANT])
+
+      BUILD_EXTRA_JVM_VARIANTS=`$ECHO $jvm_variants_list | $CUT -d " " -f 2-`
+      # Check that the extra variants are valid
+      UTIL_GET_NON_MATCHING_VALUES(INVALID_VARIANTS, $BUILD_EXTRA_JVM_VARIANTS, \
+          $VALID_JVM_VARIANTS)
+      if test "x$INVALID_VARIANTS" != x; then
+        AC_MSG_NOTICE([Unknown variant(s) specified: "$INVALID_VARIANTS"])
+        AC_MSG_NOTICE([The available JVM variants are: "$VALID_JVM_VARIANTS"])
+        AC_MSG_ERROR([Cannot continue])
+      fi
+
+      # Replace the commas with AND for use in the build directory name.
+      JVM_VARIANT_NAME=`$ECHO "$with_jvm_variants" | $SED -e 's/,/AND/g'`
+
+      AC_MSG_WARN([--with-jvm-variants is deprecated, use --with-jvm-variant and --with-jvm-imports instead])
+    fi
   else
-    BUILDING_MULTIPLE_JVM_VARIANTS=false
+    JVM_VARIANT="$with_jvm_variant"
+    AC_MSG_RESULT([$JVM_VARIANT])
   fi
-  # Replace the commas with AND for use in the build directory name.
-  JVM_VARIANTS_WITH_AND=`$ECHO "$JVM_VARIANTS_OPT" | $SED -e 's/,/AND/g'`
 
-  AC_MSG_CHECKING([which variants of the JVM to build])
-  # JVM_VARIANTS is a space-separated list.
-  # Also use minimal, not minimal1 (which is kept for backwards compatibility).
-  JVM_VARIANTS=`$ECHO $JVM_VARIANTS_OPT | $SED -e 's/,/ /g' -e 's/minimal1/minimal/'`
-  AC_MSG_RESULT([$JVM_VARIANTS])
+  if test "x$JVM_VARIANT_NAME" = x; then
+    JVM_VARIANT_NAME="$JVM_VARIANT"
+  fi
 
-  # Check that the selected variants are valid
-  UTIL_GET_NON_MATCHING_VALUES(INVALID_VARIANTS, $JVM_VARIANTS, \
+  UTIL_GET_NON_MATCHING_VALUES(INVALID_VARIANT, $JVM_VARIANT, \
       $VALID_JVM_VARIANTS)
-  if test "x$INVALID_VARIANTS" != x; then
-    AC_MSG_NOTICE([Unknown variant(s) specified: "$INVALID_VARIANTS"])
+  if test "x$INVALID_VARIANT" != x; then
+    AC_MSG_NOTICE([Unknown variant specified: "$INVALID_VARIANT"])
     AC_MSG_NOTICE([The available JVM variants are: "$VALID_JVM_VARIANTS"])
     AC_MSG_ERROR([Cannot continue])
   fi
 
-  # The "main" variant is the one used by other libs to link against during the
-  # build.
-  if test "x$BUILDING_MULTIPLE_JVM_VARIANTS" = "xtrue"; then
-    MAIN_VARIANT_PRIO_ORDER="server client minimal zero"
-    for variant in $MAIN_VARIANT_PRIO_ORDER; do
-      if HOTSPOT_CHECK_JVM_VARIANT($variant); then
-        JVM_VARIANT_MAIN="$variant"
-        break
-      fi
-    done
+  AC_MSG_CHECKING([for additional JVMs to build])
+  if test "x$BUILD_EXTRA_JVM_VARIANTS" != x; then
+    AC_MSG_RESULT([$BUILD_EXTRA_JVM_VARIANTS])
   else
-    JVM_VARIANT_MAIN="$JVM_VARIANTS"
+    AC_MSG_RESULT([none])
   fi
 
-  AC_SUBST(JVM_VARIANTS)
-  AC_SUBST(VALID_JVM_VARIANTS)
-  AC_SUBST(JVM_VARIANT_MAIN)
+  AC_SUBST(JVM_VARIANT)
+  AC_SUBST(BUILD_EXTRA_JVM_VARIANTS)
 ])
 
 ###############################################################################
@@ -107,7 +118,7 @@ AC_DEFUN_ONCE([HOTSPOT_SETUP_JVM_VARIANTS],
 #
 AC_DEFUN_ONCE([HOTSPOT_SETUP_MISC],
 [
-  if HOTSPOT_CHECK_JVM_VARIANT(zero); then
+  if test "x$JVM_VARIANT" = xzero; then
     # zero behaves as a platform and rewrites these values. This is a bit weird.
     # But when building zero, we never build any other variants so it works.
     HOTSPOT_TARGET_CPU=zero
