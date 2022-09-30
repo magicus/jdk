@@ -230,24 +230,12 @@ ALL_TARGETS += $(LAUNCHER_TARGETS)
 ################################################################################
 # Build hotspot target
 
-HOTSPOT_VARIANT_TARGETS := $(addprefix hotspot-, $(JVM_VARIANT))
-HOTSPOT_VARIANT_GENSRC_TARGETS := $(addsuffix -gensrc, $(HOTSPOT_VARIANT_TARGETS))
-HOTSPOT_VARIANT_LIBS_TARGETS := $(addsuffix -libs, $(HOTSPOT_VARIANT_TARGETS))
-
-define DeclareHotspotGensrcRecipe
-  hotspot-$1-gensrc:
+hotspot-gensrc:
 	$$(call LogInfo, Building JVM variant '$1' with features '$(JVM_FEATURES_$1)')
 	+($(CD) $(TOPDIR)/make/hotspot && $(MAKE) $(MAKE_ARGS) -f gensrc/GenerateSources.gmk)
-endef
 
-$(foreach v, $(JVM_VARIANTS), $(eval $(call DeclareHotspotGensrcRecipe,$v)))
-
-define DeclareHotspotLibsRecipe
-  hotspot-$1-libs:
+hotspot-libs:
 	+($(CD) $(TOPDIR)/make/hotspot && $(MAKE) $(MAKE_ARGS) -f lib/CompileLibraries.gmk)
-endef
-
-$(eval $(call DeclareHotspotLibsRecipe,$(JVM_VARIANT)))
 
 $(eval $(call SetupTarget, hotspot-ide-project, \
     MAKEFILE := ide/visualstudio/hotspot/CreateVSProject, \
@@ -255,8 +243,7 @@ $(eval $(call SetupTarget, hotspot-ide-project, \
     ARGS := -I$(TOPDIR)/make/hotspot, \
 ))
 
-ALL_TARGETS += $(HOTSPOT_VARIANT_TARGETS) $(HOTSPOT_VARIANT_GENSRC_TARGETS) \
-    $(HOTSPOT_VARIANT_LIBS_TARGETS)
+ALL_TARGETS += hotspot hotspot-gensrc hotspot-libs
 
 ################################################################################
 # Help and user support
@@ -276,9 +263,7 @@ define DeclareCompileCommandsRecipe
   COMPILE_COMMANDS_TARGETS_$2 += $1-compile-commands
 endef
 
-$(foreach t, $(HOTSPOT_VARIANT_LIBS_TARGETS), \
-  $(eval $(call DeclareCompileCommandsRecipe,$t,HOTSPOT)) \
-)
+$(eval $(call DeclareCompileCommandsRecipe,hotspot-libs,HOTSPOT))
 
 $(foreach t, $(LIBS_TARGETS) $(LAUNCHER_TARGETS), \
   $(eval $(call DeclareCompileCommandsRecipe,$t,JDK)) \
@@ -827,15 +812,15 @@ else
 
   $(JAVA_TARGETS): interim-langtools
 
-  # Declare dependencies between hotspot-<variant>* targets
-  $(eval hotspot-$(JVM_VARIANT)-gensrc: java.base-copy buildtools-hotspot)
-  $(eval hotspot-$(JVM_VARIANT)-libs: hotspot-$(JVM_VARIANT)-gensrc java.base-copy)
+  # Declare dependencies between hotspot targets
+  hotspot-gensrc: buildtools-hotspot java.base-copy
+  hotspot-libs: hotspot-gensrc java.base-copy
 
-  # If not already set, set the JVM variant target so that the JVM will be built.
-  JVM_MAIN_LIB_TARGETS ?= hotspot-$(JVM_VARIANT)-libs
-  JVM_MAIN_GENSRC_TARGETS ?= hotspot-$(JVM_VARIANT)-gensrc
+  # If not already set, set the JVM target so that the JVM will be built.
+  JVM_MAIN_LIB_TARGETS ?= hotspot-libs
+  JVM_MAIN_GENSRC_TARGETS ?= hotspot-gensrc
 
-  # Building one JVM variant is enough to start building the other libs
+  # Building the JVM is enough to start building the other libs
   $(LIBS_TARGETS): $(JVM_MAIN_LIB_TARGETS)
 
   # Static libs depend on hotspot gensrc
@@ -914,9 +899,10 @@ else
   $(foreach m, $(INTERIM_IMAGE_MODULES), $(eval $m-interim-jmod: $($(m)_JMOD_DEPS)))
 
   # Setup the minimal set of generated native source dependencies for hotspot
-  $(eval hotspot-$(JVM_VARIANT)-libs-compile-commands: hotspot-$(JVM_VARIANT)-gensrc)
+  hotspot-libs-compile-commands: hotspot-gensrc
+
   $(foreach m, $(filter java.desktop jdk.hotspot.agent, $(GENSRC_MODULES)), \
-      $(eval hotspot-$(JVM_VARIANT)-libs-compile-commands: $m-gensrc)) \
+      $(eval hotspot-libs-compile-commands: $m-gensrc)) \
 
   # For the full JDK compile commands, create all possible generated sources
   $(foreach m, $(GENSRC_MODULES), $(eval $m-libs-compile-commands: $m-gensrc))
@@ -996,7 +982,7 @@ else
   docs-reference-api-javadoc: $(GENSRC_TARGETS)
 
   # If not already set, then set the JVM specific docs targets
-  JVM_DOCS_TARGETS ?= hotspot-$(JVM_VARIANT)-gensrc
+  JVM_DOCS_TARGETS ?= hotspot-gensrc
 
   # The gensrc steps for hotspot create html spec files.
   docs-jdk-specs: $(JVM_DOCS_TARGETS)
@@ -1012,8 +998,8 @@ else
 
   interim-image: $(INTERIM_JMOD_TARGETS)
 
-  build-test-hotspot-jtreg-native: hotspot-$(JVM_VARIANT)-libs
-  build-test-libtest-jtreg-native: hotspot-$(JVM_VARIANT)-libs
+  build-test-hotspot-jtreg-native: hotspot-libs
+  build-test-libtest-jtreg-native: hotspot-libs
 
 endif
 
@@ -1025,13 +1011,8 @@ JVM_TOOLS_TARGETS ?= buildtools-hotspot
 buildtools: buildtools-langtools interim-langtools \
     buildtools-jdk $(JVM_TOOLS_TARGETS)
 
-# Declare dependencies from hotspot-<variant> targets
-$(eval hotspot-$(JVM_VARIANT): hotspot-$(JVM_VARIANT)-gensrc hotspot-$(JVM_VARIANT)-libs)
-hotspot: $(HOTSPOT_VARIANT_TARGETS)
-
-# Create targets hotspot-libs and hotspot-gensrc.
-$(eval hotspot-libs: hotspot-$(JVM_VARIANT)-libs)
-$(eval hotspot-gensrc: hotspot-$(JVM_VARIANT)-gensrc)
+# Declare dependencies from hotspot targets
+hotspot: hotspot-gensrc hotspot-libs
 
 gensrc: $(GENSRC_TARGETS)
 
