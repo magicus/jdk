@@ -554,30 +554,28 @@ AC_DEFUN_ONCE([JVM_FEATURES_SETUP],
   INCLUDE_JVMCI="true"
   INCLUDE_COMPILER2="false"
 
-  for variant in $JVM_VARIANT; do
-    # Figure out if any features are unavailable, or should be filtered out
-    # by default, for this variant.
-    # Store the result in JVM_FEATURES_VARIANT_UNAVAILABLE and
-    # JVM_FEATURES_VARIANT_FILTER.
-    JVM_FEATURES_PREPARE_VARIANT($variant)
+  # Figure out if any features are unavailable, or should be filtered out
+  # by default, for this variant.
+  # Store the result in JVM_FEATURES_VARIANT_UNAVAILABLE and
+  # JVM_FEATURES_VARIANT_FILTER.
+  JVM_FEATURES_PREPARE_VARIANT($JVM_VARIANT)
 
-    # Calculate the resulting set of enabled features for this variant.
-    # The result is stored in JVM_FEATURES_ACTIVE.
-    JVM_FEATURES_CALCULATE_ACTIVE($variant)
+  # Calculate the resulting set of enabled features for this variant.
+  # The result is stored in JVM_FEATURES_ACTIVE.
+  JVM_FEATURES_CALCULATE_ACTIVE($JVM_VARIANT)
 
-    # Verify consistency for JVM_FEATURES_ACTIVE.
-    JVM_FEATURES_VERIFY($variant)
+  # Verify consistency for JVM_FEATURES_ACTIVE.
+  JVM_FEATURES_VERIFY($JVM_VARIANT)
 
-    # Keep feature list sorted and free of duplicates
-    UTIL_SORT_LIST(JVM_FEATURES_ACTIVE, $JVM_FEATURES_ACTIVE)
-    AC_MSG_CHECKING([JVM features to use for variant '$variant'])
-    AC_MSG_RESULT(['$JVM_FEATURES_ACTIVE'])
+  # Keep feature list sorted and free of duplicates
+  UTIL_SORT_LIST(JVM_FEATURES_ACTIVE, $JVM_FEATURES_ACTIVE)
+  AC_MSG_CHECKING([JVM features to use for variant '$JVM_VARIANT'])
+  AC_MSG_RESULT(['$JVM_FEATURES_ACTIVE'])
 
-    # Save this as e.g. JVM_FEATURES_server, using indirect variable
-    # referencing.
-    features_var_name=JVM_FEATURES_$variant
-    eval $features_var_name=\"$JVM_FEATURES_ACTIVE\"
-  done
+  # Save this as e.g. JVM_FEATURES_server, using indirect variable
+  # referencing.
+  features_var_name=JVM_FEATURES_$JVM_VARIANT
+  eval $features_var_name=\"$JVM_FEATURES_ACTIVE\"
 
   # Unfortunately AC_SUBST does not work with non-literally named variables,
   # so list all variants here.

@@ -23,10 +23,6 @@
 # questions.
 #
 
-ifeq ($(JVM_VARIANT), )
-  $(error This makefile must be called with JVM_VARIANT set)
-endif
-
 JVM_VARIANT_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/variant-$(JVM_VARIANT)
 JVM_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/libjvm
 JVM_SUPPORT_DIR := $(JVM_VARIANT_OUTPUTDIR)/support
