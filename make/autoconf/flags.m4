@@ -33,6 +33,9 @@ m4_include([flags-other.m4])
 #
 AC_DEFUN([FLAGS_SETUP_ABI_PROFILE],
 [
+  # selected from set of literals. only available for certain platforms.
+  # error to specify if not available.
+  # case 2.
   AC_ARG_WITH(abi-profile, [AS_HELP_STRING([--with-abi-profile],
       [specify ABI profile for ARM builds (arm-vfp-sflt,arm-vfp-hflt,arm-sflt, armv5-vfp-sflt,armv6-vfp-hflt,aarch64) @<:@toolchain dependent@:>@ ])])
 
@@ -144,6 +147,9 @@ AC_DEFUN([FLAGS_SETUP_MACOSX_VERSION],
 
     # Setting --with-macosx-version-max=<version> makes it an error to build or
     # link to macosx APIs that are newer than the given OS version.
+    # only valid on macosx, otherwise an error.
+    # default is empty. string is specially parsed, and can be incorrect.
+    # case 2
     AC_ARG_WITH([macosx-version-max], [AS_HELP_STRING([--with-macosx-version-max],
         [error on use of newer functionality. @<:@macosx@:>@])],
         [
@@ -186,15 +192,23 @@ AC_DEFUN_ONCE([FLAGS_SETUP_USER_SUPPLIED_FLAGS],
     AC_MSG_WARN([Ignoring ASFLAGS($ASFLAGS) found in environment. Use --with-extra-asflags])
   fi
 
+  # non-parsed string
+  # case 2
   AC_ARG_WITH(extra-cflags, [AS_HELP_STRING([--with-extra-cflags],
       [extra flags to be used when compiling jdk c-files])])
 
+  # non-parsed string
+  # case 2
   AC_ARG_WITH(extra-cxxflags, [AS_HELP_STRING([--with-extra-cxxflags],
       [extra flags to be used when compiling jdk c++-files])])
 
+  # non-parsed string
+  # case 2
   AC_ARG_WITH(extra-ldflags, [AS_HELP_STRING([--with-extra-ldflags],
       [extra flags to be used when linking jdk])])
 
+  # non-parsed string
+  # case 2
   AC_ARG_WITH(extra-asflags, [AS_HELP_STRING([--with-extra-asflags],
       [extra flags to be passed to the assembler])])
 

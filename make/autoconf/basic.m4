@@ -119,6 +119,9 @@ AC_DEFUN([BASIC_EVAL_BUILD_DEVKIT_VARIABLE],
 ###############################################################################
 AC_DEFUN_ONCE([BASIC_SETUP_DEVKIT],
 [
+  # default is disabled. if enabled, must have a non-empty value.
+  # value must be a directory. disabled is encoded as an empty value.
+  # case 2
   AC_ARG_WITH([devkit], [AS_HELP_STRING([--with-devkit],
       [use this devkit for compilers, tools and resources])])
 
@@ -192,26 +195,37 @@ AC_DEFUN_ONCE([BASIC_SETUP_DEVKIT],
 
   # You can force the sysroot if the sysroot encoded into the compiler tools
   # is not correct.
+  # REMOVE ME.
   AC_ARG_WITH(sys-root, [AS_HELP_STRING([--with-sys-root],
       [alias for --with-sysroot for backwards compatability])],
       [SYSROOT=$with_sys_root]
   )
 
+  # default is disabled. if enabled, must have a non-empty value.
+  # value must be a directory. disabled is encoded as an empty value.
+  # case 2
   AC_ARG_WITH(sysroot, [AS_HELP_STRING([--with-sysroot],
       [use this directory as sysroot])],
       [SYSROOT=$with_sysroot]
   )
 
+  # REMOVE ME
   AC_ARG_WITH([tools-dir], [AS_HELP_STRING([--with-tools-dir],
       [alias for --with-toolchain-path for backwards compatibility])],
       [UTIL_PREPEND_TO_PATH([TOOLCHAIN_PATH],$with_tools_dir)]
   )
 
+  # default is disabled. if enabled, must have a non-empty value.
+  # value must be a colon-separaetd list of directories. disabled is encoded as an empty value.
+  # case 2
   AC_ARG_WITH([toolchain-path], [AS_HELP_STRING([--with-toolchain-path],
       [prepend these directories when searching for toolchain binaries (compilers etc)])],
       [UTIL_PREPEND_TO_PATH([TOOLCHAIN_PATH],$with_toolchain_path)]
   )
 
+  # default is disabled. if enabled, must have a non-empty value.
+  # value must be a colon-separaetd list of directories. disabled is encoded as an empty value.
+  # case 2
   AC_ARG_WITH([extra-path], [AS_HELP_STRING([--with-extra-path],
       [prepend these directories to the default path])],
       [UTIL_PREPEND_TO_PATH([EXTRA_PATH],$with_extra_path)]
@@ -222,14 +236,19 @@ AC_DEFUN_ONCE([BASIC_SETUP_DEVKIT],
     # If not, detect if Xcode is installed by running xcodebuild -version
     # if no Xcode installed, xcodebuild exits with 1
     # if Xcode is installed, even if xcode-select is misconfigured, then it exits with 0
+    echo DEVKIT_ROOT is $DEVKIT_ROOT
     if test "x$DEVKIT_ROOT" != x || /usr/bin/xcodebuild -version >/dev/null 2>&1; then
+    echo herre 1
       # We need to use xcodebuild in the toolchain dir provided by the user
       UTIL_LOOKUP_PROGS(XCODEBUILD, xcodebuild, $TOOLCHAIN_PATH)
+      echo XCODEBUILD is 4 $XCODEBUILD
       if test x$XCODEBUILD = x; then
         # fall back on the stub binary in /usr/bin/xcodebuild
         XCODEBUILD=/usr/bin/xcodebuild
+        echo herre 3
       fi
     else
+    echo heer 2
       # this should result in SYSROOT being empty, unless --with-sysroot is provided
       # when only the command line tools are installed there are no SDKs, so headers
       # are copied into the system frameworks
@@ -238,12 +257,19 @@ AC_DEFUN_ONCE([BASIC_SETUP_DEVKIT],
     fi
 
     AC_MSG_CHECKING([for sdk name])
+    # default is "macosx". must have a value, default or overridden.
+    # value is a non-parsed string.
+    # FIXME: this logic needs cleaning up!
+    # case 1
     AC_ARG_WITH([sdk-name], [AS_HELP_STRING([--with-sdk-name],
         [use the platform SDK of the given name. @<:@macosx@:>@])],
         [SDKNAME=$with_sdk_name]
     )
     AC_MSG_RESULT([$SDKNAME])
 
+    # FIXME PATCH
+    SDKNAME=macosx
+    echo XCODEBUILD is $XCODEBUILD
     # if toolchain path is specified then don't rely on system headers, they may not compile
     HAVE_SYSTEM_FRAMEWORK_HEADERS=0
     test -z "$TOOLCHAIN_PATH" && \
@@ -307,6 +333,9 @@ AC_DEFUN_ONCE([BASIC_SETUP_DEVKIT],
 AC_DEFUN_ONCE([BASIC_SETUP_OUTPUT_DIR],
 [
 
+  # can't be disabled. is default or overridden. must have a value.
+  # value is a non-parsed string.
+  # case 3. maybe "auto" is no good to trigger auto naming???
   AC_ARG_WITH(conf-name, [AS_HELP_STRING([--with-conf-name],
       [use this as the name of the configuration @<:@generated from important configuration options@:>@])],
       [ CONF_NAME=${with_conf_name} ])
@@ -476,6 +505,9 @@ AC_DEFUN_ONCE([BASIC_TEST_USABILITY_ISSUES],
 #
 AC_DEFUN_ONCE([BASIC_SETUP_DEFAULT_MAKE_TARGET],
 [
+  # must have a value, default or overridden.
+  # value is non-parsed string.
+  # case 1.
   AC_ARG_WITH(default-make-target, [AS_HELP_STRING([--with-default-make-target],
       [set the default make target @<:@exploded-image@:>@])])
   if test "x$with_default_make_target" = "x" \
@@ -495,6 +527,9 @@ AC_DEFUN_ONCE([BASIC_SETUP_DEFAULT_MAKE_TARGET],
 #
 AC_DEFUN_ONCE([BASIC_SETUP_DEFAULT_LOG],
 [
+  # must have a value, default or overridden.
+  # value is non-parsed string.
+  # case 1
   AC_ARG_WITH(log, [AS_HELP_STRING([--with-log],
       [[default vaue for make LOG argument [warn]]])])
   AC_MSG_CHECKING([for default LOG value])

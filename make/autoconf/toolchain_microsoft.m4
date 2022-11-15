@@ -262,6 +262,7 @@ AC_DEFUN([TOOLCHAIN_FIND_VISUAL_STUDIO],
   AC_ARG_WITH(toolchain-version, [AS_HELP_STRING([--with-toolchain-version],
       [the version of the toolchain to look for, use '--help' to show possible values @<:@platform dependent@:>@])])
 
+  # FIXME: this does not match the description "--help". Does this works???
   if test "x$with_toolchain_version" = xlist; then
     # List all toolchains
     AC_MSG_NOTICE([The following toolchain versions are valid on this platform:])

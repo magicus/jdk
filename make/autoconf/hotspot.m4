@@ -49,6 +49,8 @@ AC_DEFUN([HOTSPOT_CHECK_JVM_VARIANT],
 #
 AC_DEFUN_ONCE([HOTSPOT_SETUP_JVM_VARIANTS],
 [
+  # value is one or more from set of literals.
+  # case 1
   AC_ARG_WITH([jvm-variants], [AS_HELP_STRING([--with-jvm-variants],
       [JVM variants to build, separated by commas (server client minimal core
       zero custom) @<:@server@:>@])])
@@ -114,6 +116,8 @@ AC_DEFUN_ONCE([HOTSPOT_SETUP_MISC],
     HOTSPOT_TARGET_CPU_ARCH=zero
   fi
 
+  # value is non-parsed string
+  # case 2b
   AC_ARG_WITH([hotspot-build-time], [AS_HELP_STRING([--with-hotspot-build-time],
   [timestamp to use in hotspot version string, empty for on-the-fly @<:@empty@:>@])])
 

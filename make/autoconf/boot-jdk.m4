@@ -301,6 +301,10 @@ AC_DEFUN([BOOTJDK_CHECK_TOOL_IN_BOOTJDK],
 # Setup CLASSPATH environment variable
 AC_DEFUN([BOOTJDK_SETUP_CLASSPATH],
 [
+  # default is disabled. disabled is encoded as empty.
+  # if enabled, must have a value.
+  # value is a too complex to parse, accept as non-parsed string.
+  # case 2
   AC_ARG_WITH([classpath], [AS_HELP_STRING([--with-classpath],
       [Optional classpath to set as CLASSPATH to all Java invocations @<:@none@:>@])])
 
@@ -328,9 +332,18 @@ AC_DEFUN([BOOTJDK_SETUP_CLASSPATH],
 AC_DEFUN_ONCE([BOOTJDK_SETUP_BOOT_JDK],
 [
   BOOT_JDK_FOUND=no
+  # if specified, must point to valid directory with a valid JDK.
+  # if unspecified, will revert to default, which might be missing
+  # can not be disabled. must have a value. if default missing,
+  # must have a provided value. However, this might be too complex
+  # to verify here.
+  # case 3, "auto" seems ok
   AC_ARG_WITH(boot-jdk, [AS_HELP_STRING([--with-boot-jdk],
       [path to Boot JDK (used to bootstrap build) @<:@probed@:>@])])
 
+  # default is disabled, disabled is encoded as empty.
+  # if enabled, must have a value. value is a too complex to parse, accept as non-parsed string.
+  # case 2
   AC_ARG_WITH(boot-jdk-jvmargs, [AS_HELP_STRING([--with-boot-jdk-jvmargs],
   [specify additional arguments to be passed to Boot JDK tools @<:@none@:>@])])
 
@@ -592,6 +605,9 @@ AC_DEFUN([BOOTJDK_CHECK_BUILD_JDK],
 # prebuilt BUILD_JDK can also be supplied.
 AC_DEFUN([BOOTJDK_SETUP_BUILD_JDK],
 [
+  # cannot be disabled, but always has a default value (which can differ due
+  # to circumstances). if overridden, must be a valid directory.
+  # case 3, "auto" seems ok
   AC_ARG_WITH(build-jdk, [AS_HELP_STRING([--with-build-jdk],
       [path to JDK of same version as is being built@<:@the newly built JDK@:>@])])
 
@@ -645,6 +661,10 @@ AC_DEFUN([BOOTJDK_SETUP_BUILD_JDK],
 # If not set, the reference docs will be built using the interim javadoc.
 AC_DEFUN([BOOTJDK_SETUP_DOCS_REFERENCE_JDK],
 [
+  # default is empty string. "no" is interpreted as empty string. "yes" is not allowed.
+  # if overridden, must be a valid directory, that contains "bin/javadoc.$EXE_SUFFIX"
+  # or an empty string.
+  # case 2b
   AC_ARG_WITH(docs-reference-jdk, [AS_HELP_STRING([--with-docs-reference-jdk],
       [path to JDK to use for building the reference documentation])])
 

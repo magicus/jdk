@@ -101,6 +101,10 @@ AC_DEFUN([BPERF_CHECK_MEMORY_SIZE],
 AC_DEFUN_ONCE([BPERF_SETUP_BUILD_CORES],
 [
   # How many cores do we have on this build system?
+  # default is complex and probed, so represented by empty string.
+  # If set to empty string or "no", go back to default. "yes" is not allowed.
+  # Otherwise if set, must be a valid integer.
+  # case 3, "auto" is ok.
   AC_ARG_WITH(num-cores, [AS_HELP_STRING([--with-num-cores],
       [number of cores in the build system, e.g. --with-num-cores=8 @<:@probed@:>@])])
   if test "x$with_num_cores" = x; then
@@ -115,6 +119,8 @@ AC_DEFUN_ONCE([BPERF_SETUP_BUILD_CORES],
 AC_DEFUN_ONCE([BPERF_SETUP_BUILD_MEMORY],
 [
   # How much memory do we have on this build system?
+  # must be valid integer
+  # case 3, "auto" is ok
   AC_ARG_WITH(memory-size, [AS_HELP_STRING([--with-memory-size],
       [memory (in MB) available in the build system, e.g. --with-memory-size=1024 @<:@probed@:>@])])
   if test "x$with_memory_size" = x; then
@@ -130,6 +136,8 @@ AC_DEFUN_ONCE([BPERF_SETUP_BUILD_JOBS],
 [
   # Provide a decent default number of parallel jobs for make depending on
   # number of cores, amount of memory and machine architecture.
+  # must be valid integer
+  # case 3, "auto" is ok
   AC_ARG_WITH(jobs, [AS_HELP_STRING([--with-jobs],
       [number of parallel jobs to let make run @<:@calculated based on cores and memory@:>@])])
   if test "x$with_jobs" = x; then
@@ -156,6 +164,8 @@ AC_DEFUN_ONCE([BPERF_SETUP_BUILD_JOBS],
 AC_DEFUN_ONCE([BPERF_SETUP_TEST_JOBS],
 [
   # The number of test jobs will be chosen automatically if TEST_JOBS is 0
+  # must be valid integer
+  # case 3: "auto" is ok
   AC_ARG_WITH(test-jobs, [AS_HELP_STRING([--with-test-jobs],
       [number of parallel tests jobs to run @<:@based on build jobs@:>@])])
   if test "x$with_test_jobs" = x; then
@@ -202,6 +212,9 @@ AC_DEFUN([BPERF_SETUP_CCACHE],
       ])
   AC_SUBST(CCACHE)
 
+  # think of this as an "override" value, so empty means disabled.
+  # value must be valid directory.
+  # case 2b
   AC_ARG_WITH([ccache-dir],
       [AS_HELP_STRING([--with-ccache-dir],
       [where to store ccache files @<:@~/.ccache@:>@])])

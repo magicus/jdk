@@ -52,6 +52,8 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_DEBUG_LEVEL],
       IF_ENABLED: [ DEBUG_LEVEL="fastdebug" ])
 
   AC_MSG_CHECKING([which debug level to use])
+  # value is one from set of literals
+  # case 1
   AC_ARG_WITH([debug-level], [AS_HELP_STRING([--with-debug-level],
       [set the debug level (release, fastdebug, slowdebug, optimized) @<:@release@:>@])],
       [
@@ -631,6 +633,7 @@ AC_DEFUN([JDKOPT_ENABLE_DISABLE_COMPATIBLE_CDS_ALIGNMENT],
 #
 AC_DEFUN([JDKOPT_ALLOW_ABSOLUTE_PATHS_IN_OUTPUT],
 [
+  # FIXME!!! to UTIL_ARG_ENABLE (and also invert logic?)
   AC_ARG_ENABLE([absolute-paths-in-output],
       [AS_HELP_STRING([--disable-absolute-paths-in-output],
        [Set to disable to prevent any absolute paths from the build to end up in
