@@ -308,13 +308,39 @@ AC_DEFUN_ONCE([BASIC_SETUP_DEVKIT],
 ])
 
 ###############################################################################
+# Verify that CONFIGURE_START_DIR looks like a sane place to store a
+# configuration in.
+AC_DEFUN_ONCE([BASIC_VERIFY_START_DIR_FOR_CONFIG],
+[
+  if test ! -e "$CONFIGURE_START_DIR/spec.gmk"; then
+    # If we have a spec.gmk, we have run here before and we are OK. Otherwise, check for
+    # other files
+    files_present=`$LS $CONFIGURE_START_DIR`
+    # Configure has already touched config.log and confdefs.h in the current dir when this check
+    # is performed.
+    filtered_files=`$ECHO "$files_present" \
+        | $SED -e 's/config.log//g' \
+            -e 's/configure.log//g' \
+            -e 's/confdefs.h//g' \
+            -e 's/configure-support//g' \
+            -e 's/ //g' \
+        | $TR -d '\n'`
+    if test "x$filtered_files" != x; then
+      AC_MSG_NOTICE([Current directory is $CONFIGURE_START_DIR.])
+      AC_MSG_NOTICE([Since this is not the source root, configure will output the configuration here])
+      AC_MSG_NOTICE([(as opposed to creating a configuration in <src_root>/build/<conf-name>).])
+      AC_MSG_NOTICE([However, this directory is not empty. This is not allowed, since it could])
+      AC_MSG_NOTICE([seriously mess up just about everything.])
+      AC_MSG_NOTICE([Try 'cd $TOPDIR' and restart configure])
+      AC_MSG_NOTICE([(or create a new empty directory and cd to it).])
+      AC_MSG_ERROR([Will not continue creating configuration in $CONFIGURE_START_DIR])
+    fi
+  fi
+]
+
+###############################################################################
 AC_DEFUN_ONCE([BASIC_SETUP_OUTPUT_DIR],
 [
-
-  AC_ARG_WITH(conf-name, [AS_HELP_STRING([--with-conf-name],
-      [use this as the name of the configuration @<:@generated from important configuration options@:>@])],
-      [ CONF_NAME=${with_conf_name} ])
-
   # Test from where we are running configure, in or outside of src root.
   AC_MSG_CHECKING([where to store configuration])
   if test "x$CONFIGURE_START_DIR" = "x$TOPDIR" \
@@ -323,59 +349,42 @@ AC_DEFUN_ONCE([BASIC_SETUP_OUTPUT_DIR],
       || test "x$CONFIGURE_START_DIR" = "x$TOPDIR/make" ; then
     # We are running configure from the src root.
     # Create a default ./build/target-variant-debuglevel output root.
-    if test "x${CONF_NAME}" = x; then
-      AC_MSG_RESULT([in default location])
-      CONF_NAME="${OPENJDK_TARGET_OS}-${OPENJDK_TARGET_CPU}-${JVM_VARIANTS_WITH_AND}-${DEBUG_LEVEL}"
-    else
-      AC_MSG_RESULT([in build directory with custom name])
-    fi
+    AC_MSG_RESULT([in the build directory])
+    DEFAULT_CONF_NAME="${OPENJDK_TARGET_OS}-${OPENJDK_TARGET_CPU}-${JVM_VARIANTS_WITH_AND}-${DEBUG_LEVEL}"
+    IN_BUILD_DIR=true
+  else
+    # We are running configure from outside of the src dir.
+    # Then use the current directory as output dir!
+    # If configuration is situated in normal build directory, just use the build
+    # directory name as configuration name, otherwise use the complete path.
+    AC_MSG_RESULT([in current directory])
+    DEFAULT_CONF_NAME=`$ECHO $CONFIGURE_START_DIR | $SED -e "s!^${TOPDIR}/build/!!"`
+    IN_BUILD_DIR=false
 
+    # WARNING: This might be a bad thing to do. You need to be sure you want to
+    # have a configuration in this directory. Do some sanity checks!
+    BASIC_VERIFY_START_DIR_FOR_CONFIG
+  fi
+
+  UTIL_ARG_WITH(NAME: conf-name, TYPE: string,
+      RESULT: CONF_NAME, DEFAULT: auto,
+      CHECKING_MSG: [what configuration name to use],
+      DESC: [use this as the name of the configuration],
+      DEFAULT_DESC: [generated from important configuration options],
+      IF_AUTO: [
+        RESULT="$DEFAULT_CONF_NAME"
+      ]
+  )
+
+  if test "x$IN_BUILD_DIR" = "xtrue"; then
     OUTPUTDIR="${WORKSPACE_ROOT}/build/${CONF_NAME}"
     $MKDIR -p "$OUTPUTDIR"
     if test ! -d "$OUTPUTDIR"; then
       AC_MSG_ERROR([Could not create build directory $OUTPUTDIR])
     fi
   else
-    # We are running configure from outside of the src dir.
-    # Then use the current directory as output dir!
-    # If configuration is situated in normal build directory, just use the build
-    # directory name as configuration name, otherwise use the complete path.
-    if test "x${CONF_NAME}" = x; then
-      CONF_NAME=`$ECHO $CONFIGURE_START_DIR | $SED -e "s!^${TOPDIR}/build/!!"`
-    fi
     OUTPUTDIR="$CONFIGURE_START_DIR"
-    AC_MSG_RESULT([in current directory])
-
-    # WARNING: This might be a bad thing to do. You need to be sure you want to
-    # have a configuration in this directory. Do some sanity checks!
-
-    if test ! -e "$OUTPUTDIR/spec.gmk"; then
-      # If we have a spec.gmk, we have run here before and we are OK. Otherwise, check for
-      # other files
-      files_present=`$LS $OUTPUTDIR`
-      # Configure has already touched config.log and confdefs.h in the current dir when this check
-      # is performed.
-      filtered_files=`$ECHO "$files_present" \
-          | $SED -e 's/config.log//g' \
-              -e 's/configure.log//g' \
-              -e 's/confdefs.h//g' \
-              -e 's/configure-support//g' \
-              -e 's/ //g' \
-          | $TR -d '\n'`
-      if test "x$filtered_files" != x; then
-        AC_MSG_NOTICE([Current directory is $CONFIGURE_START_DIR.])
-        AC_MSG_NOTICE([Since this is not the source root, configure will output the configuration here])
-        AC_MSG_NOTICE([(as opposed to creating a configuration in <src_root>/build/<conf-name>).])
-        AC_MSG_NOTICE([However, this directory is not empty. This is not allowed, since it could])
-        AC_MSG_NOTICE([seriously mess up just about everything.])
-        AC_MSG_NOTICE([Try 'cd $TOPDIR' and restart configure])
-        AC_MSG_NOTICE([(or create a new empty directory and cd to it).])
-        AC_MSG_ERROR([Will not continue creating configuration in $CONFIGURE_START_DIR])
-      fi
-    fi
   fi
-  AC_MSG_CHECKING([what configuration name to use])
-  AC_MSG_RESULT([$CONF_NAME])
 
   BASIC_WINDOWS_VERIFY_DIR($OUTPUTDIR, output)
   UTIL_FIXUP_PATH(OUTPUTDIR)
@@ -480,17 +489,11 @@ AC_DEFUN_ONCE([BASIC_TEST_USABILITY_ISSUES],
 #
 AC_DEFUN_ONCE([BASIC_SETUP_DEFAULT_MAKE_TARGET],
 [
-  AC_ARG_WITH(default-make-target, [AS_HELP_STRING([--with-default-make-target],
-      [set the default make target @<:@exploded-image@:>@])])
-  if test "x$with_default_make_target" = "x" \
-      || test "x$with_default_make_target" = "xyes"; then
-    DEFAULT_MAKE_TARGET="exploded-image"
-  elif test "x$with_default_make_target" = "xno"; then
-    AC_MSG_ERROR([--without-default-make-target is not a valid option])
-  else
-    DEFAULT_MAKE_TARGET="$with_default_make_target"
-  fi
-
+    UTIL_ARG_WITH(NAME: default-make-target, TYPE: string,
+      RESULT: DEFAULT_MAKE_TARGET, DEFAULT: exploded-image,
+      CHECKING_MSG: [for default make target],
+      DESC: [set the default make target]
+  )
   AC_SUBST(DEFAULT_MAKE_TARGET)
 ])
 
@@ -499,17 +502,14 @@ AC_DEFUN_ONCE([BASIC_SETUP_DEFAULT_MAKE_TARGET],
 #
 AC_DEFUN_ONCE([BASIC_SETUP_DEFAULT_LOG],
 [
-  AC_ARG_WITH(log, [AS_HELP_STRING([--with-log],
-      [[default value for make LOG argument [warn]]])])
-  AC_MSG_CHECKING([for default LOG value])
-  if test "x$with_log" = x; then
-    DEFAULT_LOG=""
-  else
     # Syntax for valid LOG options is a bit too complex for it to be worth
-    # implementing a test for correctness in configure. Just accept it.
-    DEFAULT_LOG=$with_log
-  fi
-  AC_MSG_RESULT([$DEFAULT_LOG])
+    # implementing a test for correctness in configure. Just accept it as a
+    # string.
+    UTIL_ARG_WITH(NAME: log, TYPE: string,
+      RESULT: DEFAULT_LOG, DEFAULT: warn,
+      CHECKING_MSG: [for default value for make LOG argument],
+      DESC: [default value for make LOG argument]
+  )
   AC_SUBST(DEFAULT_LOG)
 ])
 
