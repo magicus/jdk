@@ -1,0 +1,106 @@
+#
+# Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+# This code is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License version 2 only, as
+# published by the Free Software Foundation.  Oracle designates this
+# particular file as subject to the "Classpath" exception as provided
+# by Oracle in the LICENSE file that accompanied this code.
+#
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
+#
+# You should have received a copy of the GNU General Public License version
+# 2 along with this work; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+# or visit www.oracle.com if you need additional information or have any
+# questions.
+#
+
+$(info here)
+default: all
+
+include $(SPEC)
+include MakeBase.gmk
+
+################################################################################
+# If configure were run with the deprecated --with-jvm-variants argument,
+# listing multiple variants, then we must build each of the extra variants
+# and copy it into the right place.
+
+# FIXME: This should move to a separate file in hotspot/, and only be called
+# after the main hotspot variant is built.
+BuildExtraJvm = $(NamedParamsMacroTemplate)
+define BuildExtraJvmBody
+  $1_CONF_NAME := $$(CONF_NAME)-extra-jvm-$1
+  $1_SRC_DIR := $$(WORKSPACE_ROOT)/build/$$($1_CONF_NAME)
+	$1_CONFIGURE_OPTIONS := $(filter-out --with-conf%, $$(filter-out  --with-jvm-variant%, $$(CONFIGURE_COMMAND_LINE)))
+
+  MAKEOVERRIDES :=
+
+  unexport SPEC
+  unexport CONF_NAME
+  unexport HAS_SPEC
+
+  CONFIGURE_EXTRA_JVM_VARIANT_$1:
+	$$(call LogWarn, Configuring extra JVM variant '$1')
+	$(ECHO)
+	$(ECHO) --- Configure begin ---
+	cd $$(WORKSPACE_ROOT) && $(BASH) ./configure $$($1_CONFIGURE_OPTIONS) --with-jvm-variant=$1 --with-conf-name=$$($1_CONF_NAME) --with-default-make-target=hotspot
+	$(ECHO) --- Configure done ---
+	$(ECHO)
+
+  BUILD_EXTRA_JVM_VARIANT_$1: CONFIGURE_EXTRA_JVM_VARIANT_$1
+	$$(call LogWarn, Building extra JVM variant '$1')
+	$(ECHO)
+	$(ECHO) --- Build begin ---
+	cd $$(WORKSPACE_ROOT) && $(MAKE) JOBS=$(JOBS) LOG=$(LOG) CONF_NAME=$$($1_CONF_NAME) hotspot
+	$(ECHO) --- Build done ---
+	$(ECHO)
+
+  TARGETS += BUILD_EXTRA_JVM_VARIANT_$1
+endef
+
+ifneq ($(BUILD_EXTRA_JVM_VARIANTS), )
+  $(foreach v, $(BUILD_EXTRA_JVM_VARIANTS), \
+    $(eval $(call BuildExtraJvm, $v)))
+endif
+
+ImportJvm = $(NamedParamsMacroTemplate)
+define ImportJvmBody
+  $1_CONF_NAME := $$(CONF_NAME)-extra-jvm-$1
+  $1_SRC_DIR := $$(TOPDIR)/build/$($1_CONF_NAME)/hotspot
+  LIB_DST_DIR := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)
+
+  IMPORT_EXTRA_JVM_VARIANT_$1:
+	$$(call LogInfo, Importing extra JVM variant '$1')
+	$$(call MakeDir, $$(LIB_DST_DIR)/$1)
+
+  # FIXME: File list is not correctly done. Needs wildcard and/or findfiles.
+  $$(eval $$(call SetupCopyFiles, COPY_EXTRA_JVM_VARIANT_$1, \
+      FILES := $$(TOPDIR)/build/$$($1_CONF_NAME)/jdk/lib/$1/* $$($1_SRC_DIR)/gtest , \
+      DEST := $$(LIB_DST_DIR)/$1, \
+  ))
+
+  COPY_EXTRA_JVM_VARIANT_$1: IMPORT_EXTRA_JVM_VARIANT_$1
+  TARGETS += COPY_EXTRA_JVM_VARIANT_$1
+endef
+
+#ifneq ($(BUILD_EXTRA_JVM_VARIANTS), )
+#  $(foreach v, $(BUILD_EXTRA_JVM_VARIANTS), \
+#    $(eval $(call ImportJvm, $v)))
+#endif
+
+################################################################################
+
+$(info Targets: $(TARGETS))
+
+all: $(TARGETS)
+
+.PHONY: default all

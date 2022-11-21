@@ -237,13 +237,18 @@ hotspot-gensrc:
 hotspot-libs:
 	+($(CD) $(TOPDIR)/make/hotspot && $(MAKE) $(MAKE_ARGS) -f lib/CompileLibraries.gmk)
 
+ifneq ($(BUILD_EXTRA_JVM_VARIANTS), )
+  build-extra-jvm-variants:
+	+($(CD) $(TOPDIR)/make && $(MAKE) $(MAKE_ARGS) -f BuildExtraJvmVariants.gmk)
+endif
+
 $(eval $(call SetupTarget, hotspot-ide-project, \
     MAKEFILE := ide/visualstudio/hotspot/CreateVSProject, \
     DEPS := hotspot exploded-image, \
     ARGS := -I$(TOPDIR)/make/hotspot, \
 ))
 
-ALL_TARGETS += hotspot-gensrc hotspot-libs
+ALL_TARGETS += hotspot-gensrc hotspot-libs build-extra-jvm-variants
 
 ################################################################################
 # Help and user support
@@ -1013,6 +1018,10 @@ buildtools: buildtools-langtools interim-langtools \
 
 # Declare dependencies from hotspot targets
 hotspot: hotspot-gensrc hotspot-libs
+
+ifneq ($(BUILD_EXTRA_JVM_VARIANTS), )
+  hotspot: build-extra-jvm-variants
+endif
 
 gensrc: $(GENSRC_TARGETS)
 
