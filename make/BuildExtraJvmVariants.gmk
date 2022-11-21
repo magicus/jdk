@@ -23,8 +23,20 @@
 # questions.
 #
 
-$(info here)
-default: all
+
+# /Users/ihse/git/jdk-DOH/build/macosx-aarch64/support/modules_libs/java.base/client
+#lrwxr-xr-x 1 ihse staff      16 Nov 21 13:37 libjsig.dylib -> ../libjsig.dylib*
+#-rwxr-xr-x 1 ihse staff 9651184 Nov 21 13:37 libjvm.dylib*
+#drwxr-xr-x 3 ihse staff      96 Nov 21 13:37 libjvm.dylib.dSYM/
+
+# /Users/ihse/git/jdk-DOH/build/macosx-aarch64/jdk/lib/server
+# lrwxr-xr-x 1 ihse staff       16 Nov 21 13:37 libjsig.dylib -> ../libjsig.dylib*
+# -rwxr-xr-x 1 ihse staff 16171056 Nov 21 13:37 libjvm.dylib*
+# drwxr-xr-x 3 ihse staff       96 Nov 21 13:37 libjvm.dylib.dSYM/
+
+# /Users/ihse/git/jdk-DOH/build/macosx-aarch64/support/modules_libs/java.base/jvm.cfg
+# ls -l jdk/lib/jvm.cfg
+#lrwxr-xr-x 1 ihse staff 44 Nov 21 13:33 jdk/lib/jvm.cfg -> ../../support/modules_libs/java.base/jvm.cfg
 
 include $(SPEC)
 include MakeBase.gmk
