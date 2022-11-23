@@ -155,6 +155,7 @@ ifeq ($(call isTargetOsType, unix), true)
         TARGETS += $(LIB_OUTPUTDIR)/$1/$(call SHARED_LIBRARY,jsig)
       endef
 
+      # FIXME: IMPORTJVM
       # The subdir is the same as the variant
       $(foreach v, $(JVM_VARIANT) $(BUILD_EXTRA_JVM_VARIANTS), $(eval $(call CreateSymlinks,$v)))
     endif

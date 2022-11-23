@@ -737,6 +737,7 @@ ifneq ($(call ApplySpecFilter, $(JDWP_PROTOCOL)), )
   JDK_SPECS_TARGETS += $(PROCESS_JDWP_PROTOCOL)
 endif
 
+# FIXME: IMPORTJVM
 JVMTI_HTML := $(HOTSPOT_OUTPUTDIR)/gensrc/jvmtifiles/jvmti.html
 ifneq ($(call ApplySpecFilter, $(JVMTI_HTML)), )
   JVMTI_HEADER_BLOCK := $(subst PATH_TO_SPECS,.,$(SPEC_HEADER_BLOCK))

@@ -319,6 +319,8 @@ FindExecutableDirForModule = \
 PathList = \
   "$(subst $(SPACE),:,$(strip $(subst $(DQUOTE),,$1)))"
 
+# FIXME: IMPORTJVM
+
 ################################################################################
 # Test if a feature is available for the current hotspot build. Will return
 # 'true' or 'false'.

@@ -121,6 +121,7 @@ ifneq ($(BUILD_EXTRA_JVM_VARIANTS), )
     $(eval $(call BuildExtraJvm, $v)))
 endif
 
+# FIXME: IMPORTJVM
 
 ################################################################################
 # In jvm.cfg, the first listed KNOWN variant is the default.

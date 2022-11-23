@@ -23,6 +23,9 @@
 # questions.
 #
 
+# FIXME: IMPORTJVM -- major changes in this file
+
+
 # All valid JVM variants
 VALID_JVM_VARIANTS="server client minimal core zero custom"
 

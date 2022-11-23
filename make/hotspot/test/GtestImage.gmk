@@ -36,6 +36,7 @@ $(eval $(call SetupCopyFiles, COPY_GTEST, \
 
 TARGETS += $(COPY_GTEST)
 
+# FIXME: IMPORTJVM
 # FIXME: get the correct path for SRC
 $(foreach v, $(BUILD_EXTRA_JVM_VARIANTS), \
   $(eval $(call SetupCopyFiles, COPY_GTEST_$v, \

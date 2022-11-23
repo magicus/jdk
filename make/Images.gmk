@@ -120,6 +120,7 @@ JLINK_JRE_TARGETS := $(jlink_jre)
 # may need to be relocated at runtime.
 CDS_DUMP_FLAGS = -Xmx128M -Xms128M
 
+# FIXME: IMPORTJVM
 define GetVariantFeatures
   ifeq ($1, $(JDK_VARIANT))
     $(JDK_FEATURES)

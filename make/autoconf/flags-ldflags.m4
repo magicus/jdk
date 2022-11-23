@@ -32,6 +32,8 @@ AC_DEFUN([FLAGS_SETUP_LDFLAGS],
 
   # Setup the target toolchain
 
+# FIXME: IMPORTJVM
+
   # The target dir matches the name of VM variant
   TARGET_JVM_VARIANT_PATH=$JVM_VARIANT
 

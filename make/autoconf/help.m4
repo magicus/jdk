@@ -328,6 +328,7 @@ AC_DEFUN_ONCE([HELP_PRINT_SUMMARY_AND_WARNINGS],
   fi
   printf "\n"
 
+# FIXME: IMPORTJVM
   if test "x$BUILD_EXTRA_JVM_VARIANTS" != "x"; then
     printf "NOTE: You have requested to build more than one version of the JVM. This\n"
     printf "is deprecated, and will result in longer build times.\n"

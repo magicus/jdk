@@ -23,6 +23,8 @@
 # questions.
 #
 
+# FIXME: IMPORTJVM major changes in this file
+
 ################################################################################
 # This is the main makefile containing most actual top level targets. It needs
 # to be called with a SPEC file defined.

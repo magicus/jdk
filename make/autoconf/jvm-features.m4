@@ -23,6 +23,9 @@
 # questions.
 #
 
+# FIXME: IMPORTJVM -- major changes in this file
+
+
 ###############################################################################
 # Terminology used in this file:
 #

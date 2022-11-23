@@ -23,6 +23,8 @@
 # questions.
 #
 
+# FIXME: IMPORTJVM -- do we need this file anymore?
+
 JVM_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/libjvm
 JVM_SUPPORT_DIR := $(HOTSPOT_OUTPUTDIR)/support
 
