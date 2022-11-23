@@ -32,8 +32,6 @@ include JavaCompilation.gmk
 include NativeCompilation.gmk
 include TextFileProcessing.gmk
 
-include HotspotCommon.gmk
-
 # The real work is done in these files
 
 include gensrc/GensrcJfr.gmk
@@ -42,6 +40,8 @@ include gensrc/GensrcDtrace.gmk
 include gensrc/GensrcJvmti.gmk
 
 $(eval $(call IncludeCustomExtension, hotspot/gensrc/GenerateSources.gmk))
+
+JVM_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/libjvm
 
 # While technically the rules below are "gendata" which can be done in parallel
 # with native compilation, let's keep it here for simplicity.

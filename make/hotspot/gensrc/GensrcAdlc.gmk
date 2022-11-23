@@ -27,7 +27,8 @@ $(eval $(call IncludeCustomExtension, hotspot/gensrc/GensrcAdlc.gmk))
 
 ifeq ($(call check-jvm-feature, compiler2), true)
 
-  ADLC_SUPPORT_DIR := $(JVM_SUPPORT_DIR)/adlc
+  HOTSPOT_SUPPORT_DIR := $(HOTSPOT_OUTPUTDIR)/support
+  ADLC_SUPPORT_DIR := $(HOTSPOT_SUPPORT_DIR)/adlc
 
   ##############################################################################
   # Build the ad compiler (the adlc build tool)

@@ -34,6 +34,7 @@ include lib/JvmFlags.gmk
 
 JVM_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/libjvm
 JVM_MAPFILE := $(JVM_OUTPUTDIR)/mapfile
+LIB_OUTPUTDIR := $(call FindLibDirForModule, java.base)
 
 ################################################################################
 # Platform independent setup
@@ -145,7 +146,7 @@ $(call FillFindCache, $(JVM_SRC_DIRS))
 $(eval $(call SetupJdkLibrary, BUILD_LIBJVM, \
     NAME := jvm, \
     TOOLCHAIN := TOOLCHAIN_LINK_CXX, \
-    OUTPUT_DIR := $(JVM_LIB_OUTPUTDIR), \
+    OUTPUT_DIR := $(LIB_OUTPUTDIR)/$(JVM_VARIANT), \
     SRC := $(JVM_SRC_DIRS), \
     EXCLUDES := $(JVM_EXCLUDES), \
     EXCLUDE_FILES := $(JVM_EXCLUDE_FILES), \

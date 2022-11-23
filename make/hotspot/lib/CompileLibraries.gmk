@@ -29,8 +29,6 @@ include $(SPEC)
 include MakeBase.gmk
 include JdkNativeCompilation.gmk
 
-include HotspotCommon.gmk
-
 include lib/CompileJvm.gmk
 
 ifneq ($(GTEST_FRAMEWORK_SRC), )

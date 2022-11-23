@@ -36,6 +36,8 @@ ifeq ($(call check-jvm-feature, dtrace), true)
 
   DTRACE_SOURCE_DIR := $(TOPDIR)/src/hotspot/os/posix/dtrace
   DTRACE_GENSRC_DIR := $(HOTSPOT_OUTPUTDIR)/gensrc/dtracefiles
+  HOTSPOT_SUPPORT_DIR := $(HOTSPOT_OUTPUTDIR)/support
+  DTRACE_SUPPORT_DIR := $(HOTSPOT_SUPPORT_DIR)/dtrace
 
   # Make sure we run our selected compiler for preprocessing instead of letting
   # the dtrace tool pick it on it's own.
