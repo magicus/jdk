@@ -51,8 +51,7 @@ JVM_LIBS += \
     $(JVM_LIBS_FEATURES) \
     #
 
-# These files and directories are always excluded
-JVM_EXCLUDE_FILES += args.cc
+# The adlc build tool is always excluded
 JVM_EXCLUDES += adlc
 
 # Needed by abstract_vm_version.cpp
