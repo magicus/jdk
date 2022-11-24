@@ -71,7 +71,7 @@ else
   support_dir="$CURRENT_DIR/configure-support"
 fi
 
-java_source_dir="$TOPDIR/make/configure"
+java_source_dir="$TOPDIR/make/src/classes"
 classes_dir="$support_dir/configure_classes"
 
 ###
@@ -119,11 +119,11 @@ test_is_compiled_up_to_date() {
   # FIXME: enable globbing
   source_files="$java_source_dir/**/*.java"
   if [ "$CUSTOM_CONFIG_DIR" != "" ]; then
-    custom_source_files="$CUSTOM_CONFIG_DIR/src/**/*.java"
+    custom_source_files="$CUSTOM_CONFIG_DIR/**/*.java"
   fi
 
   for file in $source_files $custom_source_files ; do
-    if [ "$file" -nt "$classes_dir/org/openjdk/build/configure/Configure.class" ]; then
+    if [ "$file" -nt "$classes_dir/build/tools/configure/Configure.class" ]; then
       return 0
     fi
   done
@@ -134,16 +134,16 @@ compile_configure() {
   source_path_arg="--source-path $java_source_dir"
   main_class_dir="$java_source_dir"
   if [ "$CUSTOM_CONFIG_DIR" != "" ]; then
-    source_path_arg="$source_path_arg --source-path $CUSTOM_CONFIG_DIR/src"
-    main_class_dir="$CUSTOM_CONFIG_DIR/src"
+    source_path_arg="$source_path_arg --source-path $CUSTOM_CONFIG_DIR"
+    main_class_dir="$CUSTOM_CONFIG_DIR"
   fi
 
   mkdir -p "$classes_dir"
 
-  "$javac" -d "$classes_dir" $source_path_arg "$main_class_dir/org/openjdk/build/configure/Configure.java"
+  "$javac" -d "$classes_dir" $source_path_arg "$main_class_dir/build/tools/configure/Configure.java"
 
   # Sanity check
-  if [ ! -e "$classes_dir/org/openjdk/build/configure/Configure.class" ]; then
+  if [ ! -e "$classes_dir/build/tools/configure/Configure.class" ]; then
     echo "Error: Failed to compile configure" 1>&2
     exit 1
   fi
@@ -169,6 +169,6 @@ for option; do
 done
 
 # Now actually call the tool
-"$java" $java_opts -cp "$classes_dir" org.openjdk.build.configure.Configure "$TOPDIR" "$commandline_file"
+"$java" $java_opts -cp "$classes_dir" build.tools.configure.Configure "$TOPDIR" "$commandline_file"
 result_code=$?
 exit $result_code

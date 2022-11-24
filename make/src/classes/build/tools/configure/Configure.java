@@ -23,7 +23,7 @@
  * questions.
  */
 
-package org.openjdk.build.configure;
+package build.tools.configure;
 
 public class Configure {
 
