@@ -328,7 +328,6 @@ debug "Using temporary directory: $tempdir"
 # We pass the command line as a file, one argument per line, to avoid
 # more shell quoting issues
 commandline_file="$tempdir/commandline.txt"
-echo "# Command line: $*" > "$commandline_file"
 for option; do
   echo "$option" >> "$commandline_file"
 done
