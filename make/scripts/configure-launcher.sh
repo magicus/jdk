@@ -131,16 +131,17 @@ test_is_compiled_up_to_date() {
 }
 
 compile_configure() {
-  source_path_arg="--source-path $java_source_dir"
-  main_class_dir="$java_source_dir"
-  if [ "$CUSTOM_CONFIG_DIR" != "" ]; then
-    source_path_arg="$source_path_arg --source-path $CUSTOM_CONFIG_DIR"
+  if [ "$CUSTOM_CONFIG_DIR" = "" ]; then
+    source_path="$java_source_dir"
+    main_class_dir="$java_source_dir"
+  else
+    source_path="$CUSTOM_CONFIG_DIR:$java_source_dir"
     main_class_dir="$CUSTOM_CONFIG_DIR"
   fi
 
   mkdir -p "$classes_dir"
 
-  "$javac" -d "$classes_dir" $source_path_arg "$main_class_dir/build/tools/configure/Configure.java"
+  "$javac" -d "$classes_dir" --source-path "$source_path" "$main_class_dir/build/tools/configure/Configure.java"
 
   # Sanity check
   if [ ! -e "$classes_dir/build/tools/configure/Configure.class" ]; then

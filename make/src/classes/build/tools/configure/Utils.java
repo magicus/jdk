@@ -25,11 +25,8 @@
 
 package build.tools.configure;
 
-public class Configure {
-
-    public static void main(String... args)  {
-        System.out.println("Hello, world!");
-        System.out.println(Utils.foo());
-        System.exit(0);
+public class Utils {
+    public static String foo() {
+      return "It's working";
     }
 }
