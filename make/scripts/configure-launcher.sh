@@ -52,6 +52,9 @@ fi
 # Make sure all shell commands are executed with the C locale
 export LC_ALL=C
 
+# Make sure "**" globbing works
+shopt -s globstar
+
 ###
 ### Figure out where to store our output
 ###
@@ -116,7 +119,6 @@ test_is_compiled_up_to_date() {
     return 0
   fi
 
-  # FIXME: enable globbing
   source_files="$java_source_dir/**/*.java"
   if [ "$CUSTOM_CONFIG_DIR" != "" ]; then
     custom_source_files="$CUSTOM_CONFIG_DIR/**/*.java"
