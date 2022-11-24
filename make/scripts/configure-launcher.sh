@@ -328,6 +328,8 @@ debug "Using temporary directory: $tempdir"
 # We pass the command line as a file, one argument per line, to avoid
 # more shell quoting issues
 commandline_file="$tempdir/commandline.txt"
+# Make sure we at least have an empty file even if we have no arguments
+touch "$commandline_file"
 for option; do
   echo "$option" >> "$commandline_file"
 done
