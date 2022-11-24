@@ -156,7 +156,6 @@ function find_best_jdk_from_variable() {
 for option; do
   case $option in
     --bootjdk=* | --boot-jdk=* | --with-bootjdk=* | --with-boot-jdk=* | -j=*)
-    # FIXME: make safe for spaces in path
       bootjdk=$(expr "X$option" : '[^=]*=\(.*\)')
       ;;
     -j ) # Save the next argument as the bootjdk
