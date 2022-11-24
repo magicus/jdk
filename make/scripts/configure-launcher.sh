@@ -55,6 +55,14 @@ export LC_ALL=C
 # Make sure "**" globbing works
 shopt -s globstar
 
+DEBUG="${DEBUG_CONFIGURE:-false}"
+
+function debug() {
+  if [ "$DEBUG" = "true" ]; then
+    echo "configure: $*"
+  fi
+}
+
 ###
 ### Figure out where to store our output
 ###
@@ -73,6 +81,9 @@ else
   # Create 'configure-support' in the current directory.
   support_dir="$CURRENT_DIR/configure-support"
 fi
+
+debug "Top dir: $TOPDIR"
+debug "Support dir: $support_dir"
 
 java_source_dir="$TOPDIR/make/src/classes"
 classes_dir="$support_dir/configure_classes"
@@ -99,8 +110,26 @@ for option; do
   esac
 done
 
-# FIXME: check if we have a bootjdk on the command line
-# locate it otherwise
+if [ "$bootjdk" != "" ]; then
+  debug "Boot JDK specified on command line: $bootjdk"
+
+  # Check if the given bootjdk is valid
+  if [ ! -x "$bootjdk/bin/java" ]; then
+    echo "Error: The boot jdk '$bootjdk' is missing bin/java" 1>&2
+    exit 1
+  fi
+  if [ ! -x "$bootjdk/bin/javac" ]; then
+    echo "Error: The boot jdk '$bootjdk' is missing bin/javac" 1>&2
+    echo "A JDK is required, not just a JRE" 1>&2
+    exit 1
+  fi
+else
+  # Try to locate a usable JDK
+  debug "Looking for a usable boot JDK"
+  :
+  echo not found
+fi
+
 echo Our bootjdk is: :$bootjdk:
 #java="$bootjdk/bin/java"
 java=java
@@ -109,16 +138,17 @@ javac=javac
 java_opts="-Xmx512m"
 
 ###
-### Use javac to compile the configure tool, if needed
+### Compile the configure tool, if needed
 ###
 
-test_is_compiled_up_to_date() {
-  if [ ! -d "$classes_dir" ]; then
-    # Generated script is missing, so we need to create it
-    echo "Compiled configure is not present"
-    return 0
-  fi
-
+# Check if we need to compile the configure tool
+compilation_needed=false
+if [ ! -d "$classes_dir" ]; then
+  # Generated script is missing, so we definitely need to create it
+  debug "Compiled configure dir is not present"
+  compilation_needed=true
+else
+  # Check if the compiled main class is older than any of the java sources
   source_files="$java_source_dir/**/*.java"
   if [ "$CUSTOM_CONFIG_DIR" != "" ]; then
     custom_source_files="$CUSTOM_CONFIG_DIR/**/*.java"
@@ -126,13 +156,16 @@ test_is_compiled_up_to_date() {
 
   for file in $source_files $custom_source_files ; do
     if [ "$file" -nt "$classes_dir/build/tools/configure/Configure.class" ]; then
-      return 0
+      debug "Java source file '$file' is newer than compiled configure"
+      compilation_needed=true
     fi
   done
-  return 1
-}
+fi
 
-compile_configure() {
+if [ "$compilation_needed" = "true" ]; then
+  debug "Compiling configure to $classes_dir"
+
+  # Compile the configure tool
   if [ "$CUSTOM_CONFIG_DIR" = "" ]; then
     source_path="$java_source_dir"
     main_class_dir="$java_source_dir"
@@ -143,6 +176,9 @@ compile_configure() {
 
   mkdir -p "$classes_dir"
 
+  debug "Running 'javac -d $classes_dir -sourcepath $source_path \
+      $main_class_dir/build/tools/configure/Configure.java'"
+
   "$javac" -d "$classes_dir" --source-path "$source_path" \
       "$main_class_dir/build/tools/configure/Configure.java"
 
@@ -151,12 +187,6 @@ compile_configure() {
     echo "Error: Failed to compile configure" 1>&2
     exit 1
   fi
-}
-
-if test_is_compiled_up_to_date; then
-  echo "Compiled configure is not up to date"
-  echo "Compiling configure to $classes_dir"
-  compile_configure
 fi
 
 ###
@@ -167,10 +197,12 @@ fi
 trap "cleanup" EXIT
 function cleanup() {
   if [ "$tempdir" != "" ]; then
+    debug "Removing temporary directory: $tempdir"
     rm -rf $tempdir
   fi
 }
 tempdir=$(mktemp -d -t jdk-configure.XXXXXX)
+debug "Using temporary directory: $tempdir"
 
 # We pass the command line as a file, one argument per line, to avoid
 # more shell quoting issues
@@ -181,7 +213,10 @@ for option; do
 done
 
 # Now actually call the tool
+debug "Running 'java $java_opts -cp $classes_dir \
+    build.tools.configure.Configure $commandline_file'"
 "$java" $java_opts -cp "$classes_dir" build.tools.configure.Configure \
     "$TOPDIR" "$commandline_file"
 result_code=$?
+debug "Configure returned $result_code"
 exit $result_code
