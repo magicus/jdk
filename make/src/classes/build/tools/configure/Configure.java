@@ -25,66 +25,24 @@
 
 package build.tools.configure;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 
 public class Configure {
-    public static boolean debugging = false;
+    Conf conf = new Conf();
 
-    private final String topDir;
-    private final List<String> commandLines;
+    public int start(String topDir, List<String> commandLines) {
+        // ###############################################################################
+        //
+        // Initialization / Boot-strapping
+        //
+        // The bootstrapping process needs to solve the "chicken or the egg" problem,
+        // thus it jumps back and forth, each time gaining something needed later on.
+        //
+        // ###############################################################################
 
-    public Configure(String topDir, List<String> commandLines) {
-        this.topDir = topDir;
-        this.commandLines = commandLines;
-    }
-
-    public static void debug(String message) {
-        if (debugging) {
-            System.out.println(message);
-        }
-    }
-
-    public static void debug(String message, Throwable t) {
-        if (debugging) {
-            System.out.println(message);
-            t.printStackTrace();
-        }
-    }
-
-    public static void main(String... args)  {
-        String debugEnv = System.getenv("DEBUG_CONFIGURE");
-        if (debugEnv != null && debugEnv.equalsIgnoreCase("true")) {
-            debugging = true;
-        }
-
-        if (args.length < 2) {
-            System.err.println("configure: Error: missing arguments: <top dir> <command line file>");
-            System.exit(10);
-        }
-
-        String topDir = args[0];
-        String commandLineFile = args[1];
-        List<String> commandLines;
-        try {
-            commandLines = Files.readAllLines(Paths.get(commandLineFile));
-        } catch (IOException e) {
-            System.err.println("configure: Error: Cannot read command line file");
-            debug("Command line file name: " + commandLineFile, e);
-            System.exit(10);
-            return; // Help compiler understand commandLines will have a value later on
-        }
-
-        Configure configure = new Configure(topDir, commandLines);
-        int exitCode = configure.start();
-        System.exit(exitCode);
-    }
-
-    private int start() {
-        System.out.println("Hello, world!" + commandLines);
-        System.out.println(Utils.foo());
+        // Basic initialization that must happen first of all in the normal process.
+        Basic.init(conf, commandLines);
+        BasicTools.setupFundamentalTools(conf);
 
         return 0;
     }

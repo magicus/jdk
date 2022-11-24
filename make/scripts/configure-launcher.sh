@@ -291,12 +291,12 @@ if [ "$compilation_needed" = "true" ]; then
 
   mkdir -p "$classes_dir"
 
-  debug "Running '"$javac" -d "$classes_dir" -sourcepath "$source_path" "$main_class_dir/build/tools/configure/Configure.java"'"
+  debug "Running '"$javac" -d "$classes_dir" -sourcepath "$source_path" "$main_class_dir/build/tools/configure/Main.java"'"
 
-  "$javac" -d "$classes_dir" -sourcepath "$source_path" "$main_class_dir/build/tools/configure/Configure.java"
+  "$javac" -d "$classes_dir" -sourcepath "$source_path" "$main_class_dir/build/tools/configure/Main.java"
 
   # Sanity check
-  if [ ! -e "$classes_dir/build/tools/configure/Configure.class" ]; then
+  if [ ! -e "$classes_dir/build/tools/configure/Main.class" ]; then
     echo "Error: Failed to compile configure" 1>&2
     exit 1
   fi
@@ -335,9 +335,9 @@ for option; do
 done
 
 # Now actually call the tool
-debug "Running '"$java" $java_opts -cp "$classes_dir" build.tools.configure.Configure "$TOPDIR" "$commandline_file"'"
+debug "Running '"$java" $java_opts -cp "$classes_dir" build.tools.configure.Main "$TOPDIR" "$commandline_file"'"
 
-"$java" $java_opts -cp "$classes_dir" build.tools.configure.Configure "$TOPDIR" "$commandline_file"
+"$java" $java_opts -cp "$classes_dir" build.tools.configure.Main "$TOPDIR" "$commandline_file"
 
 result_code=$?
 debug "Configure returned $result_code"
