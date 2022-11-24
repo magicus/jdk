@@ -98,7 +98,7 @@ function verify_potential_jdk() {
   potential_jdk="$1"
   if [ -x "$potential_jdk/bin/java" ]; then
     if [ ! -x "$potential_jdk/bin/javac" ]; then
-      echo "Warning: $potential_jdk contains bin/java but not bin/javac; ignoring"
+      debug "$potential_jdk contains bin/java but not bin/javac; ignoring"
       return
     fi
     debug "Found JDK at $potential_jdk"
@@ -108,7 +108,7 @@ function verify_potential_jdk() {
   fi
   if [ -x "$potential_jdk/bin/java.exe" ]; then
     if [ ! -x "$potential_jdk/bin/javac.exe" ]; then
-      echo "Warning: $potential_jdk contains bin/java.exe but not bin/javac.exe; ignoring"
+      debug "$potential_jdk contains bin/java.exe but not bin/javac.exe; ignoring"
       return
     fi
     debug "Found JDK at $potential_jdk"
@@ -117,6 +117,39 @@ function verify_potential_jdk() {
     return
   fi
   debug "No JDK found at $potential_jdk"
+}
+
+# Helper function to check if there is a JDK below the given directory, and if
+# so, try to pick the latest.
+# Will set $java and $javac if one is found
+function find_best_jdk_in_dir() {
+  dir_to_check="$1"
+  debug "Searching for JDK in $dir_to_check"
+  # This directory can contain multiple JDKs. In an effort to try to find the
+  # latest first, we sort the directory in reverse order.
+  possible_jdks=$(find "$dir_to_check" -type d -name bin 2> /dev/null | sort -r)
+  for jdk_bin_dir in $possible_jdks ; do
+    # We actually located the bin directory, so we need check one level up
+    check_jdk="$(dirname "$jdk_bin_dir")"
+    debug "Checking $check_jdk for JDK..."
+    verify_potential_jdk "$check_jdk"
+    if [ "$java" != "" ]; then
+      return;
+    fi
+  done
+}
+
+# Helper function to check if there is a JDK below the directory point to by
+# $VAR/Java, and if so, try to pick the latest.
+# Will set $java and $javac if one is found
+function find_best_jdk_from_variable() {
+  var_to_check="$1"
+  if [ -n "${!var_to_check}" ]; then
+    debug "Checking environment variable $var_to_check: ${!var_to_check}"
+    find_best_jdk_in_dir "${!var_to_check}/Java"
+  else
+    debug "Environment variable $var_to_check is not set"
+  fi
 }
 
 # Start by checking if there is a boot jdk option
@@ -153,6 +186,8 @@ if [ "$java" = "" ]; then
   if [ "$JAVA_HOME" != "" ]; then
     debug "Trying JAVA_HOME: $JAVA_HOME"
     verify_potential_jdk "$JAVA_HOME"
+  else
+    debug "JAVA_HOME is not set"
   fi
 fi
 
@@ -164,20 +199,22 @@ if [ "$java" = "" ]; then
     if [ "$libexec_java_home" != "" ]; then
       verify_potential_jdk "$libexec_java_home"
     fi
+  else
+    debug "No /usr/libexec/java_home found"
   fi
 fi
 
 if [ "$java" = "" ]; then
   # Next test: Is java and javac on the PATH?
-  potential_java="$(command -v java)"
-  potential_javac="$(command -v javac)"
+  potential_java="$(command -v java || true)"
+  potential_javac="$(command -v javac || true)"
   if [ -x "$potential_java" ]; then
     if [ -x "$potential_javac" ]; then
-      debug "Found java: $java and javac: $javac on the PATH"
+      debug "Found java and javac on the PATH"
       java="$potential_java"
       javac="$potential_javac"
     else
-      debug "Found java on the PATH ($java) but javac is missing"
+      debug "Found java on the PATH ($potential_java) but javac is missing"
     fi
   else
     debug "java not found on PATH"
@@ -185,23 +222,25 @@ if [ "$java" = "" ]; then
 fi
 
 if [ "$java" = "" ]; then
-  :
-  # Next test: Look in well-known locations
-  # FIXME
+  # Next test: Look in locations pointed to by well-known environment variables
+  for variable in "ProgramW6432" "PROGRAMW6432" "PROGRAMFILES" "ProgramFiles"; do
+    find_best_jdk_from_variable "$variable"
+    if [ "$java" != "" ]; then
+      break
+    fi
+  done
+fi
 
-  #  if test "x$OPENJDK_TARGET_OS" = xwindows; then
-  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([ProgramW6432])])
-  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([PROGRAMW6432])])
-  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([PROGRAMFILES])])
-  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([ProgramFiles])])
-  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/cygdrive/c/Program
-  #    Files/Java])])
-  #  elif test "x$OPENJDK_TARGET_OS" = xmacosx; then
-  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/Library/Java/JavaVirtualMachines],[/Contents/Home])])
-  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/System/Library/Java/JavaVirtualMachines],[/Contents/Home])])
-  #  elif test "x$OPENJDK_TARGET_OS" = xlinux; then
-  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/usr/lib/jvm])])
-  #  fi
+if [ "$java" = "" ]; then
+  # Next test: Look in well-known static locations
+  for dir in "/usr/lib/jvm" "/Library/Java/JavaVirtualMachines" \
+      "/System/Library/Java/JavaVirtualMachines" \
+      "/cygdrive/c/Program Files/Java"; do
+    find_best_jdk_in_dir "$dir"
+    if [ "$java" != "" ]; then
+      break
+    fi
+  done
 fi
 
 if [ "$java" = "" ]; then
@@ -253,11 +292,9 @@ if [ "$compilation_needed" = "true" ]; then
 
   mkdir -p "$classes_dir"
 
-  debug "Running 'javac -d $classes_dir -sourcepath $source_path \
-      $main_class_dir/build/tools/configure/Configure.java'"
+  debug "Running '"$javac" -d "$classes_dir" -sourcepath "$source_path" "$main_class_dir/build/tools/configure/Configure.java"'"
 
-  "$javac" -d "$classes_dir" --source-path "$source_path" \
-      "$main_class_dir/build/tools/configure/Configure.java"
+  "$javac" -d "$classes_dir" -sourcepath "$source_path" "$main_class_dir/build/tools/configure/Configure.java"
 
   # Sanity check
   if [ ! -e "$classes_dir/build/tools/configure/Configure.class" ]; then
@@ -273,10 +310,18 @@ fi
 # Setup a temporary directory
 trap "cleanup" EXIT
 function cleanup() {
+  result_code=$?
   if [ "$tempdir" != "" ]; then
     debug "Removing temporary directory: $tempdir"
     rm -rf "$tempdir"
   fi
+  if [ "$result_code" = "1" ]; then
+    # This can happen if there is something wrong when executing java with the
+    # compiled classes. Remove them and ask the user to try again.
+    rm -rf "$classes_dir"
+    echo "Configure failed to launch. Please try again." 1>&2
+  fi
+  exit $result_code
 }
 tempdir=$(mktemp -d -t jdk-configure.XXXXXX)
 debug "Using temporary directory: $tempdir"
@@ -290,10 +335,10 @@ for option; do
 done
 
 # Now actually call the tool
-debug "Running 'java $java_opts -cp $classes_dir \
-    build.tools.configure.Configure $commandline_file'"
-"$java" $java_opts -cp "$classes_dir" build.tools.configure.Configure \
-    "$TOPDIR" "$commandline_file"
+debug "Running '"$java" $java_opts -cp "$classes_dir" build.tools.configure.Configure "$TOPDIR" "$commandline_file"'"
+
+"$java" $java_opts -cp "$classes_dir" build.tools.configure.Configure "$TOPDIR" "$commandline_file"
+
 result_code=$?
 debug "Configure returned $result_code"
 exit $result_code
