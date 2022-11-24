@@ -143,7 +143,8 @@ compile_configure() {
 
   mkdir -p "$classes_dir"
 
-  "$javac" -d "$classes_dir" --source-path "$source_path" "$main_class_dir/build/tools/configure/Configure.java"
+  "$javac" -d "$classes_dir" --source-path "$source_path" \
+      "$main_class_dir/build/tools/configure/Configure.java"
 
   # Sanity check
   if [ ! -e "$classes_dir/build/tools/configure/Configure.class" ]; then
@@ -162,16 +163,25 @@ fi
 ### Call the configure tool
 ###
 
+# Setup a temporary directory
+trap "cleanup" EXIT
+function cleanup() {
+  if [ "$tempdir" != "" ]; then
+    rm -rf $tempdir
+  fi
+}
+tempdir=$(mktemp -d -t jdk-configure.XXXXXX)
+
 # We pass the command line as a file, one argument per line, to avoid
 # more shell quoting issues
-# FIXME: Use mktemp
-commandline_file="$support_dir/commandline.txt"
+commandline_file="$tempdir/commandline.txt"
 echo "# Command line: $*" > "$commandline_file"
 for option; do
   echo "$option" >> "$commandline_file"
 done
 
 # Now actually call the tool
-"$java" $java_opts -cp "$classes_dir" build.tools.configure.Configure "$TOPDIR" "$commandline_file"
+"$java" $java_opts -cp "$classes_dir" build.tools.configure.Configure \
+    "$TOPDIR" "$commandline_file"
 result_code=$?
 exit $result_code
