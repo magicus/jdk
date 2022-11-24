@@ -89,27 +89,11 @@ java_source_dir="$TOPDIR/make/src/classes"
 classes_dir="$support_dir/configure_classes"
 
 ###
-### Find the Boot JDK
+### Find a JDK capable of compiling and running the configure tool
 ###
 
-# Start by checking if there is a boot jdk option, if so, we need to read it
-for option; do
-  case $option in
-    --bootjdk=* | --boot-jdk=* | --with-bootjdk=* | --with-boot-jdk=* | -j=*)
-    # FIXME: make safe for spaces in path
-      bootjdk=$(expr "X$option" : '[^=]*=\(.*\)')
-      ;;
-    -j ) # Save the next argument as the bootjdk
-      bootjdk_next=true
-      ;;
-    * )
-      if [ "$bootjdk_next" = "true" ]; then
-        bootjdk="$option"
-        bootjdk_next=false
-      fi
-  esac
-done
-
+# Helper function to check if a path contains a valid JDK
+# Will set $java and $javac if so
 function verify_potential_jdk() {
   potential_jdk="$1"
   if [ -x "$potential_jdk/bin/java" ]; then
@@ -135,83 +119,95 @@ function verify_potential_jdk() {
   debug "No JDK found at $potential_jdk"
 }
 
+# Start by checking if there is a boot jdk option
+for option; do
+  case $option in
+    --bootjdk=* | --boot-jdk=* | --with-bootjdk=* | --with-boot-jdk=* | -j=*)
+    # FIXME: make safe for spaces in path
+      bootjdk=$(expr "X$option" : '[^=]*=\(.*\)')
+      ;;
+    -j ) # Save the next argument as the bootjdk
+      bootjdk_next=true
+      ;;
+    * )
+      if [ "$bootjdk_next" = "true" ]; then
+        bootjdk="$option"
+        bootjdk_next=false
+      fi
+  esac
+done
+
 if [ "$bootjdk" != "" ]; then
-  debug "Boot JDK specified on command line: $bootjdk"
-  java="$bootjdk/bin/java"
-  javac="$bootjdk/bin/javac"
-
-  # Check if the given bootjdk is valid
-  if [ ! -x "$bootjdk/bin/java" ]; then
-    echo "Error: The boot jdk '$bootjdk' is missing bin/java" 1>&2
+  debug "Trying Boot JDK specified on command line: $bootjdk"
+  verify_potential_jdk "$bootjdk"
+  # If the boot jdk argument is given, we require for it to be valid
+  if [ "$java" = "" ]; then
+    echo "Error: The specified boot jdk '$bootjdk' is invalid" 1>&2
     exit 1
   fi
-  if [ ! -x "$bootjdk/bin/javac" ]; then
-    echo "Error: The boot jdk '$bootjdk' is missing bin/javac" 1>&2
-    echo "A JDK is required, not just a JRE" 1>&2
-    exit 1
-  fi
-else
-  # Try to locate a usable JDK
+fi
 
+# If a boot JDK was not specified, try various ways to find a valid JDK
+if [ "$java" = "" ]; then
+  # First test: Try using $JAVA_HOME
   if [ "$JAVA_HOME" != "" ]; then
-    # First test: Try using $JAVA_HOME
     debug "Trying JAVA_HOME: $JAVA_HOME"
     verify_potential_jdk "$JAVA_HOME"
   fi
+fi
 
-  if [ "$java" = "" ]; then
-    # Next test:Try using /usr/libexec/java_home (typically available on macOS)
-    if [ -x /usr/libexec/java_home ]; then
-      libexec_java_home="$(/usr/libexec/java_home 2> /dev/null)"
-      debug "Trying /usr/libexec/java_home: $libexec_java_home"
-      if [ "$libexec_java_home" != "" ]; then
-        verify_potential_jdk "$libexec_java_home"
-      fi
+if [ "$java" = "" ]; then
+  # Next test:Try using /usr/libexec/java_home (typically available on macOS)
+  if [ -x /usr/libexec/java_home ]; then
+    libexec_java_home="$(/usr/libexec/java_home 2> /dev/null)"
+    debug "Trying /usr/libexec/java_home: $libexec_java_home"
+    if [ "$libexec_java_home" != "" ]; then
+      verify_potential_jdk "$libexec_java_home"
     fi
   fi
+fi
 
-  if [ "$java" = "" ]; then
-    # Next test: Is java and javac on the PATH?
-    potential_java="$(command -v java)"
-    potential_javac="$(command -v javac)"
-    if [ -x "$potential_java" ]; then
-      if [ -x "$potential_javac" ]; then
-        debug "Found java: $java and javac: $javac on the PATH"
-        java="$potential_java"
-        javac="$potential_javac"
-      else
-        debug "Found java on the PATH ($java) but javac is missing"
-      fi
+if [ "$java" = "" ]; then
+  # Next test: Is java and javac on the PATH?
+  potential_java="$(command -v java)"
+  potential_javac="$(command -v javac)"
+  if [ -x "$potential_java" ]; then
+    if [ -x "$potential_javac" ]; then
+      debug "Found java: $java and javac: $javac on the PATH"
+      java="$potential_java"
+      javac="$potential_javac"
     else
-      debug "java not found on PATH"
+      debug "Found java on the PATH ($java) but javac is missing"
     fi
+  else
+    debug "java not found on PATH"
   fi
+fi
 
-  if [ "$java" = "" ]; then
-    :
-    # Next test: Look in well-known locations
-    # FIXME
+if [ "$java" = "" ]; then
+  :
+  # Next test: Look in well-known locations
+  # FIXME
 
-    #  if test "x$OPENJDK_TARGET_OS" = xwindows; then
-    #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([ProgramW6432])])
-    #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([PROGRAMW6432])])
-    #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([PROGRAMFILES])])
-    #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([ProgramFiles])])
-    #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/cygdrive/c/Program
-    #    Files/Java])])
-    #  elif test "x$OPENJDK_TARGET_OS" = xmacosx; then
-    #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/Library/Java/JavaVirtualMachines],[/Contents/Home])])
-    #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/System/Library/Java/JavaVirtualMachines],[/Contents/Home])])
-    #  elif test "x$OPENJDK_TARGET_OS" = xlinux; then
-    #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/usr/lib/jvm])])
-    #  fi
-  fi
+  #  if test "x$OPENJDK_TARGET_OS" = xwindows; then
+  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([ProgramW6432])])
+  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([PROGRAMW6432])])
+  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([PROGRAMFILES])])
+  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_WINDOWS_VIRTUAL_DIRECTORY([ProgramFiles])])
+  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/cygdrive/c/Program
+  #    Files/Java])])
+  #  elif test "x$OPENJDK_TARGET_OS" = xmacosx; then
+  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/Library/Java/JavaVirtualMachines],[/Contents/Home])])
+  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/System/Library/Java/JavaVirtualMachines],[/Contents/Home])])
+  #  elif test "x$OPENJDK_TARGET_OS" = xlinux; then
+  #    BOOTJDK_DO_CHECK([BOOTJDK_FIND_BEST_JDK_IN_DIRECTORY([/usr/lib/jvm])])
+  #  fi
+fi
 
-  if [ "$java" = "" ]; then
-    # We've made all possible checks
-    echo "Error: Unable to find a boot JDK. Please use --with-boot-jdk or set JAVA_HOME" 1>&2
-    exit 1
-  fi
+if [ "$java" = "" ]; then
+  # We've made all possible checks
+  echo "Error: Unable to find a boot JDK. Please use --with-boot-jdk or set JAVA_HOME" 1>&2
+  exit 1
 fi
 
 debug "Using java: $java"
