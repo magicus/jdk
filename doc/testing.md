@@ -8,7 +8,7 @@ frameworks are also used. The different test frameworks can be executed
 directly, but there is also a set of make targets intended to simplify the
 interface, and figure out how to run your tests for you.
 
-## Running tests locally with `make test`
+## Running Tests Locally with `make test`
 
 This is the easiest way to get started. Assuming you've built the JDK locally,
 execute:
@@ -88,7 +88,7 @@ command (this is one of the commands that is listed in the files at
 is the user account under which the jtreg tests are run. Replace the username
 with a relevant user account of your system.
 
-## Test selection
+## Test Selection
 
 All functionality is available using the `test` make target. In this use case,
 the test or tests to be executed is controlled using the `TEST` variable. To
@@ -225,7 +225,7 @@ method names can be used to select tests.
 Using special characters like `|` in the regular expression is possible, but
 needs to be escaped multiple times: `micro:ArrayCopy\\\\\|reflect`.
 
-### Special tests
+### Special Tests
 
 A handful of odd tests that are not covered by any other testing framework are
 accessible using the `special:` test descriptor. Currently, this includes
@@ -242,7 +242,7 @@ accessible using the `special:` test descriptor. Currently, this includes
     `special:make:idea`. As a special syntax, this can also be expressed as
     `make-idea`, which allows for command lines as `make test-make-idea`.
 
-## Test results and summary
+## Test Results and Summary
 
 At the end of the test run, a summary of all tests run will be presented. This
 will have a consistent look, regardless of what test suites were used. This is
@@ -279,7 +279,7 @@ Additional work data is stored in `build/$BUILD/test-support/$TEST_ID`. For
 some frameworks, this directory might contain information that is useful in
 determining the cause of a failed test.
 
-## Test suite control
+## Test Suite Control
 
 It is possible to control various aspects of the test suites using make control
 variables.
@@ -307,7 +307,7 @@ line arguments through.)
 As far as possible, the names of the keywords have been standardized between
 test suites.
 
-### General keywords (TEST_OPTS)
+### General Keywords (TEST_OPTS)
 
 Some keywords are valid across different test suites. If you want to run tests
 from multiple test suites, or just don't want to care which test suite specific
@@ -363,7 +363,7 @@ between the specified revision and the repository tip.
 The report is stored in
 `build/$BUILD/test-results/jcov-output/diff_coverage_report` file.
 
-### JTReg keywords
+### JTReg Keywords
 
 #### JOBS
 
@@ -501,7 +501,7 @@ helps to reproduce intermittent test failures. Defaults to 0.
 Use this report style when reporting test results (sent to JTReg as `-report`).
 Defaults to `files`.
 
-### Gtest keywords
+### Gtest Keywords
 
 #### REPEAT
 
@@ -523,7 +523,7 @@ Generate AOT modules before testing for the specified module, or set of
 modules. If multiple modules are specified, they should be separated by space
 (or, to help avoid quoting issues, the special value `%20`).
 
-### Microbenchmark keywords
+### Microbenchmark Keywords
 
 #### FORK
 
@@ -583,7 +583,7 @@ $ make test TEST="jtreg:test/hotspot/jtreg/containers/docker" \
     -Djdk.test.docker.image.version=latest"
 ```
 
-### Non-US locale
+### Non-US Locale
 
 If your locale is non-US, some tests are likely to fail. To work around this
 you can set the locale to US. On Unix platforms simply setting `LANG="en_US"`
@@ -621,7 +621,7 @@ test/jdk/sun/security/pkcs11/README.
 
 ### Client UI Tests
 
-#### System key shortcuts
+#### System Key Shortcuts
 
 Some Client UI tests use key sequences which may be reserved by the operating
 system. Usually that causes the test failure. So it is highly recommended to
@@ -683,7 +683,7 @@ operating systems can be obtained at [Automated client GUI testing system set
 up
 requirements](https://wiki.openjdk.org/display/ClientLibs/Automated+client+GUI+testing+system+set+up+requirements)
 
-## Editing this document
+## Editing This Document
 
 If you want to contribute changes to this document, edit `doc/testing.md` and
 then run `make update-build-docs` to generate the same changes in

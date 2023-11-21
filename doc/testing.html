@@ -33,13 +33,13 @@
 <ul>
 <li><a href="#overview" id="toc-overview">Overview</a></li>
 <li><a href="#running-tests-locally-with-make-test"
-id="toc-running-tests-locally-with-make-test">Running tests locally with
+id="toc-running-tests-locally-with-make-test">Running Tests Locally with
 <code>make test</code></a>
 <ul>
 <li><a href="#configuration"
 id="toc-configuration">Configuration</a></li>
 </ul></li>
-<li><a href="#test-selection" id="toc-test-selection">Test selection</a>
+<li><a href="#test-selection" id="toc-test-selection">Test Selection</a>
 <ul>
 <li><a href="#common-test-groups" id="toc-common-test-groups">Common
 Test Groups</a></li>
@@ -48,35 +48,35 @@ Test Groups</a></li>
 <li><a href="#microbenchmarks"
 id="toc-microbenchmarks">Microbenchmarks</a></li>
 <li><a href="#special-tests" id="toc-special-tests">Special
-tests</a></li>
+Tests</a></li>
 </ul></li>
 <li><a href="#test-results-and-summary"
-id="toc-test-results-and-summary">Test results and summary</a></li>
-<li><a href="#test-suite-control" id="toc-test-suite-control">Test suite
-control</a>
+id="toc-test-results-and-summary">Test Results and Summary</a></li>
+<li><a href="#test-suite-control" id="toc-test-suite-control">Test Suite
+Control</a>
 <ul>
 <li><a href="#general-keywords-test_opts"
-id="toc-general-keywords-test_opts">General keywords
+id="toc-general-keywords-test_opts">General Keywords
 (TEST_OPTS)</a></li>
 <li><a href="#jtreg-keywords" id="toc-jtreg-keywords">JTReg
-keywords</a></li>
+Keywords</a></li>
 <li><a href="#gtest-keywords" id="toc-gtest-keywords">Gtest
-keywords</a></li>
+Keywords</a></li>
 <li><a href="#microbenchmark-keywords"
-id="toc-microbenchmark-keywords">Microbenchmark keywords</a></li>
+id="toc-microbenchmark-keywords">Microbenchmark Keywords</a></li>
 </ul></li>
 <li><a href="#notes-for-specific-tests"
 id="toc-notes-for-specific-tests">Notes for Specific Tests</a>
 <ul>
 <li><a href="#docker-tests" id="toc-docker-tests">Docker Tests</a></li>
 <li><a href="#non-us-locale" id="toc-non-us-locale">Non-US
-locale</a></li>
+Locale</a></li>
 <li><a href="#pkcs11-tests" id="toc-pkcs11-tests">PKCS11 Tests</a></li>
 <li><a href="#client-ui-tests" id="toc-client-ui-tests">Client UI
 Tests</a></li>
 </ul></li>
 <li><a href="#editing-this-document"
-id="toc-editing-this-document">Editing this document</a></li>
+id="toc-editing-this-document">Editing This Document</a></li>
 </ul>
 </nav>
 <h2 id="overview">Overview</h2>
@@ -86,7 +86,7 @@ and test runner built for the JDK's specific needs. Other test
 frameworks are also used. The different test frameworks can be executed
 directly, but there is also a set of make targets intended to simplify
 the interface, and figure out how to run your tests for you.</p>
-<h2 id="running-tests-locally-with-make-test">Running tests locally with
+<h2 id="running-tests-locally-with-make-test">Running Tests Locally with
 <code>make test</code></h2>
 <p>This is the easiest way to get started. Assuming you've built the JDK
 locally, execute:</p>
@@ -164,7 +164,7 @@ commands that is listed in the files at
 <code>johndoe</code>. Here <code>johndoe</code> is the user account
 under which the jtreg tests are run. Replace the username with a
 relevant user account of your system.</p>
-<h2 id="test-selection">Test selection</h2>
+<h2 id="test-selection">Test Selection</h2>
 <p>All functionality is available using the <code>test</code> make
 target. In this use case, the test or tests to be executed is controlled
 using the <code>TEST</code> variable. To speed up subsequent test runs
@@ -302,7 +302,7 @@ can be used to select tests.</p>
 <p>Using special characters like <code>|</code> in the regular
 expression is possible, but needs to be escaped multiple times:
 <code>micro:ArrayCopy\\\\\|reflect</code>.</p>
-<h3 id="special-tests">Special tests</h3>
+<h3 id="special-tests">Special Tests</h3>
 <p>A handful of odd tests that are not covered by any other testing
 framework are accessible using the <code>special:</code> test
 descriptor. Currently, this includes <code>failure-handler</code> and
@@ -320,7 +320,7 @@ functionality, is run using <code>special:make</code> or just
 expressed as <code>make-idea</code>, which allows for command lines as
 <code>make test-make-idea</code>.</p></li>
 </ul>
-<h2 id="test-results-and-summary">Test results and summary</h2>
+<h2 id="test-results-and-summary">Test Results and Summary</h2>
 <p>At the end of the test run, a summary of all tests run will be
 presented. This will have a consistent look, regardless of what test
 suites were used. This is a sample summary:</p>
@@ -353,7 +353,7 @@ at the end of the test run.</p>
 <code>build/$BUILD/test-support/$TEST_ID</code>. For some frameworks,
 this directory might contain information that is useful in determining
 the cause of a failed test.</p>
-<h2 id="test-suite-control">Test suite control</h2>
+<h2 id="test-suite-control">Test Suite Control</h2>
 <p>It is possible to control various aspects of the test suites using
 make control variables.</p>
 <p>These variables use a keyword=value approach to allow multiple values
@@ -380,7 +380,7 @@ This can be useful if you have layers of scripts and have trouble
 getting proper quoting of command line arguments through.)</p>
 <p>As far as possible, the names of the keywords have been standardized
 between test suites.</p>
-<h3 id="general-keywords-test_opts">General keywords (TEST_OPTS)</h3>
+<h3 id="general-keywords-test_opts">General Keywords (TEST_OPTS)</h3>
 <p>Some keywords are valid across different test suites. If you want to
 run tests from multiple test suites, or just don't want to care which
 test suite specific control variable to use, then you can use the
@@ -421,7 +421,7 @@ the diff between the specified revision and the repository tip.</p>
 <p>The report is stored in
 <code>build/$BUILD/test-results/jcov-output/diff_coverage_report</code>
 file.</p>
-<h3 id="jtreg-keywords">JTReg keywords</h3>
+<h3 id="jtreg-keywords">JTReg Keywords</h3>
 <h4 id="jobs-1">JOBS</h4>
 <p>The test concurrency (<code>-concurrency</code>).</p>
 <p>Defaults to TEST_JOBS (if set by <code>--with-test-jobs=</code>),
@@ -514,7 +514,7 @@ failure. This helps to reproduce intermittent test failures. Defaults to
 <h4 id="report">REPORT</h4>
 <p>Use this report style when reporting test results (sent to JTReg as
 <code>-report</code>). Defaults to <code>files</code>.</p>
-<h3 id="gtest-keywords">Gtest keywords</h3>
+<h3 id="gtest-keywords">Gtest Keywords</h3>
 <h4 id="repeat">REPEAT</h4>
 <p>The number of times to repeat the tests
 (<code>--gtest_repeat</code>).</p>
@@ -531,7 +531,7 @@ options.</p>
 of modules. If multiple modules are specified, they should be separated
 by space (or, to help avoid quoting issues, the special value
 <code>%20</code>).</p>
-<h3 id="microbenchmark-keywords">Microbenchmark keywords</h3>
+<h3 id="microbenchmark-keywords">Microbenchmark Keywords</h3>
 <h4 id="fork">FORK</h4>
 <p>Override the number of benchmark forks to spawn. Same as specifying
 <code>-f &lt;num&gt;</code>.</p>
@@ -570,7 +570,7 @@ docker image are required on Ubuntu 18.04 by using
 <pre><code>$ make test TEST=&quot;jtreg:test/hotspot/jtreg/containers/docker&quot; \
     JTREG=&quot;JAVA_OPTIONS=-Djdk.test.docker.image.name=ubuntu
     -Djdk.test.docker.image.version=latest&quot;</code></pre>
-<h3 id="non-us-locale">Non-US locale</h3>
+<h3 id="non-us-locale">Non-US Locale</h3>
 <p>If your locale is non-US, some tests are likely to fail. To work
 around this you can set the locale to US. On Unix platforms simply
 setting <code>LANG="en_US"</code> in the environment before running
@@ -598,7 +598,7 @@ element of the appropriate <code>@Artifact</code> class. (See
 <p>For more notes about the PKCS11 tests, please refer to
 test/jdk/sun/security/pkcs11/README.</p>
 <h3 id="client-ui-tests">Client UI Tests</h3>
-<h4 id="system-key-shortcuts">System key shortcuts</h4>
+<h4 id="system-key-shortcuts">System Key Shortcuts</h4>
 <p>Some Client UI tests use key sequences which may be reserved by the
 operating system. Usually that causes the test failure. So it is highly
 recommended to disable system key shortcuts prior testing. The steps to
@@ -650,7 +650,7 @@ select Registry Editor; navigate to the following key:
 various operating systems can be obtained at <a
 href="https://wiki.openjdk.org/display/ClientLibs/Automated+client+GUI+testing+system+set+up+requirements">Automated
 client GUI testing system set up requirements</a></p>
-<h2 id="editing-this-document">Editing this document</h2>
+<h2 id="editing-this-document">Editing This Document</h2>
 <p>If you want to contribute changes to this document, edit
 <code>doc/testing.md</code> and then run
 <code>make update-build-docs</code> to generate the same changes in
