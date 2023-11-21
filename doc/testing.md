@@ -13,7 +13,9 @@ interface, and figure out how to run your tests for you.
 This is the easiest way to get started. Assuming you've built the JDK locally,
 execute:
 
-    $ make test
+```
+$ make test
+```
 
 This will run a default set of tests against the JDK, and present you with the
 results. `make test` is part of a family of test-related make targets which
@@ -24,23 +26,25 @@ frameworks directly if you want even more control.
 
 Some example command-lines:
 
-    $ make test-tier1
-    $ make test-jdk_lang JTREG="JOBS=8"
-    $ make test TEST=jdk_lang
-    $ make test-only TEST="gtest:LogTagSet gtest:LogTagSetDescriptions" GTEST="REPEAT=-1"
-    $ make test TEST="hotspot:hotspot_gc" JTREG="JOBS=1;TIMEOUT_FACTOR=8;JAVA_OPTIONS=-XshowSettings -Xlog:gc+ref=debug"
-    $ make test TEST="jtreg:test/hotspot:hotspot_gc test/hotspot/jtreg/native_sanity/JniVersion.java"
-    $ make test TEST="micro:java.lang.reflect" MICRO="FORK=1;WARMUP_ITER=2"
-    $ make exploded-test TEST=tier2
+```
+$ make test-tier1
+$ make test-jdk_lang JTREG="JOBS=8"
+$ make test TEST=jdk_lang
+$ make test-only TEST="gtest:LogTagSet gtest:LogTagSetDescriptions" GTEST="REPEAT=-1"
+$ make test TEST="hotspot:hotspot_gc" JTREG="JOBS=1;TIMEOUT_FACTOR=8;JAVA_OPTIONS=-XshowSettings -Xlog:gc+ref=debug"
+$ make test TEST="jtreg:test/hotspot:hotspot_gc test/hotspot/jtreg/native_sanity/JniVersion.java"
+$ make test TEST="micro:java.lang.reflect" MICRO="FORK=1;WARMUP_ITER=2"
+$ make exploded-test TEST=tier2
+```
 
 "tier1" and "tier2" refer to tiered testing, see further down. "TEST" is a test
- selection argument which the make test framework will use to try to find the
- tests you want. It iterates over the available test frameworks, and if the
- test isn't present in one, it tries the next one. The main target `test` uses
- the jdk-image as the tested product. There is also an alternate target
- `exploded-test` that uses the exploded image instead. Not all tests will run
- successfully on the exploded image, but using this target can greatly improve
- rebuild times for certain workflows.
+selection argument which the make test framework will use to try to find the
+tests you want. It iterates over the available test frameworks, and if the test
+isn't present in one, it tries the next one. The main target `test` uses the
+jdk-image as the tested product. There is also an alternate target
+`exploded-test` that uses the exploded image instead. Not all tests will run
+successfully on the exploded image, but using this target can greatly improve
+rebuild times for certain workflows.
 
 Previously, `make test` was used to invoke an old system for running tests, and
 `make run-test` was used for the new test framework. For backward compatibility
@@ -82,7 +86,7 @@ here we only show one possible way of doing that - edit the
 johndoe ALL=(ALL) NOPASSWD: /sbin/dmesg
 ```
 
-This line configures `sudo` to _not_ prompt for password for the `/sbin/dmesg`
+This line configures `sudo` to *not* prompt for password for the `/sbin/dmesg`
 command (this is one of the commands that is listed in the files at
 `test/failure_handler/src/share/conf`), for the user `johndoe`. Here `johndoe`
 is the user account under which the jtreg tests are run. Replace the username
@@ -121,7 +125,7 @@ a sense what tests are relevant to a particular JDK component.
 
 Component-specific tests may miss some unintended consequences of a change, so
 other tests should also be run. Again, it might be impractical to run all
-tests, and therefore _tiered_ test groups exist. Tiered test groups are not
+tests, and therefore *tiered* test groups exist. Tiered test groups are not
 component-specific, but rather cover the significant parts of the entire JDK.
 
 Multiple tiers allow balancing test coverage and testing costs. Lower test
@@ -134,7 +138,7 @@ the first N tiers they can afford to run, but at least tier1.
 
 A brief description of the tiered test groups:
 
-- `tier1`: This is the most fundamental test tier. Roughly speaking, a failure
+* `tier1`: This is the most fundamental test tier. Roughly speaking, a failure
   of a test in this tier has the potential to indicate a problem that would
   affect many Java programs. Tests in `tier1` include tests of HotSpot, core
   APIs in the `java.base` module, and the `javac` compiler. Multiple developers
@@ -148,17 +152,17 @@ A brief description of the tiered test groups:
   either with fixes, or adding relevant tests to problem list. GitHub Actions
   workflows, if enabled, run `tier1` tests.
 
-- `tier2`: This test group covers even more ground. These contain, among other
+* `tier2`: This test group covers even more ground. These contain, among other
   things, tests that either run for too long to be at `tier1`, or may require
   special configuration, or tests that are less stable, or cover the broader
   range of non-core JVM and JDK features/components(for example, XML).
 
-- `tier3`: This test group includes more stressful tests, the tests for corner
+* `tier3`: This test group includes more stressful tests, the tests for corner
   cases not covered by previous tiers, plus the tests that require GUIs. As
   such, this suite should either be run with low concurrency (`TEST_JOBS=1`),
   or without headful tests(`JTREG_KEYWORDS=\!headful`), or both.
 
-- `tier4`: This test group includes every other test not covered by previous
+* `tier4`: This test group includes every other test not covered by previous
   tiers. It includes, for example, `vmTestbase` suites for Hotspot, which run
   for many hours even on large machines. It also runs GUI tests, so the same
   `TEST_JOBS` and `JTREG_KEYWORDS` caveats apply.
@@ -231,16 +235,16 @@ A handful of odd tests that are not covered by any other testing framework are
 accessible using the `special:` test descriptor. Currently, this includes
 `failure-handler` and `make`.
 
-  * Failure handler testing is run using `special:failure-handler` or just
-    `failure-handler` as test descriptor.
+* Failure handler testing is run using `special:failure-handler` or just
+  `failure-handler` as test descriptor.
 
-  * Tests for the build system, including both makefiles and related
-    functionality, is run using `special:make` or just `make` as test
-    descriptor. This is equivalent to `special:make:all`.
+* Tests for the build system, including both makefiles and related
+  functionality, is run using `special:make` or just `make` as test descriptor.
+  This is equivalent to `special:make:all`.
 
-    A specific make test can be run by supplying it as argument, e.g.
-    `special:make:idea`. As a special syntax, this can also be expressed as
-    `make-idea`, which allows for command lines as `make test-make-idea`.
+  A specific make test can be run by supplying it as argument, e.g.
+  `special:make:idea`. As a special syntax, this can also be expressed as
+  `make-idea`, which allows for command lines as `make test-make-idea`.
 
 ## Test Results and Summary
 
@@ -248,15 +252,17 @@ At the end of the test run, a summary of all tests run will be presented. This
 will have a consistent look, regardless of what test suites were used. This is
 a sample summary:
 
-    ==============================
-    Test summary
-    ==============================
-       TEST                                          TOTAL  PASS  FAIL ERROR
-    >> jtreg:jdk/test:tier1                           1867  1865     2     0 <<
-       jtreg:langtools/test:tier1                     4711  4711     0     0
-       jtreg:nashorn/test:tier1                        133   133     0     0
-    ==============================
-    TEST FAILURE
+```
+==============================
+Test summary
+==============================
+   TEST                                          TOTAL  PASS  FAIL ERROR
+>> jtreg:jdk/test:tier1                           1867  1865     2     0 <<
+   jtreg:langtools/test:tier1                     4711  4711     0     0
+   jtreg:nashorn/test:tier1                        133   133     0     0
+==============================
+TEST FAILURE
+```
 
 Tests where the number of TOTAL tests does not equal the number of PASSed tests
 will be considered a test failure. These are marked with the `>> ... <<` marker
