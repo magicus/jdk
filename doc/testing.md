@@ -8,7 +8,7 @@ frameworks are also used. The different test frameworks can be executed
 directly, but there is also a set of make targets intended to simplify the
 interface, and figure out how to run your tests for you.
 
-## Running Tests Locally with `make test`
+## Running Tests Locally with "make test"
 
 This is the easiest way to get started. Assuming you've built the JDK locally,
 execute:
