@@ -26,8 +26,11 @@ running on Windows), and want to clone the main-line JDK repository.
  4. Verify your newly built JDK: \
     `./build/*/images/jdk/bin/java -version`
 
- 5. [Run basic tests](#running-tests): \
-    `make test-tier1`
+ 5. [Run basic tests](#running-tests). If you have `JT_HOME` set to your
+    [jtreg](#jtreg) installation, it can be as easy as: \
+    `make test-tier1` \
+    However, most likely you will need to [take additional steps](#testing)
+    before you can run this.
 
 If any of these steps failed, or if you want to know more about build
 requirements or build functionality, please continue reading this document.
@@ -739,6 +742,20 @@ bash configure --help
 `--dvidir`, that is not relevant to the JDK. To list only JDK-specific
 features, use `bash configure --help=short` instead.)
 
+#### Build Environment
+
+The JDK build system uses the concept of a "build environment", which can be
+either `ci` for an automatic, distributed CI (continuous integration) build
+environment, or `dev` for a local, interactive developer environment. This has
+impact on the default value for some configure options.
+
+If the `CI` environment variable is present, then a `ci` build environment will
+be assumed, otherwise the `dev` environment will be used. This automatic
+selection can be overridden using `--build-env`.
+
+Currently, the only option affected by the build environment is the JTReg
+Failure Handler.
+
 #### Configure Arguments for Tailoring the Build
 
 * `--enable-debug` - Set the debug level to `fastdebug` (this is a shorthand
@@ -956,39 +973,73 @@ Suggestions for Advanced Users](#hints-and-suggestions-for-advanced-users) and
 * `JDK_FILTER`
 * `SPEC_FILTER`
 
-## Running Tests
+## Testing
 
 Most of the JDK tests are using the [JTReg](https://openjdk.org/jtreg) test
-framework. Make sure that your configuration knows where to find your
-installation of JTReg. If this is not picked up automatically, use the
-`--with-jtreg=<path to jtreg home>` option to point to the JTReg framework.
-Note that this option should point to the JTReg home, i.e. the top directory,
-containing `lib/jtreg.jar` etc.
+framework. Hotspot also uses Googletest ("gtest") for unit testing. It is
+recommended to install both [jtreg](#jtreg) and [gtest](#gtest), even if it is
+possible to only install one or the other. Finally, microbenchmarks need the
+[JMH](#jmh) (Java Microbenchmarks Helper) library to be executed.
 
-The [Adoption Group](https://wiki.openjdk.org/display/Adoption) provides recent
-builds of jtreg [here](
+See below for instructions on how to install these frameworks and to make them
+available for testing.
+
+### Running Tests
+
+For details on how to run tests, please see **Testing the JDK**
+([html](testing.html), [markdown](testing.md)).
+
+### jtreg
+
+To run JTReg tests on your newly built JDK, the configuration must be setup
+with JTReg enabled. If you have `JT_HOME` set pointing to the JTReg home, or
+you have the `jtreg` executable in your `PATH`, then `configure` can pick it up
+automatically.
+
+More commonly, you need to use the `--with-jtreg=<path to jtreg home>` option
+to point to the JTReg framework. Note that this option should point to the
+JTReg home, i.e. the top directory, containing `lib/jtreg.jar` etc.
+
+You can easily download and build JTReg by following these steps:
+
+```
+$ git clone https://git.openjdk.org/jtreg
+$ cd jtreg
+$ bash make/build.sh --jdk "$BOOTJDK"
+```
+
+where `$BOOTJDK` is a path to your boot JDK root.
+
+An alternative is to download a pre-built version of JTReg from Adoptium. They
+publish recent builds of jtreg [here](
 https://ci.adoptium.net/view/Dependencies/job/dependency_pipeline/lastSuccessfulBuild/artifact/jtreg/).
 Download the latest `.tar.gz` file, unpack it, and point `--with-jtreg` to the
 `jtreg` directory that you just unpacked.
 
-Building of Hotspot Gtest suite requires the source code of Google Test
-framework. The top directory, which contains both `googletest` and `googlemock`
-directories, should be specified via `--with-gtest`. The minimum supported
-version of Google Test is 1.14.0, whose source code can be obtained:
+### gtest
+
+Running the Hotspot Gtest suite requires the source code of Googletest
+framework. The `configure` script cannot locate Googletest automatically. You
+need to specify it using `--with-gtest`. This should point to the Googletest
+top directory, which contains both the `googletest` and `googlemock`
+directories. The minimum supported version of Google Test is 1.14.0.
+
+You can easily download Googletest by either of this methods:
 
 * by downloading and unpacking the source bundle from
   [here](https://github.com/google/googletest/releases/tag/v1.14.0), or
 * by checking out `v1.14.0` tag of `googletest` project:
   `git clone -b v1.14.0 https://github.com/google/googletest`
 
-To execute the most basic tests (tier 1), use:
+### jmh
 
-```
-make test-tier1
-```
+To be able to run microbenchmarks, `configure` needs to know where to find the
+JMH dependency. Use `--with-jmh=<path to JMH jars>` to point to a directory
+containing the core JMH and transitive dependencies.
 
-For more details on how to run tests, please see **Testing the JDK**
-([html](testing.html), [markdown](testing.md)).
+You can easily download JMH and its transitive dependencies using `sh
+make/devkit/createJMHBundle.sh`. After this command, JMH will be available in
+`build/jmh/jars`, so you need to add `--with-jmh=build/jmh/jars` to `configure`.
 
 ## Signing
 
