@@ -18,6 +18,6 @@ public class Basic {
         AC.subst(conf, "ORIGINAL_PATH", originalPath);
         String dateWhenConfigured = Shell.date();
         AC.subst(conf, "DATE_WHEN_CONFIGURED", dateWhenConfigured);
-        AC.msgNotice("Configuration created at " + dateWhenConfigured);
+        AC.msgNotice("Configuration created at " + dateWhenConfigured + ".");
     }
 }

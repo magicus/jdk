@@ -12,7 +12,7 @@ public class AC {
     }
 
     public static void msgNotice(String message) {
-        System.out.println(message);
+        System.out.println("configure: " + message);
     }
 
     public static String progGrep() {

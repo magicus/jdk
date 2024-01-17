@@ -12,7 +12,8 @@ public class Shell {
 
     public static String date() {
         ZonedDateTime currentDate = ZonedDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL);
+        // Emulate output of unix date command
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("E MMM d HH:mm:ss z yyyy");
         return formatter.format(currentDate);
     }
 }
