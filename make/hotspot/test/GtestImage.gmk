@@ -38,6 +38,10 @@ TARGETS += $(COPY_GTEST)
 
 # FIXME: IMPORTJVM
 # FIXME: get the correct path for SRC
+# make[3]: *** No rule to make target '/d/a/jdk/jdk/build/windows-x64/hotspot/variant-server/libjvm/gtest/jvm.pdb', needed by '/d/a/jdk/jdk/build/windows-x64/images/test/hotspot/gtest/server/jvm.pdb'.  Stop.
+
+
+# "make test GTEST" should not allow you to select jvm variant
 $(foreach v, $(BUILD_EXTRA_JVM_VARIANTS), \
   $(eval $(call SetupCopyFiles, COPY_GTEST_$v, \
       SRC := $(HOTSPOT_OUTPUTDIR)/variant-$v/libjvm/gtest, \
