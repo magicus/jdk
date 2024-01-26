@@ -23,7 +23,7 @@
  * questions.
  */
 
-package build.tools.configure;
+package build.tools.configure.core;
 
 import java.io.IOException;
 import java.nio.file.Files;

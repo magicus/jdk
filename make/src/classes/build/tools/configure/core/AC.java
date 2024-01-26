@@ -1,6 +1,10 @@
-package build.tools.configure;
+package build.tools.configure.core;
+
+import java.io.IOException;
 
 public class AC {
+    public static String sysroot;
+
     public static void subst(Conf conf, String variable, String content) {
         conf.put(variable, content);
     }
@@ -29,5 +33,21 @@ public class AC {
 
     public static String progSed() {
         return "sed";
+    }
+
+    public static void warn(String s) {
+    }
+
+    public static void fatal(String s) {
+    }
+
+    public static void error(String s) {
+    }
+
+    public static boolean tryCompile(String testProgram, LibraryFlags flags) {
+        return false;
+    }
+
+    public static void fatal(String s, IOException e) {
     }
 }

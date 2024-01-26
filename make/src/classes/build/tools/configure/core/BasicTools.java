@@ -1,4 +1,4 @@
-package build.tools.configure;
+package build.tools.configure.core;
 
 public class BasicTools {
     public static void setupFundamentalTools(Conf conf) {

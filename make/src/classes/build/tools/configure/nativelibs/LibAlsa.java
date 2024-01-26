@@ -1,0 +1,92 @@
+package build.tools.configure.nativelibs;
+
+import build.tools.configure.core.LibraryInfo;
+
+public class LibAlsa {
+    public static void setupAlsa() {
+        LibraryInfo alsa = LibraryInfo.register("alsa", "asound", "alsa/asoundlib.h", getAlsaAvailable(), getAlsaRequired());
+
+        alsa.checkOptions();
+
+    }
+
+    private static boolean getAlsaRequired() {
+        return true;
+    }
+
+    private static boolean getAlsaAvailable() {
+        return true;
+    }
+    /*
+
+
+################################################################################
+# Setup alsa (Advanced Linux Sound Architecture)
+################################################################################
+AC_DEFUN_ONCE([LIB_SETUP_ALSA],
+[
+  AC_ARG_WITH(alsa, [AS_HELP_STRING([--with-alsa],
+      [specify prefix directory for the alsa package
+      (expecting the libraries under PATH/lib and the headers under PATH/include)])])
+  AC_ARG_WITH(alsa-include, [AS_HELP_STRING([--with-alsa-include],
+      [specify directory for the alsa include files])])
+  AC_ARG_WITH(alsa-lib, [AS_HELP_STRING([--with-alsa-lib],
+      [specify directory for the alsa library])])
+
+  if test "x$NEEDS_LIB_ALSA" = xfalse; then
+    if (test "x${with_alsa}" != x && test "x${with_alsa}" != xno) || \
+        (test "x${with_alsa_include}" != x && test "x${with_alsa_include}" != xno) || \
+        (test "x${with_alsa_lib}" != x && test "x${with_alsa_lib}" != xno); then
+      AC_MSG_WARN([[alsa not used, so --with-alsa[-*] is ignored]])
+    fi
+    ALSA_CFLAGS=
+    ALSA_LIBS=
+  else
+    ALSA_FOUND=no
+
+    if test "x${with_alsa}" = xno || test "x${with_alsa_include}" = xno || test "x${with_alsa_lib}" = xno; then
+      AC_MSG_ERROR([It is not possible to disable the use of alsa. Remove the --without-alsa option.])
+    fi
+
+    if test "x${with_alsa}" != x; then
+      ALSA_LIBS="-L${with_alsa}/lib -lasound"
+      ALSA_CFLAGS="-I${with_alsa}/include"
+      ALSA_FOUND=yes
+    fi
+    if test "x${with_alsa_include}" != x; then
+      ALSA_CFLAGS="-I${with_alsa_include}"
+      ALSA_FOUND=yes
+    fi
+    if test "x${with_alsa_lib}" != x; then
+      ALSA_LIBS="-L${with_alsa_lib} -lasound"
+      ALSA_FOUND=yes
+    fi
+    # Do not try pkg-config if we have a sysroot set.
+    if test "x$SYSROOT" = x; then
+      if test "x$ALSA_FOUND" = xno; then
+        PKG_CHECK_MODULES(ALSA, alsa, [ALSA_FOUND=yes], [ALSA_FOUND=no])
+      fi
+    fi
+    if test "x$ALSA_FOUND" = xno; then
+      AC_CHECK_HEADERS([alsa/asoundlib.h],
+          [
+            ALSA_FOUND=yes
+            ALSA_CFLAGS=-Iignoreme
+            ALSA_LIBS=-lasound
+            DEFAULT_ALSA=yes
+          ],
+          [ALSA_FOUND=no]
+      )
+    fi
+    if test "x$ALSA_FOUND" = xno; then
+      HELP_MSG_MISSING_DEPENDENCY([alsa])
+      AC_MSG_ERROR([Could not find alsa! $HELP_MSG])
+    fi
+  fi
+
+  AC_SUBST(ALSA_CFLAGS)
+  AC_SUBST(ALSA_LIBS)
+])
+
+     */
+}

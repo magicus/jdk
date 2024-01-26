@@ -1,4 +1,4 @@
-package build.tools.configure;
+package build.tools.configure.core;
 
 import java.util.HashMap;
 import java.util.Map;

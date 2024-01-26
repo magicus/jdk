@@ -23,7 +23,7 @@
  * questions.
  */
 
-package build.tools.configure;
+package build.tools.configure.core;
 
 public class UtilPaths {
     public static void requireProgs(Conf conf, String variable, String toolnames) {
@@ -52,6 +52,10 @@ public class UtilPaths {
         conf.put(variable, toolPath);
     }
 
+    public static void lookupToolchainProgs(Conf conf, String variable, String toolnames) {
+    }
+
+
     private static String lookupTool(String toolnames) {
         for (String toolname : toolnames.split(" ")) {
             System.out.print("checking for " + toolname + "... ");
@@ -68,6 +72,43 @@ public class UtilPaths {
 
         // FIXME: correct?
         return null;
+    }
+
+    public static String fixupPath(String path) {
+        // do stuff, especially on Windows...
+        return "";
+    }
+    /*
+    # Check if the given file is a unix-style or windows-style executable, that is,
+# if it expects paths in unix-style or windows-style.
+# Returns "windows" or "unix" in $RESULT.
+AC_DEFUN([UTIL_CHECK_WINENV_EXEC_TYPE],
+     */
+
+    public static WinEnvType checkWinEnvExecType(String file) {
+        // do stuff
+    }
+
+    /*
+###############################################################################
+# This will make sure the given variable points to a executable
+# with a full and proper path. This means:
+# 1) There will be no spaces in the path. On unix platforms,
+#    spaces in the path will result in an error. On Windows,
+#    the path will be rewritten using short-style to be space-free.
+# 2) The path will be absolute, and it will be in unix-style (on
+#     cygwin).
+# Any arguments given to the executable is preserved.
+# If the input variable does not have a directory specification, then
+# it need to be in the PATH.
+# $1: The name of the variable to fix
+# $2: Where to look for the command (replaces $PATH)
+# $3: set to NOFIXPATH to skip prefixing FIXPATH, even if needed on platform
+AC_DEFUN([UTIL_FIXUP_EXECUTABLE],
+     */
+
+    public static String fixupExecutable(String path) {
+        // do stuff
     }
 
 }
