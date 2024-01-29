@@ -713,13 +713,17 @@ AC_DEFUN_ONCE([TOOLCHAIN_DETECT_TOOLCHAIN_EXTRA],
     UTIL_REQUIRE_PROGS(OTOOL, otool)
     UTIL_REQUIRE_PROGS(INSTALL_NAME_TOOL, install_name_tool)
 
-    UTIL_LOOKUP_TOOLCHAIN_PROGS(METAL, metal)
+    UTIL_LOOKUP_TOOLCHAIN_PROGS(METAL, metal, $PATH:)
     if test "x$METAL" = x; then
-      AC_MSG_CHECKING([if metal can be run using xcrun])
+      AC_MSG_CHECKING([if metal can be found using xcrun])
+   #   METAL="$(xcrun -f -sdk macosx metal)"
+      # /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin
       METAL="xcrun -sdk macosx metal"
       test_metal=`$METAL --version 2>&1`
       if test $? -ne 0; then
         AC_MSG_RESULT([no])
+        AC_MSG_NOTICE([If you have XCode installed, you might need to reset the Xcode active developer directory])
+        AC_MSG_NOTICE([using 'sudo xcode-select -r'])
         AC_MSG_ERROR([XCode tool 'metal' neither found in path nor with xcrun])
       else
         AC_MSG_RESULT([yes, will be using '$METAL'])
@@ -729,6 +733,7 @@ AC_DEFUN_ONCE([TOOLCHAIN_DETECT_TOOLCHAIN_EXTRA],
     UTIL_LOOKUP_TOOLCHAIN_PROGS(METALLIB, metallib)
     if test "x$METALLIB" = x; then
       AC_MSG_CHECKING([if metallib can be run using xcrun])
+   #   METALLIB="$(xcrun -f -sdk macosx metallib)"
       METALLIB="xcrun -sdk macosx metallib"
       test_metallib=`$METALLIB --version 2>&1`
       if test $? -ne 0; then
