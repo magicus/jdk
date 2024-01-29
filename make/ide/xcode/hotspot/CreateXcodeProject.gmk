@@ -58,7 +58,7 @@ JAVA_WARNINGS_ARE_ERRORS :=
 
   XCODE_PROJ_VARDEPS := $(PROJECT_CREATOR_ARGS)
   XCODE_PROJ_VARDEPS_FILE := $(call DependOnVariable, XCODE_PROJ_VARDEPS, \
-    $(VCPROJ_FILE).vardeps)
+    $(TOOLS_OUTPUTDIR)/xcodeproj.vardeps)
 
   $(eval $(call SetupExecute, xcodeproject, \
       INFO := Generating Xcode project file, \
