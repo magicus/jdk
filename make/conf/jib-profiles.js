@@ -58,8 +58,10 @@
  * input.build_id
  * input.target_os
  * input.target_cpu
+ * input.target_libc
  * input.build_os
  * input.build_cpu
+ * input.build_libc
  * input.target_platform
  * input.build_platform
  * // The build_osenv_* variables describe the unix layer on Windows systems,
@@ -101,13 +103,17 @@
  *       target_os; <string>
  *       // Name of cpu the profile is built to run on
  *       target_cpu; <string>
- *       // Combination of target_os and target_cpu for convenience
+ *       // Optional libc string if non standard
+ *       target_libc; <string>
+ *       // Optional combination of target_os and target_cpu for convenience
  *       target_platform; <string>
  *       // Name of os the profile is built on
  *       build_os; <string>
  *       // Name of cpu the profile is built on
  *       build_cpu; <string>
- *       // Combination of build_os and build_cpu for convenience
+ *       // Optional libc string if non standard
+ *       build_libc; <string>
+ *       // Optional combination of build_os and build_cpu for convenience
  *       build_platform; <string>
  *
  *       // List of dependencies needed to build this profile
@@ -240,7 +246,7 @@ var getJibProfilesCommon = function (input, data) {
 
     // List of the main profile names used for iteration
     common.main_profile_names = [
-        "linux-x64", "linux-x86", "macosx-x64", "macosx-aarch64",
+        "linux-x64", "linux-x64-musl", "linux-x86", "macosx-x64", "macosx-aarch64",
         "windows-x64", "windows-x86", "windows-aarch64",
         "linux-aarch64", "linux-arm32", "linux-ppc64le", "linux-s390x",
         "linux-riscv64"
@@ -420,6 +426,14 @@ var getJibProfilesProfiles = function (input, common, data) {
                 "--with-zlib=system", "--disable-dtrace",
                 (isWsl(input) ? [ "--host=x86_64-unknown-linux-gnu",
                     "--build=x86_64-unknown-linux-gnu" ] : [])),
+        },
+
+        "linux-x64-musl": {
+            target_os: "linux",
+            target_cpu: "x64",
+            target_libc: "musl",
+            configure_args: concat(common.configure_args_64bit,
+                "--with-zlib=system"),
         },
 
         "linux-x86": {
@@ -691,6 +705,10 @@ var getJibProfilesProfiles = function (input, common, data) {
     var artifactData = {
         "linux-x64": {
             platform: "linux-x64",
+        },
+        "linux-x64-musl": {
+            platform: "linux-x64-musl",
+            demo_ext: "tar.gz"
         },
         "linux-x86": {
             platform: "linux-x86",
@@ -1074,7 +1092,7 @@ var getJibProfilesDependencies = function (input, common) {
     if (input.build_os == "macosx") {
         boot_jdk_os = "macos";
     }
-    var boot_jdk_platform = boot_jdk_os + "-" + input.build_cpu;
+    var boot_jdk_platform = boot_jdk_os + "-" + input.build_cpu + (input.build_libc ? "-" + input.build_libc : "");
     var boot_jdk_ext = (input.build_os == "windows" ? ".zip" : ".tar.gz")
     // If running in WSL and building for Windows, it will look like Linux,
     // but we need a Windows boot JDK.
