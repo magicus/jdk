@@ -23,6 +23,9 @@
 # questions.
 #
 
+$(info we got test: $(TEST))
+$(info we got apa: $(subst #,@,$(APA)))
+
 default: all
 
 include $(SPEC)
@@ -443,6 +446,7 @@ ParseTestSelection = \
       $(call ParseJtregTestSelection, $1) \
       $(call ParseSpecialTestSelection, $1) \
     ))
+
 
 # Now intelligently convert the test selection given by the user in TEST
 # into a list of fully qualified test descriptors of the tests to run.

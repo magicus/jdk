@@ -28,6 +28,8 @@
 # to be called with a SPEC file defined.
 ################################################################################
 
+$(info MAIN we got test: $(TEST))
+
 # Declare default target
 default:
 
@@ -796,7 +798,7 @@ $(eval $(call SetupTarget, build-microbenchmark, \
 
 $(eval $(call SetupTarget, test, \
     MAKEFILE := RunTests, \
-    ARGS := TEST="$(TEST)", \
+    ARGS := TEST="$(subst \#,@,$(TEST))", \
     DEPS := jdk-image test-image, \
 ))
 
