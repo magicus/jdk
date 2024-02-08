@@ -75,35 +75,9 @@ define ParseMicroCheckSelection
   )
 endef
 
-
-# Helper function to determine if a check specification is a special check
-#
-# It is a special check if it is "special:" followed by a check name,
-# if it is "make:" or "make-" followed by a make check, or any of the special
-# check names as a single word.
-define ParseSpecialCheckSelection
-  $(if $(filter special:%, $1), \
-    $1 \
-  ) \
-  $(if $(filter make%, $1), \
-    $(if $(filter make:%, $1), \
-      special:$(strip $1) \
-    ) \
-    $(if $(filter make-%, $1), \
-      special:$(patsubst make-%,make:%, $1) \
-    ) \
-    $(if $(filter make, $1), \
-      special:make:all \
-    )
-  ) \
-  $(if $(filter failure-handler, $1), \
-    special:$(strip $1) \
-  )
-endef
-
 ifeq ($(CHECK), )
   $(info No check selection given in CHECK!)
-  $(info Please use e.g. 'make check CHECK=tier1' or 'make check-tier1')
+  $(info Please use e.g. 'make check CHECK=modifier-order' or 'make check-modifier-order')
   $(info See doc/checking.[md|html] for help)
   $(error Cannot continue)
 endif
@@ -127,7 +101,6 @@ endif
 # Present the result of our parsing to the user
 $(info Check selection '$(CHECK)', will run:)
 $(foreach check, $(CHECKS_TO_RUN), $(info * $(check)))
-
 
 ################################################################################
 # Functions for setting up rules for running the selected checks
@@ -269,77 +242,6 @@ define SetupRunMicroCheckBody
 
 endef
 
-
-################################################################################
-
-### Rules for special checks
-
-SetupRunSpecialCheck = $(NamedParamsMacroTemplate)
-define SetupRunSpecialCheckBody
-  $1_CHECK_RESULTS_DIR := $$(CHECK_RESULTS_DIR)/$1
-  $1_CHECK_SUPPORT_DIR := $$(CHECK_SUPPORT_DIR)/$1
-  $1_EXITCODE := $$($1_CHECK_RESULTS_DIR)/exitcode.txt
-
-  $1_FULL_CHECK_NAME := $$(strip $$(patsubst special:%, %, $$($1_CHECK)))
-  ifneq ($$(findstring :, $$($1_FULL_CHECK_NAME)), )
-    $1_CHECK_NAME := $$(firstword $$(subst :, ,$$($1_FULL_CHECK_NAME)))
-    $1_CHECK_ARGS := $$(strip $$(patsubst special:$$($1_CHECK_NAME):%, %, $$($1_CHECK)))
-  else
-    $1_CHECK_NAME := $$($1_FULL_CHECK_NAME)
-    $1_CHECK_ARGS :=
-  endif
-
-  ifeq ($$($1_CHECK_NAME), failure-handler)
-    ifeq ($(BUILD_FAILURE_HANDLER), true)
-      $1_CHECK_COMMAND_LINE := \
-          ($(CD) $(TOPDIR)/make/check && $(MAKE) $(MAKE_ARGS) -f \
-          BuildFailureHandler.gmk check)
-    else
-      $$(error Cannot check failure handler if it is not built)
-    endif
-  else ifeq ($$($1_CHECK_NAME), make)
-    $1_CHECK_COMMAND_LINE := \
-        ($(CD) $(TOPDIR)/check/make && $(MAKE) $(MAKE_ARGS) -f \
-        CheckMake.gmk $$($1_CHECK_ARGS) CHECK_SUPPORT_DIR="$$($1_CHECK_SUPPORT_DIR)")
-  else
-    $$(error Invalid special check specification: $$($1_CHECK_NAME))
-  endif
-
-  run-check-$1: pre-run-check
-	$$(call LogWarn)
-	$$(call LogWarn, Running check '$$($1_CHECK)')
-	$$(call MakeDir, $$($1_CHECK_RESULTS_DIR) $$($1_CHECK_SUPPORT_DIR))
-	$$(call ExecuteWithLog, $$($1_CHECK_SUPPORT_DIR)/check-execution, ( \
-	    $$($1_CHECK_COMMAND_LINE) \
-	        > >($(TEE) $$($1_CHECK_RESULTS_DIR)/check-output.txt) \
-	    && $$(ECHO) $$$$? > $$($1_EXITCODE) \
-	    || $$(ECHO) $$$$? > $$($1_EXITCODE) \
-	))
-
-  $1_RESULT_FILE := $$($1_CHECK_RESULTS_DIR)/gcheck.txt
-
-  # We can not parse the various "special" checks.
-  parse-check-$1: run-check-$1
-	$$(call LogWarn, Finished running check '$$($1_CHECK)')
-	$$(call LogWarn, Check report is stored in $$(strip \
-	    $$(subst $$(TOPDIR)/, , $$($1_CHECK_RESULTS_DIR))))
-	$$(call LogWarn, Warning: Special check results are not properly parsed!)
-	$$(eval $1_PASSED := $$(shell \
-	  if [ `$(CAT) $$($1_EXITCODE)` = "0" ]; then $(ECHO) 1; else $(ECHO) 0; fi \
-	))
-	$$(eval $1_FAILED := $$(shell \
-	  if [ `$(CAT) $$($1_EXITCODE)` = "0" ]; then $(ECHO) 0; else $(ECHO) 1; fi \
-	))
-	$$(eval $1_ERROR := 0)
-	$$(eval $1_TOTAL := 1)
-
-  $1: run-check-$1 parse-check-$1
-
-  TARGETS += $1 run-check-$1 parse-check-$1
-  CHECK_TARGETS += parse-check-$1
-
-endef
-
 ################################################################################
 # Setup and execute make rules for all selected checks
 ################################################################################
@@ -347,9 +249,6 @@ endef
 # Helper function to determine which handler to use for the given check
 UseMicroCheckHandler = \
   $(if $(filter micro:%, $1), true)
-
-UseSpecialCheckHandler = \
-  $(if $(filter special:%, $1), true)
 
 # Now process each check to run and setup a proper make rule
 $(foreach check, $(CHECKS_TO_RUN), \
@@ -366,18 +265,12 @@ $(foreach check, $(CHECKS_TO_RUN), \
         CHECK := $(check), \
     )) \
   ) \
-  $(if $(call UseSpecialCheckHandler, $(check)), \
-    $(eval $(call SetupRunSpecialCheck, $(CHECK_ID), \
-        CHECK := $(check), \
-    )) \
-  ) \
 )
 
 # Sort also removes duplicates, so if there is any we'll get fewer words.
 ifneq ($(words $(ALL_CHECK_IDS)), $(words $(sort $(ALL_CHECK_IDS))))
   $(error Duplicate check specification)
 endif
-
 
 ################################################################################
 # The main target for RunChecks.gmk
