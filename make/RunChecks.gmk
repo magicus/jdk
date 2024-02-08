@@ -128,22 +128,6 @@ ifneq ($(CHECK_OPTS), )
   $(info Running checks using CHECK_OPTS control variable '$(CHECK_OPTS)')
 endif
 
-
-### Gcheck
-
-$(eval $(call SetCheckOpt,VM_OPTIONS,GCHECK))
-$(eval $(call SetCheckOpt,JAVA_OPTIONS,GCHECK))
-
-$(eval $(call ParseKeywordVariable, GCHECK, \
-    SINGLE_KEYWORDS := REPEAT, \
-    STRING_KEYWORDS := OPTIONS VM_OPTIONS JAVA_OPTIONS, \
-))
-
-ifneq ($(GCHECK), )
-  # Inform the user
-  $(info Running checks using GCHECK control variable '$(GCHECK)')
-endif
-
 ### Microbenchmarks
 
 $(eval $(call SetCheckOpt,VM_OPTIONS,MICRO))
@@ -174,31 +158,6 @@ endif
 # descriptors being returned. A valid check descriptor must always be accepted
 # and returned identically.
 ################################################################################
-
-# Helper function to determine if a check specification is a Gcheck check
-#
-# It is a Gcheck check if it is either "gcheck", or "gcheck:" followed by an optional
-# check filter string, and an optional "/<variant>" to select a specific JVM
-# variant. If no variant is specified, all found variants are checked.
-define ParseGcheckCheckSelection
-  $(if $(filter gcheck%, $1), \
-    $(if $(filter gcheck, $1), \
-      $(addprefix gcheck:all/, $(GCHECK_VARIANTS)) \
-    , \
-      $(if $(strip $(or $(filter gcheck/%, $1) $(filter gcheck:/%, $1))), \
-        $(patsubst gcheck:/%, gcheck:all/%, $(patsubst gcheck/%, gcheck:/%, $1)) \
-      , \
-        $(if $(filter gcheck:%, $1), \
-          $(if $(findstring /, $1), \
-            $1 \
-          , \
-            $(addprefix $1/, $(GCHECK_VARIANTS)) \
-          ) \
-        ) \
-      ) \
-    ) \
-  )
-endef
 
 # Helper function to determine if a check specification is a microbenchmark check
 #
@@ -291,79 +250,6 @@ $(foreach check, $(CHECKS_TO_RUN), $(info * $(check)))
 # checkid_FAILED - the number of failed checks
 # checkid_ERROR - the number of checks was neither successful or failed
 #
-################################################################################
-
-### Rules for Gcheck
-
-SetupRunGcheckCheck = $(NamedParamsMacroTemplate)
-define SetupRunGcheckCheckBody
-  $1_CHECK_RESULTS_DIR := $$(CHECK_RESULTS_DIR)/$1
-  $1_CHECK_SUPPORT_DIR := $$(CHECK_SUPPORT_DIR)/$1
-  $1_EXITCODE := $$($1_CHECK_RESULTS_DIR)/exitcode.txt
-
-  $1_VARIANT :=  $$(lastword $$(subst /, , $$($1_CHECK)))
-  ifeq ($$(filter $$($1_VARIANT), $$(GCHECK_VARIANTS)), )
-    $$(error Invalid gcheck variant '$$($1_VARIANT)'. Valid variants: $$(GCHECK_VARIANTS))
-  endif
-  $1_CHECK_NAME := $$(strip $$(patsubst %/$$($1_VARIANT), %, \
-      $$(patsubst gcheck:%, %, $$($1_CHECK))))
-  ifneq ($$($1_CHECK_NAME), all)
-    $1_GCHECK_FILTER := --gcheck_filter=$$($1_CHECK_NAME)*
-  endif
-
-  ifneq ($$(GCHECK_REPEAT), )
-    $1_GCHECK_REPEAT :=--gcheck_repeat=$$(GCHECK_REPEAT)
-  endif
-
-  run-check-$1: pre-run-check
-	$$(call LogWarn)
-	$$(call LogWarn, Running check '$$($1_CHECK)')
-	$$(call MakeDir, $$($1_CHECK_RESULTS_DIR) $$($1_CHECK_SUPPORT_DIR))
-	$$(call ExecuteWithLog, $$($1_CHECK_SUPPORT_DIR)/gcheck, ( \
-	    $$(CD) $$($1_CHECK_SUPPORT_DIR) && \
-	    $$(FIXPATH) $$(CHECK_IMAGE_DIR)/hotspot/gcheck/$$($1_VARIANT)/gcheckLauncher \
-	        -jdk $(JDK_UNDER_CHECK) $$($1_GCHECK_FILTER) \
-	        --gcheck_output=xml:$$($1_CHECK_RESULTS_DIR)/gcheck.xml \
-	        --gcheck_catch_exceptions=0 \
-	        $$($1_GCHECK_REPEAT) $$(GCHECK_OPTIONS) $$(GCHECK_VM_OPTIONS) \
-	        $$(GCHECK_JAVA_OPTIONS) \
-	        > >($(TEE) $$($1_CHECK_RESULTS_DIR)/gcheck.txt) \
-	    && $$(ECHO) $$$$? > $$($1_EXITCODE) \
-	    || $$(ECHO) $$$$? > $$($1_EXITCODE) \
-	))
-
-  $1_RESULT_FILE := $$($1_CHECK_RESULTS_DIR)/gcheck.txt
-
-  parse-check-$1: run-check-$1
-	$$(call LogWarn, Finished running check '$$($1_CHECK)')
-	$$(call LogWarn, Check report is stored in $$(strip \
-	    $$(subst $$(TOPDIR)/, , $$($1_CHECK_RESULTS_DIR))))
-	$$(if $$(wildcard $$($1_RESULT_FILE)), \
-	  $$(eval $1_TOTAL := $$(shell $$(AWK) '/==========.* checks? from .* \
-	      check (cases?|suites?) ran/ { print $$$$2 }' $$($1_RESULT_FILE))) \
-	  $$(if $$($1_TOTAL), , $$(eval $1_TOTAL := 0)) \
-	  $$(eval $1_PASSED := $$(shell $$(AWK) '/\[  PASSED  \] .* checks?./ \
-	      { print $$$$4 }' $$($1_RESULT_FILE))) \
-	  $$(if $$($1_PASSED), , $$(eval $1_PASSED := 0)) \
-	  $$(eval $1_FAILED := $$(shell $$(AWK) '/\[  FAILED  \] .* checks?, \
-	      listed below/ { print $$$$4 }' $$($1_RESULT_FILE))) \
-	  $$(if $$($1_FAILED), , $$(eval $1_FAILED := 0)) \
-	  $$(eval $1_ERROR := $$(shell \
-	      $$(EXPR) $$($1_TOTAL) - $$($1_PASSED) - $$($1_FAILED))) \
-	, \
-	  $$(eval $1_PASSED := 0) \
-	  $$(eval $1_FAILED := 0) \
-	  $$(eval $1_ERROR := 1) \
-	  $$(eval $1_TOTAL := 1) \
-	)
-
-  $1: run-check-$1 parse-check-$1
-
-  TARGETS += $1 run-check-$1 parse-check-$1
-  CHECK_TARGETS += parse-check-$1
-
-endef
-
 ################################################################################
 
 ### Rules for Microbenchmarks
@@ -485,22 +371,6 @@ define SetupRunMicroCheckBody
 
 endef
 
-################################################################################
-
-### Rules for Jtreg
-
-# Helper function for SetupRunJtregCheck. Set a JTREG_* variable from, in order:
-# 1) Specified by user on command line
-# 2) Component-specific default
-# 3) Generic default
-#
-# Note: No spaces are allowed around the arguments.
-# Arg $1 The check ID (i.e. $1 in SetupRunJtregCheck)
-# Arg $2 Base variable, e.g. JTREG_JOBS
-# Arg $3 The default value (optional)
-
-
-
 
 ################################################################################
 
@@ -577,9 +447,6 @@ endef
 ################################################################################
 
 # Helper function to determine which handler to use for the given check
-UseGcheckCheckHandler = \
-  $(if $(filter gcheck:%, $1), true)
-
 UseMicroCheckHandler = \
   $(if $(filter micro:%, $1), true)
 
@@ -593,11 +460,6 @@ $(foreach check, $(CHECKS_TO_RUN), \
   $(eval ALL_CHECK_IDS += $(CHECK_ID)) \
   $(if $(call UseCustomCheckHandler, $(check)), \
     $(eval $(call SetupRunCustomCheck, $(CHECK_ID), \
-        CHECK := $(check), \
-    )) \
-  ) \
-  $(if $(call UseGcheckCheckHandler, $(check)), \
-    $(eval $(call SetupRunGcheckCheck, $(CHECK_ID), \
         CHECK := $(check), \
     )) \
   ) \
