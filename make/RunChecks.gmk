@@ -32,35 +32,6 @@ include MakeBase.gmk
 .NOTPARALLEL:
 
 ################################################################################
-# Parse global control variables
-################################################################################
-
-ifneq ($(CHECK_VM_OPTS), )
-  ifneq ($(CHECK_OPTS), )
-    CHECK_OPTS := $(CHECK_OPTS);VM_OPTIONS=$(CHECK_VM_OPTS)
-  else
-    CHECK_OPTS := VM_OPTIONS=$(CHECK_VM_OPTS)
-  endif
-endif
-
-$(eval $(call ParseKeywordVariable, CHECK_OPTS, \
-    SINGLE_KEYWORDS := JOBS TIMEOUT_FACTOR JCOV JCOV_DIFF_CHANGESET, \
-    STRING_KEYWORDS := VM_OPTIONS JAVA_OPTIONS, \
-))
-
-# Helper function to propagate CHECK_OPTS values.
-#
-# Note: No spaces are allowed around the arguments.
-# Arg $1 The variable in CHECK_OPTS to propagate
-# Arg $2 The control variable to propagate it to
-define SetCheckOpt
-  ifneq ($$(CHECK_OPTS_$1), )
-    $2_$1 := $$(CHECK_OPTS_$1)
-  endif
-endef
-
-
-################################################################################
 # Hook to include the corresponding custom file, if present.
 $(eval $(call IncludeCustomExtension, RunChecks.gmk))
 ################################################################################
@@ -72,79 +43,6 @@ CHECK_RESULTS_DIR := $(OUTPUTDIR)/check-results
 CHECK_SUPPORT_DIR := $(OUTPUTDIR)/check-support
 CHECK_SUMMARY := $(CHECK_RESULTS_DIR)/check-summary.txt
 CHECK_LAST_IDS := $(CHECK_SUPPORT_DIR)/check-last-ids.txt
-
-################################################################################
-# Setup global check running parameters
-################################################################################
-
-# Each factor variable comes in 3 variants. The first one is reserved for users
-# to use on command line. The other two are for predefined configurations in JDL
-# and for machine specific configurations respectively.
-CHECK_JOBS_FACTOR ?= 1
-CHECK_JOBS_FACTOR_JDL ?= 1
-CHECK_JOBS_FACTOR_MACHINE ?= 1
-
-ifeq ($(CHECK_JOBS), 0)
-  CORES_DIVIDER := 2
-  # For some big multi-core machines with low ulimit -u setting we hit the max
-  # threads/process limit. In such a setup the memory/cores-only-guided
-  # CHECK_JOBS config is insufficient. From experience a concurrency setting of
-  # 14 works reasonably well for low ulimit values (<= 4096). Thus, use
-  # divider 4096/14. For high ulimit -u values this shouldn't make a difference.
-  ULIMIT_DIVIDER := (4096/14)
-  PROC_ULIMIT := -1
-  ifneq ($(OPENJDK_TARGET_OS), windows)
-    PROC_ULIMIT := $(shell $(ULIMIT) -u)
-    ifeq ($(PROC_ULIMIT), unlimited)
-      PROC_ULIMIT := -1
-    endif
-  endif
-  MEMORY_DIVIDER := 2048
-  CHECK_JOBS := $(shell $(AWK) \
-    'BEGIN { \
-      c = $(NUM_CORES) / $(CORES_DIVIDER); \
-      m = $(MEMORY_SIZE) / $(MEMORY_DIVIDER); \
-      u = $(PROC_ULIMIT); \
-      if (u > -1) { \
-        u = u / $(ULIMIT_DIVIDER); \
-        if (u < c) c = u; \
-      } \
-      if (c > m) c = m; \
-      c = c * $(CHECK_JOBS_FACTOR); \
-      c = c * $(CHECK_JOBS_FACTOR_JDL); \
-      c = c * $(CHECK_JOBS_FACTOR_MACHINE); \
-      if (c < 1) c = 1; \
-      c = c + 0.5; \
-      printf "%d", c; \
-    }')
-endif
-
-################################################################################
-# Parse control variables
-################################################################################
-
-ifneq ($(CHECK_OPTS), )
-  # Inform the user
-  $(info Running checks using CHECK_OPTS control variable '$(CHECK_OPTS)')
-endif
-
-### Microbenchmarks
-
-$(eval $(call SetCheckOpt,VM_OPTIONS,MICRO))
-$(eval $(call SetCheckOpt,JAVA_OPTIONS,MICRO))
-
-$(eval $(call ParseKeywordVariable, MICRO, \
-    SINGLE_KEYWORDS := ITER FORK TIME WARMUP_ITER WARMUP_TIME, \
-    STRING_KEYWORDS := OPTIONS JAVA_OPTIONS VM_OPTIONS RESULTS_FORMAT CHECK_JDK \
-        BENCHMARKS_JAR, \
-))
-
-ifneq ($(MICRO), )
-  # Inform the user
-  $(info Running checks using MICRO control variable '$(MICRO)')
-endif
-
-
 
 ################################################################################
 # Parse check selection
@@ -562,87 +460,6 @@ run-check-report: post-run-check
 run-check: run-check-report
 
 TARGETS += run-all-checks pre-run-check post-run-check run-check-report run-check
-
-################################################################################
-# Setup JCov
-################################################################################
-
-ifeq ($(CHECK_OPTS_JCOV), true)
-
-  jcov-do-start-grabber:
-	$(call MakeDir, $(JCOV_OUTPUT_DIR))
-	if $(JAVA) -jar $(JCOV_HOME)/lib/jcov.jar GrabberManager -status 1>/dev/null 2>&1 ; then \
-	  $(JAVA) -jar $(JCOV_HOME)/lib/jcov.jar GrabberManager -stop -stoptimeout 3600 ; \
-	fi
-	$(JAVA) -Xmx4g -jar $(JCOV_HOME)/lib/jcov.jar Grabber -v -t \
-	    $(JCOV_IMAGE_DIR)/template.xml -o $(JCOV_RESULT_FILE) \
-	    1>$(JCOV_GRABBER_LOG) 2>&1 &
-
-  jcov-start-grabber: jcov-do-start-grabber
-	$(call LogWarn, Starting JCov Grabber...)
-	$(JAVA) -jar $(JCOV_HOME)/lib/jcov.jar GrabberManager -t 600 -wait
-
-  jcov-stop-grabber:
-	$(call LogWarn, Stopping JCov Grabber...)
-	$(JAVA) -jar $(JCOV_HOME)/lib/jcov.jar GrabberManager -stop -stoptimeout 3600
-
-  JCOV_REPORT_TITLE := JDK code coverage report<br/>
-  ifneq ($(JCOV_FILTERS), )
-    JCOV_REPORT_TITLE += Code filters: $(JCOV_FILTERS)<br>
-  endif
-  JCOV_REPORT_TITLE += Checks: $(CHECK)
-
-  jcov-gen-report: jcov-stop-grabber
-	$(call LogWarn, Generating JCov report ...)
-	$(JAVA) -Xmx4g -jar $(JCOV_HOME)/lib/jcov.jar RepGen -sourcepath \
-	    `$(ECHO) $(TOPDIR)/src/*/share/classes/ | $(TR) ' ' ':'` -fmt html \
-	    $(JCOV_FILTERS) \
-	    -mainReportTitle "$(JCOV_REPORT_TITLE)" \
-	    -o $(JCOV_REPORT) $(JCOV_RESULT_FILE)
-
-  TARGETS += jcov-do-start-grabber jcov-start-grabber jcov-stop-grabber \
-      jcov-gen-report
-
-  ifneq ($(CHECK_OPTS_JCOV_DIFF_CHANGESET), )
-
-    JCOV_SOURCE_DIFF := $(JCOV_OUTPUT_DIR)/source_diff
-    JCOV_DIFF_COVERAGE_REPORT := $(JCOV_OUTPUT_DIR)/diff_coverage_report
-
-    ifneq ($(and $(GIT), $(wildcard $(TOPDIR)/.git)), )
-      DIFF_COMMAND := $(GIT) -C $(TOPDIR) diff $(CHECK_OPTS_JCOV_DIFF_CHANGESET) > $(JCOV_SOURCE_DIFF)
-    else
-      $(info Error: Must be a git source tree for diff coverage.)
-      $(error No git source tree.)
-    endif
-
-    jcov-gen-diffcoverage: jcov-stop-grabber
-	$(call LogWarn, Generating diff coverage with changeset $(CHECK_OPTS_JCOV_DIFF_CHANGESET) ... )
-	$(DIFF_COMMAND)
-	$(JAVA) -Xmx4g -jar $(JCOV_HOME)/lib/jcov.jar \
-	  DiffCoverage -replaceDiff "src/.*/classes/:" -all \
-	    $(JCOV_RESULT_FILE) $(JCOV_SOURCE_DIFF) > \
-	    $(JCOV_DIFF_COVERAGE_REPORT)
-
-    TARGETS += jcov-gen-diffcoverage
-
-  endif
-
-  # Hook this into the framework at appropriate places
-  pre-run-check: jcov-start-grabber
-
-  post-run-check: jcov-gen-report
-
-  ifneq ($(CHECK_OPTS_JCOV_DIFF_CHANGESET), )
-
-    post-run-check: jcov-gen-diffcoverage
-
-  endif
-
-  jcov-stop-grabber: run-all-checks
-
-endif
-
-################################################################################
 
 all: run-check
 
