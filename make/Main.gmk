@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2023, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -792,7 +792,12 @@ $(eval $(call SetupTarget, build-microbenchmark, \
 ))
 
 ################################################################################
-# Run tests
+# Run checks and tests
+
+$(eval $(call SetupTarget, check, \
+    MAKEFILE := RunChecks, \
+    ARGS := CHECK="$(CHECK)", \
+))
 
 $(eval $(call SetupTarget, test, \
     MAKEFILE := RunTests, \
@@ -1346,16 +1351,13 @@ RUN_TEST_TARGETS := $(addprefix run-test-, $(ALL_NAMED_TESTS))
 run-test: test
 exploded-run-test: exploded-test
 
-# "make check" is a common idiom for running basic testing
-check: test-tier1
-
 # Keep some old names as aliases
 test-hotspot-jtreg: test-hotspot_all
 test-hotspot-jtreg-native: test-hotspot_native_sanity
 test-hotspot-gtest: exploded-test-gtest
 test-jdk-jtreg-native: test-jdk_native_sanity
 
-ALL_TARGETS += $(RUN_TEST_TARGETS) run-test exploded-run-test check \
+ALL_TARGETS += $(RUN_TEST_TARGETS) run-test exploded-run-test \
     test-hotspot-jtreg test-hotspot-jtreg-native test-hotspot-gtest \
     test-jdk-jtreg-native
 
