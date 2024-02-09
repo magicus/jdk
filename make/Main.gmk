@@ -45,11 +45,6 @@ include $(TOPDIR)/make/common/FindTests.gmk
 
 include $(TOPDIR)/make/MainSupport.gmk
 
-# Are we requested to ignore dependencies?
-ifneq ($(findstring -only, $(MAKECMDGOALS)), )
-  DEPS := none
-endif
-
 # Declare ALL_TARGETS as an immediate variable. This variable is a list of all
 # valid top level targets. It's used to declare them all as PHONY and to
 # generate the -only targets.
@@ -65,8 +60,10 @@ ALL_MODULES := $(call FindAllModules)
 ################################################################################
 #
 # Recipes for all targets. Only recipes, dependencies are declared later.
+# These should always be executed, unless using DEPS=only.
 #
 ################################################################################
+ifneq ($(DEPS), only)
 
 ################################################################################
 # Interim/build tools targets, compiling tools used during the build
@@ -873,6 +870,11 @@ ifeq ($(JCOV_ENABLED), true)
   ))
 endif
 
+
+else # if DEPS != only
+  # In case of DEPS=only, we will have no actual recipe targets
+endif
+
 ################################################################################
 #
 # Dependency declarations between targets.
@@ -885,13 +887,16 @@ endif
 ################################################################################
 # Targets with recipes above
 
-# If running an *-only target, parallel execution and dependencies between
+# If building without dependencies, parallel execution and dependencies between
 # recipe targets are disabled. This makes it possible to run a select set of
 # recipe targets in order. It's the responsibility of the user to make sure
 # all prerequisites are fulfilled.
 ifeq ($(DEPS), none)
   .NOTPARALLEL:
-else
+else ifeq ($(DEPS), smart)
+  # FIXME: do fancy depencendy checking
+else # DEPS=full or DEPS=only
+
   $(LANGTOOLS_GENSRC_TARGETS): buildtools-langtools
 
   interim-langtools: $(INTERIM_LANGTOOLS_GENSRC_TARGETS)
@@ -1132,7 +1137,8 @@ else
 endif
 
 ################################################################################
-# Virtual targets without recipes
+# Virtual targets without recipes. These will be handled as if they were an
+# alias for their dependencies, w.r.t. DEPS.
 
 # If not already set, set the JVM specific tools targets
 JVM_TOOLS_TARGETS ?= buildtools-hotspot
@@ -1442,12 +1448,6 @@ dist-clean: clean
 ALL_TARGETS += clean clean-docs clean-compile-commands dist-clean $(CLEAN_DIR_TARGETS) \
     $(CLEAN_SUPPORT_DIR_TARGETS) $(CLEAN_TEST_TARGETS) $(CLEAN_PHASE_TARGETS) \
     $(CLEAN_MODULE_TARGETS) $(CLEAN_MODULE_PHASE_TARGETS)
-
-################################################################################
-# Declare *-only targets for each normal target
-$(foreach t, $(ALL_TARGETS), $(eval $(t)-only: $(t)))
-
-ALL_TARGETS += $(addsuffix -only, $(filter-out dist-clean clean%, $(ALL_TARGETS)))
 
 ################################################################################
 
