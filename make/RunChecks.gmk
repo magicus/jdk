@@ -300,59 +300,10 @@ pre-run-check:
 post-run-check: run-all-checks
 	$(call LogInfo, RunCheck teardown done)
 
-#
-# Create and print a table of the result of all checks run
-#
-CHECK_FAILURE := false
-
-run-check-report: post-run-check
-	$(RM) $(CHECK_SUMMARY).old 2> /dev/null
-	$(MV) $(CHECK_SUMMARY) $(CHECK_SUMMARY).old 2> /dev/null || true
-	$(RM) $(CHECK_LAST_IDS).old 2> /dev/null
-	$(MV) $(CHECK_LAST_IDS) $(CHECK_LAST_IDS).old 2> /dev/null || true
-	$(ECHO) >> $(CHECK_SUMMARY) ==============================
-	$(ECHO) >> $(CHECK_SUMMARY) Check summary
-	$(ECHO) >> $(CHECK_SUMMARY) ==============================
-	$(PRINTF) >> $(CHECK_SUMMARY) "%2s %-49s %5s %5s %5s %5s %2s\n" "  " \
-	    CHECK TOTAL PASS FAIL ERROR " "
-	$(foreach check, $(CHECKS_TO_RUN), \
-	  $(eval CHECK_ID := $(shell $(ECHO) $(strip $(check)) | \
-	      $(TR) -cs '[a-z][A-Z][0-9]\n' '[_*1000]')) \
-	    $(ECHO) >> $(CHECK_LAST_IDS) $(CHECK_ID) $(NEWLINE) \
-	  $(eval NAME_PATTERN := $(shell $(ECHO) $(check) | $(TR) -c '\n' '[_*1000]')) \
-	  $(if $(filter __________________________________________________%, $(NAME_PATTERN)), \
-	    $(eval CHECK_NAME := ) \
-	    $(PRINTF) >> $(CHECK_SUMMARY) "%2s %-49s\n" "  " "$(check)"  $(NEWLINE) \
-	  , \
-	    $(eval CHECK_NAME := $(check)) \
-	  ) \
-	  $(if $(filter $($(CHECK_ID)_PASSED), $($(CHECK_ID)_TOTAL)), \
-	    $(PRINTF) >> $(CHECK_SUMMARY) "%2s %-49s %5d %5d %5d %5d %2s\n" \
-	        "  " "$(CHECK_NAME)" $($(CHECK_ID)_TOTAL) $($(CHECK_ID)_PASSED) \
-	        $($(CHECK_ID)_FAILED) $($(CHECK_ID)_ERROR) "  " $(NEWLINE) \
-	  , \
-	    $(PRINTF) >> $(CHECK_SUMMARY) "%2s %-49s %5d %5d %5d %5d %2s\n" \
-	         ">>" "$(CHECK_NAME)" $($(CHECK_ID)_TOTAL) $($(CHECK_ID)_PASSED) \
-	        $($(CHECK_ID)_FAILED) $($(CHECK_ID)_ERROR) "<<" $(NEWLINE) \
-	    $(eval CHECK_FAILURE := true) \
-	  ) \
-	)
-	$(ECHO) >> $(CHECK_SUMMARY) ==============================
-	$(if $(filter true, $(CHECK_FAILURE)), \
-	  $(ECHO) >> $(CHECK_SUMMARY) CHECK FAILURE $(NEWLINE) \
-	  $(MKDIR) -p $(MAKESUPPORT_OUTPUTDIR) $(NEWLINE) \
-	  $(TOUCH) $(MAKESUPPORT_OUTPUTDIR)/exit-with-error \
-	, \
-	  $(ECHO) >> $(CHECK_SUMMARY) CHECK SUCCESS \
-	)
-	$(ECHO)
-	$(CAT) $(CHECK_SUMMARY)
-	$(ECHO)
-
 # The main run-check target
-run-check: run-check-report
+run-check: post-run-check
 
-TARGETS += run-all-checks pre-run-check post-run-check run-check-report run-check
+TARGETS += run-all-checks pre-run-check post-run-check run-check
 
 all: run-check
 
