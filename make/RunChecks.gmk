@@ -57,17 +57,17 @@ CHECK_LAST_IDS := $(CHECK_SUPPORT_DIR)/check-last-ids.txt
 # and returned identically.
 ################################################################################
 
-# Helper function to determine if a check specification is a microbenchmark check
+# Helper function to determine if a check specification is a modifier-order check
 #
-# It is a microbenchmark check if it is either "micro", or "micro:" followed by
+# It is a modifier-order check if it is either "modifier-order", or "modifier-order:" followed by
 # an optional check filter string.
-define ParseMicroCheckSelection
-  $(if $(filter micro%, $1), \
-    $(if $(filter micro, $1), \
-      micro:all \
+define ParseModifierOrderCheckSelection
+  $(if $(filter modifier-order%, $1), \
+    $(if $(filter modifier-order, $1), \
+      modifier-order:all \
     , \
-      $(if $(filter micro:, $1), \
-        micro:all \
+      $(if $(filter modifier-order:, $1), \
+        modifier-order:all \
       , \
         $1 \
       ) \
@@ -84,7 +84,7 @@ endif
 
 ParseCheckSelection = \
     $(strip $(or \
-      $(call ParseMicroCheckSelection, $1) \
+      $(call ParseModifierOrderCheckSelection, $1) \
     ))
 
 # Now intelligently convert the check selection given by the user in CHECK
@@ -114,26 +114,19 @@ $(foreach check, $(CHECKS_TO_RUN), $(info * $(check)))
 # Remaining parameters are named arguments. Currently this is only:
 #   CHECK -- The properly formatted fully qualified check descriptor
 #
-# After the rule named by the check id has been executed, the following
-# variables will be available:
-# checkid_TOTAL - the total number of checks run
-# checkid_PASSED - the number of successful checks
-# checkid_FAILED - the number of failed checks
-# checkid_ERROR - the number of checks was neither successful or failed
-#
 ################################################################################
 
-### Rules for Microbenchmarks
+### Rules for ModifierOrder
 
-# Helper function for SetupRunMicroCheck. Set a MICRO_* variable from, in order:
+# Helper function for SetupRunModifierOrderCheck. Set a MODIFIER_ORDER_* variable from, in order:
 # 1) Specified by user on command line
 # 2) Generic default
 #
 # Note: No spaces are allowed around the arguments.
-# Arg $1 The check ID (i.e. $1 in SetupRunMicroCheck)
-# Arg $2 Base variable, e.g. MICRO_CHECK_JDK
+# Arg $1 The check ID (i.e. $1 in SetupRunModifierOrderCheck)
+# Arg $2 Base variable, e.g. MODIFIER_ORDER_CHECK_JDK
 # Arg $3 The default value (optional)
-define SetMicroValue
+define SetModifierOrderValue
   ifneq ($$($2), )
     $1_$2 := $$($2)
   else
@@ -143,97 +136,49 @@ define SetMicroValue
   endif
 endef
 
-SetupRunMicroCheck = $(NamedParamsMacroTemplate)
-define SetupRunMicroCheckBody
+SetupRunModifierOrderCheck = $(NamedParamsMacroTemplate)
+define SetupRunModifierOrderCheckBody
   $1_CHECK_RESULTS_DIR := $$(CHECK_RESULTS_DIR)/$1
   $1_CHECK_SUPPORT_DIR := $$(CHECK_SUPPORT_DIR)/$1
   $1_EXITCODE := $$($1_CHECK_RESULTS_DIR)/exitcode.txt
 
-  $1_CHECK_NAME := $$(strip $$(patsubst micro:%, %, $$($1_CHECK)))
+  $1_CHECK_NAME := $$(strip $$(patsubst modifier-order:%, %, $$($1_CHECK)))
 
-  $$(eval $$(call SetMicroValue,$1,MICRO_BENCHMARKS_JAR,$$(CHECK_IMAGE_DIR)/micro/benchmarks.jar))
-  $$(eval $$(call SetMicroValue,$1,MICRO_CHECK_JDK,$$(JDK_UNDER_CHECK)))
-  $$(eval $$(call SetMicroValue,$1,MICRO_JAVA_OPTIONS))
+  $$(eval $$(call SetModifierOrderValue,$1,MODIFIER_ORDER_BENCHMARKS_JAR,$$(CHECK_IMAGE_DIR)/modifier-order/benchmarks.jar))
+  $$(eval $$(call SetModifierOrderValue,$1,MODIFIER_ORDER_CHECK_JDK,$$(JDK_UNDER_CHECK)))
+  $$(eval $$(call SetModifierOrderValue,$1,MODIFIER_ORDER_JAVA_OPTIONS))
 
   # Current checks needs to open java.io
-  $1_MICRO_JAVA_OPTIONS += --add-opens=java.base/java.io=ALL-UNNAMED
+  $1_MODIFIER_ORDER_JAVA_OPTIONS += --add-opens=java.base/java.io=ALL-UNNAMED
 
-  # Save output as JSON or CSV file
-  ifneq ($$(MICRO_RESULTS_FORMAT), )
-    $1_MICRO_BASIC_OPTIONS += -rf $$(MICRO_RESULTS_FORMAT)
-    $1_MICRO_BASIC_OPTIONS += -rff $$($1_CHECK_RESULTS_DIR)/jmh-result.$(MICRO_RESULTS_FORMAT)
-  endif
 
-  # Set library path for native dependencies
-  $1_JMH_JVM_ARGS := -Djava.library.path=$$(CHECK_IMAGE_DIR)/micro/native
-
-  ifneq ($$(MICRO_VM_OPTIONS)$$(MICRO_JAVA_OPTIONS), )
-    $1_JMH_JVM_ARGS += $$(MICRO_VM_OPTIONS) $$(MICRO_JAVA_OPTIONS)
-  endif
-
-  $1_MICRO_VM_OPTIONS := -jvmArgs $(call ShellQuote,$$($1_JMH_JVM_ARGS))
-
-  ifneq ($$(MICRO_ITER), )
-    $1_MICRO_ITER := -i $$(MICRO_ITER)
-  endif
-  ifneq ($$(MICRO_FORK), )
-    $1_MICRO_FORK := -f $$(MICRO_FORK)
-  endif
-  ifneq ($$(MICRO_TIME), )
-    $1_MICRO_TIME := -r $$(MICRO_TIME)
-  endif
-  ifneq ($$(MICRO_WARMUP_ITER), )
-    $1_MICRO_WARMUP_ITER := -wi $$(MICRO_WARMUP_ITER)
-  endif
-  ifneq ($$(MICRO_WARMUP_TIME), )
-    $1_MICRO_WARMUP_TIME := -w $$(MICRO_WARMUP_TIME)
-  endif
-
-# Microbenchmarks are executed from the root of the check image directory.
+# ModifierOrder are executed from the root of the check image directory.
 # This enables JMH checks to add dependencies using relative paths such as
-# -Djava.library.path=micro/native
+# -Djava.library.path=modifier-order/native
 
   run-check-$1: pre-run-check
 	$$(call LogWarn)
 	$$(call LogWarn, Running check '$$($1_CHECK)')
 	$$(call MakeDir, $$($1_CHECK_RESULTS_DIR) $$($1_CHECK_SUPPORT_DIR))
-	$$(call ExecuteWithLog, $$($1_CHECK_SUPPORT_DIR)/micro, ( \
+	$$(call ExecuteWithLog, $$($1_CHECK_SUPPORT_DIR)/modifier-order, ( \
 	    $$(CD) $$(CHECK_IMAGE_DIR) && \
-	    $$(FIXPATH) $$($1_MICRO_CHECK_JDK)/bin/java $$($1_MICRO_JAVA_OPTIONS) \
-	        -jar $$($1_MICRO_BENCHMARKS_JAR) \
-	        $$($1_MICRO_ITER) $$($1_MICRO_FORK) $$($1_MICRO_TIME) \
-	        $$($1_MICRO_WARMUP_ITER) $$($1_MICRO_WARMUP_TIME) \
-	        $$($1_MICRO_VM_OPTIONS) $$($1_MICRO_BASIC_OPTIONS) $$(MICRO_OPTIONS) \
+	    $$(FIXPATH) $$($1_MODIFIER_ORDER_CHECK_JDK)/bin/java $$($1_MODIFIER_ORDER_JAVA_OPTIONS) \
+	        -jar $$($1_MODIFIER_ORDER_BENCHMARKS_JAR) \
+	        $$($1_MODIFIER_ORDER_ITER) $$($1_MODIFIER_ORDER_FORK) $$($1_MODIFIER_ORDER_TIME) \
+	        $$($1_MODIFIER_ORDER_WARMUP_ITER) $$($1_MODIFIER_ORDER_WARMUP_TIME) \
+	        $$($1_MODIFIER_ORDER_VM_OPTIONS) $$($1_MODIFIER_ORDER_BASIC_OPTIONS) $$(MODIFIER_ORDER_OPTIONS) \
 	        $$($1_CHECK_NAME) \
-	        > >($(TEE) $$($1_CHECK_RESULTS_DIR)/micro.txt) \
+	        > >($(TEE) $$($1_CHECK_RESULTS_DIR)/modifier-order.txt) \
 	    && $$(ECHO) $$$$? > $$($1_EXITCODE) \
 	    || $$(ECHO) $$$$? > $$($1_EXITCODE) \
 	))
 
-  $1_RESULT_FILE := $$($1_CHECK_RESULTS_DIR)/micro.txt
+  $1_RESULT_FILE := $$($1_CHECK_RESULTS_DIR)/modifier-order.txt
 
   parse-check-$1: run-check-$1
 	$$(call LogWarn, Finished running check '$$($1_CHECK)')
 	$$(call LogWarn, Check report is stored in $$(strip \
 	    $$(subst $$(TOPDIR)/, , $$($1_CHECK_RESULTS_DIR))))
-	$$(if $$(wildcard $$($1_EXITCODE)), \
-	  $$(eval $1_EXIT_CODE := $$(shell $$(CAT) $$($1_EXITCODE))) \
-	  $$(if $$(filter 0, $$($1_EXIT_CODE)), \
-	    $$(eval $1_PASSED := 1) \
-	    $$(eval $1_ERROR := 0) \
-	  , \
-	    $$(eval $1_PASSED := 0) \
-	    $$(eval $1_ERROR := 1) \
-	  ) \
-	  $$(eval $1_FAILED := 0) \
-	  $$(eval $1_TOTAL := $$(shell \
-	      $$(EXPR) $$($1_PASSED) + $$($1_ERROR))) \
-	, \
-	  $$(eval $1_PASSED := 0) \
-	  $$(eval $1_FAILED := 0) \
-	  $$(eval $1_ERROR := 1) \
-	  $$(eval $1_TOTAL := 1) \
-	)
 
   $1: run-check-$1 parse-check-$1
 
@@ -247,8 +192,8 @@ endef
 ################################################################################
 
 # Helper function to determine which handler to use for the given check
-UseMicroCheckHandler = \
-  $(if $(filter micro:%, $1), true)
+UseModifierOrderCheckHandler = \
+  $(if $(filter modifier-order:%, $1), true)
 
 # Now process each check to run and setup a proper make rule
 $(foreach check, $(CHECKS_TO_RUN), \
@@ -260,8 +205,8 @@ $(foreach check, $(CHECKS_TO_RUN), \
         CHECK := $(check), \
     )) \
   ) \
-  $(if $(call UseMicroCheckHandler, $(check)), \
-    $(eval $(call SetupRunMicroCheck, $(CHECK_ID), \
+  $(if $(call UseModifierOrderCheckHandler, $(check)), \
+    $(eval $(call SetupRunModifierOrderCheck, $(CHECK_ID), \
         CHECK := $(check), \
     )) \
   ) \

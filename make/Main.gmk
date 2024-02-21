@@ -41,6 +41,7 @@ include $(SPEC)
 # Load the vital tools for all the makefiles.
 include $(TOPDIR)/make/common/MakeBase.gmk
 include $(TOPDIR)/make/common/Modules.gmk
+include $(TOPDIR)/make/common/FindChecks.gmk
 include $(TOPDIR)/make/common/FindTests.gmk
 
 include $(TOPDIR)/make/MainSupport.gmk
