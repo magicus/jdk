@@ -92,6 +92,10 @@ const char*  Arguments::_java_vendor_url_bug    = nullptr;
 const char*  Arguments::_sun_java_launcher      = DEFAULT_JAVA_LAUNCHER;
 bool   Arguments::_sun_java_launcher_is_altjvm  = false;
 
+const char* Arguments::_hermetic_jdk_image_path = NULL;
+julong      Arguments::_hermetic_jdk_jimage_offset = 0;
+size_t      Arguments::_hermetic_jdk_jimage_size = 0;
+
 // These parameters are reset in method parse_vm_init_args()
 bool   Arguments::_AlwaysCompileLoopMethods     = AlwaysCompileLoopMethods;
 bool   Arguments::_UseOnStackReplacement        = UseOnStackReplacement;
@@ -333,7 +337,8 @@ bool Arguments::is_internal_module_property(const char* property) {
 }
 
 // Process java launcher properties.
-void Arguments::process_sun_java_launcher_properties(JavaVMInitArgs* args) {
+jint Arguments::process_sun_java_launcher_and_hermetic_options(
+          JavaVMInitArgs* args) {
   // See if sun.java.launcher or sun.java.launcher.is_altjvm is defined.
   // Must do this before setting up other system properties,
   // as some of them may depend on launcher type.
@@ -351,7 +356,86 @@ void Arguments::process_sun_java_launcher_properties(JavaVMInitArgs* args) {
       }
       continue;
     }
+    if (match_option(option, "-XX:+DisableHermetic")) {
+      if (FLAG_SET_CMDLINE(DisableHermetic, true) != JVMFlag::SUCCESS) {
+        return JNI_EINVAL;
+      }
+      continue;
+    }
+    if (match_option(option, "-XX:UseHermeticJDK=", &tail)) {
+      // Process -XX:UseHermeticJDK option for hermetic JDK. The runtime needed
+      // JDK files are packaged within a self-contained executable image file.
+      //
+      // The option contains the path to the image file followed by the start
+      // offset and size of the JDK runtime image within the file:
+      //
+      // -XX:UseHermeticJDK:<executable_image_file_path>,<jdk_runtime_image_start_offset>,<jimage_size>
+      //
+      // This must be done before os::set_boot_path because os::set_boot_path
+      // uses "modules" jimage path.
+      const char* end_of_path_ptr = strchr(tail, ',');
+      const char* end_of_jimage_offset_ptr = NULL;
+      if (end_of_path_ptr != NULL) {
+        end_of_jimage_offset_ptr = strchr(end_of_path_ptr + 1, ',');
+      }
+      // TODO(jiangli): Enable the check for end_of_jimage_offset_ptr after
+      //                the the launcher support for hermetic packaged jimage's
+      //                size is released.
+      if (end_of_path_ptr == NULL /*|| end_of_jimage_offset_ptr == NULL*/) {
+        vm_exit_during_initialization(
+          "Syntax error, expecting -XX:UseHermeticJDK=<executable_image_path>,"
+          "<modules_data_offset>,<modules_size>",
+          tail);
+      }
+
+      // Get the file path.
+      int len = end_of_path_ptr - tail;
+      char* s =  AllocateHeap(len + 1, mtInternal);
+      assert(s != NULL, "Unable to allocate space");
+      strncpy(s, tail, len);
+      s[len] = '\0';
+      _hermetic_jdk_image_path = s;
+
+      // Get the start offset of JAR file embedded jimage.
+      end_of_path_ptr ++; // skip ','
+#define JIMAGE_OFFSET_BUF_LEN 50   /* use a large enough size */
+      char jimage_offset[JIMAGE_OFFSET_BUF_LEN];
+      // TODO(jiangli): Remove the end_of_jimage_offset_ptr check below after
+      //                launcher supports hermetic packaged jimage's size.
+      if (end_of_jimage_offset_ptr != NULL) {
+        len = end_of_jimage_offset_ptr - end_of_path_ptr;
+        if (len >= JIMAGE_OFFSET_BUF_LEN) {
+          vm_exit_during_initialization(
+            "Jimage offset len exceeds jimage_offset buffer size");
+        }
+        strncpy(jimage_offset, end_of_path_ptr, len);
+        jimage_offset[len] = '\0';
+      }
+      // TODO(jiangli): Change to use jimage_offset without the check after
+      //                launcher supports hermetic packaged jimage's size.
+      if (!atojulong(end_of_jimage_offset_ptr == NULL ? end_of_path_ptr : jimage_offset,
+                     &_hermetic_jdk_jimage_offset)) {
+        vm_exit_during_initialization(
+          "Cannot parse hermetic JDK embedded jimage offset", jimage_offset);
+      }
+
+      // Get the jimage size.
+      // TODO(jiangli): Remove the end_of_jimage_offset_ptr check and else case
+      //                after launcher supports hermetic packaged jimage's size.
+      if (end_of_jimage_offset_ptr != NULL) {
+        end_of_jimage_offset_ptr ++; // skip ','
+        if (!atojulong(end_of_jimage_offset_ptr, (julong*)&_hermetic_jdk_jimage_size)) {
+          vm_exit_during_initialization(
+            "Cannot parse hermetic JDK embedded jimage size", end_of_jimage_offset_ptr);
+        }
+      } else {
+        _hermetic_jdk_jimage_size = 0;
+      }
+      continue;
+    }
   }
+
+  return JNI_OK;
 }
 
 // Initialize system properties key and value.
@@ -2770,6 +2854,22 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args, bool* patch_m
     } else if (match_jfr_option(&option)) {
       return JNI_EINVAL;
 #endif
+    } else if (match_option(option, "-XX:UseHermeticJDK=", &tail)) {
+      // Processed by process_sun_java_launcher_and_hermetic_options().
+      // We handle the logging output here, since we can't do any logging output
+      // in process_sun_java_launcher_and_hermetic_options(), which is called
+      // before the logging system is fully initialized.
+      if (DisableHermetic) {
+        log_info(hermetic)("Hermetic JDK from %s is disabled",
+          _hermetic_jdk_image_path);
+      } else {
+        log_info(hermetic)(
+          "Use hermetic JDK from %s, hermetic packaged modules image starts at: "
+          PTR_FORMAT " , size: " SIZE_FORMAT,
+          _hermetic_jdk_image_path,
+          _hermetic_jdk_jimage_offset,
+          _hermetic_jdk_jimage_size);
+      }
     } else if (match_option(option, "-XX:", &tail)) { // -XX:xxxx
       // Skip -XX:Flags= and -XX:VMOptionsFile= since those cases have
       // already been handled
@@ -2779,6 +2879,16 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args, bool* patch_m
           return JNI_EINVAL;
         }
       }
+    // When executing in hermetic Java mode, we may encounter the
+    // '-server|-client' options here if they are specified in the command
+    // line. Ignore the options in such cases without reporting an
+    // 'Unrecognized option' error. When running in non-hermetic Java mode,
+    // these options are processed and removed from command-line arguments by
+    // CheckJvmType (see src/java.base/share/native/libjli/java.c).
+    } else if (match_option(option, "-server")) {
+      // Ignore the option.
+    } else if (match_option(option, "-client")) {
+      // Ignore the option.
     // Unknown option
     } else if (is_bad_option(option, args->ignoreUnrecognized)) {
       return JNI_ERR;

@@ -50,6 +50,8 @@ extern char **environ;
 #include <sched.h>
 #endif
 
+#include "jni.h"
+
 #ifndef STDIN_FILENO
 #define STDIN_FILENO 0
 #endif
@@ -131,7 +133,6 @@ ssize_t writeFully(int fd, const void *buf, size_t count);
 int restartableDup2(int fd_from, int fd_to);
 int closeSafely(int fd);
 int isAsciiDigit(char c);
-int closeDescriptors(void);
 int moveDescriptor(int fd_from, int fd_to);
 
 int magicNumber();
@@ -147,6 +148,9 @@ void JDK_execvpe(int mode, const char *file,
                  const char *argv[],
                  const char *const envp[]);
 int childProcess(void *arg);
+
+JNIEXPORT int JNICALL
+JDK_spawn_process(int argc, char *argv[]);
 
 #ifdef DEBUG
 /* This method is only used in debug builds for testing MODE_POSIX_SPAWN

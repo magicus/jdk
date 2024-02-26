@@ -68,6 +68,11 @@ import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.StringUtils;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+// TODO(jiangli): Commented out as we need JavaHome support in boot JDK.
+//import jdk.internal.misc.JavaHome;
+
 /** PlatformProvider for JDK N.
  *
  *  <p><b>This is NOT part of any supported API.
@@ -87,6 +92,7 @@ public class JDKPlatformProvider implements PlatformProvider {
         return new PlatformDescriptionImpl(platformName);
     }
 
+    // TODO(jiangli): Remove the following after supporting JavaHome in boot JDK.
     private static final String[] symbolFileLocation = { "lib", "ct.sym" };
 
     private static final Set<String> SUPPORTED_JAVA_PLATFORM_VERSIONS;
@@ -358,10 +364,15 @@ public class JDKPlatformProvider implements PlatformProvider {
 
     static Path findCtSym() {
         String javaHome = System.getProperty("java.home");
+        // TODO(jiangli): Commented out as we need JavaHome support in boot JDK.
+        //Path file = JavaHome.getJDKResource(javaHome, "lib", "ct.sym");
+
+        // TODO(jiangli): Remove the following after supporting JavaHome in boot JDK.
         Path file = Paths.get(javaHome);
         // file == ${jdk.home}
         for (String name : symbolFileLocation)
             file = file.resolve(name);
+
         return file;
     }
 

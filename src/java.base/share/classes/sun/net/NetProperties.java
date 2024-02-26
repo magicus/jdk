@@ -24,6 +24,7 @@
  */
 package sun.net;
 
+import jdk.internal.misc.JavaHome;
 import jdk.internal.util.StaticProperty;
 
 import java.io.*;
@@ -60,6 +61,16 @@ public class NetProperties {
      * the file is in jre/lib/net.properties
      */
     private static void loadDefaultProperties() {
+        if (JavaHome.isHermetic()) {
+            try (InputStream in = NetProperties.class.getResourceAsStream(
+                "net.properties")) {
+                props.load(in);
+            } catch (IOException e) {
+                // Do nothing. Same as below.
+            }
+            return;
+        }
+
         String fname = StaticProperty.javaHome();
         if (fname == null) {
             throw new Error("Can't find java.home ??");

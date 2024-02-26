@@ -31,6 +31,8 @@ import java.security.*;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.ConcurrentHashMap;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
@@ -41,6 +43,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jdk.internal.access.JavaAWTAccess;
 import jdk.internal.access.SharedSecrets;
+import jdk.internal.misc.JavaHome;
 import sun.util.logging.internal.LoggingProviderImpl;
 import static jdk.internal.logger.DefaultLoggerFinder.isSystem;
 
@@ -1379,23 +1382,40 @@ public class LogManager {
             }
         }
 
-        String fname = getConfigurationFileName();
-        try (final InputStream in = new FileInputStream(fname)) {
+        try (final InputStream in = getConfigurationInputStream()) {
             readConfiguration(in);
         }
     }
 
-    String getConfigurationFileName() throws IOException {
+    InputStream getConfigurationInputStream() throws IOException {
         String fname = System.getProperty("java.util.logging.config.file");
         if (fname == null) {
-            fname = System.getProperty("java.home");
-            if (fname == null) {
-                throw new Error("Can't find java.home ??");
+            String config = "logging.properties";
+            if (JavaHome.isHermetic()) {
+                PrivilegedAction<InputStream> getResourceAsStreamAction =
+                    () -> LogManager.class.getResourceAsStream(config);
+                RuntimePermission perm =
+                    new RuntimePermission("accessSystemModules");
+                try (@SuppressWarnings("removal") InputStream is =
+                    AccessController.doPrivileged(
+                        getResourceAsStreamAction, null, perm)) {
+                    if (is != null) {
+                        return is;
+                    } else {
+                        throw new Error(
+                            "Can't find hermetic logging.properties in modules");
+                    }
+                }
+            } else {
+                fname = System.getProperty("java.home");
+                if (fname == null) {
+                    throw new Error("Can't find java.home ??");
+                }
+                Path propPath = Paths.get(fname, "conf", config);
+                return Files.newInputStream(propPath);
             }
-            fname = Paths.get(fname, "conf", "logging.properties")
-                    .toAbsolutePath().normalize().toString();
         }
-        return fname;
+        return new FileInputStream(fname);
     }
 
     /**
@@ -1874,8 +1894,7 @@ public class LogManager {
         ensureLogManagerInitialized();
         drainLoggerRefQueueBounded();
 
-        String fname = getConfigurationFileName();
-        try (final InputStream in = new FileInputStream(fname)) {
+        try (final InputStream in = getConfigurationInputStream()) {
             updateConfiguration(in, mapper);
         }
     }

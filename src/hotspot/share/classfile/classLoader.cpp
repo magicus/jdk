@@ -632,9 +632,13 @@ void ClassLoader::setup_bootstrap_search_path_impl(JavaThread* current, const ch
 
     if (set_base_piece) {
       // The first time through the bootstrap_search setup, it must be determined
-      // what the base or core piece of the boot loader search is.  Either a java runtime
-      // image is present or this is an exploded module build situation.
-      assert(string_ends_with(path, MODULES_IMAGE_NAME) || string_ends_with(path, JAVA_BASE_NAME),
+      // what the base or core piece of the boot loader search is.  Either a
+      // java runtime image is present, or it is a self-contained executable
+      // image, or this is an exploded module build situation.
+      assert(string_ends_with(path, MODULES_IMAGE_NAME) ||
+             (Arguments::hermetic_jdk_image_path() != NULL &&
+              string_ends_with(path, Arguments::hermetic_jdk_image_path())) ||
+             string_ends_with(path, JAVA_BASE_NAME),
              "Incorrect boot loader search path, no java runtime image or " JAVA_BASE_NAME " exploded build");
       struct stat st;
       if (os::stat(path, &st) == 0) {
@@ -914,6 +918,12 @@ void* ClassLoader::dll_lookup(void* lib, const char* name, const char* path) {
 
 void ClassLoader::load_java_library() {
   assert(CanonicalizeEntry == nullptr, "should not load java library twice");
+  if (JVM_IsStaticJDK()) {
+    CanonicalizeEntry = CAST_TO_FN_PTR(canonicalize_fn_t, os::lookup_function("JDK_Canonicalize"));
+    assert(CanonicalizeEntry != nullptr, "no JDK_Canonicalize");
+    return;
+  }
+
   void *javalib_handle = os::native_java_library();
   if (javalib_handle == nullptr) {
     vm_exit_during_initialization("Unable to load java library", nullptr);
@@ -924,9 +934,20 @@ void ClassLoader::load_java_library() {
 
 void ClassLoader::load_jimage_library() {
   assert(JImageOpen == nullptr, "should not load jimage library twice");
+
+  // Check if we are running on a static build.
+  if (JVM_IsStaticJDK()) {
+    JImageOpen = CAST_TO_FN_PTR(JImageOpen_t, os::lookup_function("JIMAGE_Open"));
+    JImageClose = CAST_TO_FN_PTR(JImageClose_t, os::lookup_function("JIMAGE_Close"));
+    JImageFindResource = CAST_TO_FN_PTR(JImageFindResource_t, os::lookup_function("JIMAGE_FindResource"));
+    JImageGetResource = CAST_TO_FN_PTR(JImageGetResource_t, os::lookup_function("JIMAGE_GetResource"));
+    return;
+  }
+
   char path[JVM_MAXPATHLEN];
   char ebuf[1024];
   void* handle = nullptr;
+
   if (os::dll_locate_lib(path, sizeof(path), Arguments::get_dll_dir(), "jimage")) {
     handle = os::dll_load(path, ebuf, sizeof ebuf);
   }
@@ -1369,14 +1390,22 @@ char* lookup_vm_resource(JImageFile *jimage, const char *jimage_version, const c
 // Lookup VM options embedded in the modules jimage file
 char* ClassLoader::lookup_vm_options() {
   jint error;
-  char modules_path[JVM_MAXPATHLEN];
-  const char* fileSep = os::file_separator();
 
   // Initialize jimage library entry points
   load_jimage_library();
 
-  jio_snprintf(modules_path, JVM_MAXPATHLEN, "%s%slib%smodules", Arguments::get_java_home(), fileSep, fileSep);
-  JImage_file =(*JImageOpen)(modules_path, &error);
+  if (Arguments::hermetic_jdk_image_path() != NULL) {
+    JImage_file = (*JImageOpen)(Arguments::hermetic_jdk_image_path(),
+                                Arguments::hermetic_jdk_jimage_offset(),
+                                Arguments::hermetic_jdk_jimage_size(),
+                                &error);
+  } else {
+    char modules_path[JVM_MAXPATHLEN];
+    const char* fileSep = os::file_separator();
+    jio_snprintf(modules_path, JVM_MAXPATHLEN, "%s%slib%smodules", Arguments::get_java_home(), fileSep, fileSep);
+    JImage_file =(*JImageOpen)(modules_path, 0, 0, &error);
+  }
+  
   if (JImage_file == nullptr) {
     return nullptr;
   }

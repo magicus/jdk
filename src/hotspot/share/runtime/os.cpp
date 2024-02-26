@@ -505,6 +505,11 @@ static void* _native_java_library = nullptr;
 
 void* os::native_java_library() {
   if (_native_java_library == nullptr) {
+    if (JVM_IsStaticJDK()) {
+      _native_java_library = get_default_process_handle();
+      return _native_java_library;
+    }
+
     char buffer[JVM_MAXPATHLEN];
     char ebuf[1024];
 
@@ -530,13 +535,19 @@ void* os::native_java_library() {
 }
 
 /*
- * Support for finding Agent_On(Un)Load/Attach<_lib_name> if it exists.
+ * Support for finding Agent_On(Un)Load/Attach<_lib_name> if it exists. JDK
+ * code always uses Agent_On(Un)Load/Attach<_lib_name>.
+ *
  * If check_lib == true then we are looking for an
  * Agent_OnLoad_lib_name or Agent_OnAttach_lib_name function to determine if
  * this library is statically linked into the image.
  * If check_lib == false then we will look for the appropriate symbol in the
  * executable if agent_lib->is_static_lib() == true or in the shared library
- * referenced by 'handle'.
+ * referenced by 'handle':
+ * - If agent_lib->is_static_lib() == true, only lookup
+ *   Agent_On(Un)Load/Attach<_lib_name>.
+ * - If agent_lib->is_static_lib() == false, also lookup Agent_On(Un)Load/Attach
+ *   when Agent_On(Un)Load/Attach<_lib_name> cannot be found.
  */
 void* os::find_agent_function(JvmtiAgent *agent_lib, bool check_lib,
                               const char *syms[], size_t syms_len) {
@@ -547,9 +558,8 @@ void* os::find_agent_function(JvmtiAgent *agent_lib, bool check_lib,
   char *agent_function_name;
   size_t i;
 
-  // If checking then use the agent name otherwise test is_static_lib() to
-  // see how to process this lookup
-  lib_name = ((check_lib || agent_lib->is_static_lib()) ? agent_lib->name() : nullptr);
+  // Lookup using Agent_On(Un)Load/Attach<_lib_name>.
+  lib_name = agent_lib->name();
   for (i = 0; i < syms_len; i++) {
     agent_function_name = build_agent_function_name(syms[i], lib_name, agent_lib->is_absolute_path());
     if (agent_function_name == nullptr) {
@@ -557,7 +567,13 @@ void* os::find_agent_function(JvmtiAgent *agent_lib, bool check_lib,
     }
     entryName = dll_lookup(handle, agent_function_name);
     FREE_C_HEAP_ARRAY(char, agent_function_name);
+    if (entryName == NULL && !check_lib && !agent_lib->is_static_lib()) {
+      // If 'entryName' is NULL and not checking, also try lookup using
+      // Agent_On(Un)Load/Attach for dynamically linked agent library.
+      entryName = dll_lookup(handle, syms[i]);
+    }
     if (entryName != nullptr) {
+      // Found entry.
       break;
     }
   }
@@ -1407,16 +1423,25 @@ bool os::set_boot_path(char fileSep, char pathSep) {
 
   struct stat st;
 
-  // modular image if "modules" jimage exists
-  char* jimage = format_boot_path("%/lib/" MODULES_IMAGE_NAME, home, home_len, fileSep, pathSep);
+  // Set the modular image if a self-contained executable or "modules" jimage
+  // file exists. If it is a self-contained executable, the "modules" jimage
+  // is embedded within the executable. Otherwise, the "modules' jimage is
+  // the <jdk>/lib/modules.
+  const char* jimage = Arguments::hermetic_jdk_image_path() == NULL ?
+    format_boot_path("%/lib/" MODULES_IMAGE_NAME, home, home_len, fileSep, pathSep) :
+    Arguments::hermetic_jdk_image_path();
   if (jimage == nullptr) return false;
   bool has_jimage = (os::stat(jimage, &st) == 0);
   if (has_jimage) {
     Arguments::set_boot_class_path(jimage, true);
-    FREE_C_HEAP_ARRAY(char, jimage);
+    if (jimage != Arguments::hermetic_jdk_image_path()) {
+      FREE_C_HEAP_ARRAY(char, jimage);
+    }
     return true;
   }
-  FREE_C_HEAP_ARRAY(char, jimage);
+  if (jimage != Arguments::hermetic_jdk_image_path()) {
+    FREE_C_HEAP_ARRAY(char, jimage);
+  }
 
   // check if developer build with exploded modules
   char* base_classes = format_boot_path("%/modules/" JAVA_BASE_NAME, home, home_len, fileSep, pathSep);

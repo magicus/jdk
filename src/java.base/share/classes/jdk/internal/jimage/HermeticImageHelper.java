@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright 2024 Google, Inc.  All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,9 +22,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package jdk.internal.jimage;
 
-#include "childproc.h"
+/**
+ * Used by jdk.internal.jrtfs.SystemImage to obtain needed information about
+ * current execution's JavaHome.
+ */
+public final class HermeticImageHelper {
+    private static boolean hermetic = false;
+    private static String hermeticImagePath = null;
 
-int main(int argc, char *argv[]) {
-    return JDK_spawn_process(argc, argv);
+    /**
+     * This is called during jdk.internal.misc.JavaHome static initialization
+     * if the current runtime is in hermetic mode.
+     */
+    public static void init(String imagePath) {
+        hermetic = true;
+        hermeticImagePath = imagePath;
+    }
+
+    public static boolean isHermetic() {
+        return hermetic;
+    }
+
+    public static String getImagePath() {
+        return hermeticImagePath;
+    }
 }
