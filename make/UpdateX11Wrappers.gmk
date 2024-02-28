@@ -23,12 +23,9 @@
 # questions.
 #
 
+include MakeStart.gmk
+
 ################################################################################
-
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
 
 include Execute.gmk
 include NativeCompilation.gmk

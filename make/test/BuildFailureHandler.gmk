@@ -23,16 +23,13 @@
 # questions.
 #
 
-default: build
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include JavaCompilation.gmk
 include NativeCompilation.gmk
-
-TARGETS :=
 
 ################################################################################
 
@@ -104,6 +101,7 @@ test:
 
 ################################################################################
 
+all: build
 build: $(TARGETS)
 images: $(IMAGES_TARGETS)
 

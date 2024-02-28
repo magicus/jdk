@@ -23,12 +23,10 @@
 # questions.
 #
 
+include MakeStart.gmk
+
+################################################################################
 # Runs a tool on the exploded image to improve performance
-
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
 
 include Execute.gmk
 include ModuleTools.gmk

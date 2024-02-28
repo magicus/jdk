@@ -23,10 +23,9 @@
 # questions.
 #
 
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 # When FIXPATH is set, let it process the file to make sure all paths are usable
 # by system native tools. The FIXPATH tool assumes arguments preceded by an @

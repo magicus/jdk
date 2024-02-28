@@ -23,14 +23,11 @@
 # questions.
 #
 
+include MakeStart.gmk
+
 ################################################################################
 # Generate classlist
 ################################################################################
-
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
 
 include CopyFiles.gmk
 include JavaCompilation.gmk

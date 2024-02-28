@@ -23,6 +23,8 @@
 # questions.
 #
 
+include MakeStart.gmk
+
 ################################################################################
 # This makefile is called from Main.gmk, through a macro in MakeHelpers.gmk
 # and wraps calls to makefiles for specific modules and build phases. Having
@@ -30,17 +32,9 @@
 # opportunity for automatic copying of files to an interim exploded runnable
 # image.
 
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
-
 include CopyFiles.gmk
 
 MODULE_SRC := $(TOPDIR)/src/$(MODULE)
-
-# All makefiles should add the targets to be built to this variable.
-TARGETS :=
 
 # Include the file being wrapped.
 include $(MAKEFILE_PREFIX).gmk

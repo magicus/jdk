@@ -23,17 +23,14 @@
 # questions.
 #
 
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
-
-include JdkNativeCompilation.gmk
+include MakeStart.gmk
 
 ################################################################################
 # This makefile compiles and installs the hsdis library
 #
 ################################################################################
+
+include JdkNativeCompilation.gmk
 
 HSDIS_OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/hsdis
 REAL_HSDIS_NAME := hsdis-$(OPENJDK_TARGET_CPU_LEGACY_LIB)$(SHARED_LIBRARY_SUFFIX)

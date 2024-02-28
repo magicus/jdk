@@ -23,10 +23,9 @@
 # questions.
 #
 
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include Modules.gmk
 include TextFileProcessing.gmk

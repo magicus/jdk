@@ -23,13 +23,11 @@
 # questions.
 #
 
+include MakeStart.gmk
+
+################################################################################
 # This makefile is called for every imported module to copy the non class
 # contents into the exploded jdk image.
-
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
 
 include CopyFiles.gmk
 

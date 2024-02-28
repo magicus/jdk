@@ -42,12 +42,10 @@
 # The modified module-info.java files are put in the gensrc directory where
 # they will automatically override the static versions in the src tree.
 #
+
+include MakeStart.gmk
+
 ################################################################################
-
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
 
 include Modules.gmk
 

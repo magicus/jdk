@@ -23,11 +23,7 @@
 # questions.
 #
 
-# This must be the first rule
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
+include MakeStart.gmk
 
 ################################################################################
 # SedEscape

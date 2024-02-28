@@ -23,11 +23,9 @@
 # questions.
 #
 
-# Default target declared first
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include ModuleTools.gmk
 

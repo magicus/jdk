@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020, Red Hat Inc.
+# Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -23,33 +23,14 @@
 # questions.
 #
 
-include MakeStart.gmk
+################################################################
+# MakeStart should be included first of all in all makefiles
+################################################################
 
-################################################################################
-# This makefile creates a jdk image overlaid with statically linked core
-# libraries.
+# This must be the first rule
+default: all
 
-include CopyFiles.gmk
+include $(SPEC)
+include MakeBase.gmk
 
-################################################################################
-
-$(eval $(call SetupCopyFiles, COPY_JDK_IMG, \
-      SRC := $(JDK_IMAGE_DIR)/, \
-      DEST := $(GRAAL_BUILDER_IMAGE_DIR)/, \
-      FILES := $(call FindFiles, $(JDK_IMAGE_DIR)/), \
-))
-TARGETS += $(COPY_JDK_IMG)
-
-$(eval $(call SetupCopyFiles, COPY_STATIC_LIBS, \
-      SRC := $(STATIC_LIBS_GRAAL_IMAGE_DIR)/lib, \
-      DEST := $(GRAAL_BUILDER_IMAGE_DIR)/lib, \
-      FILES := $(filter %$(STATIC_LIBRARY_SUFFIX), \
-          $(call FindFiles, $(STATIC_LIBS_GRAAL_IMAGE_DIR)/lib)), \
-))
-TARGETS += $(COPY_STATIC_LIBS)
-
-################################################################################
-
-all: $(TARGETS)
-
-.PHONY: all
+TARGETS :=

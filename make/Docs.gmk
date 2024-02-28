@@ -22,10 +22,9 @@
 # questions.
 #
 
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include Execute.gmk

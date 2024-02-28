@@ -23,8 +23,9 @@
 # questions.
 #
 
-include $(SPEC)
-include MakeBase.gmk
+include MakeStart.gmk
+
+################################################################################
 
 include CopyFiles.gmk
 include TextFileProcessing.gmk

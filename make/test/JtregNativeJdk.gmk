@@ -23,16 +23,13 @@
 # questions.
 #
 
+include MakeStart.gmk
+
 ################################################################################
 # This file builds the native component of the JTReg tests for JDK.
 # It also covers the test-image part, where the built files are copied to the
 # test image.
 ################################################################################
-
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
 
 include CopyFiles.gmk
 include TestFilesCompilation.gmk

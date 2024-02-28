@@ -23,13 +23,11 @@
 # questions.
 #
 
+include MakeStart.gmk
+
+################################################################################
 # This makefile creates an image of the optional static versions of certain JDK
 # libraries.
-
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
 
 include CopyFiles.gmk
 include Modules.gmk
@@ -37,8 +35,6 @@ include Modules.gmk
 ALL_MODULES = $(call FindAllModules)
 
 ################################################################################
-
-TARGETS :=
 
 ifneq ($(filter static-libs-image, $(MAKECMDGOALS)), )
   IMAGE_DEST_DIR=$(STATIC_LIBS_IMAGE_DIR)/lib

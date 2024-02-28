@@ -23,15 +23,12 @@
 # questions.
 #
 
-default: build
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include JavaCompilation.gmk
-
-TARGETS :=
 
 ################################################################################
 
@@ -61,6 +58,7 @@ $(eval $(call SetupCopyFiles, COPY_TTF, \
 
 IMAGES_TARGETS += $(COPY_TTF)
 
+all: build
 build: $(TARGETS)
 images: $(IMAGES_TARGETS)
 
