@@ -27,12 +27,12 @@ default: all
 
 include $(SPEC)
 include MakeBase.gmk
+
 include Execute.gmk
+include HotspotCommon.gmk
 include JavaCompilation.gmk
 include NativeCompilation.gmk
 include TextFileProcessing.gmk
-
-include HotspotCommon.gmk
 
 # The real work is done in these files
 

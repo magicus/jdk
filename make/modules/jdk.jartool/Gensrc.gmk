@@ -23,10 +23,9 @@
 # questions.
 #
 
-include GensrcCommon.gmk
-
 ################################################################################
 
+include GensrcCommon.gmk
 include GensrcProperties.gmk
 
 $(eval $(call SetupCompileProperties, COMPILE_PROPERTIES, \

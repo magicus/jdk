@@ -37,12 +37,6 @@
 # determines the default directory/policy.
 #
 
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
-
-
 ################################################################################
 POLICY_DIR := $(SUPPORT_OUTPUTDIR)/modules_conf/java.base/security/policy
 LIMITED_POLICY_DIR := $(POLICY_DIR)/limited

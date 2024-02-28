@@ -27,10 +27,9 @@ default: all
 
 include $(SPEC)
 include MakeBase.gmk
-include JdkNativeCompilation.gmk
 
 include HotspotCommon.gmk
-
+include JdkNativeCompilation.gmk
 include lib/CompileJvm.gmk
 
 ifneq ($(GTEST_FRAMEWORK_SRC), )

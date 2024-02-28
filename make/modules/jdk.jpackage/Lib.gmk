@@ -23,8 +23,8 @@
 # questions.
 #
 
-include LibCommon.gmk
 include LauncherCommon.gmk
+include LibCommon.gmk
 
 ################################################################################
 

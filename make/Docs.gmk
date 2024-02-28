@@ -32,9 +32,9 @@ include Execute.gmk
 include Modules.gmk
 include ModuleTools.gmk
 include ProcessMarkdown.gmk
+include TextFileProcessing.gmk
 include ToolsJdk.gmk
 include ZipArchive.gmk
-include TextFileProcessing.gmk
 
 # This is needed to properly setup DOCS_MODULES.
 $(eval $(call ReadImportMetaData))

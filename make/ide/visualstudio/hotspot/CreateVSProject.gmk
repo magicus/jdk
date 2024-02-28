@@ -28,8 +28,9 @@ default: all
 
 include $(SPEC)
 include MakeBase.gmk
-include JavaCompilation.gmk
+
 include Execute.gmk
+include JavaCompilation.gmk
 
 ifeq ($(call isTargetOs, windows), true)
   # The next part is a bit hacky. We include the CompileJvm.gmk to be

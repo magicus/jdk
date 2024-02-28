@@ -24,16 +24,11 @@
 #
 
 include GendataCommon.gmk
-
-include gendata/GendataBreakIterator.gmk
-
-include gendata/GendataTZDB.gmk
-
 include gendata/GendataBlockedCerts.gmk
-
+include gendata/GendataBreakIterator.gmk
 include gendata/GendataCryptoPolicy.gmk
-
 include gendata/GendataPublicSuffixList.gmk
+include gendata/GendataTZDB.gmk
 
 ################################################################################
 

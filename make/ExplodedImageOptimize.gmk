@@ -29,8 +29,9 @@ default: all
 
 include $(SPEC)
 include MakeBase.gmk
+
 include Execute.gmk
-include $(TOPDIR)/make/ModuleTools.gmk
+include ModuleTools.gmk
 
 ################################################################################
 

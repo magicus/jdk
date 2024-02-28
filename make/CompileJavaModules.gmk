@@ -28,8 +28,9 @@ default: all
 
 include $(SPEC)
 include MakeBase.gmk
-include Modules.gmk
+
 include JavaCompilation.gmk
+include Modules.gmk
 
 ################################################################################
 # If this is an imported module that has prebuilt classes, only compile

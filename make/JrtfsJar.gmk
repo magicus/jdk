@@ -29,8 +29,8 @@ include $(SPEC)
 include MakeBase.gmk
 
 include CopyFiles.gmk
-include JavaCompilation.gmk
 include JarArchive.gmk
+include JavaCompilation.gmk
 include TextFileProcessing.gmk
 
 # This rule will be depended on due to the MANIFEST line

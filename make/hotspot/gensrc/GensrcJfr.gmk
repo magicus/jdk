@@ -27,7 +27,7 @@
 # Setup make rules for JFR gensrc file generation.
 #
 
-include $(TOPDIR)/make/ToolsHotspot.gmk
+include ToolsHotspot.gmk
 
 JFR_SRCDIR := $(TOPDIR)/src/hotspot/share/jfr/metadata
 JFR_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/gensrc/jfrfiles
