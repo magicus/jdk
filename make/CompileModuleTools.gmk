@@ -64,4 +64,4 @@ TARGETS += $(BUILD_JIGSAW_TOOLS)
 
 ################################################################################
 
-all: $(TARGETS)
+include MakeEnd.gmk

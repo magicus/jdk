@@ -90,6 +90,4 @@ $(eval $(call IncludeCustomExtension, ReleaseFile.gmk))
 
 ################################################################################
 
-all: $(TARGETS)
-
-.PHONY: all default
+include MakeEnd.gmk

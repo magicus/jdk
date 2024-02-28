@@ -39,6 +39,6 @@ endif
 
 include CopyToExplodedJdk.gmk
 
-all: $(TARGETS)
+################################################################################
 
-.PHONY: all
+include MakeEnd.gmk

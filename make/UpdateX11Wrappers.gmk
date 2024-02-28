@@ -102,6 +102,4 @@ TARGETS += $(run_wrappergen) wrapper-information
 
 ################################################################################
 
-all: $(TARGETS)
-
-.PHONY: all default
+include MakeEnd.gmk

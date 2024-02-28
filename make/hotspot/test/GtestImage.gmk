@@ -69,4 +69,6 @@ ifeq ($(call isTargetOs, windows), true)
   )
 endif
 
-all: $(TARGETS)
+################################################################################
+
+include MakeEnd.gmk

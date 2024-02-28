@@ -191,8 +191,8 @@ endif
 
 TARGETS += install
 
+.PHONY: build install
+
 ################################################################################
 
-all: $(TARGETS)
-
-.PHONY: all default build install
+include MakeEnd.gmk

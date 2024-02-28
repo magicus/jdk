@@ -73,6 +73,6 @@ endif
 static-libs-image: $(HOTSPOT_VARIANT_STATIC_LIBS_TARGETS) $(STATIC_LIBS_TARGETS)
 static-libs-graal-image: $(STATIC_LIBS_TARGETS)
 
-all: $(TARGETS)
+################################################################################
 
-.PHONY: all
+include MakeEnd.gmk

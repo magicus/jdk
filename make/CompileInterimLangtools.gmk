@@ -146,5 +146,4 @@ TARGETS += $(BUILD_JAVAC_SERVER)
 
 ################################################################################
 
-
-all: $(TARGETS)
+include MakeEnd.gmk

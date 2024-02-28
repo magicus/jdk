@@ -46,6 +46,4 @@ TARGETS += $(GLOBAL_SYMBOLS_FILE)
 
 ################################################################################
 
-all: $(TARGETS)
-
-.PHONY: default all
+include MakeEnd.gmk

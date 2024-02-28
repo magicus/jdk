@@ -50,6 +50,4 @@ TARGETS += $(COPY_STATIC_LIBS)
 
 ################################################################################
 
-all: $(TARGETS)
-
-.PHONY: all
+include MakeEnd.gmk

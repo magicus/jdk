@@ -111,6 +111,8 @@ $(OUTPUTDIR)/.vscode/launch.json:
 TARGETS := $(OUTPUTDIR)/jdk.code-workspace $(OUTPUTDIR)/.vscode/tasks.json \
     $(OUTPUTDIR)/.vscode/launch.json
 
-all: $(TARGETS)
+.PHONY: $(TARGETS)
 
-.PHONY: all $(TARGETS)
+################################################################################
+
+include MakeEnd.gmk

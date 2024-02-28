@@ -259,7 +259,8 @@ endif
 # Hook to include the corresponding custom file, if present.
 $(eval $(call IncludeCustomExtension, CompileDemos-post.gmk))
 
-all: $(TARGETS)
 images: $(IMAGES_TARGETS)
 
-.PHONY: all
+################################################################################
+
+include MakeEnd.gmk

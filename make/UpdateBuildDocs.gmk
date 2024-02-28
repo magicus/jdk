@@ -59,6 +59,4 @@ $(eval $(call IncludeCustomExtension, UpdateBuildDocs.gmk))
 
 ################################################################################
 
-all: $(TARGETS)
-
-.PHONY: all default
+include MakeEnd.gmk

@@ -62,6 +62,6 @@ $(CHMOD_HOTSPOT_LAUNCHER): $(CREATE_HOTSPOT_LAUNCHER)
 
 TARGETS += $(CREATE_HOTSPOT_LAUNCHER) $(CHMOD_HOTSPOT_LAUNCHER)
 
-all: $(TARGETS)
+################################################################################
 
-.PHONY: all
+include MakeEnd.gmk

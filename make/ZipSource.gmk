@@ -95,8 +95,8 @@ zip: $(SRC_ZIP_SRCS)
 
 TARGETS += zip
 
+.PHONY: zip
+
 ################################################################################
 
-all: $(TARGETS)
-
-.PHONY: default all zip
+include MakeEnd.gmk

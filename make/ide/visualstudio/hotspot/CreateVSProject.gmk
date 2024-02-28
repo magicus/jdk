@@ -143,11 +143,13 @@ ifeq ($(call isTargetOs, windows), true)
 
   TARGETS += $(vcproj_file_TARGET)
 
-  all: $(TARGETS)
-
 else
-  all:
+  not-available:
 	$(info Hotspot Visual Studio generation only supported on Windows)
+
+   TARGETS += not-available
 endif
 
-.PHONY: all
+################################################################################
+
+include MakeEnd.gmk

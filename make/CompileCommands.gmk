@@ -49,6 +49,6 @@ $(OUTPUTDIR)/compile_commands.json: $(wildcard $(MAKESUPPORT_OUTPUTDIR)/compile-
 
 TARGETS += $(OUTPUTDIR)/compile_commands.json
 
-all: $(TARGETS)
+################################################################################
 
-.PHONY: all
+include MakeEnd.gmk

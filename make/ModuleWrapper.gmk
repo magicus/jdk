@@ -110,3 +110,5 @@ else
   all: $(TARGETS) $(COPY_LIBS_TO_BIN) $(COPY_LIBS_TO_LIB) \
       $(COPY_INCLUDE) $(COPY_CMDS) $(COPY_MAN) $(COPY_CONF) $(LINK_LIBS_TO_LIB)
 endif
+
+################################################################################

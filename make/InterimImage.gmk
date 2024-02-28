@@ -56,6 +56,4 @@ TARGETS += $(INTERIM_IMAGE_DIR)/$(JIMAGE_TARGET_FILE)
 
 ################################################################################
 
-all: $(TARGETS)
-
-.PHONY: all
+include MakeEnd.gmk

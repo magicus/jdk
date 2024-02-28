@@ -47,7 +47,6 @@ $(eval $(call SetupJavaCompilation, BUILD_TOOLS_HOTSPOT, \
 
 TARGETS += $(BUILD_TOOLS_HOTSPOT)
 
+################################################################################
 
-all: $(TARGETS)
-
-.PHONY: all
+include MakeEnd.gmk
