@@ -82,9 +82,7 @@ AC_DEFUN([TOOLCHAIN_CHECK_POSSIBLE_VISUAL_STUDIO_ROOT],
       fi
 
       AC_MSG_NOTICE([Found Visual Studio installation at $VS_BASE using $METHOD])
-      if test "x$TARGET_CPU" = xx86; then
-        VCVARSFILES="vcvars32.bat vcvarsamd64_x86.bat"
-      elif test "x$TARGET_CPU" = xx86_64; then
+      if test "x$TARGET_CPU" = xx86_64; then
         VCVARSFILES="vcvars64.bat vcvarsx86_amd64.bat"
       elif test "x$TARGET_CPU" = xaarch64; then
         # for host x86-64, target aarch64
@@ -132,9 +130,7 @@ AC_DEFUN([TOOLCHAIN_CHECK_POSSIBLE_WIN_SDK_ROOT],
       elif test -f "$WIN_SDK_BASE/bin/setenv.cmd"; then
         AC_MSG_NOTICE([Found Windows SDK installation at $WIN_SDK_BASE using $METHOD])
         VS_ENV_CMD="$WIN_SDK_BASE/bin/setenv.cmd"
-        if test "x$TARGET_CPU" = xx86; then
-          VS_ENV_ARGS="/x86"
-        elif test "x$TARGET_CPU" = xx86_64; then
+        if test "x$TARGET_CPU" = xx86_64; then
           VS_ENV_ARGS="/x64"
         elif test "x$TARGET_CPU" = xaarch64; then
           VS_ENV_ARGS="/arm64"
