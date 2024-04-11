@@ -23,9 +23,11 @@
  * questions.
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <unistd.h>
 
 #include "Sctp.h"
 #include "jni.h"

@@ -24,10 +24,13 @@
  */
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "io_util.h"
 #include "io_util_md.h"
+
+#include <errno.h>
+#include <fcntl.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #if defined(__linux__) || defined(_ALLBSD_SOURCE) || defined(_AIX)

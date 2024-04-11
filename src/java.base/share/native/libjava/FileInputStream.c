@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,13 +25,12 @@
 
 #include <fcntl.h>
 #include <limits.h>
+#include <unistd.h>
 
 #include "jni.h"
 #include "jni_util.h"
 #include "jlong.h"
 #include "io_util.h"
-
-#include "jvm.h"
 
 #include "java_io_FileInputStream.h"
 

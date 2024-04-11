@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,9 +35,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <jni.h>
-#include <jni_util.h>
-#include <jvm_md.h>
+#include "jni.h"
+#include "jni_util.h"
+#include "jvm.h"
 #include <sizecalc.h>
 #ifndef HEADLESS
 #include <X11/Xlib.h>

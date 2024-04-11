@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,7 @@
 
 #include <dlfcn.h>
 #include <stdlib.h>
-#include "jvm_md.h"
+#include "jvm.h"
 #include "gtk_interface.h"
 
 GtkApi* gtk2_load(JNIEnv *env, const char* lib_name);
@@ -169,4 +169,3 @@ gboolean gtk_check_version(GtkVersion version) {
     }
     return check_version(version);
 }
-

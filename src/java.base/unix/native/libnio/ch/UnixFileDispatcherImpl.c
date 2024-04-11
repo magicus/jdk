@@ -23,10 +23,13 @@
  * questions.
  */
 
+#include <fcntl.h>
 #include <sys/mman.h>
-#include <sys/uio.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
+#include <sys/uio.h>
+#include <unistd.h>
 
 #if defined(_ALLBSD_SOURCE)
 #define fdatasync fsync

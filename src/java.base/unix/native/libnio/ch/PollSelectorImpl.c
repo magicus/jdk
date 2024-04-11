@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,11 +23,12 @@
  * questions.
  */
 
+#include <errno.h>
 #include <poll.h>
+#include <sys/socket.h>
 
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jlong.h"
 #include "nio.h"
 #include "sun_nio_ch_PollSelectorImpl.h"
@@ -52,4 +53,3 @@ Java_sun_nio_ch_PollSelectorImpl_poll(JNIEnv *env, jclass clazz,
     }
     return (jint) res;
 }
-

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,8 +31,7 @@
 #define _GNOME_INTERFACE_H
 #include "gtk_interface.h"
 #include <dlfcn.h>
-#include <jvm_md.h>
-#include <jni.h>
+#include "jni.h"
 
 typedef gboolean (GNOME_URL_SHOW_TYPE)(const char *, void **);
 typedef gboolean (GNOME_VFS_INIT_TYPE)(void);

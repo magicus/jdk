@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,6 @@
 #include "jni.h"
 #include "java_props.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jlong.h"
 #include "sun_nio_ch_Net.h"
 #include "nio_util.h"
@@ -190,4 +189,3 @@ Java_sun_nio_ch_UnixDomainSockets_localAddress0(JNIEnv *env, jclass clazz, jobje
     }
     return sockaddrToUnixAddressBytes(env, &sa, sa_len);
 }
-

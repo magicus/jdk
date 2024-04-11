@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,15 +23,15 @@
  * questions.
  */
 
+#include <limits.h>
+#include <string.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/uio.h>
-#include <sys/socket.h>
-#include <string.h>
-#include <limits.h>
+#include <unistd.h>
 
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jlong.h"
 #include "nio.h"
 #include "nio_util.h"

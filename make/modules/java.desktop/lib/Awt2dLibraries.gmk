@@ -88,14 +88,12 @@ endif
 
 LIBAWT_EXTRA_HEADER_DIRS := \
     $(LIBAWT_DEFAULT_HEADER_DIRS) \
-    $(call GetJavaHeaderDir, java.base) \
     libawt/awt/medialib \
     libawt/java2d/d3d \
     libawt/java2d/opengl \
     libawt/java2d/windows \
     libawt/windows \
     common/awt/medialib \
-    libmlib_image \
     include \
     #
 

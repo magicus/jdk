@@ -23,11 +23,12 @@
  * questions.
  */
 
- #include <sys/eventfd.h>
+#include <sys/eventfd.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jlong.h"
 #include "nio.h"
 #include "nio_util.h"

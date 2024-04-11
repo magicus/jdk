@@ -25,7 +25,6 @@
 
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jlong.h"
 #include <errno.h>
 #include <sys/types.h>
@@ -74,4 +73,3 @@ jint unixSocketAddressToSockaddr(JNIEnv *env,
                                 jbyteArray uaddr,
                                 struct sockaddr_un *sa,
                                 int *len);
-

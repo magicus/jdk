@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,13 +23,15 @@
  * questions.
  */
 
-#include <sys/types.h>
+#include <fcntl.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jlong.h"
 #include "sun_nio_ch_IOUtil.h"
 #include "java_lang_Integer.h"
@@ -257,5 +259,3 @@ void
 setfdval(JNIEnv *env, jobject fdo, jint val) {
     (*env)->SetIntField(env, fdo, fd_fdID, val);
 }
-
-

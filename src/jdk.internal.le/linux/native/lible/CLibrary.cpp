@@ -25,7 +25,6 @@
 
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jdk_internal_org_jline_terminal_impl_jna_linux_CLibraryImpl.h"
 
 #include <errno.h>

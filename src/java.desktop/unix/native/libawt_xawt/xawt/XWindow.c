@@ -37,10 +37,9 @@
 #include <X11/Xatom.h>
 #include <ctype.h>
 
-#include <jvm.h>
-#include <jni.h>
-#include <jlong.h>
-#include <jni_util.h>
+#include "jni.h"
+#include "jlong.h"
+#include "jni_util.h"
 
 #include "sun_awt_X11_XWindow.h"
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@
 
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jdk_internal_org_jline_terminal_impl_jna_osx_CLibraryImpl.h"
 
 #include <errno.h>

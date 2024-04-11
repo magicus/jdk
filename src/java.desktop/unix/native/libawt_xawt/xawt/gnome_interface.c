@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@
     #error This file should not be included in headless library
 #endif
 
+#include "jvm.h"
 #include "gnome_interface.h"
 
 GNOME_URL_SHOW_TYPE *gnome_url_show = NULL;
@@ -39,7 +40,7 @@ gboolean gnome_load() {
 
      // trying to open the gnomevfs. VERSIONED_JNI_LIB_NAME
      // macros formats the library name in a system specific manner
-     // see jdk/src/solaris/javavm/export/jvm_md.h for more details
+     // see jvm_md.h for more details
      vfs_handle = dlopen(VERSIONED_JNI_LIB_NAME("gnomevfs-2", "0"), RTLD_LAZY);
      if (vfs_handle == NULL) {
          // if we cannot load the library using a version assumed by JNI

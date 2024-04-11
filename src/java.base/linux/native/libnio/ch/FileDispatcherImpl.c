@@ -24,6 +24,7 @@
  */
 
 #include <sys/sendfile.h>
+#include <sys/socket.h>
 #include <dlfcn.h>
 
 #include "jni.h"

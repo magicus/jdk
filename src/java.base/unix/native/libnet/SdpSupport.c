@@ -23,9 +23,10 @@
  * questions.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <errno.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #if defined(__linux__)
   #if !defined(AF_INET_SDP)

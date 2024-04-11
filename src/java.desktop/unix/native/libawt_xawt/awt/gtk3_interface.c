@@ -35,10 +35,12 @@
 #include "gtk3_interface.h"
 #include "java_awt_Transparency.h"
 #include "sizecalc.h"
-#include <jni_util.h>
+#include "jni_util.h"
+#include "jvm.h"
 #include <stdio.h>
 #include <math.h>
 #include "awt.h"
+
 #include "debug_assert.h"
 
 static void *gtk3_libhandle = NULL;

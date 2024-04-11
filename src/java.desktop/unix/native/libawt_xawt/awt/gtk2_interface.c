@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,9 +35,9 @@
 #include <string.h>
 #include "gtk2_interface.h"
 #include "java_awt_Transparency.h"
-#include "jvm_md.h"
 #include "sizecalc.h"
-#include <jni_util.h>
+#include "jni_util.h"
+#include "jvm.h"
 #include "awt.h"
 
 #define GTK_TYPE_BORDER                 ((*fp_gtk_border_get_type)())

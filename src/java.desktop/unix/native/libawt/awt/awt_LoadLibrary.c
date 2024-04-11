@@ -27,9 +27,8 @@
 #include <dlfcn.h>
 #include <string.h>
 #include <stdlib.h>
-#include <jni.h>
-#include <jni_util.h>
-#include <jvm.h>
+#include "jni.h"
+#include "jni_util.h"
 #include "gdefs.h"
 
 #include <sys/param.h>

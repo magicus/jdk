@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,20 +23,21 @@
  * questions.
  */
 
- #include <sys/types.h>
- #include <sys/uio.h>
- #include <unistd.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
 
- #include "jni.h"
- #include "jni_util.h"
- #include "jlong.h"
- #include "nio.h"
- #include "nio_util.h"
- #include "sun_nio_ch_SocketDispatcher.h"
+#include "jni.h"
+#include "jni_util.h"
+#include "jlong.h"
+#include "nio.h"
+#include "nio_util.h"
+#include "sun_nio_ch_SocketDispatcher.h"
 
- JNIEXPORT jint JNICALL
- Java_sun_nio_ch_SocketDispatcher_read0(JNIEnv *env, jclass clazz,
-                                        jobject fdo, jlong address, jint len)
+JNIEXPORT jint JNICALL
+Java_sun_nio_ch_SocketDispatcher_read0(JNIEnv *env, jclass clazz,
+                                       jobject fdo, jlong address, jint len)
  {
      jint fd = fdval(env, fdo);
      void *buf = (void *)jlong_to_ptr(address);
@@ -49,9 +50,9 @@
      }
  }
 
- JNIEXPORT jlong JNICALL
- Java_sun_nio_ch_SocketDispatcher_readv0(JNIEnv *env, jclass clazz,
-                                         jobject fdo, jlong address, jint len)
+JNIEXPORT jlong JNICALL
+Java_sun_nio_ch_SocketDispatcher_readv0(JNIEnv *env, jclass clazz,
+                                        jobject fdo, jlong address, jint len)
  {
      jint fd = fdval(env, fdo);
      struct iovec *iov = (struct iovec *)jlong_to_ptr(address);

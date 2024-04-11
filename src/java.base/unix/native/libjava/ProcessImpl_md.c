@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,8 +27,6 @@
 #define _LARGEFILE64_SOURCE 1
 
 #include "jni.h"
-#include "jvm.h"
-#include "jvm_md.h"
 #include "jni_util.h"
 #include "io_util.h"
 
@@ -36,15 +34,17 @@
  * Platform-specific support for java.lang.Process
  */
 #include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <spawn.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <ctype.h>
-#include <sys/wait.h>
-#include <signal.h>
 #include <string.h>
-
-#include <spawn.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "childproc.h"
 

@@ -23,9 +23,11 @@
  * questions.
  */
 
+#include <sys/socket.h>
+#include <sys/stat.h>
+
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "nio.h"
 #include "nio_util.h"
 #include "sun_nio_ch_FileKey.h"

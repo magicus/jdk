@@ -30,7 +30,6 @@
 
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jlong.h"
 #include "nio.h"
 #include "nio_util.h"

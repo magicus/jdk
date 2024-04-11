@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,8 +23,7 @@
  * questions.
  */
 
-#include <jni.h>
-#include "jvm.h"
+#include "jni.h"
 #include "management_ext.h"
 #include "com_sun_management_internal_HotSpotDiagnostic.h"
 

@@ -22,6 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
 #include <dlfcn.h>
 #include <errno.h>
 #include <net/if.h>
@@ -29,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #if defined(__linux__)
 #include <arpa/inet.h>

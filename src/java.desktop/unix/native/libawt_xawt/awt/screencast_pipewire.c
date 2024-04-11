@@ -29,6 +29,7 @@
 
 #include <dlfcn.h>
 #include "jni_util.h"
+#include "jvm.h"
 #include "awt.h"
 #include "screencast_pipewire.h"
 #include "fp_pipewire.h"

@@ -25,9 +25,10 @@
 
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jlong.h"
 
+#include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <sys/types.h>

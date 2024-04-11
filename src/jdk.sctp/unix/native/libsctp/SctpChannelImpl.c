@@ -23,6 +23,7 @@
  * questions.
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include "Sctp.h"
@@ -586,4 +587,3 @@ JNIEXPORT jint JNICALL Java_sun_nio_ch_sctp_SctpChannelImpl_send0
 
     return rv;
 }
-

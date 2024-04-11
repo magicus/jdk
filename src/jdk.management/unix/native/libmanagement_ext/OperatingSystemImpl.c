@@ -26,7 +26,6 @@
 #include "jni.h"
 #include "jni_util.h"
 #include "jlong.h"
-#include "jvm.h"
 #include "management_ext.h"
 #include "com_sun_management_internal_OperatingSystemImpl.h"
 

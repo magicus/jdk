@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,9 +23,9 @@
  * questions.
  */
 
-#include <jni.h>
-#include <jni_util.h>
-#include <jvm_md.h>
+#include "jni.h"
+#include "jni_util.h"
+#include "jvm.h"
 #include <dlfcn.h>
 #include <cups/cups.h>
 #include <cups/ppd.h>

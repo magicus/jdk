@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,16 +22,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
 #include <ctype.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <netinet/in.h>
+#include <fcntl.h>
 #include <netinet/in_systm.h>
-#include <netinet/ip.h>
+#include <netinet/in.h>
 #include <netinet/ip_icmp.h>
+#include <netinet/ip.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "net_util.h"
 

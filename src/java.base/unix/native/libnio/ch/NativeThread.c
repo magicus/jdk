@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,16 +23,17 @@
  * questions.
  */
 
-#include <sys/types.h>
+#include <pthread.h>
+#include <signal.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
 #include "jni.h"
 #include "jni_util.h"
-#include "jvm.h"
 #include "jlong.h"
 #include "sun_nio_ch_NativeThread.h"
 #include "nio_util.h"
-#include <signal.h>
-#include <pthread.h>
 
 #ifdef __linux__
   /* Also defined in net/linux_close.c */
