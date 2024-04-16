@@ -124,7 +124,7 @@ jobs:
           --with-boot-jdk=${{ steps.bootjdk.outputs.path }}
           --with-jtreg=${{ steps.jtreg.outputs.path }}
           --with-gtest=${{ steps.gtest.outputs.path }}
-          --with-zlib=system
+          --with-zlib=bundled
           --with-toolchain-type=clang --with-static-java --disable-warnings-as-errors
           --with-jmod-compress=zip-1
           ${{ inputs.extra-conf-options }} ${{ inputs.configure-arguments }} || (
