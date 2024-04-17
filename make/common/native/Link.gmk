@@ -119,7 +119,8 @@ define CreateStaticLibrary
 	  $(ECHO) "Getting symbols from nm"; \
 	  $(NM) $(NMFLAGS) -m $$($1_TARGET) | $(GREP)  "__TEXT" | \
 	      $(EGREP) -v "non-external|private extern|__TEXT,__eh_frame" | \
-	      $(SED) -e  's/.* //' > $$(@D)/$$(basename $$(@F)).symbols
+	      $(SED) -e  's/.* //' > $$(@D)/$$(basename $$(@F)).symbols \
+	      || touch $$(@D)/$$(basename $$(@F)).symbols
         endif
 endef
 
