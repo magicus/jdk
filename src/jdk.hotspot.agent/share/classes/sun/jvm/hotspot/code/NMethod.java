@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ package sun.jvm.hotspot.code;
 import java.io.*;
 import java.util.*;
 import sun.jvm.hotspot.debugger.*;
+import sun.jvm.hotspot.memory.*;
 import sun.jvm.hotspot.oops.*;
 import sun.jvm.hotspot.runtime.*;
 import sun.jvm.hotspot.types.*;
@@ -34,8 +35,9 @@ import sun.jvm.hotspot.utilities.*;
 import sun.jvm.hotspot.utilities.Observable;
 import sun.jvm.hotspot.utilities.Observer;
 
-public class NMethod extends CompiledMethod {
+public class NMethod extends CodeBlob {
   private static long          pcDescSize;
+  private static AddressField  methodField;
   /** != InvocationEntryBci if this nmethod is an on-stack replacement method */
   private static CIntegerField entryBCIField;
   /** To support simple linked-list chaining of nmethods */
@@ -43,10 +45,13 @@ public class NMethod extends CompiledMethod {
 
   /** Offsets for different nmethod parts */
   private static CIntegerField exceptionOffsetField;
+  private static CIntegerField deoptHandlerOffsetField;
+  private static CIntegerField deoptMhHandlerOffsetField;
   private static CIntegerField origPCOffsetField;
   private static CIntegerField stubOffsetField;
   private static CIntegerField oopsOffsetField;
   private static CIntegerField metadataOffsetField;
+  private static CIntegerField scopesDataOffsetField;
   private static CIntegerField scopesPCsOffsetField;
   private static CIntegerField dependenciesOffsetField;
   private static CIntegerField handlerTableOffsetField;
@@ -63,16 +68,6 @@ public class NMethod extends CompiledMethod {
 
   // FIXME: add access to flags (how?)
 
-  /** NMethod Flushing lock (if non-zero, then the nmethod is not removed) */
-  private static JIntField     lockCountField;
-
-  /** not_entrant method removal. Each mark_sweep pass will update
-      this mark to current sweep invocation count if it is seen on the
-      stack.  An not_entrant method can be removed when there is no
-      more activations, i.e., when the _stack_traversal_mark is less than
-      current sweep traversal index. */
-  private static CIntegerField stackTraversalMarkField;
-
   private static CIntegerField compLevelField;
 
   static {
@@ -86,14 +81,18 @@ public class NMethod extends CompiledMethod {
   private static void initialize(TypeDataBase db) {
     Type type = db.lookupType("nmethod");
 
+    methodField                 = type.getAddressField("_method");
     entryBCIField               = type.getCIntegerField("_entry_bci");
     osrLinkField                = type.getAddressField("_osr_link");
 
     exceptionOffsetField        = type.getCIntegerField("_exception_offset");
+    deoptHandlerOffsetField     = type.getCIntegerField("_deopt_handler_offset");
+    deoptMhHandlerOffsetField   = type.getCIntegerField("_deopt_mh_handler_offset");
     origPCOffsetField           = type.getCIntegerField("_orig_pc_offset");
     stubOffsetField             = type.getCIntegerField("_stub_offset");
     oopsOffsetField             = type.getCIntegerField("_oops_offset");
     metadataOffsetField         = type.getCIntegerField("_metadata_offset");
+    scopesDataOffsetField       = type.getCIntegerField("_scopes_data_offset");
     scopesPCsOffsetField        = type.getCIntegerField("_scopes_pcs_offset");
     dependenciesOffsetField     = type.getCIntegerField("_dependencies_offset");
     handlerTableOffsetField     = type.getCIntegerField("_handler_table_offset");
@@ -102,8 +101,6 @@ public class NMethod extends CompiledMethod {
     entryPointField             = type.getAddressField("_entry_point");
     verifiedEntryPointField     = type.getAddressField("_verified_entry_point");
     osrEntryPointField          = type.getAddressField("_osr_entry_point");
-    lockCountField              = type.getJIntField("_lock_count");
-    stackTraversalMarkField     = type.getCIntegerField("_stack_traversal_mark");
     compLevelField              = type.getCIntegerField("_comp_level");
     pcDescSize = db.lookupType("PcDesc").getSize();
   }
@@ -115,6 +112,10 @@ public class NMethod extends CompiledMethod {
   // Accessors
   public Address getAddress() {
     return addr;
+  }
+
+  public Method getMethod() {
+    return (Method)Metadata.instantiateWrapperFor(methodField.getValue(addr));
   }
 
   // Type info
@@ -129,12 +130,15 @@ public class NMethod extends CompiledMethod {
   public Address instsBegin()           { return codeBegin();                                        }
   public Address instsEnd()             { return headerBegin().addOffsetTo(getStubOffset());         }
   public Address exceptionBegin()       { return headerBegin().addOffsetTo(getExceptionOffset());    }
+  public Address deoptHandlerBegin()    { return headerBegin().addOffsetTo(getDeoptHandlerOffset());   }
+  public Address deoptMhHandlerBegin()  { return headerBegin().addOffsetTo(getDeoptMhHandlerOffset()); }
   public Address stubBegin()            { return headerBegin().addOffsetTo(getStubOffset());         }
   public Address stubEnd()              { return headerBegin().addOffsetTo(getOopsOffset());         }
   public Address oopsBegin()            { return headerBegin().addOffsetTo(getOopsOffset());         }
   public Address oopsEnd()              { return headerBegin().addOffsetTo(getMetadataOffset());     }
   public Address metadataBegin()        { return headerBegin().addOffsetTo(getMetadataOffset());     }
-  public Address metadataEnd()          { return scopesDataBegin();                                  }
+  public Address metadataEnd()          { return headerBegin().addOffsetTo(getScopesDataOffset());   }
+  public Address scopesDataBegin()      { return headerBegin().addOffsetTo(getScopesDataOffset());   }
   public Address scopesDataEnd()        { return headerBegin().addOffsetTo(getScopesPCsOffset());    }
   public Address scopesPCsBegin()       { return headerBegin().addOffsetTo(getScopesPCsOffset());    }
   public Address scopesPCsEnd()         { return headerBegin().addOffsetTo(getDependenciesOffset()); }
@@ -215,16 +219,11 @@ public class NMethod extends CompiledMethod {
   // * FIXME: * ADD ACCESS TO FLAGS!!!!
   // **********
   // public boolean isInUse();
-  // public boolean isAlive();
   // public boolean isNotEntrant();
-  // public boolean isZombie();
 
   // ********************************
   // * MAJOR FIXME: MAJOR HACK HERE *
   // ********************************
-  public boolean isZombie() { return false; }
-
-  // public boolean isUnloaded();
   // public boolean isYoung();
   // public boolean isOld();
   // public int     age();
@@ -246,7 +245,7 @@ public class NMethod extends CompiledMethod {
   }
 
   public NMethod getOSRLink() {
-    return (NMethod) VMObjectFactory.newObject(NMethod.class, osrLinkField.getValue(addr));
+    return VMObjectFactory.newObject(NMethod.class, osrLinkField.getValue(addr));
   }
 
   // MethodHandle
@@ -272,8 +271,6 @@ public class NMethod extends CompiledMethod {
 
   // FIXME: add inline cache support
   // FIXME: add flush()
-
-  public boolean isLockedByVM() { return lockCountField.getValue(addr) > 0; }
 
   // FIXME: add mark_as_seen_on_stack
   // FIXME: add can_not_entrant_be_converted
@@ -387,7 +384,7 @@ public class NMethod extends CompiledMethod {
   // pc_desc_near returns the first PCDesc at or after the givne pc.
   PCDesc pc_desc_near(long pc) { return find_pc_desc(pc, true); }
 
-  // Return a the last scope in (begin..end]
+  // Return the last scope in (begin..end]
   public ScopeDesc scope_desc_in(long begin, long end) {
     PCDesc p = pc_desc_near(begin+1);
     if (p != null && VM.getAddressValue(p.getRealPC(this)) <= end) {
@@ -439,6 +436,7 @@ public class NMethod extends CompiledMethod {
   public static int getVerifiedEntryPointOffset()    { return (int) verifiedEntryPointField.getOffset();    }
   public static int getOSREntryPointOffset()         { return (int) osrEntryPointField.getOffset();         }
   public static int getEntryBCIOffset()              { return (int) entryBCIField.getOffset();              }
+  public static int getMethodOffset()                { return (int) methodField.getOffset();                }
 
   public void print() {
     printOn(System.out);
@@ -482,9 +480,9 @@ public class NMethod extends CompiledMethod {
       if (h.get(meta) != null) continue;
       h.put(meta, meta);
       if (meta instanceof InstanceKlass) {
-        ((InstanceKlass)meta).dumpReplayData(out);
+        meta.dumpReplayData(out);
       } else if (meta instanceof Method) {
-        ((Method)meta).dumpReplayData(out);
+        meta.dumpReplayData(out);
         MethodData mdo = ((Method)meta).getMethodData();
         if (mdo != null) {
           mdo.dumpReplayData(out);
@@ -500,7 +498,7 @@ public class NMethod extends CompiledMethod {
       }
     }
     if (h.get(method.getMethodHolder()) == null) {
-      ((InstanceKlass)method.getMethodHolder()).dumpReplayData(out);
+      method.getMethodHolder().dumpReplayData(out);
     }
     Klass holder = method.getMethodHolder();
     out.println("compile " + holder.getName().asString() + " " +
@@ -516,9 +514,12 @@ public class NMethod extends CompiledMethod {
 
   private int getEntryBCI()           { return (int) entryBCIField          .getValue(addr); }
   private int getExceptionOffset()    { return (int) exceptionOffsetField   .getValue(addr); }
+  private int getDeoptHandlerOffset()   { return (int) deoptHandlerOffsetField  .getValue(addr); }
+  private int getDeoptMhHandlerOffset() { return (int) deoptMhHandlerOffsetField.getValue(addr); }
   private int getStubOffset()         { return (int) stubOffsetField        .getValue(addr); }
   private int getOopsOffset()         { return (int) oopsOffsetField        .getValue(addr); }
   private int getMetadataOffset()     { return (int) metadataOffsetField    .getValue(addr); }
+  private int getScopesDataOffset()   { return (int) scopesDataOffsetField  .getValue(addr); }
   private int getScopesPCsOffset()    { return (int) scopesPCsOffsetField   .getValue(addr); }
   private int getDependenciesOffset() { return (int) dependenciesOffsetField.getValue(addr); }
   private int getHandlerTableOffset() { return (int) handlerTableOffsetField.getValue(addr); }

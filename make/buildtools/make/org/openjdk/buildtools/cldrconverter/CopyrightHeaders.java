@@ -42,12 +42,12 @@ class CopyrightHeaders {
         " * Copyright (c) 2012, %d, Oracle and/or its affiliates. All rights reserved.\n" +
         " */\n";
 
-    // Last updated:  - 1/04/2021
+    // Last updated:  - 4/06/2022
     private static final String UNICODE =
         "/*\n" +
         " * COPYRIGHT AND PERMISSION NOTICE\n" +
         " *\n" +
-        " * Copyright (c) 1991-2020 Unicode, Inc. All rights reserved.\n" +
+        " * Copyright (c) 1991-2022 Unicode, Inc. All rights reserved.\n" +
         " * Distributed under the Terms of Use in https://www.unicode.org/copyright.html.\n" +
         " *\n" +
         " * Permission is hereby granted, free of charge, to any person obtaining\n" +

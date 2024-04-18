@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,11 +25,12 @@
  * @test
  * @summary test binary compatibility rules for sealed classes
  * @library /tools/lib
+ * @enablePreview
  * @modules jdk.compiler/com.sun.tools.javac.api
  *          jdk.compiler/com.sun.tools.javac.main
  *          jdk.compiler/com.sun.tools.javac.util
  *          jdk.compiler/com.sun.tools.javac.code
- *          jdk.jdeps/com.sun.tools.classfile
+ *          java.base/jdk.internal.classfile.impl
  * @build toolbox.ToolBox toolbox.JavacTask
  * @run main BinaryCompatibilityTests
  */
@@ -42,7 +43,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.IntStream;
 
-import com.sun.tools.classfile.*;
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.util.Assert;
 import toolbox.TestRunner;
@@ -51,8 +51,6 @@ import toolbox.JavaTask;
 import toolbox.JavacTask;
 import toolbox.Task;
 import toolbox.Task.OutputKind;
-
-import static com.sun.tools.classfile.ConstantPool.*;
 
 public class BinaryCompatibilityTests extends TestRunner {
     ToolBox tb;
@@ -381,7 +379,7 @@ public class BinaryCompatibilityTests extends TestRunner {
         );
     }
 
-    /* 1- compiles the the superclass source code along with the first version of the subclass source code
+    /* 1- compiles the superclass source code along with the first version of the subclass source code
      * 2- executes the super class just to make sure that it works
      * 3- compiles the second version of the subclass along with the class file of the superclass
      * 4- executes the super class and makes sure that it executes successfully

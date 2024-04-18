@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,12 +30,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.*;
-import java.text.MessageFormat;
 import java.time.*;
 import java.util.*;
 import java.util.ResourceBundle.Control;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -71,6 +68,7 @@ public class CLDRConverter {
     private static String WINZONES_SOURCE_FILE;
     private static String PLURALS_SOURCE_FILE;
     private static String DAYPERIODRULE_SOURCE_FILE;
+    private static String COVERAGELEVELS_FILE;
     static String DESTINATION_DIR = "build/gensrc";
 
     static final String LOCALE_NAME_PREFIX = "locale.displayname.";
@@ -93,7 +91,13 @@ public class CLDRConverter {
     static final String[] EMPTY_ZONE = {"", "", "", "", "", ""};
     static final String META_ETCUTC_ZONE_NAME = "ETC_UTC";
 
-    private static SupplementDataParseHandler handlerSuppl;
+    // constants used for TZDB short names
+    private static final String NBSP = "\u00A0";
+    private static final String STD = "std";
+    private static final String DST = "dst";
+    private static final String NO_SUBST = "-";
+
+    private static SupplementalDataParseHandler handlerSuppl;
     private static LikelySubtagsParseHandler handlerLikelySubtags;
     private static WinZonesParseHandler handlerWinZones;
     static PluralsParseHandler handlerPlurals;
@@ -115,6 +119,7 @@ public class CLDRConverter {
 
     private static Set<String> AVAILABLE_TZIDS;
     static int copyrightYear;
+    static String jdkHeaderTemplate;
     private static String zoneNameTempFile;
     private static String tzDataDir;
     private static final Map<String, String> canonicalTZMap = new HashMap<>();
@@ -122,6 +127,11 @@ public class CLDRConverter {
     // rules maps
     static Map<String, String> pluralRules;
     static Map<String, String> dayPeriodRules;
+
+    // TZDB maps
+    private static final Map<String, String> tzdbShortNamesMap = HashMap.newHashMap(512);
+    private static final Map<String, String> tzdbSubstLetters = HashMap.newHashMap(512);
+    private static final Map<String, String> tzdbLinks = HashMap.newHashMap(512);
 
     static enum DraftType {
         UNCONFIRMED,
@@ -230,6 +240,10 @@ public class CLDRConverter {
                         tzDataDir = args[++i];
                         break;
 
+                    case "-jdk-header-template":
+                        jdkHeaderTemplate = Files.readString(Paths.get(args[++i]));
+                        break;
+
                     case "-help":
                         usage();
                         System.exit(0);
@@ -260,6 +274,7 @@ public class CLDRConverter {
         WINZONES_SOURCE_FILE = CLDR_BASE + "/supplemental/windowsZones.xml";
         PLURALS_SOURCE_FILE = CLDR_BASE + "/supplemental/plurals.xml";
         DAYPERIODRULE_SOURCE_FILE = CLDR_BASE + "/supplemental/dayPeriods.xml";
+        COVERAGELEVELS_FILE = CLDR_BASE + "/properties/coverageLevels.txt";
 
         if (BASE_LOCALES.isEmpty()) {
             setupBaseLocales("en-US");
@@ -278,6 +293,9 @@ public class CLDRConverter {
         // rules maps
         pluralRules = generateRules(handlerPlurals);
         dayPeriodRules = generateRules(handlerDayPeriodRule);
+
+        // TZDB short names map
+        generateTZDBShortNamesMap();
 
         List<Bundle> bundles = readBundleList();
         convertBundles(bundles);
@@ -304,7 +322,9 @@ public class CLDRConverter {
                 + "\t-year year     copyright year in output%n"
                 + "\t-zntempfile    template file for java.time.format.ZoneName.java%n"
                 + "\t-tzdatadir     tzdata directory for java.time.format.ZoneName.java%n"
-                + "\t-utf8          use UTF-8 rather than \\uxxxx (for debug)%n");
+                + "\t-utf8          use UTF-8 rather than \\uxxxx (for debug)%n"
+                + "\t-jdk-header-template <file>%n"
+                + "\t\t       override default GPL header with contents of file%n");
     }
 
     static void info(String fmt, Object... args) {
@@ -361,13 +381,18 @@ public class CLDRConverter {
     private static List<Bundle> readBundleList() throws Exception {
         List<Bundle> retList = new ArrayList<>();
         Path path = FileSystems.getDefault().getPath(SOURCE_FILE_DIR);
+        var coverageMap = coverageLevelsMap();
         try (DirectoryStream<Path> dirStr = Files.newDirectoryStream(path)) {
             for (Path entry : dirStr) {
                 String fileName = entry.getFileName().toString();
                 if (fileName.endsWith(".xml")) {
                     String id = fileName.substring(0, fileName.indexOf('.'));
                     Locale cldrLoc = Locale.forLanguageTag(toLanguageTag(id));
-                    StringBuilder sb = getCandLocales(cldrLoc);
+                    List<Locale> candList = getCandidateLocales(cldrLoc);
+                    if (!"root".equals(id) && candList.stream().noneMatch(coverageMap::containsKey)) {
+                        continue;
+                    }
+                    StringBuilder sb = getCandLocales(candList);
                     if (sb.indexOf("root") == -1) {
                         sb.append("root");
                     }
@@ -446,7 +471,7 @@ public class CLDRConverter {
         // SupplementalData file also provides the "parent" locales which
         // are othrwise not to be fallen back. Process them here as well.
         //
-        handlerSuppl = new SupplementDataParseHandler();
+        handlerSuppl = new SupplementalDataParseHandler();
         parseLDMLFile(new File(SPPL_SOURCE_FILE), handlerSuppl);
         Map<String, Object> parentData = handlerSuppl.getData("root");
         parentData.keySet().stream()
@@ -512,8 +537,7 @@ public class CLDRConverter {
         parser.parse(srcfile, handler);
     }
 
-    private static StringBuilder getCandLocales(Locale cldrLoc) {
-        List<Locale> candList = getCandidateLocales(cldrLoc);
+    private static StringBuilder getCandLocales(List<Locale> candList) {
         StringBuilder sb = new StringBuilder();
         for (Locale loc : candList) {
             if (!loc.equals(Locale.ROOT)) {
@@ -609,16 +633,26 @@ public class CLDRConverter {
      * Translate the aliases into the real entries in the bundle map.
      */
     static void handleAliases(Map<String, Object> bundleMap) {
-        Set<String> bundleKeys = bundleMap.keySet();
-        try {
-            for (String key : aliases.keySet()) {
-                String targetKey = aliases.get(key);
-                if (bundleKeys.contains(targetKey)) {
-                    bundleMap.putIfAbsent(key, bundleMap.get(targetKey));
+        for (String key : aliases.keySet()) {
+            var sourceKey = aliases.get(key);
+            if (key.startsWith("ListPatterns_")) {
+                String k;
+                while ((k = aliases.get(sourceKey)) != null) {
+                    sourceKey = k;
                 }
             }
-        } catch (Exception ex) {
-            Logger.getLogger(CLDRConverter.class.getName()).log(Level.SEVERE, null, ex);
+            var source = bundleMap.get(sourceKey);
+            if (source != null) {
+                if (bundleMap.get(key) instanceof String[] sa) {
+                    // fill missing elements in case of String array
+                    for (int i = 0; i < sa.length; i++) {
+                        if (sa[i] == null && ((String[])source)[i] != null) {
+                            sa[i] = ((String[])source)[i];
+                        }
+                    }
+                }
+                bundleMap.putIfAbsent(key, source);
+            }
         }
     }
 
@@ -633,7 +667,7 @@ public class CLDRConverter {
     /**
      * Examine if the id includes the country (territory) code. If it does, it returns
      * the country code.
-     * Otherwise, it returns null. eg. when the id is "zh_Hans_SG", it return "SG".
+     * Otherwise, it returns null. eg. when the id is "zh_Hans_SG", it returns "SG".
      * It does NOT return UN M.49 code, e.g., '001', as those three digit numbers cannot
      * be translated into package names.
      */
@@ -645,11 +679,19 @@ public class CLDRConverter {
     /**
      * Examine if the id includes the region code. If it does, it returns
      * the region code.
-     * Otherwise, it returns null. eg. when the id is "zh_Hans_SG", it return "SG".
+     * Otherwise, it returns null. eg. when the id is "zh_Hans_SG", it returns "SG".
      * It DOES return UN M.49 code, e.g., '001', as well as ISO 3166 two letter country codes.
      */
     static String getRegionCode(String id) {
         return Locale.forLanguageTag(id.replaceAll("_", "-")).getCountry();
+    }
+
+    /**
+     * Examine if the id includes the script code. If it does, it returns
+     * the script code.
+     */
+    static String getScriptCode(String id) {
+        return Locale.forLanguageTag(id.replaceAll("_", "-")).getScript();
     }
 
     private static class KeyComparator implements Comparator<String> {
@@ -721,31 +763,71 @@ public class CLDRConverter {
 
     private static Map<String, Object> extractZoneNames(Map<String, Object> map, String id) {
         Map<String, Object> names = new TreeMap<>(KeyComparator.INSTANCE);
+        var availableIds = getAvailableZoneIds();
 
-        getAvailableZoneIds().stream().forEach(tzid -> {
+        availableIds.forEach(tzid -> {
             // If the tzid is deprecated, get the data for the replacement id
             String tzKey = Optional.ofNullable((String)handlerSupplMeta.get(tzid))
                                    .orElse(tzid);
-            Object data = map.get(TIMEZONE_ID_PREFIX + tzKey);
+            // Follow link, if needed
+            var tzLink = tzdbLinks.get(tzKey);
+            if (tzLink == null && tzdbLinks.containsValue(tzKey)) {
+                // reverse link search
+                // this is needed as in tzdb, "America/Buenos_Aires" links to
+                // "America/Argentina/Buenos_Aires", but CLDR contains metaZone
+                // "Argentina" only for "America/Buenos_Aires" (as of CLDR 44)
+                // Both tzids should have "Argentina" meta zone names
+                tzLink = tzdbLinks.entrySet().stream()
+                        .filter(e -> e.getValue().equals(tzKey))
+                        .map(Map.Entry::getKey)
+                        .findAny()
+                        .orElse(null);
 
-            if (data instanceof String[]) {
+            }
+            Object data = map.get(TIMEZONE_ID_PREFIX + tzKey);
+            if (data == null && tzLink != null) {
+                // data for tzLink
+                data = map.get(TIMEZONE_ID_PREFIX + tzLink);
+            }
+
+            if (data instanceof String[] tznames) {
                 // Hack for UTC. UTC is an alias to Etc/UTC in CLDR
                 if (tzid.equals("Etc/UTC") && !map.containsKey(TIMEZONE_ID_PREFIX + "UTC")) {
-                    names.put(METAZONE_ID_PREFIX + META_ETCUTC_ZONE_NAME, data);
+                    names.put(METAZONE_ID_PREFIX + META_ETCUTC_ZONE_NAME, tznames);
                     names.put(tzid, META_ETCUTC_ZONE_NAME);
                     names.put("UTC", META_ETCUTC_ZONE_NAME);
                 } else {
-                    names.put(tzid, data);
+                    // TZDB short names
+                    tznames = Arrays.copyOf(tznames, tznames.length);
+                    fillTZDBShortNames(tzid, tznames);
+                    names.put(tzid, tznames);
                 }
             } else {
                 String meta = handlerMetaZones.get(tzKey);
+                if (meta == null && tzLink != null) {
+                    // Check for tzLink
+                    meta = handlerMetaZones.get(tzLink);
+                }
                 if (meta != null) {
                     String metaKey = METAZONE_ID_PREFIX + meta;
                     data = map.get(metaKey);
-                    if (data instanceof String[]) {
+                    if (data instanceof String[] tznames) {
+                        // TZDB short names
+                        tznames = Arrays.copyOf((String[])names.getOrDefault(metaKey, tznames), 6);
+                        fillTZDBShortNames(tzid, tznames);
                         // Keep the metazone prefix here.
-                        names.put(metaKey, data);
+                        names.putIfAbsent(metaKey, tznames);
                         names.put(tzid, meta);
+                        if (tzLink != null && availableIds.contains(tzLink)) {
+                            names.put(tzLink, meta);
+                        }
+                    }
+                } else if (id.equals("root")) {
+                    // supply TZDB short names if available
+                    if (tzdbShortNamesMap.containsKey(tzid)) {
+                        var tznames = new String[6];
+                        fillTZDBShortNames(tzid, tznames);
+                        names.put(tzid, tznames);
                     }
                 }
             }
@@ -847,19 +929,25 @@ public class CLDRConverter {
         "DateTimePatternChars",
         "PluralRules",
         "DayPeriodRules",
-        "DateFormatItem",
+        "DateFormatItemInputRegions.allowed",
+        "DateFormatItemInputRegions.preferred",
+        "ListPatterns",
     };
+
+    static final Set<String> availableSkeletons = new HashSet<>();
 
     private static Map<String, Object> extractFormatData(Map<String, Object> map, String id) {
         Map<String, Object> formatData = new LinkedHashMap<>();
         for (CalendarType calendarType : CalendarType.values()) {
             String prefix = calendarType.keyElementName();
             Arrays.stream(FORMAT_DATA_ELEMENTS)
-                .flatMap(elem -> map.keySet().stream().filter(k -> k.startsWith(prefix + elem)))
-                .forEach(key -> {
+                .forEach(elem -> {
+                    var key = prefix + elem;
                     copyIfPresent(map, "java.time." + key, formatData);
                     copyIfPresent(map, key, formatData);
                 });
+            availableSkeletons.forEach(s ->
+                copyIfPresent(map, prefix + "DateFormatItem." + s, formatData));
         }
 
         for (String key : map.keySet()) {
@@ -908,6 +996,14 @@ public class CLDRConverter {
                     formatData.put(k + ".NumberElements", neNew);
                 });
         }
+
+        // ListPatterns
+        for (var lpKey : Bundle.LIST_PATTERN_KEYS) {
+            copyIfPresent(map, lpKey, formatData);
+            copyIfPresent(map, lpKey + "-short", formatData);
+            copyIfPresent(map, lpKey + "-narrow", formatData);
+        }
+
         return formatData;
     }
 
@@ -1015,6 +1111,7 @@ public class CLDRConverter {
     private static void setupBaseLocales(String localeList) {
         Arrays.stream(localeList.split(","))
             .map(Locale::forLanguageTag)
+            .map(l -> new Locale.Builder().setLocale(l).setScript("Latn").build())
             .map(l -> Control.getControl(Control.FORMAT_DEFAULT)
                              .getCandidateLocales("", l))
             .forEach(BASE_LOCALES::addAll);
@@ -1140,6 +1237,8 @@ public class CLDRConverter {
         Files.createDirectories(Paths.get(DESTINATION_DIR, "windows", "conf"));
         Files.write(Paths.get(DESTINATION_DIR, "windows", "conf", "tzmappings"),
             handlerWinZones.keySet().stream()
+                .filter(k -> k.endsWith(":001") ||
+                             !handlerWinZones.get(k).equals(handlerWinZones.get(k.replaceFirst(":\\w{2,3}$", ":001"))))
                 .map(k -> k + ":" + handlerWinZones.get(k) + ":")
                 .sorted(new Comparator<String>() {
                     public int compare(String t1, String t2) {
@@ -1178,6 +1277,195 @@ public class CLDRConverter {
                     .map(String::trim)
                     .collect(Collectors.joining(";"));
             }));
+    }
+
+    private static Map<Locale, String> coverageLevelsMap() throws Exception {
+        // First, parse `coverageLevels.txt` file
+        var covMap = Files.readAllLines(Path.of(COVERAGELEVELS_FILE)).stream()
+            .filter(line -> !line.isBlank() && !line.startsWith("#"))
+            .map(line -> line.split("[\s\t]*;[\s\t]*", 3))
+            .filter(a -> a[1].matches("basic|moderate|modern|comprehensive"))
+            .collect(Collectors.toMap(
+                    a -> Locale.forLanguageTag(a[0].replaceAll("_", "-")),
+                    a -> a[1],
+                    (v1, v2) -> v2, // should never happen
+                    HashMap::new));
+
+        // Add other common (non-seed) locales (below `basic` coverage level) as of v42
+        ResourceBundle.getBundle(CLDRConverter.class.getPackageName() + ".OtherCommonLocales")
+            .keySet()
+            .forEach(k -> covMap.put(Locale.forLanguageTag(k), ""));
+
+        return covMap;
+    }
+
+    /*
+     * Generates three maps from TZ database files, where they have usual abbreviation
+     * of the time zone names as "FORMAT".
+     *
+     * `tzdbShortNamesMap` maps the time zone id, such as "America/Los_Angeles" to
+     * its FORMAT and Rule which determines the substitution. In "America/Los_Angeles"
+     * case, its FORMAT is "P%sT" and the Rule is "US". They are concatenated with
+     * an NBSP, so the eventual mapping will be:
+     *
+     * "America/Los_Angeles" -> "P%sT<NBSP>US"
+     *
+     * The map, `tzdbSubstLetters` maps the Rule to its substitution letters.
+     * The key of the map is the Rule name, appended with "<NBSP>std" or "<NBSP>dst"
+     * depending on the savings, e.g.,
+     *
+     * "US<NBSP>std" -> "S"
+     * "US<NBSP>dst" -> "D"
+     *
+     * These mappings resolve the short names for time zones in each type,
+     * such as:
+     *
+     * Standard short name for "America/Los_Angeles" -> "PST"
+     * DST short name for "America/Los_Angeles" -> "PDT"
+     * Generic short name for "America/Los_Angeles" -> "PT"
+     *
+     * The map, `tzdbLinks` retains `Link`s of time zones. For example,
+     * the mapping:
+     *
+     * "US/Hawaii" -> "Pacific/Honolulu"
+     *
+     * resolves names for "US/Hawaii" correctly with "Pacific/Honolulu"
+     * names.
+     */
+    private static void generateTZDBShortNamesMap() throws IOException {
+        Files.walk(Path.of(tzDataDir), 1, FileVisitOption.FOLLOW_LINKS)
+            .filter(p -> p.toFile().isFile())
+            .forEach(p -> {
+                try {
+                    String zone = null;
+                    String rule = null;
+                    String format = null;
+                    boolean inVanguard = false;
+                    for (var line : Files.readAllLines(p)) {
+                        // check for Vanguard lines
+                        if (line.startsWith("# Vanguard section")) {
+                            inVanguard = true;
+                            continue;
+                        }
+                        if (inVanguard && line.startsWith("# Rearguard section")) {
+                            inVanguard = false;
+                            continue;
+                        }
+                        if (line.isBlank() || line.matches("^[ \t]*#.*")) {
+                            // ignore blank/comment lines
+                            continue;
+                        }
+                        // remove comments in-line
+                        line = line.replaceAll("[ \t]*#.*", "");
+
+                        // Zone line
+                        if (line.startsWith("Zone")) {
+                            if (zone != null) {
+                                tzdbShortNamesMap.put(zone, format + NBSP + rule);
+                            }
+                            var zl = line.split("[ \t]+", -1);
+                            zone = zl[1];
+                            rule = zl[3];
+                            format = flipIfNeeded(inVanguard, zl[4]);
+                        } else {
+                            if (zone != null) {
+                                if (line.startsWith("Rule") ||
+                                    line.startsWith("Link")) {
+                                    tzdbShortNamesMap.put(zone, format + NBSP + rule);
+                                    zone = null;
+                                    rule = null;
+                                    format = null;
+                                } else {
+                                    var s = line.split("[ \t]+", -1);
+                                    rule = s[2];
+                                    format = flipIfNeeded(inVanguard, s[3]);
+                                }
+                            }
+                        }
+
+                        // Rule line
+                        if (line.startsWith("Rule")) {
+                            var rl = line.split("[ \t]+", -1);
+                            tzdbSubstLetters.put(rl[1] + NBSP + (rl[8].equals("0") ? STD : DST),
+                                    rl[9].replace(NO_SUBST, ""));
+                        }
+
+                        // Link line
+                        if (line.startsWith("Link")) {
+                            var ll = line.split("[ \t]+", -1);
+                            tzdbLinks.put(ll[2], ll[1]);
+                        }
+                    }
+
+                    // Last entry
+                    if (zone != null) {
+                        tzdbShortNamesMap.put(zone, format + NBSP + rule);
+                    }
+                } catch (IOException ioe) {
+                    throw new UncheckedIOException(ioe);
+                }
+            });
+    }
+
+    // Reverse the std/dst FORMAT in Vanguard so that it
+    // correctly handles negative DST cases, such as "GMT/IST"
+    // vs. "IST/GMT" case for Europe/Dublin
+    private static String flipIfNeeded(boolean inVanguard, String format) {
+        if (inVanguard) {
+            var stddst = format.split("/");
+            if (stddst.length == 2) {
+                return stddst[1] + "/" + stddst[0];
+            }
+        }
+        return format;
+    }
+
+    /*
+     * Fill the TZDB short names if there is no name provided by the CLDR
+     */
+    private static void fillTZDBShortNames(String tzid, String[] names) {
+        var val = tzdbShortNamesMap.get(tzdbLinks.getOrDefault(tzid, tzid));
+        if (val != null) {
+            var format = val.split(NBSP)[0];
+            var rule = val.split(NBSP)[1];
+            IntStream.of(1, 3, 5).forEach(i -> {
+                if (names[i] == null) {
+                    if (format.contains("%s")) {
+                        names[i] = switch (i) {
+                            case 1 -> format.formatted(tzdbSubstLetters.get(rule + NBSP + STD));
+                            case 3 -> format.formatted(tzdbSubstLetters.get(rule + NBSP + DST));
+                            case 5 -> format.formatted("");
+                            default -> throw new InternalError();
+                        };
+                    } else if (format.contains("/")) { // such as "+08/+09" or "GMT/BST"
+                        names[i] = switch (i) {
+                            case 1, 5 -> convertGMTName(format.substring(0, format.indexOf("/")));
+                            case 3 -> convertGMTName(format.substring(format.indexOf("/") + 1));
+                            default -> throw new InternalError();
+                        };
+                    } else {
+                        names[i] = convertGMTName(format);
+                    }
+                }
+            });
+        }
+    }
+
+    /*
+     * Convert TZDB offsets to JDK's offsets, eg, "-08" to "GMT-08:00".
+     * If it cannot recognize the pattern, return the argument as is.
+     */
+    private static String convertGMTName(String f) {
+        try {
+            // Should pre-fill GMT format once COMPAT is gone.
+            // Till then, fall back to GMT format at runtime, after COMPAT short
+            // names are populated
+            ZoneOffset.of(f);
+            return null;
+        } catch (DateTimeException dte) {
+            // textual representation. return as is
+        }
+        return f;
     }
 
     // for debug

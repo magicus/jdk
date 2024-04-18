@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1994, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,44 +55,46 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
  * <p>The quality of implementation specifications concern two
  * properties, accuracy of the returned result and monotonicity of the
  * method.  Accuracy of the floating-point {@code Math} methods is
- * measured in terms of <i>ulps</i>, units in the last place.  For a
- * given floating-point format, an {@linkplain #ulp(double) ulp} of a
- * specific real number value is the distance between the two
- * floating-point values bracketing that numerical value.  When
- * discussing the accuracy of a method as a whole rather than at a
- * specific argument, the number of ulps cited is for the worst-case
- * error at any argument.  If a method always has an error less than
- * 0.5 ulps, the method always returns the floating-point number
- * nearest the exact result; such a method is <i>correctly
- * rounded</i>.  A correctly rounded method is generally the best a
- * floating-point approximation can be; however, it is impractical for
- * many floating-point methods to be correctly rounded.  Instead, for
- * the {@code Math} class, a larger error bound of 1 or 2 ulps is
- * allowed for certain methods.  Informally, with a 1 ulp error bound,
- * when the exact result is a representable number, the exact result
- * should be returned as the computed result; otherwise, either of the
- * two floating-point values which bracket the exact result may be
- * returned.  For exact results large in magnitude, one of the
- * endpoints of the bracket may be infinite.  Besides accuracy at
- * individual arguments, maintaining proper relations between the
- * method at different arguments is also important.  Therefore, most
- * methods with more than 0.5 ulp errors are required to be
- * <i>semi-monotonic</i>: whenever the mathematical function is
- * non-decreasing, so is the floating-point approximation, likewise,
- * whenever the mathematical function is non-increasing, so is the
- * floating-point approximation.  Not all approximations that have 1
- * ulp accuracy will automatically meet the monotonicity requirements.
+ * measured in terms of <dfn>{@index ulp}s</dfn>, {@index "units in
+ * the last place"}.  For a given floating-point format, an
+ * {@linkplain #ulp(double) ulp} of a specific real number value is
+ * the distance between the two floating-point values bracketing that
+ * numerical value.  When discussing the accuracy of a method as a
+ * whole rather than at a specific argument, the number of ulps cited
+ * is for the worst-case error at any argument.  If a method always
+ * has an error less than 0.5 ulps, the method always returns the
+ * floating-point number nearest the exact result; such a method is
+ * <dfn>correctly rounded</dfn>.  A {@index "correctly rounded"}
+ * method is generally the best a floating-point approximation can be;
+ * however, it is impractical for many floating-point methods to be
+ * correctly rounded.  Instead, for the {@code Math} class, a larger
+ * error bound of 1 or 2 ulps is allowed for certain methods.
+ * Informally, with a 1 ulp error bound, when the exact result is a
+ * representable number, the exact result should be returned as the
+ * computed result; otherwise, either of the two floating-point values
+ * which bracket the exact result may be returned.  For exact results
+ * large in magnitude, one of the endpoints of the bracket may be
+ * infinite.  Besides accuracy at individual arguments, maintaining
+ * proper relations between the method at different arguments is also
+ * important.  Therefore, most methods with more than 0.5 ulp errors
+ * are required to be <dfn>{@index "semi-monotonic"}</dfn>: whenever
+ * the mathematical function is non-decreasing, so is the
+ * floating-point approximation, likewise, whenever the mathematical
+ * function is non-increasing, so is the floating-point approximation.
+ * Not all approximations that have 1 ulp accuracy will automatically
+ * meet the monotonicity requirements.
  *
  * <p>
  * The platform uses signed two's complement integer arithmetic with
- * int and long primitive types.  The developer should choose
- * the primitive type to ensure that arithmetic operations consistently
- * produce correct results, which in some cases means the operations
- * will not overflow the range of values of the computation.
- * The best practice is to choose the primitive type and algorithm to avoid
- * overflow. In cases where the size is {@code int} or {@code long} and
- * overflow errors need to be detected, the methods whose names end with
- * {@code Exact} throw an {@code ArithmeticException} when the results overflow.
+ * {@code int} and {@code long} primitive types.  The developer should
+ * choose the primitive type to ensure that arithmetic operations
+ * consistently produce correct results, which in some cases means the
+ * operations will not overflow the range of values of the
+ * computation.  The best practice is to choose the primitive type and
+ * algorithm to avoid overflow. In cases where the size is {@code int}
+ * or {@code long} and overflow errors need to be detected, the
+ * methods whose names end with {@code Exact} throw an {@code
+ * ArithmeticException} when the results overflow.
  *
  * <h2><a id=Ieee754RecommendedOps>IEEE 754 Recommended
  * Operations</a></h2>
@@ -116,7 +118,9 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
  * implementation condition than required for most of the methods in
  * question that are also included in this class.
  *
- * @author  Joseph D. Darcy
+ * @see <a href="https://standards.ieee.org/ieee/754/6210/">
+ *      <cite>IEEE Standard for Floating-Point Arithmetic</cite></a>
+ *
  * @since   1.0
  */
 
@@ -208,7 +212,7 @@ public final class Math {
      * <li>If the argument is zero, then the result is a zero with the
      * same sign as the argument.</ul>
      *
-     * <p>The computed result must be within 1 ulp of the exact result.
+     * <p>The computed result must be within 1.25 ulps of the exact result.
      * Results must be semi-monotonic.
      *
      * @param   a   an angle, in radians.
@@ -395,6 +399,10 @@ public final class Math {
      * Otherwise, the result is the {@code double} value closest to
      * the true mathematical square root of the argument value.
      *
+     * @apiNote
+     * This method corresponds to the squareRoot operation defined in
+     * IEEE 754.
+     *
      * @param   a   a value.
      * @return  the positive square root of {@code a}.
      *          If the argument is NaN or less than zero, the result is NaN.
@@ -478,6 +486,9 @@ public final class Math {
      * that the value of {@code Math.ceil(x)} is exactly the
      * value of {@code -Math.floor(-x)}.
      *
+     * @apiNote
+     * This method corresponds to the roundToIntegralTowardPositive
+     * operation defined in IEEE 754.
      *
      * @param   a   a value.
      * @return  the smallest (closest to negative infinity)
@@ -499,6 +510,10 @@ public final class Math {
      * positive zero or negative zero, then the result is the same as
      * the argument.</ul>
      *
+     * @apiNote
+     * This method corresponds to the roundToIntegralTowardNegative
+     * operation defined in IEEE 754.
+     *
      * @param   a   a value.
      * @return  the largest (closest to positive infinity)
      *          floating-point value that less than or equal to the argument
@@ -519,6 +534,10 @@ public final class Math {
      * integer, then the result is the same as the argument.
      * <li>If the argument is NaN or an infinity or positive zero or negative
      * zero, then the result is the same as the argument.</ul>
+     *
+     * @apiNote
+     * This method corresponds to the roundToIntegralTiesToEven
+     * operation defined in IEEE 754.
      *
      * @param   a   a {@code double} value.
      * @return  the closest floating-point value to {@code a} that is
@@ -2030,6 +2049,10 @@ public final class Math {
      * argument is positive zero and the other negative zero, the
      * result is positive zero.
      *
+     * @apiNote
+     * This method corresponds to the maximum operation defined in
+     * IEEE 754.
+     *
      * @param   a   an argument.
      * @param   b   another argument.
      * @return  the larger of {@code a} and {@code b}.
@@ -2056,6 +2079,10 @@ public final class Math {
      * negative zero to be strictly smaller than positive zero. If one
      * argument is positive zero and the other negative zero, the
      * result is positive zero.
+     *
+     * @apiNote
+     * This method corresponds to the maximum operation defined in
+     * IEEE 754.
      *
      * @param   a   an argument.
      * @param   b   another argument.
@@ -2113,6 +2140,10 @@ public final class Math {
      * one argument is positive zero and the other is negative zero,
      * the result is negative zero.
      *
+     * @apiNote
+     * This method corresponds to the minimum operation defined in
+     * IEEE 754.
+     *
      * @param   a   an argument.
      * @param   b   another argument.
      * @return  the smaller of {@code a} and {@code b}.
@@ -2140,6 +2171,10 @@ public final class Math {
      * argument is positive zero and the other is negative zero, the
      * result is negative zero.
      *
+     * @apiNote
+     * This method corresponds to the minimum operation defined in
+     * IEEE 754.
+     *
      * @param   a   an argument.
      * @param   b   another argument.
      * @return  the smaller of {@code a} and {@code b}.
@@ -2155,6 +2190,135 @@ public final class Math {
             return b;
         }
         return (a <= b) ? a : b;
+    }
+
+    /**
+     * Clamps the value to fit between min and max. If the value is less
+     * than {@code min}, then {@code min} is returned. If the value is greater
+     * than {@code max}, then {@code max} is returned. Otherwise, the original
+     * value is returned.
+     * <p>
+     * While the original value of type long may not fit into the int type,
+     * the bounds have the int type, so the result always fits the int type.
+     * This allows to use method to safely cast long value to int with
+     * saturation.
+     *
+     * @param value value to clamp
+     * @param min minimal allowed value
+     * @param max maximal allowed value
+     * @return a clamped value that fits into {@code min..max} interval
+     * @throws IllegalArgumentException if {@code min > max}
+     *
+     * @since 21
+     */
+    public static int clamp(long value, int min, int max) {
+        if (min > max) {
+            throw new IllegalArgumentException(min + " > " + max);
+        }
+        return (int) Math.min(max, Math.max(value, min));
+    }
+
+    /**
+     * Clamps the value to fit between min and max. If the value is less
+     * than {@code min}, then {@code min} is returned. If the value is greater
+     * than {@code max}, then {@code max} is returned. Otherwise, the original
+     * value is returned.
+     *
+     * @param value value to clamp
+     * @param min minimal allowed value
+     * @param max maximal allowed value
+     * @return a clamped value that fits into {@code min..max} interval
+     * @throws IllegalArgumentException if {@code min > max}
+     *
+     * @since 21
+     */
+    public static long clamp(long value, long min, long max) {
+        if (min > max) {
+            throw new IllegalArgumentException(min + " > " + max);
+        }
+        return Math.min(max, Math.max(value, min));
+    }
+
+    /**
+     * Clamps the value to fit between min and max. If the value is less
+     * than {@code min}, then {@code min} is returned. If the value is greater
+     * than {@code max}, then {@code max} is returned. Otherwise, the original
+     * value is returned. If value is NaN, the result is also NaN.
+     * <p>
+     * Unlike the numerical comparison operators, this method considers
+     * negative zero to be strictly smaller than positive zero.
+     * E.g., {@code clamp(-0.0, 0.0, 1.0)} returns 0.0.
+     *
+     * @param value value to clamp
+     * @param min minimal allowed value
+     * @param max maximal allowed value
+     * @return a clamped value that fits into {@code min..max} interval
+     * @throws IllegalArgumentException if either of {@code min} and {@code max}
+     * arguments is NaN, or {@code min > max}, or {@code min} is +0.0, and
+     * {@code max} is -0.0.
+     *
+     * @since 21
+     */
+    public static double clamp(double value, double min, double max) {
+        // This unusual condition allows keeping only one branch
+        // on common path when min < max and neither of them is NaN.
+        // If min == max, we should additionally check for +0.0/-0.0 case,
+        // so we're still visiting the if statement.
+        if (!(min < max)) { // min greater than, equal to, or unordered with respect to max; NaN values are unordered
+            if (Double.isNaN(min)) {
+                throw new IllegalArgumentException("min is NaN");
+            }
+            if (Double.isNaN(max)) {
+                throw new IllegalArgumentException("max is NaN");
+            }
+            if (Double.compare(min, max) > 0) {
+                throw new IllegalArgumentException(min + " > " + max);
+            }
+            // Fall-through if min and max are exactly equal (or min = -0.0 and max = +0.0)
+            // and none of them is NaN
+        }
+        return Math.min(max, Math.max(value, min));
+    }
+
+    /**
+     * Clamps the value to fit between min and max. If the value is less
+     * than {@code min}, then {@code min} is returned. If the value is greater
+     * than {@code max}, then {@code max} is returned. Otherwise, the original
+     * value is returned. If value is NaN, the result is also NaN.
+     * <p>
+     * Unlike the numerical comparison operators, this method considers
+     * negative zero to be strictly smaller than positive zero.
+     * E.g., {@code clamp(-0.0f, 0.0f, 1.0f)} returns 0.0f.
+     *
+     * @param value value to clamp
+     * @param min minimal allowed value
+     * @param max maximal allowed value
+     * @return a clamped value that fits into {@code min..max} interval
+     * @throws IllegalArgumentException if either of {@code min} and {@code max}
+     * arguments is NaN, or {@code min > max}, or {@code min} is +0.0f, and
+     * {@code max} is -0.0f.
+     *
+     * @since 21
+     */
+    public static float clamp(float value, float min, float max) {
+        // This unusual condition allows keeping only one branch
+        // on common path when min < max and neither of them is NaN.
+        // If min == max, we should additionally check for +0.0/-0.0 case,
+        // so we're still visiting the if statement.
+        if (!(min < max)) { // min greater than, equal to, or unordered with respect to max; NaN values are unordered
+            if (Float.isNaN(min)) {
+                throw new IllegalArgumentException("min is NaN");
+            }
+            if (Float.isNaN(max)) {
+                throw new IllegalArgumentException("max is NaN");
+            }
+            if (Float.compare(min, max) > 0) {
+                throw new IllegalArgumentException(min + " > " + max);
+            }
+            // Fall-through if min and max are exactly equal (or min = -0.0 and max = +0.0)
+            // and none of them is NaN
+        }
+        return Math.min(max, Math.max(value, min));
     }
 
     /**
@@ -2195,7 +2359,7 @@ public final class Math {
      * equivalent to ({@code a * b}) however.
      *
      * @apiNote This method corresponds to the fusedMultiplyAdd
-     * operation defined in IEEE 754-2008.
+     * operation defined in IEEE 754.
      *
      * @param a a value
      * @param b a value
@@ -2309,7 +2473,7 @@ public final class Math {
      * equivalent to ({@code a * b}) however.
      *
      * @apiNote This method corresponds to the fusedMultiplyAdd
-     * operation defined in IEEE 754-2008.
+     * operation defined in IEEE 754.
      *
      * @param a a value
      * @param b a value
@@ -2591,7 +2755,7 @@ public final class Math {
      * <li> If both arguments are zero, the result is positive zero.
      * </ul>
      *
-     * <p>The computed result must be within 1 ulp of the exact
+     * <p>The computed result must be within 1.5 ulps of the exact
      * result.  If one parameter is held constant, the results must be
      * semi-monotonic in the other parameter.
      *
@@ -2689,6 +2853,10 @@ public final class Math {
      * permitted to treat some NaN arguments as positive and other NaN
      * arguments as negative to allow greater performance.
      *
+     * @apiNote
+     * This method corresponds to the copySign operation defined in
+     * IEEE 754.
+     *
      * @param magnitude  the parameter providing the magnitude of the result
      * @param sign   the parameter providing the sign of the result
      * @return a value with the magnitude of {@code magnitude}
@@ -2713,6 +2881,10 @@ public final class Math {
      * permitted to treat some NaN arguments as positive and other NaN
      * arguments as negative to allow greater performance.
      *
+     * @apiNote
+     * This method corresponds to the copySign operation defined in
+     * IEEE 754.
+     *
      * @param magnitude  the parameter providing the magnitude of the result
      * @param sign   the parameter providing the sign of the result
      * @return a value with the magnitude of {@code magnitude}
@@ -2736,8 +2908,12 @@ public final class Math {
      * <li>If the argument is NaN or infinite, then the result is
      * {@link Float#MAX_EXPONENT} + 1.
      * <li>If the argument is zero or subnormal, then the result is
-     * {@link Float#MIN_EXPONENT} -1.
+     * {@link Float#MIN_EXPONENT} - 1.
      * </ul>
+     * @apiNote
+     * This method is analogous to the logB operation defined in IEEE
+     * 754, but returns a different value on subnormal arguments.
+     *
      * @param f a {@code float} value
      * @return the unbiased exponent of the argument
      * @since 1.6
@@ -2760,8 +2936,12 @@ public final class Math {
      * <li>If the argument is NaN or infinite, then the result is
      * {@link Double#MAX_EXPONENT} + 1.
      * <li>If the argument is zero or subnormal, then the result is
-     * {@link Double#MIN_EXPONENT} -1.
+     * {@link Double#MIN_EXPONENT} - 1.
      * </ul>
+     * @apiNote
+     * This method is analogous to the logB operation defined in IEEE
+     * 754, but returns a different value on subnormal arguments.
+     *
      * @param d a {@code double} value
      * @return the unbiased exponent of the argument
      * @since 1.6
@@ -2965,6 +3145,9 @@ public final class Math {
      *
      * </ul>
      *
+     * @apiNote This method corresponds to the nextUp
+     * operation defined in IEEE 754.
+     *
      * @param d starting floating-point value
      * @return The adjacent floating-point value closer to positive
      * infinity.
@@ -3000,6 +3183,9 @@ public final class Math {
      * {@link Float#MIN_VALUE}
      *
      * </ul>
+     *
+     * @apiNote This method corresponds to the nextUp
+     * operation defined in IEEE 754.
      *
      * @param f starting floating-point value
      * @return The adjacent floating-point value closer to positive
@@ -3037,6 +3223,9 @@ public final class Math {
      *
      * </ul>
      *
+     * @apiNote This method corresponds to the nextDown
+     * operation defined in IEEE 754.
+     *
      * @param d  starting floating-point value
      * @return The adjacent floating-point value closer to negative
      * infinity.
@@ -3073,6 +3262,9 @@ public final class Math {
      * {@code -Float.MIN_VALUE}
      *
      * </ul>
+     *
+     * @apiNote This method corresponds to the nextDown
+     * operation defined in IEEE 754.
      *
      * @param f  starting floating-point value
      * @return The adjacent floating-point value closer to negative
@@ -3113,6 +3305,9 @@ public final class Math {
      * sign is returned.
      * </ul>
      *
+     * @apiNote This method corresponds to the scaleB operation
+     * defined in IEEE 754.
+     *
      * @param d number to be scaled by a power of two.
      * @param scaleFactor power of 2 used to scale {@code d}
      * @return {@code d} &times; 2<sup>{@code scaleFactor}</sup>
@@ -3152,12 +3347,12 @@ public final class Math {
         if(scaleFactor < 0) {
             scaleFactor = Math.max(scaleFactor, -MAX_SCALE);
             scale_increment = -512;
-            exp_delta = twoToTheDoubleScaleDown;
+            exp_delta = 0x1p-512;
         }
         else {
             scaleFactor = Math.min(scaleFactor, MAX_SCALE);
             scale_increment = 512;
-            exp_delta = twoToTheDoubleScaleUp;
+            exp_delta = 0x1p512;
         }
 
         // Calculate (scaleFactor % +/-512), 512 = 2^9, using
@@ -3197,6 +3392,9 @@ public final class Math {
      * sign is returned.
      * </ul>
      *
+     * @apiNote This method corresponds to the scaleB operation
+     * defined in IEEE 754.
+     *
      * @param f number to be scaled by a power of two.
      * @param scaleFactor power of 2 used to scale {@code f}
      * @return {@code f} &times; 2<sup>{@code scaleFactor}</sup>
@@ -3222,10 +3420,6 @@ public final class Math {
          */
         return (float)((double)f*powerOfTwoD(scaleFactor));
     }
-
-    // Constants used in scalb
-    static double twoToTheDoubleScaleUp = powerOfTwoD(512);
-    static double twoToTheDoubleScaleDown = powerOfTwoD(-512);
 
     /**
      * Returns a floating-point power of two in the normal range.

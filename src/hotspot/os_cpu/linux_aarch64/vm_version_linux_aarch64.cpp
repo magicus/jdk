@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006, 2023, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, 2020, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -80,6 +80,10 @@
 #define HWCAP2_SVE2 (1 << 1)
 #endif
 
+#ifndef HWCAP2_SVEBITPERM
+#define HWCAP2_SVEBITPERM (1 << 4)
+#endif
+
 #ifndef PR_SVE_GET_VL
 // For old toolchains which do not have SVE related macros defined.
 #define PR_SVE_SET_VL   50
@@ -87,12 +91,12 @@
 #endif
 
 int VM_Version::get_current_sve_vector_length() {
-  assert(_features & CPU_SVE, "should not call this");
+  assert(VM_Version::supports_sve(), "should not call this");
   return prctl(PR_SVE_GET_VL);
 }
 
 int VM_Version::set_and_get_current_sve_vector_length(int length) {
-  assert(_features & CPU_SVE, "should not call this");
+  assert(VM_Version::supports_sve(), "should not call this");
   int new_length = prctl(PR_SVE_SET_VL, length);
   return new_length;
 }
@@ -133,6 +137,7 @@ void VM_Version::get_os_cpu_info() {
       HWCAP_PACA);
 
   if (auxv2 & HWCAP2_SVE2) _features |= CPU_SVE2;
+  if (auxv2 & HWCAP2_SVEBITPERM) _features |= CPU_SVEBITPERM;
 
   uint64_t ctr_el0;
   uint64_t dczid_el0;
@@ -152,9 +157,9 @@ void VM_Version::get_os_cpu_info() {
   if (FILE *f = os::fopen("/proc/cpuinfo", "r")) {
     // need a large buffer as the flags line may include lots of text
     char buf[1024], *p;
-    while (fgets(buf, sizeof (buf), f) != NULL) {
-      if ((p = strchr(buf, ':')) != NULL) {
-        long v = strtol(p+1, NULL, 0);
+    while (fgets(buf, sizeof (buf), f) != nullptr) {
+      if ((p = strchr(buf, ':')) != nullptr) {
+        long v = strtol(p+1, nullptr, 0);
         if (strncmp(buf, "CPU implementer", sizeof "CPU implementer" - 1) == 0) {
           _cpu = v;
         } else if (strncmp(buf, "CPU variant", sizeof "CPU variant" - 1) == 0) {
@@ -176,7 +181,7 @@ void VM_Version::get_os_cpu_info() {
 }
 
 static bool read_fully(const char *fname, char *buf, size_t buflen) {
-  assert(buf != NULL, "invalid argument");
+  assert(buf != nullptr, "invalid argument");
   assert(buflen >= 1, "invalid argument");
   int fd = os::open(fname, O_RDONLY, 0);
   if (fd != -1) {
@@ -206,10 +211,10 @@ void VM_Version::get_compatible_board(char *buf, int buflen) {
     "/proc/device-tree/compatible",
     "/sys/devices/virtual/dmi/id/board_name",
     "/sys/devices/virtual/dmi/id/product_name",
-    NULL
+    nullptr
   };
 
-  for (const char **fname = board_name_file_list; *fname != NULL; fname++) {
+  for (const char **fname = board_name_file_list; *fname != nullptr; fname++) {
     if (read_fully(*fname, buf, buflen)) {
       return;
     }

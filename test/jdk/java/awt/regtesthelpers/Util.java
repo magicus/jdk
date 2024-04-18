@@ -174,6 +174,8 @@ public final class Util {
             if (screen.equals(color)) {
                 return true;
             }
+            System.out.println("Robot.getPixelColor Expected: " + color);
+            System.out.println("Robot.getPixelColor Actual: " + screen);
         }
         return false;
     }
@@ -307,8 +309,13 @@ public final class Util {
      *     {@code InputEvent.BUTTON3_MASK}
      */
     public static void drag(Robot robot, Point startPoint, Point endPoint, int button) {
-        if (!(button == InputEvent.BUTTON1_MASK || button == InputEvent.BUTTON2_MASK
-                || button == InputEvent.BUTTON3_MASK))
+        if (!(button == InputEvent.BUTTON1_MASK
+                || button == InputEvent.BUTTON2_MASK
+                || button == InputEvent.BUTTON3_MASK
+                || button == InputEvent.BUTTON1_DOWN_MASK
+                || button == InputEvent.BUTTON2_DOWN_MASK
+                || button == InputEvent.BUTTON3_DOWN_MASK
+        ))
         {
             throw new IllegalArgumentException("invalid mouse button");
         }
@@ -445,6 +452,7 @@ public final class Util {
             Method m_addExports = Class.forName("java.awt.Helper").getDeclaredMethod("addExports", String.class, java.lang.Module.class);
             // We may be called from non-X11 system, and this permission cannot be delegated to a test.
             m_addExports.invoke(null, "sun.awt.X11", Util.class.getModule());
+            @SuppressWarnings("removal")
             Method m_getWMID = (Method)AccessController.doPrivileged(new PrivilegedAction() {
                     public Object run() {
                         try {

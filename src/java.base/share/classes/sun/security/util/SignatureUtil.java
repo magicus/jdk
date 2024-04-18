@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -102,7 +102,7 @@ public class SignatureUtil {
         AlgorithmParameterSpec paramSpec = null;
         if (params != null) {
             sigName = checkName(sigName);
-            // AlgorithmParameters.getAlgorithm() may returns oid if it's
+            // AlgorithmParameters.getAlgorithm() may return oid if it's
             // created during DER decoding. Convert to use the standard name
             // before passing it to RSAUtil
             if (params.getAlgorithm().contains(".")) {
@@ -151,17 +151,10 @@ public class SignatureUtil {
                     createAlgorithmParameters(sigName, paramBytes);
                 paramSpec = RSAUtil.getParamSpec(params);
             } else if (sigName.contains("ECDSA")) {
-                try {
-                    Provider p = Signature.getInstance(sigName).getProvider();
-                    paramSpec = ECUtil.getECParameterSpec(p, paramBytes);
-                } catch (Exception e) {
-                    throw new ProviderException("Error handling EC parameters", e);
-                }
-                // ECUtil discards exception and returns null, so we need to check
-                // the returned value
-                if (paramSpec == null) {
-                    throw new ProviderException("Error handling EC parameters");
-                }
+                // Some certificates have params in an ECDSA algorithmID.
+                // According to RFC 3279 2.2.3 and RFC 5758 3.2,
+                // they are useless and should be ignored.
+                return null;
             } else {
                 throw new ProviderException
                      ("Unrecognized algorithm for signature parameters " +
@@ -219,12 +212,13 @@ public class SignatureUtil {
      * @param signer Signature object that tells you RSASSA-PSS params
      * @param sigalg Signature algorithm
      * @param privateKey key tells you EdDSA params
+     * @param publicKey key tells you HSS/LMS hash algorithm
      * @param directsign Ed448 uses different digest algs depending on this
      * @return the digest algId
      * @throws NoSuchAlgorithmException
      */
     public static AlgorithmId getDigestAlgInPkcs7SignerInfo(
-            Signature signer, String sigalg, PrivateKey privateKey, boolean directsign)
+            Signature signer, String sigalg, PrivateKey privateKey, PublicKey publicKey, boolean directsign)
             throws NoSuchAlgorithmException {
         AlgorithmId digAlgID;
         String kAlg = privateKey.getAlgorithm();
@@ -250,18 +244,18 @@ public class SignatureUtil {
                 default:
                     throw new AssertionError("Unknown curve name: " + kAlg);
             }
-        } else {
-            if (sigalg.equalsIgnoreCase("RSASSA-PSS")) {
-                try {
-                    digAlgID = AlgorithmId.get(signer.getParameters()
-                            .getParameterSpec(PSSParameterSpec.class)
-                            .getDigestAlgorithm());
-                } catch (InvalidParameterSpecException e) {
-                    throw new AssertionError("Should not happen", e);
-                }
-            } else {
-                digAlgID = AlgorithmId.get(extractDigestAlgFromDwithE(sigalg));
+        } else if (sigalg.equalsIgnoreCase("RSASSA-PSS")) {
+            try {
+                digAlgID = AlgorithmId.get(signer.getParameters()
+                        .getParameterSpec(PSSParameterSpec.class)
+                        .getDigestAlgorithm());
+            } catch (InvalidParameterSpecException e) {
+                throw new AssertionError("Should not happen", e);
             }
+        } else if (sigalg.equalsIgnoreCase("HSS/LMS")) {
+            digAlgID = AlgorithmId.get(KeyUtil.hashAlgFromHSS(publicKey));
+        } else {
+            digAlgID = AlgorithmId.get(extractDigestAlgFromDwithE(sigalg));
         }
         return digAlgID;
     }
@@ -302,6 +296,9 @@ public class SignatureUtil {
                 keyAlgorithm = signatureAlgorithm.substring(with + 4, and);
             } else {
                 keyAlgorithm = signatureAlgorithm.substring(with + 4);
+            }
+            if (keyAlgorithm.endsWith("INP1363FORMAT")) {
+                keyAlgorithm = keyAlgorithm.substring(0, keyAlgorithm.length() - 13);
             }
             if (keyAlgorithm.equalsIgnoreCase("ECDSA")) {
                 keyAlgorithm = "EC";
@@ -491,14 +488,15 @@ public class SignatureUtil {
     public static String getDefaultSigAlgForKey(PrivateKey k) {
         String kAlg = k.getAlgorithm().toUpperCase(Locale.ENGLISH);
         return switch (kAlg) {
+            case "DH", "XDH", "X25519", "X448" -> null;
             case "DSA" -> "SHA256withDSA";
             case "RSA" -> ifcFfcStrength(KeyUtil.getKeySize(k)) + "withRSA";
             case "EC" -> ecStrength(KeyUtil.getKeySize(k)) + "withECDSA";
             case "EDDSA" -> k instanceof EdECPrivateKey
                     ? ((EdECPrivateKey) k).getParams().getName()
                     : kAlg;
-            case "RSASSA-PSS", "ED25519", "ED448" -> kAlg;
-            default -> null;
+            default -> kAlg; // All modern signature algorithms,
+                             // RSASSA-PSS, ED25519, ED448, HSS/LMS, etc
         };
     }
 

@@ -30,15 +30,17 @@
  * @requires vm.opt.final.ClassUnloading
  * @modules java.base/jdk.internal.misc
  * @library /test/lib
- * @build sun.hotspot.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
+ * @build jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run main/othervm -Xbootclasspath/a:. -Xmn8m -XX:+UnlockDiagnosticVMOptions -Xlog:class+unload -XX:+WhiteBoxAPI InitExceptionUnloadTest
  */
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.Set;
+import java.util.List;
 
-import sun.hotspot.WhiteBox;
+import jdk.test.whitebox.WhiteBox;
 import jdk.test.lib.classloader.ClassUnloadCommon;
 
 public class InitExceptionUnloadTest {
@@ -122,10 +124,9 @@ public class InitExceptionUnloadTest {
             }
         }
         cl = null;
-        ClassUnloadCommon.triggerUnloading();  // should unload these classes
-        for (String className : classNames) {
-          ClassUnloadCommon.failIf(wb.isClassAlive(className), "should be unloaded");
-        }
+
+        Set<String> aliveClasses = ClassUnloadCommon.triggerUnloading(List.of(classNames));
+        ClassUnloadCommon.failIf(!aliveClasses.isEmpty(), "should be unloaded: " + aliveClasses);
     }
     public static void main(java.lang.String[] unused) throws Throwable {
         test();

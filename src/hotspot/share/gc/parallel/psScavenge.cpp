@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,28 +65,28 @@
 #include "oops/oop.inline.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/threadCritical.hpp"
+#include "runtime/threads.hpp"
 #include "runtime/vmThread.hpp"
 #include "runtime/vmOperations.hpp"
 #include "services/memoryService.hpp"
 #include "utilities/stack.inline.hpp"
 
 SpanSubjectToDiscoveryClosure PSScavenge::_span_based_discoverer;
-ReferenceProcessor*           PSScavenge::_ref_processor = NULL;
-PSCardTable*                  PSScavenge::_card_table = NULL;
+ReferenceProcessor*           PSScavenge::_ref_processor = nullptr;
+PSCardTable*                  PSScavenge::_card_table = nullptr;
 bool                          PSScavenge::_survivor_overflow = false;
 uint                          PSScavenge::_tenuring_threshold = 0;
-HeapWord*                     PSScavenge::_young_generation_boundary = NULL;
+HeapWord*                     PSScavenge::_young_generation_boundary = nullptr;
 uintptr_t                     PSScavenge::_young_generation_boundary_compressed = 0;
 elapsedTimer                  PSScavenge::_accumulated_time;
 STWGCTimer                    PSScavenge::_gc_timer;
 ParallelScavengeTracer        PSScavenge::_gc_tracer;
-CollectorCounters*            PSScavenge::_counters = NULL;
+CollectorCounters*            PSScavenge::_counters = nullptr;
 
 static void scavenge_roots_work(ParallelRootType::Value root_type, uint worker_id) {
   assert(ParallelScavengeHeap::heap()->is_gc_active(), "called outside gc");
 
   PSPromotionManager* pm = PSPromotionManager::gc_thread_promotion_manager(worker_id);
-  PSScavengeRootsClosure roots_closure(pm);
   PSPromoteRootsClosure  roots_to_old_closure(pm);
 
   switch (root_type) {
@@ -99,7 +99,7 @@ static void scavenge_roots_work(ParallelRootType::Value root_type, uint worker_i
 
     case ParallelRootType::code_cache:
       {
-        MarkingCodeBlobClosure code_closure(&roots_to_old_closure, CodeBlobToOopClosure::FixRelocations);
+        MarkingNMethodClosure code_closure(&roots_to_old_closure, NMethodToOopClosure::FixRelocations, false /* keepalive nmethods */);
         ScavengableNMethods::nmethods_do(&code_closure);
       }
       break;
@@ -158,7 +158,7 @@ public:
     ParallelScavengeHeap* heap = ParallelScavengeHeap::heap();
     _to_space = heap->young_gen()->to_space();
 
-    assert(_promotion_manager != NULL, "Sanity");
+    assert(_promotion_manager != nullptr, "Sanity");
   }
 
   template <class T> void do_oop_work(T* p) {
@@ -239,8 +239,7 @@ bool PSScavenge::invoke() {
   IsGCActiveMark mark;
 
   const bool scavenge_done = PSScavenge::invoke_no_policy();
-  const bool need_full_gc = !scavenge_done ||
-    policy->should_full_GC(heap->old_gen()->free_in_bytes());
+  const bool need_full_gc = !scavenge_done;
   bool full_gc_done = false;
 
   if (UsePerfData) {
@@ -269,9 +268,9 @@ public:
 
     PSPromotionManager* pm = PSPromotionManager::gc_thread_promotion_manager(_worker_id);
     PSScavengeRootsClosure roots_closure(pm);
-    MarkingCodeBlobClosure roots_in_blobs(&roots_closure, CodeBlobToOopClosure::FixRelocations);
+    MarkingNMethodClosure roots_in_nmethods(&roots_closure, NMethodToOopClosure::FixRelocations, false /* keepalive nmethods */);
 
-    thread->oops_do(&roots_closure, &roots_in_blobs);
+    thread->oops_do(&roots_closure, &roots_in_nmethods);
 
     // Do the real work
     pm->drain_stacks(false);
@@ -299,7 +298,10 @@ public:
       _active_workers(active_workers),
       _is_old_gen_empty(old_gen->object_space()->is_empty()),
       _terminator(active_workers, PSPromotionManager::vm_thread_promotion_manager()->stack_array_depth()) {
-    assert(_old_gen != NULL, "Sanity");
+    if (!_is_old_gen_empty) {
+      PSCardTable* card_table = ParallelScavengeHeap::heap()->card_table();
+      card_table->pre_scavenge(active_workers);
+    }
   }
 
   virtual void work(uint worker_id) {
@@ -313,8 +315,9 @@ public:
         PSPromotionManager* pm = PSPromotionManager::gc_thread_promotion_manager(worker_id);
         PSCardTable* card_table = ParallelScavengeHeap::heap()->card_table();
 
+        // The top of the old gen changes during scavenge when objects are promoted.
         card_table->scavenge_contents_parallel(_old_gen->start_array(),
-                                               _old_gen->object_space(),
+                                               _old_gen->object_space()->bottom(),
                                                _gen_top,
                                                pm,
                                                worker_id,
@@ -330,7 +333,7 @@ public:
     }
 
     PSThreadRootsTaskClosure closure(worker_id);
-    Threads::possibly_parallel_threads_do(true /*parallel */, &closure);
+    Threads::possibly_parallel_threads_do(true /* is_par */, &closure);
 
     // Scavenge OopStorages
     {
@@ -404,10 +407,10 @@ bool PSScavenge::invoke_no_policy() {
   {
     ResourceMark rm;
 
-    GCTraceCPUTime tcpu;
-    GCTraceTime(Info, gc) tm("Pause Young", NULL, gc_cause, true);
+    GCTraceCPUTime tcpu(&_gc_tracer);
+    GCTraceTime(Info, gc) tm("Pause Young", nullptr, gc_cause, true);
     TraceCollectorStats tcs(counters());
-    TraceMemoryManagerStats tms(heap->young_gc_manager(), gc_cause);
+    TraceMemoryManagerStats tms(heap->young_gc_manager(), gc_cause, "end of minor GC");
 
     if (log_is_enabled(Debug, gc, heap, exit)) {
       accumulated_time()->start();
@@ -415,12 +418,6 @@ bool PSScavenge::invoke_no_policy() {
 
     // Let the size policy know we're starting
     size_policy->minor_collection_begin();
-
-    // Verify the object start arrays.
-    if (VerifyObjectStartArray &&
-        VerifyBeforeGC) {
-      old_gen->verify_object_start_array();
-    }
 
     // Verify no unmarked old->young roots
     if (VerifyRememberedSets) {
@@ -552,7 +549,7 @@ bool PSScavenge::invoke_no_policy() {
                                                            _tenuring_threshold,
                                                            survivor_limit);
 
-       log_debug(gc, age)("Desired survivor size " SIZE_FORMAT " bytes, new threshold %u (max threshold " UINTX_FORMAT ")",
+       log_debug(gc, age)("Desired survivor size %zu bytes, new threshold %u (max threshold %u)",
                           size_policy->calculated_survivor_size_in_bytes(),
                           _tenuring_threshold, MaxTenuringThreshold);
 
@@ -631,17 +628,7 @@ bool PSScavenge::invoke_no_policy() {
     DerivedPointerTable::update_pointers();
 #endif
 
-    // Re-verify object start arrays
-    if (VerifyObjectStartArray &&
-        VerifyAfterGC) {
-      old_gen->verify_object_start_array();
-    }
-
-    // Verify all old -> young cards are now precise
     if (VerifyRememberedSets) {
-      // Precise verification will give false positives. Until this is fixed,
-      // use imprecise verification.
-      // heap->card_table()->verify_all_young_refs_precise();
       heap->card_table()->verify_all_young_refs_imprecise();
     }
 
@@ -701,16 +688,16 @@ bool PSScavenge::should_attempt_scavenge() {
   // Test to see if the scavenge will likely fail.
   PSAdaptiveSizePolicy* policy = heap->size_policy();
 
-  // A similar test is done in the policy's should_full_GC().  If this is
-  // changed, decide if that test should also be changed.
   size_t avg_promoted = (size_t) policy->padded_average_promoted_in_bytes();
   size_t promotion_estimate = MIN2(avg_promoted, young_gen->used_in_bytes());
-  bool result = promotion_estimate < old_gen->free_in_bytes();
+  // Total free size after possible old gen expansion
+  size_t free_in_old_gen = old_gen->max_gen_size() - old_gen->used_in_bytes();
+  bool result = promotion_estimate < free_in_old_gen;
 
   log_trace(ergo)("%s scavenge: average_promoted " SIZE_FORMAT " padded_average_promoted " SIZE_FORMAT " free in old gen " SIZE_FORMAT,
                 result ? "Do" : "Skip", (size_t) policy->average_promoted_in_bytes(),
                 (size_t) policy->padded_average_promoted_in_bytes(),
-                old_gen->free_in_bytes());
+                free_in_old_gen);
   if (young_gen->used_in_bytes() < (size_t) policy->padded_average_promoted_in_bytes()) {
     log_trace(ergo)(" padded_promoted_average is greater than maximum promotion = " SIZE_FORMAT, young_gen->used_in_bytes());
   }

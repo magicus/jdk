@@ -69,7 +69,7 @@ final class RecordComponentWriter extends RecordComponentVisitor {
     /** The name_index field of the Record attribute. */
     private final int nameIndex;
 
-    /** The descriptor_index field of the the Record attribute. */
+    /** The descriptor_index field of the Record attribute. */
     private final int descriptorIndex;
 
     /**
@@ -255,4 +255,3 @@ final class RecordComponentWriter extends RecordComponentVisitor {
         attributePrototypes.addAttributes(firstAttribute);
     }
 }
-

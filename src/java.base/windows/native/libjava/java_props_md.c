@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,11 +23,6 @@
  * questions.
  */
 
-/* Access APIs for Windows Vista and above */
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0601
-#endif
-
 #include "jni.h"
 #include "jni_util.h"
 
@@ -45,10 +40,6 @@
 #include "locale_str.h"
 #include "java_props.h"
 
-#ifndef VER_PLATFORM_WIN32_WINDOWS
-#define VER_PLATFORM_WIN32_WINDOWS 1
-#endif
-
 #ifndef PROCESSOR_ARCHITECTURE_AMD64
 #define PROCESSOR_ARCHITECTURE_AMD64 9
 #endif
@@ -63,19 +54,19 @@ static boolean SetupI18nProps(LCID lcid, char** language, char** script, char** 
 static char *
 getEncodingInternal(LCID lcid)
 {
-    int codepage;
+    int codepage = 0;
     char * ret = malloc(16);
     if (ret == NULL) {
         return NULL;
     }
 
-    if (GetLocaleInfo(lcid,
+    if (lcid == 0) { // for sun.jnu.encoding
+        codepage = GetACP();
+        _itoa_s(codepage, ret + 2, 14, 10);
+    } else if (GetLocaleInfo(lcid,
                       LOCALE_IDEFAULTANSICODEPAGE,
-                      ret+2, 14) == 0) {
-        codepage = 1252;
-        strcpy(ret+2, "1252");
-    } else {
-        codepage = atoi(ret+2);
+                      ret + 2, 14) != 0) {
+        codepage = atoi(ret + 2);
     }
 
     switch (codepage) {
@@ -139,18 +130,19 @@ getEncodingInternal(LCID lcid)
 
 static char* getConsoleEncoding()
 {
-    char* buf = malloc(16);
+    size_t buflen = 16;
+    char* buf = malloc(buflen);
     int cp;
     if (buf == NULL) {
         return NULL;
     }
     cp = GetConsoleCP();
     if (cp >= 874 && cp <= 950)
-        sprintf(buf, "ms%d", cp);
+        snprintf(buf, buflen, "ms%d", cp);
     else if (cp == 65001)
-        sprintf(buf, "UTF-8");
+        snprintf(buf, buflen, "UTF-8");
     else
-        sprintf(buf, "cp%d", cp);
+        snprintf(buf, buflen, "cp%d", cp);
     return buf;
 }
 
@@ -217,39 +209,13 @@ getHomeFromShell32()
      */
     static WCHAR *u_path = NULL;
     if (u_path == NULL) {
-        HRESULT hr;
-
-        /*
-         * SHELL32 DLL is delay load DLL and we can use the trick with
-         * __try/__except block.
-         */
-        __try {
-            /*
-             * For Windows Vista and later (or patched MS OS) we need to use
-             * [SHGetKnownFolderPath] call to avoid MAX_PATH length limitation.
-             * Shell32.dll (version 6.0.6000 or later)
-             */
-            hr = SHGetKnownFolderPath(&FOLDERID_Profile, KF_FLAG_DONT_VERIFY, NULL, &u_path);
-        } __except(EXCEPTION_EXECUTE_HANDLER) {
-            /* Exception: no [SHGetKnownFolderPath] entry */
-            hr = E_FAIL;
-        }
+        WCHAR *tmpPath = NULL;
+        HRESULT hr = SHGetKnownFolderPath(&FOLDERID_Profile, KF_FLAG_DONT_VERIFY, NULL, &tmpPath);
 
         if (FAILED(hr)) {
-            WCHAR path[MAX_PATH+1];
-
-            /* fallback solution for WinXP and Windows 2000 */
-            hr = SHGetFolderPathW(NULL, CSIDL_FLAG_DONT_VERIFY | CSIDL_PROFILE, NULL, SHGFP_TYPE_CURRENT, path);
-            if (FAILED(hr)) {
-                /* we can't find the shell folder. */
-                u_path = NULL;
-            } else {
-                /* Just to be sure about the path length until Windows Vista approach.
-                 * [S_FALSE] could not be returned due to [CSIDL_FLAG_DONT_VERIFY] flag and UNICODE version.
-                 */
-                path[MAX_PATH] = 0;
-                u_path = _wcsdup(path);
-            }
+            CoTaskMemFree(tmpPath);
+        } else {
+            u_path = tmpPath;
         }
     }
     return u_path;
@@ -563,7 +529,7 @@ GetJavaProperties(JNIEnv* env)
                         /* Windows server 2022 build number is 20348 */
                         if (buildNumber > 20347) {
                             sprops.os_name = "Windows Server 2022";
-                        } else if (buildNumber > 17676) {
+                        } else if (buildNumber > 17762) {
                             sprops.os_name = "Windows Server 2019";
                         } else {
                             sprops.os_name = "Windows Server 2016";
@@ -580,7 +546,7 @@ GetJavaProperties(JNIEnv* env)
             sprops.os_name = "Windows (unknown)";
             break;
         }
-        sprintf(buf, "%d.%d", majorVersion, minorVersion);
+        snprintf(buf, sizeof(buf), "%d.%d", majorVersion, minorVersion);
         sprops.os_version = _strdup(buf);
 #if defined(_M_AMD64)
         sprops.os_arch = "amd64";
@@ -660,7 +626,6 @@ GetJavaProperties(JNIEnv* env)
          * (which is a Windows LCID value),
          */
         LCID userDefaultLCID = GetUserDefaultLCID();
-        LCID systemDefaultLCID = GetSystemDefaultLCID();
         LANGID userDefaultUILang = GetUserDefaultUILanguage();
         LCID userDefaultUILCID = MAKELCID(userDefaultUILang, SORTIDFROMLCID(userDefaultLCID));
 
@@ -693,7 +658,10 @@ GetJavaProperties(JNIEnv* env)
                            &sprops.display_variant,
                            &display_encoding);
 
-            sprops.sun_jnu_encoding = getEncodingInternal(systemDefaultLCID);
+            sprops.sun_jnu_encoding = getEncodingInternal(0);
+            if (sprops.sun_jnu_encoding == NULL) {
+                sprops.sun_jnu_encoding = "UTF-8";
+            }
             if (LANGIDFROMLCID(userDefaultLCID) == 0x0c04 && majorVersion == 6) {
                 // MS claims "Vista has built-in support for HKSCS-2004.
                 // All of the HKSCS-2004 characters have Unicode 4.1.
@@ -709,15 +677,15 @@ GetJavaProperties(JNIEnv* env)
             hStdOutErr = GetStdHandle(STD_OUTPUT_HANDLE);
             if (hStdOutErr != INVALID_HANDLE_VALUE &&
                 GetFileType(hStdOutErr) == FILE_TYPE_CHAR) {
-                sprops.sun_stdout_encoding = getConsoleEncoding();
+                sprops.stdout_encoding = getConsoleEncoding();
             }
             hStdOutErr = GetStdHandle(STD_ERROR_HANDLE);
             if (hStdOutErr != INVALID_HANDLE_VALUE &&
                 GetFileType(hStdOutErr) == FILE_TYPE_CHAR) {
-                if (sprops.sun_stdout_encoding != NULL)
-                    sprops.sun_stderr_encoding = sprops.sun_stdout_encoding;
+                if (sprops.stdout_encoding != NULL)
+                    sprops.stderr_encoding = sprops.stdout_encoding;
                 else
-                    sprops.sun_stderr_encoding = getConsoleEncoding();
+                    sprops.stderr_encoding = getConsoleEncoding();
             }
         }
     }

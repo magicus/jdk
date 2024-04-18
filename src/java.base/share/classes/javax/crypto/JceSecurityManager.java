@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -72,7 +72,7 @@ final class JceSecurityManager {
         INSTANCE = dummySecurityManager;
 
         PrivilegedAction<StackWalker> paWalker =
-                () -> StackWalker.getInstance(Option.RETAIN_CLASS_REFERENCE);
+                () -> StackWalker.getInstance(Set.of(Option.DROP_METHOD_INFO, Option.RETAIN_CLASS_REFERENCE));
         @SuppressWarnings("removal")
         StackWalker dummyWalker = AccessController.doPrivileged(paWalker);
 
@@ -90,7 +90,7 @@ final class JceSecurityManager {
     CryptoPermission getCryptoPermission(String theAlg) {
 
         // Need to convert to uppercase since the crypto perm
-        // lookup is case sensitive.
+        // lookup is case-sensitive.
         final String alg = theAlg.toUpperCase(Locale.ENGLISH);
 
         // If CryptoAllPermission is granted by default, we return that.
@@ -199,7 +199,6 @@ final class JceSecurityManager {
                     return cp;
                 }
             } catch (Exception e) {
-                continue;
             }
         }
         return defaultPerm;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1994, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -81,6 +81,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "jni.h"
 #include "jni_util.h"
@@ -1195,7 +1196,7 @@ verify_opcode_operands(context_type *context, unsigned int inumber, int offset)
             }
         }
         if (opcode == JVM_OPC_tableswitch) {
-            keys = _ck_ntohl(lpc[2]) -  _ck_ntohl(lpc[1]) + 1;
+            keys = _ck_ntohl(lpc[2]) - _ck_ntohl(lpc[1]) + 1;
             delta = 1;
         } else {
             keys = _ck_ntohl(lpc[1]); /* number of pairs */
@@ -1401,7 +1402,7 @@ verify_opcode_operands(context_type *context, unsigned int inumber, int offset)
             if (WITH_ZERO_EXTRA_INFO(target) !=
                              MAKE_FULLINFO(ITEM_Object, 0, 0))
                 CCerror(context, "Illegal creation of multi-dimensional array");
-            /* operand gets set to the "unitialized object".  operand2 gets
+            /* operand gets set to the "uninitialized object".  operand2 gets
              * set to what the value will be after it's initialized. */
             this_idata->operand.fi = MAKE_FULLINFO(ITEM_NewObject, 0, inumber);
             this_idata->operand2.fi = target;
@@ -1677,11 +1678,14 @@ static int instruction_length(unsigned char *iptr, unsigned char *end)
     switch (instruction) {
         case JVM_OPC_tableswitch: {
             int *lpc = (int *)UCALIGN(iptr + 1);
-            int index;
+            int64_t low, high, index;
             if (lpc + 2 >= (int *)end) {
                 return -1; /* do not read pass the end */
             }
-            index = _ck_ntohl(lpc[2]) - _ck_ntohl(lpc[1]);
+            low  = _ck_ntohl(lpc[1]);
+            high = _ck_ntohl(lpc[2]);
+            index = high - low;
+            // The value of low must be less than or equal to high - i.e. index >= 0
             if ((index < 0) || (index > 65535)) {
                 return -1;      /* illegal */
             } else {
@@ -1861,7 +1865,6 @@ run_dataflow(context_type *context) {
                 work_to_do = JNI_TRUE;
 #ifdef DEBUG
                 if (verify_verbose) {
-                    int opcode = this_idata->opcode;
                     jio_fprintf(stdout, "Instruction %d: ", inumber);
                     print_stack(context, &this_idata->stack_info);
                     print_registers(context, &this_idata->register_info);
@@ -2173,11 +2176,11 @@ pop_stack(context_type *context, unsigned int inumber, stack_info_type *new_stac
                 }
                 break;
 
-            case '@': {         /* unitialized object, for call to <init> */
+            case '@': {         /* uninitialized object, for call to <init> */
                 int item_type = GET_ITEM_TYPE(top_type);
                 if (item_type != ITEM_NewObject && item_type != ITEM_InitObject)
                     CCerror(context,
-                            "Expecting to find unitialized object on stack");
+                            "Expecting to find uninitialized object on stack");
                 break;
             }
 
@@ -2476,7 +2479,7 @@ pop_stack(context_type *context, unsigned int inumber, stack_info_type *new_stac
             /* Make sure that nothing on the stack already looks like what
              * we want to create.  I can't image how this could possibly happen
              * but we should test for it anyway, since if it could happen, the
-             * result would be an unitialized object being able to masquerade
+             * result would be an uninitialized object being able to masquerade
              * as an initialized one.
              */
             stack_item_type *item;

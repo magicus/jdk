@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,7 @@
  */
 package jdk.incubator.vector;
 
-import java.nio.ByteBuffer;
+import java.lang.foreign.MemorySegment;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.IntUnaryOperator;
@@ -463,6 +463,22 @@ final class DoubleMaxVector extends DoubleVector {
 
     @Override
     @ForceInline
+    public DoubleMaxVector compress(VectorMask<Double> m) {
+        return (DoubleMaxVector)
+            super.compressTemplate(DoubleMaxMask.class,
+                                   (DoubleMaxMask) m);  // specialize
+    }
+
+    @Override
+    @ForceInline
+    public DoubleMaxVector expand(VectorMask<Double> m) {
+        return (DoubleMaxVector)
+            super.expandTemplate(DoubleMaxMask.class,
+                                   (DoubleMaxMask) m);  // specialize
+    }
+
+    @Override
+    @ForceInline
     public DoubleMaxVector selectFrom(Vector<Double> v) {
         return (DoubleMaxVector)
             super.selectFromTemplate((DoubleMaxVector) v);  // specialize
@@ -621,10 +637,11 @@ final class DoubleMaxVector extends DoubleVector {
 
         @Override
         @ForceInline
-        public DoubleMaxMask eq(VectorMask<Double> mask) {
-            Objects.requireNonNull(mask);
-            DoubleMaxMask m = (DoubleMaxMask)mask;
-            return xor(m.not());
+        /*package-private*/
+        DoubleMaxMask indexPartiallyInUpperRange(long offset, long limit) {
+            return (DoubleMaxMask) VectorSupport.indexPartiallyInUpperRange(
+                DoubleMaxMask.class, double.class, VLENGTH, offset, limit,
+                (o, l) -> (DoubleMaxMask) TRUE_MASK.indexPartiallyInRange(o, l));
         }
 
         // Unary operations
@@ -634,6 +651,15 @@ final class DoubleMaxVector extends DoubleVector {
         public DoubleMaxMask not() {
             return xor(maskAll(true));
         }
+
+        @Override
+        @ForceInline
+        public DoubleMaxMask compress() {
+            return (DoubleMaxMask)VectorSupport.compressExpandOp(VectorSupport.VECTOR_OP_MASK_COMPRESS,
+                DoubleMaxVector.class, DoubleMaxMask.class, ETYPE, VLENGTH, null, this,
+                (v1, m1) -> VSPECIES.iota().compare(VectorOperators.LT, m1.trueCount()));
+        }
+
 
         // Binary operations
 
@@ -657,9 +683,9 @@ final class DoubleMaxVector extends DoubleVector {
                                           (m1, m2, vm) -> m1.bOp(m2, (i, a, b) -> a | b));
         }
 
+        @Override
         @ForceInline
-        /* package-private */
-        DoubleMaxMask xor(VectorMask<Double> mask) {
+        public DoubleMaxMask xor(VectorMask<Double> mask) {
             Objects.requireNonNull(mask);
             DoubleMaxMask m = (DoubleMaxMask)mask;
             return VectorSupport.binaryOp(VECTOR_OP_XOR, DoubleMaxMask.class, null, long.class, VLENGTH,
@@ -698,6 +724,16 @@ final class DoubleMaxVector extends DoubleVector {
             }
             return VectorSupport.maskReductionCoerced(VECTOR_OP_MASK_TOLONG, DoubleMaxMask.class, long.class, VLENGTH, this,
                                                       (m) -> toLongHelper(m.getBits()));
+        }
+
+        // laneIsSet
+
+        @Override
+        @ForceInline
+        public boolean laneIsSet(int i) {
+            Objects.checkIndex(i, length());
+            return VectorSupport.extract(DoubleMaxMask.class, double.class, VLENGTH,
+                                         this, i, (m, idx) -> (m.getBits()[idx] ? 1L : 0L)) == 1L;
         }
 
         // Reductions
@@ -811,8 +847,8 @@ final class DoubleMaxVector extends DoubleVector {
     @ForceInline
     @Override
     final
-    DoubleVector fromArray0(double[] a, int offset, VectorMask<Double> m) {
-        return super.fromArray0Template(DoubleMaxMask.class, a, offset, (DoubleMaxMask) m);  // specialize
+    DoubleVector fromArray0(double[] a, int offset, VectorMask<Double> m, int offsetInRange) {
+        return super.fromArray0Template(DoubleMaxMask.class, a, offset, (DoubleMaxMask) m, offsetInRange);  // specialize
     }
 
     @ForceInline
@@ -827,29 +863,15 @@ final class DoubleMaxVector extends DoubleVector {
     @ForceInline
     @Override
     final
-    DoubleVector fromByteArray0(byte[] a, int offset) {
-        return super.fromByteArray0Template(a, offset);  // specialize
+    DoubleVector fromMemorySegment0(MemorySegment ms, long offset) {
+        return super.fromMemorySegment0Template(ms, offset);  // specialize
     }
 
     @ForceInline
     @Override
     final
-    DoubleVector fromByteArray0(byte[] a, int offset, VectorMask<Double> m) {
-        return super.fromByteArray0Template(DoubleMaxMask.class, a, offset, (DoubleMaxMask) m);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    DoubleVector fromByteBuffer0(ByteBuffer bb, int offset) {
-        return super.fromByteBuffer0Template(bb, offset);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    DoubleVector fromByteBuffer0(ByteBuffer bb, int offset, VectorMask<Double> m) {
-        return super.fromByteBuffer0Template(DoubleMaxMask.class, bb, offset, (DoubleMaxMask) m);  // specialize
+    DoubleVector fromMemorySegment0(MemorySegment ms, long offset, VectorMask<Double> m, int offsetInRange) {
+        return super.fromMemorySegment0Template(DoubleMaxMask.class, ms, offset, (DoubleMaxMask) m, offsetInRange);  // specialize
     }
 
     @ForceInline
@@ -877,22 +899,8 @@ final class DoubleMaxVector extends DoubleVector {
     @ForceInline
     @Override
     final
-    void intoByteArray0(byte[] a, int offset) {
-        super.intoByteArray0Template(a, offset);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    void intoByteArray0(byte[] a, int offset, VectorMask<Double> m) {
-        super.intoByteArray0Template(DoubleMaxMask.class, a, offset, (DoubleMaxMask) m);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    void intoByteBuffer0(ByteBuffer bb, int offset, VectorMask<Double> m) {
-        super.intoByteBuffer0Template(DoubleMaxMask.class, bb, offset, (DoubleMaxMask) m);
+    void intoMemorySegment0(MemorySegment ms, long offset, VectorMask<Double> m) {
+        super.intoMemorySegment0Template(DoubleMaxMask.class, ms, offset, (DoubleMaxMask) m);
     }
 
 
@@ -901,3 +909,4 @@ final class DoubleMaxVector extends DoubleVector {
     // ================================================
 
 }
+

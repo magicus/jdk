@@ -23,13 +23,13 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/g1/g1HeapRegion.hpp"
 #include "gc/g1/g1SurvivorRegions.hpp"
-#include "gc/g1/heapRegion.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/debug.hpp"
 
 G1SurvivorRegions::G1SurvivorRegions() :
-  _regions(new (ResourceObj::C_HEAP, mtGC) GrowableArray<HeapRegion*>(8, mtGC)),
+  _regions(new (mtGC) GrowableArray<HeapRegion*>(8, mtGC)),
   _used_bytes(0),
   _regions_on_node() {}
 

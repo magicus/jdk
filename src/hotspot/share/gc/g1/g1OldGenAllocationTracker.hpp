@@ -25,14 +25,14 @@
 #ifndef SHARE_VM_GC_G1_G1OLDGENALLOCATIONTRACKER_HPP
 #define SHARE_VM_GC_G1_G1OLDGENALLOCATIONTRACKER_HPP
 
-#include "gc/g1/heapRegion.hpp"
+#include "gc/g1/g1HeapRegion.hpp"
 #include "memory/allocation.hpp"
 
 class G1AdaptiveIHOPControl;
 
 // Track allocation details in the old generation.
 class G1OldGenAllocationTracker : public CHeapObj<mtGC> {
-  // Total number of bytes allocated in the old generaton during
+  // Total number of bytes allocated in the old generation during
   // last mutator period.
   size_t _last_period_old_gen_bytes;
   // Total growth of the old geneneration for last mutator period,

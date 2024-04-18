@@ -97,14 +97,14 @@
   }
 
   // Prefer ConN+DecodeN over ConP.
-  static const bool const_oop_prefer_decode() {
+  static bool const_oop_prefer_decode() {
     NOT_LP64(ShouldNotCallThis();)
     // Prefer ConN+DecodeN over ConP.
     return true;
   }
 
   // Prefer ConP over ConNKlass+DecodeNKlass.
-  static const bool const_klass_prefer_decode() {
+  static bool const_klass_prefer_decode() {
     NOT_LP64(ShouldNotCallThis();)
     return false;
   }
@@ -129,8 +129,8 @@
 #endif
 
   // Are floats converted to double when stored to stack during deoptimization?
-  // On x64 it is stored without convertion so we can use normal access.
-  // On x32 it is stored with convertion only when FPU is used for floats.
+  // On x64 it is stored without conversion so we can use normal access.
+  // On x32 it is stored with conversion only when FPU is used for floats.
 #ifdef _LP64
   static constexpr bool float_in_double() {
     return false;
@@ -165,16 +165,16 @@
   }
 
   // Does the CPU supports vector unsigned comparison instructions?
-  static const bool supports_vector_comparison_unsigned(int vlen, BasicType bt) {
+  static constexpr bool supports_vector_comparison_unsigned(int vlen, BasicType bt) {
     return true;
   }
 
   // Some microarchitectures have mask registers used on vectors
-  static const bool has_predicated_vectors(void) {
+  static bool has_predicated_vectors(void) {
     return VM_Version::supports_evex();
   }
 
-  // true means we have fast l2f convers
+  // true means we have fast l2f conversion
   // false means that conversion is done by runtime call
   static constexpr bool convL2FSupported(void) {
       return true;
@@ -183,12 +183,81 @@
   // Implements a variant of EncodeISOArrayNode that encode ASCII only
   static const bool supports_encode_ascii_array = true;
 
-  // Returns pre-selection estimated cost of a vector operation.
+  // Without predicated input, an all-one vector is needed for the alltrue vector test
+  static constexpr bool vectortest_needs_second_argument(bool is_alltrue, bool is_predicate) {
+    return is_alltrue && !is_predicate;
+  }
+
+  // BoolTest mask for vector test intrinsics
+  static constexpr BoolTest::mask vectortest_mask(bool is_alltrue, bool is_predicate, int vlen) {
+    if (!is_alltrue) {
+      return BoolTest::ne;
+    }
+    if (!is_predicate) {
+      return BoolTest::lt;
+    }
+    if ((vlen == 8 && !VM_Version::supports_avx512dq()) || vlen < 8) {
+      return BoolTest::eq;
+    }
+    return BoolTest::lt;
+  }
+
+  // Returns pre-selection estimated size of a vector operation.
+  // Currently, it's a rudimentary heuristic based on emitted code size for complex
+  // IR nodes used by unroll policy. Idea is to constrain unrolling factor and prevent
+  // generating bloated loop bodies.
   static int vector_op_pre_select_sz_estimate(int vopc, BasicType ety, int vlen) {
     switch(vopc) {
+      default:
+        return 0;
+      case Op_MulVB:
+        return 7;
+      case Op_MulVL:
+        return VM_Version::supports_avx512vldq() ? 0 : 6;
+      case Op_VectorCastF2X: // fall through
+      case Op_VectorCastD2X:
+        return is_floating_point_type(ety) ? 0 : (is_subword_type(ety) ? 35 : 30);
+      case Op_CountTrailingZerosV:
+      case Op_CountLeadingZerosV:
+        return VM_Version::supports_avx512cd() && (ety == T_INT || ety == T_LONG) ? 0 : 40;
+      case Op_PopCountVI:
+        if (is_subword_type(ety)) {
+          return VM_Version::supports_avx512_bitalg() ? 0 : 50;
+        } else {
+          assert(ety == T_INT, "sanity"); // for documentation purposes
+          return VM_Version::supports_avx512_vpopcntdq() ? 0 : 50;
+        }
+      case Op_PopCountVL:
+        return VM_Version::supports_avx512_vpopcntdq() ? 0 : 40;
+      case Op_ReverseV:
+        return VM_Version::supports_gfni() ? 0 : 30;
+      case Op_RoundVF: // fall through
+      case Op_RoundVD:
+        return 30;
+    }
+  }
+
+  // Returns pre-selection estimated size of a scalar operation.
+  static int scalar_op_pre_select_sz_estimate(int vopc, BasicType ety) {
+    switch(vopc) {
       default: return 0;
-      case Op_PopCountVI: return VM_Version::supports_avx512_vpopcntdq() ? 0 : 50;
-      case Op_PopCountVL: return VM_Version::supports_avx512_vpopcntdq() ? 0 : 40;
+      case Op_RoundF: // fall through
+      case Op_RoundD: {
+        return 30;
+      }
+    }
+  }
+
+  // Is SIMD sort supported for this CPU?
+  static bool supports_simd_sort(BasicType bt) {
+    if (VM_Version::supports_avx512dq()) {
+      return true;
+    }
+    else if (VM_Version::supports_avx2() && !is_double_word_type(bt)) {
+      return true;
+    }
+    else {
+      return false;
     }
   }
 

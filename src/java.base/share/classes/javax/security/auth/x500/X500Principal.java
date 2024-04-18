@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,8 @@ import java.io.*;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
+import jdk.internal.access.JavaxSecurityAccess;
+import jdk.internal.access.SharedSecrets;
 import sun.security.x509.X500Name;
 import sun.security.util.*;
 
@@ -82,16 +84,31 @@ public final class X500Principal implements Principal, java.io.Serializable {
     /**
      * The X500Name representing this principal.
      *
-     * NOTE: this field is reflectively accessed from within X500Name.
+     * NOTE: this field is accessed using shared secrets from within X500Name.
      */
     private transient X500Name thisX500Name;
+
+    static {
+        // Set up JavaxSecurityAccess in SharedSecrets
+        SharedSecrets.setJavaxSecurityAccess(
+            new JavaxSecurityAccess() {
+                @Override
+                public X500Name asX500Name(X500Principal principal) {
+                    return principal.thisX500Name;
+                }
+                @Override
+                public X500Principal asX500Principal(X500Name name) {
+                    return new X500Principal(name);
+                }
+        });
+    }
 
     /**
      * Creates an X500Principal by wrapping an X500Name.
      *
      * NOTE: The constructor is package private. It is intended to be accessed
-     * using privileged reflection from classes in sun.security.*.
-     * Currently referenced from sun.security.x509.X500Name.asX500Principal().
+     * using shared secrets from classes in sun.security.*. Currently, it is
+     * referenced from sun.security.x509.X500Name.asX500Principal().
      */
     X500Principal(X500Name x500Name) {
         thisX500Name = x500Name;
@@ -126,7 +143,7 @@ public final class X500Principal implements Principal, java.io.Serializable {
      *                  is improperly specified
      */
     public X500Principal(String name) {
-        this(name, Collections.<String, String>emptyMap());
+        this(name, Collections.emptyMap());
     }
 
     /**
@@ -288,7 +305,7 @@ public final class X500Principal implements Principal, java.io.Serializable {
     /**
      * Returns a string representation of the X.500 distinguished name
      * using the specified format. Valid values for the format are
-     * "RFC1779", "RFC2253", and "CANONICAL" (case insensitive).
+     * "RFC1779", "RFC2253", and "CANONICAL" (case-insensitive).
      *
      * <p> If "RFC1779" is specified as the format,
      * this method emits the attribute type keywords defined in
@@ -363,7 +380,7 @@ public final class X500Principal implements Principal, java.io.Serializable {
     /**
      * Returns a string representation of the X.500 distinguished name
      * using the specified format. Valid values for the format are
-     * "RFC1779" and "RFC2253" (case insensitive). "CANONICAL" is not
+     * "RFC1779" and "RFC2253" (case-insensitive). "CANONICAL" is not
      * permitted and an {@code IllegalArgumentException} will be thrown.
      *
      * <p>This method returns Strings in the format as specified in
@@ -457,25 +474,24 @@ public final class X500Principal implements Principal, java.io.Serializable {
      * @return {@code true} if the specified {@code Object} is equal
      *          to this {@code X500Principal}, {@code false} otherwise
      */
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
-        if (o instanceof X500Principal == false) {
+        if (!(o instanceof X500Principal other)) {
             return false;
         }
-        X500Principal other = (X500Principal)o;
         return this.thisX500Name.equals(other.thisX500Name);
     }
 
     /**
-     * Return a hash code for this {@code X500Principal}.
+     * {@return a hash code for this {@code X500Principal}}
      *
      * <p> The hash code is calculated via:
      * {@code getName(X500Principal.CANONICAL).hashCode()}
-     *
-     * @return a hash code for this {@code X500Principal}
      */
+    @Override
     public int hashCode() {
         return thisX500Name.hashCode();
     }

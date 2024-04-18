@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +32,7 @@ import com.sun.tools.javac.code.Kinds.KindSelector;
 import com.sun.tools.javac.code.Scope.WriteableScope;
 import com.sun.tools.javac.code.Source.Feature;
 import com.sun.tools.javac.code.Symbol.*;
-import com.sun.tools.javac.code.TypeMetadata.Entry.Kind;
+import com.sun.tools.javac.code.TypeMetadata.Annotations;
 import com.sun.tools.javac.comp.Check.CheckContext;
 import com.sun.tools.javac.resources.CompilerProperties.Errors;
 import com.sun.tools.javac.resources.CompilerProperties.Fragments;
@@ -101,9 +101,9 @@ public class Annotate {
     private final Types types;
 
     private final Attribute theUnfinishedDefaultValue;
-    private final boolean allowRepeatedAnnos;
     private final String sourceName;
 
+    @SuppressWarnings("this-escape")
     protected Annotate(Context context) {
         context.put(annotateKey, this);
 
@@ -124,7 +124,6 @@ public class Annotate {
         theUnfinishedDefaultValue =  new Attribute.Error(syms.errType);
 
         Source source = Source.instance(context);
-        allowRepeatedAnnos = Feature.REPEATED_ANNOTATIONS.allowedInSource(source);
         sourceName = source.name;
 
         blockCount = 1;
@@ -230,7 +229,7 @@ public class Annotate {
      *
      * @param annotations the list of JCAnnotations to attribute and enter
      * @param localEnv    the enclosing env
-     * @param s           ths Symbol on which to enter the annotations
+     * @param s           the Symbol on which to enter the annotations
      * @param deferPos    report errors here
      */
     public void annotateLater(List<JCAnnotation> annotations, Env<AttrContext> localEnv,
@@ -347,9 +346,6 @@ public class Annotate {
 
             if (a.type.isErroneous() || a.type.tsym.isAnnotationType()) {
                 if (annotated.containsKey(a.type.tsym)) {
-                    if (!allowRepeatedAnnos) {
-                        log.error(DiagnosticFlag.SOURCE_LEVEL, a.pos(), Feature.REPEATED_ANNOTATIONS.error(sourceName));
-                    }
                     ListBuffer<T> l = annotated.get(a.type.tsym);
                     l = l.append(c);
                     annotated.put(a.type.tsym, l);
@@ -382,6 +378,11 @@ public class Annotate {
                     && toAnnotate.kind == TYP
                     && types.isSameType(c.type, syms.valueBasedType)) {
                 toAnnotate.flags_field |= Flags.VALUE_BASED;
+            }
+
+            if (!c.type.isErroneous()
+                    && types.isSameType(c.type, syms.restrictedType)) {
+                toAnnotate.flags_field |= Flags.RESTRICTED;
             }
         }
 
@@ -442,7 +443,7 @@ public class Annotate {
      *
      * @param a the tree representing an annotation
      * @param expectedAnnotationType the expected (super)type of the annotation
-     * @param env the the current env in where the annotation instance is found
+     * @param env the current env in where the annotation instance is found
      */
     public Attribute.TypeCompound attributeTypeAnnotation(JCAnnotation a, Type expectedAnnotationType,
                                                           Env<AttrContext> env)
@@ -526,6 +527,7 @@ public class Annotate {
                 left.name, List.nil(), null);
         left.sym = method;
         left.type = method.type;
+        chk.checkDeprecated(left, env.info.scope.owner, method);
         if (method.owner != thisAnnotationType.tsym && !badAnnotation)
             log.error(left.pos(), Errors.NoAnnotationMember(left.name, thisAnnotationType));
         Type resultType = method.type.getReturnType();
@@ -554,7 +556,6 @@ public class Annotate {
 
         if (expectedElementType.hasTag(ARRAY)) {
             return getAnnotationArrayValue(expectedElementType, tree, env);
-
         }
 
         //error recovery
@@ -706,11 +707,15 @@ public class Annotate {
         }
 
         JCNewArray na = (JCNewArray)tree;
+        List<JCExpression> elems = na.elems;
         if (na.elemtype != null) {
             log.error(na.elemtype.pos(), Errors.NewNotAllowedInAnnotation);
+            if (elems == null) {
+                elems = List.nil();
+            }
         }
         ListBuffer<Attribute> buf = new ListBuffer<>();
-        for (List<JCExpression> l = na.elems; l.nonEmpty(); l=l.tail) {
+        for (List<JCExpression> l = elems; l.nonEmpty(); l = l.tail) {
             buf.append(attributeAnnotationValue(types.elemtype(expectedElementType),
                     l.head,
                     env));
@@ -1053,7 +1058,11 @@ public class Annotate {
         typeAnnotation(() -> {
             List<Attribute.TypeCompound> compounds = fromAnnotations(annotations);
             Assert.check(annotations.size() == compounds.size());
-            storeAt.getMetadataOfKind(Kind.ANNOTATIONS).combine(new TypeMetadata.Annotations(compounds));
+            // the type already has annotation metadata, but it's empty
+            Annotations metadata = storeAt.getMetadata(Annotations.class);
+            Assert.checkNonNull(metadata);
+            Assert.check(metadata.annotationBuffer().isEmpty());
+            metadata.annotationBuffer().appendList(compounds);
         });
     }
 

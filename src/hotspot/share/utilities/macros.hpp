@@ -40,7 +40,7 @@
 // Apply pre-processor token pasting to the expansions of x and y.
 // The token pasting operator (##) prevents its arguments from being
 // expanded.  This macro allows expansion of its arguments before the
-// concatenation is performed.  Note: One auxilliary level ought to be
+// concatenation is performed.  Note: One auxiliary level ought to be
 // sufficient, but two are used because of bugs in some preprocesors.
 #define PASTE_TOKENS(x, y) PASTE_TOKENS_AUX(x, y)
 #define PASTE_TOKENS_AUX(x, y) PASTE_TOKENS_AUX2(x, y)
@@ -54,6 +54,10 @@
 
 // -DINCLUDE_<something>=0 | 1 can be specified on the command line to include
 // or exclude functionality.
+
+#ifndef FILE_AND_LINE
+#define FILE_AND_LINE __FILE__ ":" XSTR(__LINE__)
+#endif
 
 #ifndef INCLUDE_JVMTI
 #define INCLUDE_JVMTI 1
@@ -629,6 +633,12 @@
 #define NOT_CDS_JAVA_HEAP(x) x
 #define NOT_CDS_JAVA_HEAP_RETURN        {}
 #define NOT_CDS_JAVA_HEAP_RETURN_(code) { return code; }
+#endif
+
+#ifdef ADDRESS_SANITIZER
+#define INCLUDE_ASAN 1
+#else
+#define INCLUDE_ASAN 0
 #endif
 
 #endif // SHARE_UTILITIES_MACROS_HPP

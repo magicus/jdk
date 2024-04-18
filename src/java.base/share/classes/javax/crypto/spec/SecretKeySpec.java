@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,14 +25,16 @@
 
 package javax.crypto.spec;
 
-import jdk.internal.access.JavaxCryptoSpecAccess;
 import jdk.internal.access.SharedSecrets;
 
+import javax.crypto.SecretKey;
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.security.MessageDigest;
 import java.security.spec.KeySpec;
 import java.util.Arrays;
 import java.util.Locale;
-import javax.crypto.SecretKey;
 
 /**
  * This class specifies a secret key in a provider-independent fashion.
@@ -68,16 +70,11 @@ public class SecretKeySpec implements KeySpec, SecretKey {
      *
      * @serial
      */
-    private String algorithm;
+    private final String algorithm;
 
     static {
         SharedSecrets.setJavaxCryptoSpecAccess(
-                new JavaxCryptoSpecAccess() {
-                    @Override
-                    public void clearSecretKeySpec(SecretKeySpec keySpec) {
-                        keySpec.clear();
-                    }
-                });
+                SecretKeySpec::clear);
     }
 
     /**
@@ -204,16 +201,13 @@ public class SecretKeySpec implements KeySpec, SecretKey {
      * Calculates a hash code value for the object.
      * Objects that are equal will also have the same hashcode.
      */
+    @Override
     public int hashCode() {
-        int retval = 0;
-        for (int i = 1; i < this.key.length; i++) {
-            retval += this.key[i] * i;
-        }
+        int retval = Arrays.hashCode(key);
         if (this.algorithm.equalsIgnoreCase("TripleDES"))
-            return (retval ^= "desede".hashCode());
+            return retval ^ "desede".hashCode();
         else
-            return (retval ^=
-                    this.algorithm.toLowerCase(Locale.ENGLISH).hashCode());
+            return retval ^ this.algorithm.toLowerCase(Locale.ENGLISH).hashCode();
     }
 
     /**
@@ -227,14 +221,15 @@ public class SecretKeySpec implements KeySpec, SecretKey {
      * @return true if the objects are considered equal, false if
      * <code>obj</code> is null or otherwise.
      */
+    @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
 
-        if (!(obj instanceof SecretKey))
+        if (!(obj instanceof SecretKey that))
             return false;
 
-        String thatAlg = ((SecretKey)obj).getAlgorithm();
+        String thatAlg = that.getAlgorithm();
         if (!(thatAlg.equalsIgnoreCase(this.algorithm))) {
             if ((!(thatAlg.equalsIgnoreCase("DESede"))
                  || !(this.algorithm.equalsIgnoreCase("TripleDES")))
@@ -243,7 +238,7 @@ public class SecretKeySpec implements KeySpec, SecretKey {
             return false;
         }
 
-        byte[] thatKey = ((SecretKey)obj).getEncoded();
+        byte[] thatKey = that.getEncoded();
         try {
             return MessageDigest.isEqual(this.key, thatKey);
         } finally {
@@ -258,5 +253,27 @@ public class SecretKeySpec implements KeySpec, SecretKey {
      */
     void clear() {
         Arrays.fill(key, (byte)0);
+    }
+
+    /**
+     * Restores the state of this object from the stream.
+     *
+     * @param  stream the {@code ObjectInputStream} from which data is read
+     * @throws IOException if an I/O error occurs
+     * @throws ClassNotFoundException if a serialized class cannot be loaded
+     */
+    @java.io.Serial
+    private void readObject(ObjectInputStream stream)
+            throws IOException, ClassNotFoundException {
+        stream.defaultReadObject();
+
+        if (key == null || algorithm == null) {
+            throw new InvalidObjectException("Missing argument");
+        }
+
+        this.key = key.clone();
+        if (key.length == 0) {
+            throw new InvalidObjectException("Invalid key length");
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,20 +25,17 @@
 
 package javax.security.auth;
 
-import java.util.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamField;
+import java.security.*;
 import java.text.MessageFormat;
-import java.security.AccessController;
-import java.security.AccessControlContext;
-import java.security.DomainCombiner;
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.security.PrivilegedActionException;
-import java.security.ProtectionDomain;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
 
-import sun.security.action.GetBooleanAction;
+import jdk.internal.access.SharedSecrets;
 import sun.security.util.ResourcesMgr;
 
 /**
@@ -90,9 +87,44 @@ import sun.security.util.ResourcesMgr;
  * While the Principals associated with the {@code Subject} are serialized,
  * the credentials associated with the {@code Subject} are not.
  * Note that the {@code java.security.Principal} class
- * does not implement {@code Serializable}.  Therefore all concrete
+ * does not implement {@code Serializable}.  Therefore, all concrete
  * {@code Principal} implementations associated with Subjects
  * must implement {@code Serializable}.
+ *
+ * <h2>Deprecated Methods and Replacements</h2>
+ *
+ * <p> The following methods in this class for user-based authorization
+ * that are dependent on Security Manager APIs are deprecated for removal:
+ * <ul>
+ *     <li>{@link #getSubject(AccessControlContext)}
+ *     <li>{@link #doAs(Subject, PrivilegedAction)}
+ *     <li>{@link #doAs(Subject, PrivilegedExceptionAction)}
+ *     <li>{@link #doAsPrivileged(Subject, PrivilegedAction, AccessControlContext)}
+ *     <li>{@link #doAsPrivileged(Subject, PrivilegedExceptionAction, AccessControlContext)}
+ * </ul>
+ * Methods {@link #current()} and {@link #callAs(Subject, Callable)}
+ * are replacements for these methods, where {@code current}
+ * is mostly equivalent to {@code getSubject(AccessController.getContext())}
+ * and {@code callAs} is similar to {@code doAs} except that the
+ * input type and exceptions thrown are slightly different.
+ *
+ * <p><b><a id="sm-allowed">These methods behave differently depending on
+ * whether a security manager is
+ * <a href="../../../java/lang/SecurityManager.html#set-security-manager">allowed or disallowed</a></a></b>:
+ * <ul>
+ * <li>If a security manager is allowed, which means it is either already set
+ * or allowed to be set dynamically, a {@code Subject} object is associated
+ * with an {@code AccessControlContext} through a {@code doAs} or
+ * {@code callAs} call, and the subject can then be retrieved using the
+ * {@code getSubject(AccessControlContext)} or {@code current} method.
+*  <li>If a security manager is not allowed, which means it is not set and
+ * not allowed to be set dynamically, a {@code doAs} or {@code callAs} call
+ * binds a {@code Subject} object to the period of execution of an action,
+ * and the subject can be retrieved using the {@code current} method inside
+ * the action. This subject can be inherited by child threads if they are
+ * started and terminate within the execution of its parent thread using
+ * structured concurrency.
+ * </ul>
  *
  * @since 1.4
  * @see java.security.Principal
@@ -144,8 +176,8 @@ public final class Subject implements java.io.Serializable {
      * has been set read-only before permitting subsequent modifications.
      * The newly created Sets also prevent illegal modifications
      * by ensuring that callers have sufficient permissions.  These Sets
-     * also prohibit null elements, and attempts to add or query a null
-     * element will result in a {@code NullPointerException}.
+     * also prohibit null elements, and attempts to add, query, or remove
+     * a null element will result in a {@code NullPointerException}.
      *
      * <p> To modify the Principals Set, the caller must have
      * {@code AuthPermission("modifyPrincipals")}.
@@ -174,8 +206,8 @@ public final class Subject implements java.io.Serializable {
      * has been set read-only before permitting subsequent modifications.
      * The newly created Sets also prevent illegal modifications
      * by ensuring that callers have sufficient permissions.  These Sets
-     * also prohibit null elements, and attempts to add or query a null
-     * element will result in a {@code NullPointerException}.
+     * also prohibit null elements, and attempts to add, query, or remove
+     * a null element will result in a {@code NullPointerException}.
      *
      * <p> To modify the Principals Set, the caller must have
      * {@code AuthPermission("modifyPrincipals")}.
@@ -262,7 +294,9 @@ public final class Subject implements java.io.Serializable {
 
     /**
      * Get the {@code Subject} associated with the provided
-     * {@code AccessControlContext}.
+     * {@code AccessControlContext}. This method is intended to be used with
+     * a security manager. It throws an {@code UnsupportedOperationException}
+     * if a security manager is not allowed.
      *
      * <p> The {@code AccessControlContext} may contain many
      * Subjects (from nested {@code doAs} calls).
@@ -276,6 +310,9 @@ public final class Subject implements java.io.Serializable {
      *          {@code AccessControlContext}, or {@code null}
      *          if no {@code Subject} is associated
      *          with the provided {@code AccessControlContext}.
+     *
+     * @throws UnsupportedOperationException if a security manager is
+     *          not allowed
      *
      * @throws SecurityException if a security manager is installed and the
      *          caller does not have an
@@ -306,55 +343,45 @@ public final class Subject implements java.io.Serializable {
         Objects.requireNonNull(acc, ResourcesMgr.getString
                 ("invalid.null.AccessControlContext.provided"));
 
-        // return the Subject from the DomainCombiner of the provided context
-        return AccessController.doPrivileged
-            (new java.security.PrivilegedAction<>() {
-            public Subject run() {
-                DomainCombiner dc = acc.getDomainCombiner();
-                if (!(dc instanceof SubjectDomainCombiner)) {
-                    return null;
-                }
-                SubjectDomainCombiner sdc = (SubjectDomainCombiner)dc;
-                return sdc.getSubject();
-            }
-        });
+        if (!SharedSecrets.getJavaLangAccess().allowSecurityManager()) {
+            throw new UnsupportedOperationException(
+                    "getSubject is supported only if a security manager is allowed");
+        } else {
+            // return the Subject from the DomainCombiner of the provided context
+            return AccessController.doPrivileged
+                    (new java.security.PrivilegedAction<>() {
+                        public Subject run() {
+                            DomainCombiner dc = acc.getDomainCombiner();
+                            if (!(dc instanceof SubjectDomainCombiner)) {
+                                return null;
+                            }
+                            SubjectDomainCombiner sdc = (SubjectDomainCombiner) dc;
+                            return sdc.getSubject();
+                        }
+                    });
+        }
     }
 
-    // Store the current subject in a ThreadLocal when a system property is set.
-    private static final boolean USE_TL = GetBooleanAction
-            .privilegedGetProperty("jdk.security.auth.subject.useTL");
-
-    private static final InheritableThreadLocal<Subject> SUBJECT_THREAD_LOCAL =
-            USE_TL ?
-            new InheritableThreadLocal<>() {
-                @Override protected Subject initialValue() {
-                    return null;
-                }
-            } : null;
+    private static final ScopedValue<Subject> SCOPED_SUBJECT =
+            ScopedValue.newInstance();
 
     /**
      * Returns the current subject.
-     * <p>
-     * The current subject is installed by the {@link #callAs} method.
+     *
+     * <p> The current subject is installed by the {@link #callAs} method.
      * When {@code callAs(subject, action)} is called, {@code action} is
      * executed with {@code subject} as its current subject which can be
      * retrieved by this method. After {@code action} is finished, the current
      * subject is reset to its previous value. The current
      * subject is {@code null} before the first call of {@code callAs()}.
-     * <p>
-     * When a new thread is created, its current subject is the same as
-     * the one of its parent thread, and will not change even if
-     * its parent thread's current subject is changed to another value.
      *
-     * @implNote
-     * By default, this method returns the same value as
-     * {@code Subject.getSubject(AccessController.getContext())}. This
-     * preserves compatibility with code that may still be calling {@code doAs}
-     * which installs the subject in an {@code AccessControlContext}. However,
-     * if the system property {@systemProperty jdk.security.auth.subject.useTL}
-     * is set to {@code true}, the subject is retrieved from an inheritable
-     * {@code ThreadLocal} object. This behavior is subject to
-     * change in a future version.
+     * <p> If a security manager is <a href=#sm-allowed>allowed</a>, this
+     * method is equivalent to calling {@link #getSubject} with the current
+     * {@code AccessControlContext}.
+     *
+     * <p> If a security manager is not allowed, this method returns the
+     * {@code Subject} bound to the period of the execution of the current
+     * thread.
      *
      * @return the current subject, or {@code null} if a current subject is
      *      not installed or the current subject is set to {@code null}.
@@ -363,28 +390,32 @@ public final class Subject implements java.io.Serializable {
      */
     @SuppressWarnings("removal")
     public static Subject current() {
-        return USE_TL
-            ? SUBJECT_THREAD_LOCAL.get()
-            : getSubject(AccessController.getContext());
+        if (!SharedSecrets.getJavaLangAccess().allowSecurityManager()) {
+            return SCOPED_SUBJECT.orElse(null);
+        } else {
+            return getSubject(AccessController.getContext());
+        }
     }
 
     /**
      * Executes a {@code Callable} with {@code subject} as the
      * current subject.
      *
-     * @implNote
-     * By default, this method calls {@link #doAs(Subject, PrivilegedExceptionAction)
-     * Subject.doAs(subject, altAction)} which stores the subject in
-     * a new {@code AccessControlContext}, where {@code altAction.run()}
-     * is equivalent to {@code action.call()} and the exception thrown is
-     * modified to match the specification of this method. This preserves
-     * compatibility with code that may still be calling
-     * {@code getSubject(AccessControlContext)} which retrieves the subject
-     * from an {@code AccessControlContext}. However,
-     * if the system property {@code jdk.security.auth.subject.useTL}
-     * is set to {@code true}, the current subject will be stored in an inheritable
-     * {@code ThreadLocal} object. This behavior is subject to change in a
-     * future version.
+     * <p> If a security manager is <a href=#sm-allowed>allowed</a>,
+     * this method first retrieves the current Thread's
+     * {@code AccessControlContext} via
+     * {@code AccessController.getContext},
+     * and then instantiates a new {@code AccessControlContext}
+     * using the retrieved context along with a new
+     * {@code SubjectDomainCombiner} (constructed using
+     * the provided {@code Subject}).
+     * Finally, this method invokes {@code AccessController.doPrivileged},
+     * passing it the provided {@code PrivilegedAction},
+     * as well as the newly constructed {@code AccessControlContext}.
+     *
+     * <p> If a security manager is not allowed,
+     * this method launches {@code action} and binds {@code subject} to the
+     * period of its execution.
      *
      * @param subject the {@code Subject} that the specified {@code action}
      *               will run as.  This parameter may be {@code null}.
@@ -403,15 +434,11 @@ public final class Subject implements java.io.Serializable {
     public static <T> T callAs(final Subject subject,
             final Callable<T> action) throws CompletionException {
         Objects.requireNonNull(action);
-        if (USE_TL) {
-            Subject oldSubject = SUBJECT_THREAD_LOCAL.get();
-            SUBJECT_THREAD_LOCAL.set(subject);
+        if (!SharedSecrets.getJavaLangAccess().allowSecurityManager()) {
             try {
-                return action.call();
+                return ScopedValue.callWhere(SCOPED_SUBJECT, subject, action);
             } catch (Exception e) {
                 throw new CompletionException(e);
-            } finally {
-                SUBJECT_THREAD_LOCAL.set(oldSubject);
             }
         } else {
             try {
@@ -430,7 +457,8 @@ public final class Subject implements java.io.Serializable {
     /**
      * Perform work as a particular {@code Subject}.
      *
-     * <p> This method first retrieves the current Thread's
+     * <p> If a security manager is <a href=#sm-allowed>allowed</a>,
+     * this method first retrieves the current Thread's
      * {@code AccessControlContext} via
      * {@code AccessController.getContext},
      * and then instantiates a new {@code AccessControlContext}
@@ -440,6 +468,10 @@ public final class Subject implements java.io.Serializable {
      * Finally, this method invokes {@code AccessController.doPrivileged},
      * passing it the provided {@code PrivilegedAction},
      * as well as the newly constructed {@code AccessControlContext}.
+     *
+     * <p> If a security manager is not allowed,
+     * this method launches {@code action} and binds {@code subject} to the
+     * period of its execution.
      *
      * @param subject the {@code Subject} that the specified
      *                  {@code action} will run as.  This parameter
@@ -484,20 +516,36 @@ public final class Subject implements java.io.Serializable {
         Objects.requireNonNull(action,
                 ResourcesMgr.getString("invalid.null.action.provided"));
 
-        // set up the new Subject-based AccessControlContext
-        // for doPrivileged
-        final AccessControlContext currentAcc = AccessController.getContext();
+        if (!SharedSecrets.getJavaLangAccess().allowSecurityManager()) {
+            try {
+                return callAs(subject, action::run);
+            } catch (CompletionException ce) {
+                var cause = ce.getCause();
+                if (cause instanceof RuntimeException re) {
+                    throw re;
+                } else if (cause instanceof Error er) {
+                    throw er;
+                } else {
+                    throw new AssertionError(ce);
+                }
+            }
+        } else {
+            // set up the new Subject-based AccessControlContext
+            // for doPrivileged
+            final AccessControlContext currentAcc = AccessController.getContext();
 
-        // call doPrivileged and push this new context on the stack
-        return java.security.AccessController.doPrivileged
-                                        (action,
-                                        createContext(subject, currentAcc));
+            // call doPrivileged and push this new context on the stack
+            return java.security.AccessController.doPrivileged
+                    (action,
+                            createContext(subject, currentAcc));
+        }
     }
 
     /**
      * Perform work as a particular {@code Subject}.
      *
-     * <p> This method first retrieves the current Thread's
+     * <p> If a security manager is <a href=#sm-allowed>allowed</a>,
+     * this method first retrieves the current Thread's
      * {@code AccessControlContext} via
      * {@code AccessController.getContext},
      * and then instantiates a new {@code AccessControlContext}
@@ -508,6 +556,10 @@ public final class Subject implements java.io.Serializable {
      * passing it the provided {@code PrivilegedExceptionAction},
      * as well as the newly constructed {@code AccessControlContext}.
      *
+     * <p> If a security manager is not allowed,
+     * this method launches {@code action} and binds {@code subject} to the
+     * period of its execution.
+
      * @param subject the {@code Subject} that the specified
      *                  {@code action} will run as.  This parameter
      *                  may be {@code null}.
@@ -557,25 +609,47 @@ public final class Subject implements java.io.Serializable {
         Objects.requireNonNull(action,
                 ResourcesMgr.getString("invalid.null.action.provided"));
 
-        // set up the new Subject-based AccessControlContext for doPrivileged
-        final AccessControlContext currentAcc = AccessController.getContext();
+        if (!SharedSecrets.getJavaLangAccess().allowSecurityManager()) {
+            try {
+                return callAs(subject, action::run);
+            } catch (CompletionException ce) {
+                var cause = ce.getCause();
+                if (cause instanceof RuntimeException re) {
+                    throw re;
+                } else if (cause instanceof Error er) {
+                    throw er;
+                } else if (cause instanceof Exception e) {
+                    throw new PrivilegedActionException(e);
+                } else {
+                    throw new PrivilegedActionException(ce);
+                }
+            }
+        } else {
+            // set up the new Subject-based AccessControlContext for doPrivileged
+            final AccessControlContext currentAcc = AccessController.getContext();
 
-        // call doPrivileged and push this new context on the stack
-        return java.security.AccessController.doPrivileged
-                                        (action,
-                                        createContext(subject, currentAcc));
+            // call doPrivileged and push this new context on the stack
+            return java.security.AccessController.doPrivileged
+                    (action,
+                            createContext(subject, currentAcc));
+        }
     }
 
     /**
      * Perform privileged work as a particular {@code Subject}.
      *
-     * <p> This method behaves exactly as {@code Subject.doAs},
+     * <p> If a security manager is <a href=#sm-allowed>allowed</a>,
+     * this method behaves exactly as {@code Subject.doAs},
      * except that instead of retrieving the current Thread's
      * {@code AccessControlContext}, it uses the provided
      * {@code AccessControlContext}.  If the provided
      * {@code AccessControlContext} is {@code null},
      * this method instantiates a new {@code AccessControlContext}
      * with an empty collection of ProtectionDomains.
+     *
+     * <p> If a security manager is not allowed,
+     * this method ignores the {@code acc} argument, launches {@code action},
+     * and binds {@code subject} to the period of its execution.
      *
      * @param subject the {@code Subject} that the specified
      *                  {@code action} will run as.  This parameter
@@ -623,29 +697,49 @@ public final class Subject implements java.io.Serializable {
         Objects.requireNonNull(action,
                 ResourcesMgr.getString("invalid.null.action.provided"));
 
-        // set up the new Subject-based AccessControlContext
-        // for doPrivileged
-        final AccessControlContext callerAcc =
-                (acc == null ?
-                new AccessControlContext(NULL_PD_ARRAY) :
-                acc);
+        if (!SharedSecrets.getJavaLangAccess().allowSecurityManager()) {
+            try {
+                return callAs(subject, action::run);
+            } catch (CompletionException ce) {
+                var cause = ce.getCause();
+                if (cause instanceof RuntimeException re) {
+                    throw re;
+                } else if (cause instanceof Error er) {
+                    throw er;
+                } else {
+                    throw new AssertionError(ce);
+                }
+            }
+        } else {
+            // set up the new Subject-based AccessControlContext
+            // for doPrivileged
+            final AccessControlContext callerAcc =
+                    (acc == null ?
+                            new AccessControlContext(NULL_PD_ARRAY) :
+                            acc);
 
-        // call doPrivileged and push this new context on the stack
-        return java.security.AccessController.doPrivileged
-                                        (action,
-                                        createContext(subject, callerAcc));
+            // call doPrivileged and push this new context on the stack
+            return java.security.AccessController.doPrivileged
+                    (action,
+                            createContext(subject, callerAcc));
+        }
     }
 
     /**
      * Perform privileged work as a particular {@code Subject}.
      *
-     * <p> This method behaves exactly as {@code Subject.doAs},
+     * <p> If a security manager is <a href=#sm-allowed>allowed</a>,
+     * this method behaves exactly as {@code Subject.doAs},
      * except that instead of retrieving the current Thread's
      * {@code AccessControlContext}, it uses the provided
      * {@code AccessControlContext}.  If the provided
      * {@code AccessControlContext} is {@code null},
      * this method instantiates a new {@code AccessControlContext}
      * with an empty collection of ProtectionDomains.
+     *
+     * <p> If a security manager is not allowed,
+     * this method ignores the {@code acc} argument, launches {@code action},
+     * and binds {@code subject} to the period of its execution.
      *
      * @param subject the {@code Subject} that the specified
      *                  {@code action} will run as.  This parameter
@@ -699,16 +793,33 @@ public final class Subject implements java.io.Serializable {
         Objects.requireNonNull(action,
                 ResourcesMgr.getString("invalid.null.action.provided"));
 
-        // set up the new Subject-based AccessControlContext for doPrivileged
-        final AccessControlContext callerAcc =
-                (acc == null ?
-                new AccessControlContext(NULL_PD_ARRAY) :
-                acc);
+        if (!SharedSecrets.getJavaLangAccess().allowSecurityManager()) {
+            try {
+                return callAs(subject, action::run);
+            } catch (CompletionException ce) {
+                var cause = ce.getCause();
+                if (cause instanceof RuntimeException re) {
+                    throw re;
+                } else if (cause instanceof Error er) {
+                    throw er;
+                } else if (cause instanceof Exception e) {
+                    throw new PrivilegedActionException(e);
+                } else {
+                    throw new PrivilegedActionException(ce);
+                }
+            }
+        } else {
+            // set up the new Subject-based AccessControlContext for doPrivileged
+            final AccessControlContext callerAcc =
+                    (acc == null ?
+                            new AccessControlContext(NULL_PD_ARRAY) :
+                            acc);
 
-        // call doPrivileged and push this new context on the stack
-        return java.security.AccessController.doPrivileged
-                                        (action,
-                                        createContext(subject, callerAcc));
+            // call doPrivileged and push this new context on the stack
+            return java.security.AccessController.doPrivileged
+                    (action,
+                            createContext(subject, callerAcc));
+        }
     }
 
     @SuppressWarnings("removal")
@@ -784,7 +895,7 @@ public final class Subject implements java.io.Serializable {
 
         // always return an empty Set instead of null
         // so LoginModules can add to the Set if necessary
-        return new ClassSet<T>(PRINCIPAL_SET, c);
+        return new ClassSet<>(PRINCIPAL_SET, c);
     }
 
     /**
@@ -878,7 +989,7 @@ public final class Subject implements java.io.Serializable {
 
         // always return an empty Set instead of null
         // so LoginModules can add to the Set if necessary
-        return new ClassSet<T>(PUB_CREDENTIAL_SET, c);
+        return new ClassSet<>(PUB_CREDENTIAL_SET, c);
     }
 
     /**
@@ -922,7 +1033,7 @@ public final class Subject implements java.io.Serializable {
 
         // always return an empty Set instead of null
         // so LoginModules can add to the Set if necessary
-        return new ClassSet<T>(PRIV_CREDENTIAL_SET, c);
+        return new ClassSet<>(PRIV_CREDENTIAL_SET, c);
     }
 
     /**
@@ -947,17 +1058,11 @@ public final class Subject implements java.io.Serializable {
     @Override
     public boolean equals(Object o) {
 
-        if (o == null) {
-            return false;
-        }
-
         if (this == o) {
             return true;
         }
 
-        if (o instanceof Subject) {
-
-            final Subject that = (Subject)o;
+        if (o instanceof final Subject that) {
 
             // check the principal and credential sets
             Set<Principal> thatPrincipals;
@@ -1045,9 +1150,7 @@ public final class Subject implements java.io.Serializable {
     }
 
     /**
-     * Returns a hashcode for this {@code Subject}.
-     *
-     * @return a hashcode for this {@code Subject}.
+     * {@return a hashcode for this {@code Subject}}
      *
      * @throws SecurityException if a security manager is installed and the
      *         caller does not have a {@link PrivateCredentialPermission}
@@ -1212,7 +1315,7 @@ public final class Subject implements java.io.Serializable {
         SecureSet(Subject subject, int which) {
             this.subject = subject;
             this.which = which;
-            this.elements = new LinkedList<E>();
+            this.elements = new LinkedList<>();
         }
 
         SecureSet(Subject subject, int which, LinkedList<E> list) {
@@ -1227,10 +1330,12 @@ public final class Subject implements java.io.Serializable {
 
         public Iterator<E> iterator() {
             final LinkedList<E> list = elements;
-            return new Iterator<E>() {
-                ListIterator<E> i = list.listIterator(0);
+            return new Iterator<>() {
+                final ListIterator<E> i = list.listIterator(0);
 
-                public boolean hasNext() {return i.hasNext();}
+                public boolean hasNext() {
+                    return i.hasNext();
+                }
 
                 public E next() {
                     if (which != Subject.PRIV_CREDENTIAL_SET) {
@@ -1369,7 +1474,7 @@ public final class Subject implements java.io.Serializable {
                     // For private credentials:
                     // If the caller does not have read permission
                     // for o.getClass(), we throw a SecurityException.
-                    // Otherwise we check the private cred set to see whether
+                    // Otherwise, we check the private cred set to see whether
                     // it contains the Object
 
                     SecurityManager sm = System.getSecurityManager();
@@ -1504,7 +1609,7 @@ public final class Subject implements java.io.Serializable {
                 // The next() method performs a security manager check
                 // on each element in the SecureSet.  If we make it all
                 // the way through we should be able to simply return
-                // element's toArray results.  Otherwise we'll let
+                // element's toArray results.  Otherwise, we'll let
                 // the SecurityException pass up the call stack.
                 e.next();
             }
@@ -1518,7 +1623,7 @@ public final class Subject implements java.io.Serializable {
                 // The next() method performs a security manager check
                 // on each element in the SecureSet.  If we make it all
                 // the way through we should be able to simply return
-                // element's toArray results.  Otherwise we'll let
+                // element's toArray results.  Otherwise, we'll let
                 // the SecurityException pass up the call stack.
                 e.next();
             }
@@ -1526,6 +1631,7 @@ public final class Subject implements java.io.Serializable {
             return elements.toArray(a);
         }
 
+        @Override
         public boolean equals(Object o) {
             if (o == this) {
                 return true;
@@ -1547,14 +1653,11 @@ public final class Subject implements java.io.Serializable {
             }
         }
 
+        @Override
         public int hashCode() {
             int h = 0;
-            Iterator<E> i = iterator();
-            while (i.hasNext()) {
-                E obj = i.next();
-                if (obj != null) {
-                    h += obj.hashCode();
-                }
+            for (E obj : this) {
+                h += Objects.hashCode(obj);
             }
             return h;
         }
@@ -1618,14 +1721,14 @@ public final class Subject implements java.io.Serializable {
      */
     private class ClassSet<T> extends AbstractSet<T> {
 
-        private int which;
-        private Class<T> c;
-        private Set<T> set;
+        private final int which;
+        private final Class<T> c;
+        private final Set<T> set;
 
         ClassSet(int which, Class<T> c) {
             this.which = which;
             this.c = c;
-            set = new HashSet<T>();
+            set = new HashSet<>();
 
             switch (which) {
             case Subject.PRINCIPAL_SET:

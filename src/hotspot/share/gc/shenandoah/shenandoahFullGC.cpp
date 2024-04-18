@@ -25,11 +25,13 @@
 #include "precompiled.hpp"
 
 #include "compiler/oopMap.hpp"
+#include "gc/shared/continuationGCSupport.hpp"
 #include "gc/shared/gcTraceTime.inline.hpp"
 #include "gc/shared/preservedMarks.inline.hpp"
 #include "gc/shared/tlab_globals.hpp"
 #include "gc/shared/workerThread.hpp"
 #include "gc/shenandoah/heuristics/shenandoahHeuristics.hpp"
+#include "gc/shenandoah/shenandoahCollectorPolicy.hpp"
 #include "gc/shenandoah/shenandoahConcurrentGC.hpp"
 #include "gc/shenandoah/shenandoahCollectionSet.hpp"
 #include "gc/shenandoah/shenandoahFreeSet.hpp"
@@ -54,8 +56,8 @@
 #include "memory/universe.hpp"
 #include "oops/compressedOops.inline.hpp"
 #include "oops/oop.inline.hpp"
+#include "runtime/javaThread.hpp"
 #include "runtime/orderAccess.hpp"
-#include "runtime/thread.hpp"
 #include "runtime/vmThread.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/events.hpp"
@@ -64,6 +66,10 @@
 ShenandoahFullGC::ShenandoahFullGC() :
   _gc_timer(ShenandoahHeap::heap()->gc_timer()),
   _preserved_marks(new PreservedMarksSet(true)) {}
+
+ShenandoahFullGC::~ShenandoahFullGC() {
+  delete _preserved_marks;
+}
 
 bool ShenandoahFullGC::collect(GCCause::Cause cause) {
   vmop_entry_full(cause);
@@ -100,15 +106,21 @@ void ShenandoahFullGC::op_full(GCCause::Cause cause) {
   // Perform full GC
   do_it(cause);
 
+  ShenandoahHeap* const heap = ShenandoahHeap::heap();
+
   metrics.snap_after();
 
   if (metrics.is_good_progress()) {
-    ShenandoahHeap::heap()->notify_gc_progress();
+    heap->notify_gc_progress();
   } else {
     // Nothing to do. Tell the allocation path that we have failed to make
     // progress, and it can finally fail.
-    ShenandoahHeap::heap()->notify_gc_no_progress();
+    heap->notify_gc_no_progress();
   }
+
+  // Regardless if progress was made, we record that we completed a "successful" full GC.
+  heap->heuristics()->record_success_full();
+  heap->shenandoah_policy()->record_success_full();
 }
 
 void ShenandoahFullGC::do_it(GCCause::Cause gc_cause) {
@@ -223,12 +235,8 @@ void ShenandoahFullGC::do_it(GCCause::Cause gc_cause) {
     phase3_update_references();
 
     phase4_compact_objects(worker_slices);
-  }
 
-  {
-    // Epilogue
-    _preserved_marks->restore(heap->workers());
-    _preserved_marks->reclaim();
+    phase5_epilog();
   }
 
   // Resize metaspace
@@ -268,6 +276,8 @@ public:
     _ctx->capture_top_at_mark_start(r);
     r->clear_live_data();
   }
+
+  bool is_thread_safe() { return true; }
 };
 
 void ShenandoahFullGC::phase1_mark_heap() {
@@ -277,7 +287,7 @@ void ShenandoahFullGC::phase1_mark_heap() {
   ShenandoahHeap* heap = ShenandoahHeap::heap();
 
   ShenandoahPrepareForMarkClosure cl;
-  heap->heap_region_iterate(&cl);
+  heap->parallel_heap_region_iterate(&cl);
 
   heap->set_unload_classes(heap->heuristics()->can_unload_classes());
 
@@ -309,15 +319,15 @@ public:
     _empty_regions(empty_regions),
     _empty_regions_pos(0),
     _to_region(to_region),
-    _from_region(NULL),
+    _from_region(nullptr),
     _compact_point(to_region->bottom()) {}
 
   void set_from_region(ShenandoahHeapRegion* from_region) {
     _from_region = from_region;
   }
 
-  void finish_region() {
-    assert(_to_region != NULL, "should not happen");
+  void finish() {
+    assert(_to_region != nullptr, "should not happen");
     _to_region->set_new_top(_compact_point);
   }
 
@@ -330,13 +340,13 @@ public:
   }
 
   void do_object(oop p) {
-    assert(_from_region != NULL, "must set before work");
+    assert(_from_region != nullptr, "must set before work");
     assert(_heap->complete_marking_context()->is_marked(p), "must be marked");
     assert(!_heap->complete_marking_context()->allocated_after_mark_start(p), "must be truly marked");
 
     size_t obj_size = p->size();
     if (_compact_point + obj_size > _to_region->end()) {
-      finish_region();
+      finish();
 
       // Object doesn't fit. Pick next empty region and start compacting there.
       ShenandoahHeapRegion* new_to_region;
@@ -349,16 +359,18 @@ public:
       }
 
       assert(new_to_region != _to_region, "must not reuse same to-region");
-      assert(new_to_region != NULL, "must not be NULL");
+      assert(new_to_region != nullptr, "must not be null");
       _to_region = new_to_region;
       _compact_point = _to_region->bottom();
     }
 
-    // Object fits into current region, record new location:
+    // Object fits into current region, record new location, if object does not move:
     assert(_compact_point + obj_size <= _to_region->end(), "must fit");
-    shenandoah_assert_not_forwarded(NULL, p);
-    _preserved_marks->push_if_necessary(p, p->mark());
-    p->forward_to(cast_to_oop(_compact_point));
+    shenandoah_assert_not_forwarded(nullptr, p);
+    if (_compact_point != cast_from_oop<HeapWord*>(p)) {
+      _preserved_marks->push_if_necessary(p, p->mark());
+      p->forward_to(cast_to_oop(_compact_point));
+    }
     _compact_point += obj_size;
   }
 };
@@ -388,47 +400,61 @@ public:
     return r->is_stw_move_allowed() && !r->is_humongous();
   }
 
-  void work(uint worker_id) {
-    ShenandoahParallelWorkerSession worker_session(worker_id);
-    ShenandoahHeapRegionSet* slice = _worker_slices[worker_id];
-    ShenandoahHeapRegionSetIterator it(slice);
-    ShenandoahHeapRegion* from_region = it.next();
-    // No work?
-    if (from_region == NULL) {
-       return;
-    }
-
-    // Sliding compaction. Walk all regions in the slice, and compact them.
-    // Remember empty regions and reuse them as needed.
-    ResourceMark rm;
-
-    GrowableArray<ShenandoahHeapRegion*> empty_regions((int)_heap->num_regions());
-
-    ShenandoahPrepareForCompactionObjectClosure cl(_preserved_marks->get(worker_id), empty_regions, from_region);
-
-    while (from_region != NULL) {
-      assert(is_candidate_region(from_region), "Sanity");
-
-      cl.set_from_region(from_region);
-      if (from_region->has_live()) {
-        _heap->marked_object_iterate(from_region, &cl);
-      }
-
-      // Compacted the region to somewhere else? From-region is empty then.
-      if (!cl.is_compact_same_region()) {
-        empty_regions.append(from_region);
-      }
-      from_region = it.next();
-    }
-    cl.finish_region();
-
-    // Mark all remaining regions as empty
-    for (int pos = cl.empty_regions_pos(); pos < empty_regions.length(); ++pos) {
-      ShenandoahHeapRegion* r = empty_regions.at(pos);
-      r->set_new_top(r->bottom());
-    }
-  }
+  void work(uint worker_id) override;
+private:
+  template<typename ClosureType>
+  void prepare_for_compaction(ClosureType& cl,
+                              GrowableArray<ShenandoahHeapRegion*>& empty_regions,
+                              ShenandoahHeapRegionSetIterator& it,
+                              ShenandoahHeapRegion* from_region);
 };
+
+void ShenandoahPrepareForCompactionTask::work(uint worker_id) {
+  ShenandoahParallelWorkerSession worker_session(worker_id);
+  ShenandoahHeapRegionSet* slice = _worker_slices[worker_id];
+  ShenandoahHeapRegionSetIterator it(slice);
+  ShenandoahHeapRegion* from_region = it.next();
+  // No work?
+  if (from_region == nullptr) {
+    return;
+  }
+
+  // Sliding compaction. Walk all regions in the slice, and compact them.
+  // Remember empty regions and reuse them as needed.
+  ResourceMark rm;
+
+  GrowableArray<ShenandoahHeapRegion*> empty_regions((int)_heap->num_regions());
+
+  ShenandoahPrepareForCompactionObjectClosure cl(_preserved_marks->get(worker_id), empty_regions, from_region);
+  prepare_for_compaction(cl, empty_regions, it, from_region);
+}
+
+template<typename ClosureType>
+void ShenandoahPrepareForCompactionTask::prepare_for_compaction(ClosureType& cl,
+                                                                GrowableArray<ShenandoahHeapRegion*>& empty_regions,
+                                                                ShenandoahHeapRegionSetIterator& it,
+                                                                ShenandoahHeapRegion* from_region) {
+  while (from_region != nullptr) {
+    assert(is_candidate_region(from_region), "Sanity");
+    cl.set_from_region(from_region);
+    if (from_region->has_live()) {
+      _heap->marked_object_iterate(from_region, &cl);
+    }
+
+    // Compacted the region to somewhere else? From-region is empty then.
+    if (!cl.is_compact_same_region()) {
+      empty_regions.append(from_region);
+    }
+    from_region = it.next();
+  }
+  cl.finish();
+
+  // Mark all remaining regions as empty
+  for (int pos = cl.empty_regions_pos(); pos < empty_regions.length(); ++pos) {
+    ShenandoahHeapRegion* r = empty_regions.at(pos);
+    r->set_new_top(r->bottom());
+  }
+}
 
 void ShenandoahFullGC::calculate_target_humongous_objects() {
   ShenandoahHeap* heap = ShenandoahHeap::heap();
@@ -660,7 +686,7 @@ void ShenandoahFullGC::distribute_slices(ShenandoahHeapRegionSet** worker_slices
   for (size_t wid = 0; wid < n_workers; wid++) {
     ShenandoahHeapRegionSetIterator it(worker_slices[wid]);
     ShenandoahHeapRegion* r = it.next();
-    while (r != NULL) {
+    while (r != nullptr) {
       size_t idx = r->index();
       assert(ShenandoahPrepareForCompactionTask::is_candidate_region(r), "Sanity: " SIZE_FORMAT, idx);
       assert(!map.at(idx), "No region distributed twice: " SIZE_FORMAT, idx);
@@ -740,6 +766,8 @@ public:
 
   void do_oop(oop* p)       { do_oop_work(p); }
   void do_oop(narrowOop* p) { do_oop_work(p); }
+  void do_method(Method* m) {}
+  void do_nmethod(nmethod* nm) {}
 };
 
 class ShenandoahAdjustPointersObjectClosure : public ObjectClosure {
@@ -772,7 +800,7 @@ public:
     ShenandoahParallelWorkerSession worker_session(worker_id);
     ShenandoahAdjustPointersObjectClosure obj_cl;
     ShenandoahHeapRegion* r = _regions.next();
-    while (r != NULL) {
+    while (r != nullptr) {
       if (!r->is_humongous_continuation() && r->has_live()) {
         _heap->marked_object_iterate(r, &obj_cl);
       }
@@ -838,8 +866,11 @@ public:
     if (p->is_forwarded()) {
       HeapWord* compact_from = cast_from_oop<HeapWord*>(p);
       HeapWord* compact_to = cast_from_oop<HeapWord*>(p->forwardee());
+      assert(compact_from != compact_to, "Forwarded object should move");
       Copy::aligned_conjoint_words(compact_from, compact_to, size);
       oop new_obj = cast_to_oop(compact_to);
+
+      ContinuationGCSupport::relativize_stack_chunk(new_obj);
       new_obj->init_mark();
     }
   }
@@ -863,7 +894,7 @@ public:
 
     ShenandoahCompactObjectsClosure cl(worker_id);
     ShenandoahHeapRegion* r = slice.next();
-    while (r != NULL) {
+    while (r != nullptr) {
       assert(!r->is_humongous(), "must not get humongous regions here");
       if (r->has_live()) {
         _heap->marked_object_iterate(r, &cl);
@@ -901,6 +932,9 @@ public:
     // Make empty regions that have been allocated into regular
     if (r->is_empty() && live > 0) {
       r->make_regular_bypass();
+      if (ZapUnusedHeapArea) {
+        SpaceMangler::mangle_region(MemRegion(r->top(), r->end()));
+      }
     }
 
     // Reclaim regular regions that became empty
@@ -929,7 +963,7 @@ void ShenandoahFullGC::compact_humongous_objects() {
   //
   // This code is serial, because doing the in-slice parallel sliding is tricky. In most cases,
   // humongous regions are already compacted, and do not require further moves, which alleviates
-  // sliding costs. We may consider doing this in parallel in future.
+  // sliding costs. We may consider doing this in parallel in the future.
 
   ShenandoahHeap* heap = ShenandoahHeap::heap();
 
@@ -951,9 +985,8 @@ void ShenandoahFullGC::compact_humongous_objects() {
       assert(old_start != new_start, "must be real move");
       assert(r->is_stw_move_allowed(), "Region " SIZE_FORMAT " should be movable", r->index());
 
-      Copy::aligned_conjoint_words(heap->get_region(old_start)->bottom(),
-                                   heap->get_region(new_start)->bottom(),
-                                   words_size);
+      Copy::aligned_conjoint_words(r->bottom(), heap->get_region(new_start)->bottom(), words_size);
+      ContinuationGCSupport::relativize_stack_chunk(cast_to_oop<HeapWord*>(r->bottom()));
 
       oop new_obj = cast_to_oop(heap->get_region(new_start)->bottom());
       new_obj->init_mark();
@@ -1009,7 +1042,7 @@ public:
     ShenandoahHeapRegion* region = _regions.next();
     ShenandoahHeap* heap = ShenandoahHeap::heap();
     ShenandoahMarkingContext* const ctx = heap->complete_marking_context();
-    while (region != NULL) {
+    while (region != nullptr) {
       if (heap->is_bitmap_slice_committed(region) && !region->is_pinned() && region->has_live()) {
         ctx->clear_bitmap(region);
       }
@@ -1036,6 +1069,11 @@ void ShenandoahFullGC::phase4_compact_objects(ShenandoahHeapRegionSet** worker_s
     ShenandoahGCPhase phase(ShenandoahPhaseTimings::full_gc_copy_objects_humong);
     compact_humongous_objects();
   }
+}
+
+void ShenandoahFullGC::phase5_epilog() {
+  GCTraceTime(Info, gc, phases) time("Phase 5: Full GC epilog", _gc_timer);
+  ShenandoahHeap* heap = ShenandoahHeap::heap();
 
   // Reset complete bitmap. We're about to reset the complete-top-at-mark-start pointer
   // and must ensure the bitmap is in sync.
@@ -1048,14 +1086,15 @@ void ShenandoahFullGC::phase4_compact_objects(ShenandoahHeapRegionSet** worker_s
   // Bring regions in proper states after the collection, and set heap properties.
   {
     ShenandoahGCPhase phase(ShenandoahPhaseTimings::full_gc_copy_objects_rebuild);
-
     ShenandoahPostCompactClosure post_compact;
     heap->heap_region_iterate(&post_compact);
     heap->set_used(post_compact.get_live());
 
     heap->collection_set()->clear();
     heap->free_set()->rebuild();
+    heap->clear_cancelled_gc();
   }
 
-  heap->clear_cancelled_gc();
+  _preserved_marks->restore(heap->workers());
+  _preserved_marks->reclaim();
 }

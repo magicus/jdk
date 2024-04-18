@@ -812,7 +812,7 @@ class DTDParser implements DTDConstants {
     }
 
     /**
-     * Parse a section of the input upto EOF or ']'.
+     * Parse a section of the input up to EOF or ']'.
      */
     @SuppressWarnings("fallthrough")
     void parseSection() throws IOException {
@@ -919,8 +919,6 @@ class DTDParser implements DTDConstants {
         } catch (Exception e) {
             error("exception", e.getClass().getName(), e.getMessage());
             e.printStackTrace();
-        } catch (ThreadDeath e) {
-            error("terminated");
         }
         return (nerrors > 0) ? null : dtd;
     }

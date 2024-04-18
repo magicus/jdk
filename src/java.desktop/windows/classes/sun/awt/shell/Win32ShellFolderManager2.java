@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -108,11 +108,15 @@ final class Win32ShellFolderManager2 extends ShellFolderManager {
     }
 
     static Win32ShellFolder2 createShellFolderFromRelativePIDL(Win32ShellFolder2 parent, long pIDL)
-            throws InterruptedException {
+            throws InterruptedException, FileNotFoundException
+    {
         // Walk down this relative pIDL, creating new nodes for each of the entries
         while (pIDL != 0) {
             long curPIDL = Win32ShellFolder2.copyFirstPIDLEntry(pIDL);
             if (curPIDL != 0) {
+                if (!parent.isDirectory()) {
+                    throw new FileNotFoundException("not a directory");
+                }
                 parent = Win32ShellFolder2.createShellFolder(parent, curPIDL);
                 pIDL = Win32ShellFolder2.getNextPIDLEntry(pIDL);
             } else {
@@ -518,7 +522,7 @@ final class Win32ShellFolderManager2 extends ShellFolderManager {
         boolean special1 = sf1.isSpecial();
         boolean special2 = sf2.isSpecial();
 
-        if (special1 || special2) {
+        if (special1 && special2) {
             if (topFolderList == null) {
                 ArrayList<Win32ShellFolder2> tmpTopFolderList = new ArrayList<>();
                 tmpTopFolderList.add(Win32ShellFolderManager2.getPersonal());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,7 @@
  */
 package jdk.incubator.vector;
 
-import java.nio.ByteBuffer;
+import java.lang.foreign.MemorySegment;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.IntUnaryOperator;
@@ -466,6 +466,22 @@ final class Long128Vector extends LongVector {
 
     @Override
     @ForceInline
+    public Long128Vector compress(VectorMask<Long> m) {
+        return (Long128Vector)
+            super.compressTemplate(Long128Mask.class,
+                                   (Long128Mask) m);  // specialize
+    }
+
+    @Override
+    @ForceInline
+    public Long128Vector expand(VectorMask<Long> m) {
+        return (Long128Vector)
+            super.expandTemplate(Long128Mask.class,
+                                   (Long128Mask) m);  // specialize
+    }
+
+    @Override
+    @ForceInline
     public Long128Vector selectFrom(Vector<Long> v) {
         return (Long128Vector)
             super.selectFromTemplate((Long128Vector) v);  // specialize
@@ -625,10 +641,11 @@ final class Long128Vector extends LongVector {
 
         @Override
         @ForceInline
-        public Long128Mask eq(VectorMask<Long> mask) {
-            Objects.requireNonNull(mask);
-            Long128Mask m = (Long128Mask)mask;
-            return xor(m.not());
+        /*package-private*/
+        Long128Mask indexPartiallyInUpperRange(long offset, long limit) {
+            return (Long128Mask) VectorSupport.indexPartiallyInUpperRange(
+                Long128Mask.class, long.class, VLENGTH, offset, limit,
+                (o, l) -> (Long128Mask) TRUE_MASK.indexPartiallyInRange(o, l));
         }
 
         // Unary operations
@@ -638,6 +655,15 @@ final class Long128Vector extends LongVector {
         public Long128Mask not() {
             return xor(maskAll(true));
         }
+
+        @Override
+        @ForceInline
+        public Long128Mask compress() {
+            return (Long128Mask)VectorSupport.compressExpandOp(VectorSupport.VECTOR_OP_MASK_COMPRESS,
+                Long128Vector.class, Long128Mask.class, ETYPE, VLENGTH, null, this,
+                (v1, m1) -> VSPECIES.iota().compare(VectorOperators.LT, m1.trueCount()));
+        }
+
 
         // Binary operations
 
@@ -661,9 +687,9 @@ final class Long128Vector extends LongVector {
                                           (m1, m2, vm) -> m1.bOp(m2, (i, a, b) -> a | b));
         }
 
+        @Override
         @ForceInline
-        /* package-private */
-        Long128Mask xor(VectorMask<Long> mask) {
+        public Long128Mask xor(VectorMask<Long> mask) {
             Objects.requireNonNull(mask);
             Long128Mask m = (Long128Mask)mask;
             return VectorSupport.binaryOp(VECTOR_OP_XOR, Long128Mask.class, null, long.class, VLENGTH,
@@ -702,6 +728,16 @@ final class Long128Vector extends LongVector {
             }
             return VectorSupport.maskReductionCoerced(VECTOR_OP_MASK_TOLONG, Long128Mask.class, long.class, VLENGTH, this,
                                                       (m) -> toLongHelper(m.getBits()));
+        }
+
+        // laneIsSet
+
+        @Override
+        @ForceInline
+        public boolean laneIsSet(int i) {
+            Objects.checkIndex(i, length());
+            return VectorSupport.extract(Long128Mask.class, long.class, VLENGTH,
+                                         this, i, (m, idx) -> (m.getBits()[idx] ? 1L : 0L)) == 1L;
         }
 
         // Reductions
@@ -815,8 +851,8 @@ final class Long128Vector extends LongVector {
     @ForceInline
     @Override
     final
-    LongVector fromArray0(long[] a, int offset, VectorMask<Long> m) {
-        return super.fromArray0Template(Long128Mask.class, a, offset, (Long128Mask) m);  // specialize
+    LongVector fromArray0(long[] a, int offset, VectorMask<Long> m, int offsetInRange) {
+        return super.fromArray0Template(Long128Mask.class, a, offset, (Long128Mask) m, offsetInRange);  // specialize
     }
 
     @ForceInline
@@ -831,29 +867,15 @@ final class Long128Vector extends LongVector {
     @ForceInline
     @Override
     final
-    LongVector fromByteArray0(byte[] a, int offset) {
-        return super.fromByteArray0Template(a, offset);  // specialize
+    LongVector fromMemorySegment0(MemorySegment ms, long offset) {
+        return super.fromMemorySegment0Template(ms, offset);  // specialize
     }
 
     @ForceInline
     @Override
     final
-    LongVector fromByteArray0(byte[] a, int offset, VectorMask<Long> m) {
-        return super.fromByteArray0Template(Long128Mask.class, a, offset, (Long128Mask) m);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    LongVector fromByteBuffer0(ByteBuffer bb, int offset) {
-        return super.fromByteBuffer0Template(bb, offset);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    LongVector fromByteBuffer0(ByteBuffer bb, int offset, VectorMask<Long> m) {
-        return super.fromByteBuffer0Template(Long128Mask.class, bb, offset, (Long128Mask) m);  // specialize
+    LongVector fromMemorySegment0(MemorySegment ms, long offset, VectorMask<Long> m, int offsetInRange) {
+        return super.fromMemorySegment0Template(Long128Mask.class, ms, offset, (Long128Mask) m, offsetInRange);  // specialize
     }
 
     @ForceInline
@@ -881,22 +903,8 @@ final class Long128Vector extends LongVector {
     @ForceInline
     @Override
     final
-    void intoByteArray0(byte[] a, int offset) {
-        super.intoByteArray0Template(a, offset);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    void intoByteArray0(byte[] a, int offset, VectorMask<Long> m) {
-        super.intoByteArray0Template(Long128Mask.class, a, offset, (Long128Mask) m);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    void intoByteBuffer0(ByteBuffer bb, int offset, VectorMask<Long> m) {
-        super.intoByteBuffer0Template(Long128Mask.class, bb, offset, (Long128Mask) m);
+    void intoMemorySegment0(MemorySegment ms, long offset, VectorMask<Long> m) {
+        super.intoMemorySegment0Template(Long128Mask.class, ms, offset, (Long128Mask) m);
     }
 
 
@@ -905,3 +913,4 @@ final class Long128Vector extends LongVector {
     // ================================================
 
 }
+

@@ -119,7 +119,7 @@ public class EUC_TW {
                     indexC2B[e.cp>>8] = 1;
                 } else {
                     indexC2BSupp[(e.cp&0xffff)>>8] = 1;
-                    suppFlag[e.bs] |= (1 << plane);
+                    suppFlag[e.bs] |= (byte) (1 << plane);
                 }
             }
 

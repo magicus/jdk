@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,11 +46,11 @@ private:
   InstanceClassLoaderKlass(const ClassFileParser& parser) : InstanceKlass(parser, Kind) {}
 
 public:
-  InstanceClassLoaderKlass() { assert(DumpSharedSpaces || UseSharedSpaces, "only for CDS"); }
+  InstanceClassLoaderKlass();
 
   // Oop fields (and metadata) iterators
   //
-  // The InstanceClassLoaderKlass iterators also visit the CLD pointer (or mirror of hidden klasses.)
+  // The InstanceClassLoaderKlass iterators also visit the CLD pointer
 
   // Forward iteration
   // Iterate over the oop fields and metadata.

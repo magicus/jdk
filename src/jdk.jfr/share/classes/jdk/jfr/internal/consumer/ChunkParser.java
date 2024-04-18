@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,7 +40,7 @@ import jdk.jfr.internal.Logger;
 import jdk.jfr.internal.LongMap;
 import jdk.jfr.internal.MetadataDescriptor;
 import jdk.jfr.internal.Type;
-import jdk.jfr.internal.Utils;
+import jdk.jfr.internal.util.Utils;
 import jdk.jfr.internal.consumer.filter.CheckpointEvent;
 import jdk.jfr.internal.consumer.filter.ChunkWriter;
 
@@ -50,30 +50,17 @@ import jdk.jfr.internal.consumer.filter.ChunkWriter;
  */
 public final class ChunkParser {
 
-    public static final class ParserConfiguration {
-        private final boolean reuse;
-        private final boolean ordered;
-        private final ParserFilter eventFilter;
-        private final ChunkWriter chunkWriter;
-
-        long filterStart;
-        long filterEnd;
-
-        public ParserConfiguration(long filterStart, long filterEnd, boolean reuse, boolean ordered, ParserFilter filter, ChunkWriter chunkWriter) {
-            this.filterStart = filterStart;
-            this.filterEnd = filterEnd;
-            this.reuse = reuse;
-            this.ordered = ordered;
-            this.eventFilter = filter;
-            this.chunkWriter = chunkWriter;
-        }
+    public record ParserConfiguration(long filterStart, long filterEnd, boolean reuse,  boolean ordered, ParserFilter filter, ChunkWriter chunkWriter) {
 
         public ParserConfiguration() {
             this(0, Long.MAX_VALUE, false, false, ParserFilter.ACCEPT_ALL, null);
         }
 
-        public boolean isOrdered() {
-            return ordered;
+        ParserConfiguration withRange(long filterStart, long filterEnd) {
+            if (filterStart == this.filterStart && filterEnd == this.filterEnd) {
+                return this;
+            }
+            return new ParserConfiguration(filterStart, filterEnd, reuse, ordered, filter, chunkWriter);
         }
     }
 
@@ -111,6 +98,7 @@ public final class ChunkParser {
     private ParserConfiguration configuration;
     private MetadataDescriptor previousMetadata;
     private MetadataDescriptor metadata;
+    private long lastFlush;
     private boolean staleMetadata = true;
 
     public ChunkParser(RecordingInput input, ParserState ps) throws IOException {
@@ -139,7 +127,7 @@ public final class ChunkParser {
             this.configuration = previous.configuration;
         }
         this.metadata = header.readMetadata(previousMetadata);
-        this.timeConverter = new TimeConverter(chunkHeader, metadata.getGMTOffset());
+        this.timeConverter = new TimeConverter(chunkHeader, metadata.getGMTOffset() + metadata.getDST());
         if (metadata != previousMetadata) {
             ParserFactory factory = new ParserFactory(metadata, constantLookups, timeConverter);
             parsers = factory.getParsers();
@@ -178,7 +166,7 @@ public final class ChunkParser {
                 ep.setReuse(configuration.reuse);
                 ep.setFilterStart(configuration.filterStart);
                 ep.setFilterEnd(configuration.filterEnd);
-                long threshold = configuration.eventFilter.getThreshold(name);
+                long threshold = configuration.filter().getThreshold(name);
                 if (threshold >= 0) {
                     ep.setEnabled(true);
                     ep.setThresholdNanos(threshold);
@@ -241,7 +229,7 @@ public final class ChunkParser {
         long absoluteChunkEnd = chunkHeader.getEnd();
         while (input.position() < absoluteChunkEnd) {
             long pos = input.position();
-            int size = input.readInt();
+            long size = input.readLong();
             if (size == 0) {
                 throw new IOException("Event can't have zero size");
             }
@@ -256,7 +244,7 @@ public final class ChunkParser {
                         if (chunkWriter.accept(event)) {
                             chunkWriter.writeEvent(pos, input.position());
                             input.position(pos);
-                            input.readInt(); // size
+                            input.readLong(); // size
                             input.readLong(); // type
                             chunkWriter.touch(ep.parseReferences(input));
                         }
@@ -267,7 +255,7 @@ public final class ChunkParser {
                 // Not accepted by filter
             } else {
                 if (typeId == 1) { // checkpoint event
-                    if (CheckpointType.FLUSH.is(parseCheckpointType())) {
+                    if ((parseFlushCheckpoint())) {
                         input.position(pos + size);
                         return FLUSH_MARKER;
                     }
@@ -282,11 +270,15 @@ public final class ChunkParser {
         return null;
     }
 
-    private byte parseCheckpointType() throws IOException {
-        input.readLong(); // timestamp
+    private boolean parseFlushCheckpoint() throws IOException {
+        long timestamp = input.readLong();
         input.readLong(); // duration
         input.readLong(); // delta
-        return input.readByte();
+        if (CheckpointType.FLUSH.is(input.readByte())) {
+            lastFlush = timeConverter.convertTimestamp(timestamp);
+            return true;
+        }
+        return false;
     }
 
     private boolean awaitUpdatedHeader(long absoluteChunkEnd, long filterEnd) throws IOException {
@@ -296,9 +288,6 @@ public final class ChunkParser {
         while (true) {
             if (parserState.isClosed()) {
                 return true;
-            }
-            if (chunkHeader.getLastNanos() > filterEnd)  {
-              return true;
             }
             chunkHeader.refresh();
             if (absoluteChunkEnd != chunkHeader.getEnd()) {
@@ -323,7 +312,7 @@ public final class ChunkParser {
             }
             input.position(thisCP);
             lastCP = thisCP;
-            int size = input.readInt(); // size
+            long size = input.readLong(); // size
             long typeId = input.readLong();
             if (typeId != CONSTANT_POOL_TYPE_ID) {
                 throw new IOException("Expected check point event (id = 1) at position " + lastCP + ", but found type id = " + typeId);
@@ -493,6 +482,10 @@ public final class ChunkParser {
 
     public long getEndNanos() {
         return getStartNanos() + getChunkDuration();
+    }
+
+    public long getLastFlush() {
+        return lastFlush;
     }
 
     public void setStaleMetadata(boolean stale) {

@@ -45,10 +45,8 @@ class CardTableBarrierSet: public ModRefBarrierSet {
   // Some classes get to look at some private stuff.
   friend class VMStructs;
 
-public:
-
-  typedef CardTable::CardValue CardValue;
 protected:
+  typedef CardTable::CardValue CardValue;
   // Used in support of ReduceInitialCardMarks; only consulted if COMPILER2
   // or INCLUDE_JVMCI is being used
   bool       _defer_initial_card_mark;
@@ -60,15 +58,15 @@ protected:
                       CardTable* card_table,
                       const BarrierSet::FakeRtti& fake_rtti);
 
- public:
+public:
   CardTableBarrierSet(CardTable* card_table);
-  ~CardTableBarrierSet();
+  virtual ~CardTableBarrierSet();
 
   CardTable* card_table() const { return _card_table; }
 
-  virtual void initialize();
+  void initialize();
 
-  void write_region(MemRegion mr) {
+  void write_region(JavaThread* thread, MemRegion mr) {
     invalidate(mr);
   }
 
@@ -80,7 +78,7 @@ protected:
   // either precise or imprecise. We make non-virtual inline variants of
   // these functions here for performance.
   template <DecoratorSet decorators, typename T>
-  void write_ref_field_post(T* field, oop newVal);
+  void write_ref_field_post(T* field);
 
   virtual void invalidate(MemRegion mr);
 

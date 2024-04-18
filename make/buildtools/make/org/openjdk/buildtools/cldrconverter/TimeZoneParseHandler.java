@@ -51,7 +51,9 @@ class TimeZoneParseHandler extends AbstractLDMLHandler<Object> {
     public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
         switch (qName) {
         case "type":
-            if (!isIgnored(attributes) && !attributes.getValue("deprecated").equals("true")) {
+            if (!isIgnored(attributes) &&
+                    !attributes.getValue("deprecated").equals("true") &&
+                    !attributes.getValue("description").equals("Metazone")) {
                 put(attributes.getValue("name"), attributes.getValue("alias"));
             }
             break;

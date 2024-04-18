@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,11 +24,14 @@ package jdk.jpackage.test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -54,15 +57,28 @@ public final class MacHelper {
         cmd.verifyIsOfType(PackageType.MAC_DMG);
 
         // Explode DMG assuming this can require interaction, thus use `yes`.
-        var plist = readPList(Executor.of("sh", "-c",
-                String.join(" ", "yes", "|", "/usr/bin/hdiutil", "attach",
+        String attachCMD[] = {
+            "sh", "-c",
+            String.join(" ", "yes", "|", "/usr/bin/hdiutil", "attach",
                         JPackageCommand.escapeAndJoin(
-                                cmd.outputBundle().toString()), "-plist"))
-                .dumpOutput()
-                .executeAndGetOutput());
-
-        final Path mountPoint = Path.of(plist.queryValue("mount-point"));
+                                cmd.outputBundle().toString()), "-plist")};
+        RetryExecutor attachExecutor = new RetryExecutor();
         try {
+            // 10 times with 6 second delays.
+            attachExecutor.setMaxAttemptsCount(10)
+                    .setAttemptTimeoutMillis(6000)
+                    .setWriteOutputToFile(true)
+                    .saveOutput(true)
+                    .execute(attachCMD);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+
+        Path mountPoint = null;
+        try {
+            var plist = readPList(attachExecutor.getOutput());
+            mountPoint = Path.of(plist.queryValue("mount-point"));
+
             // code here used to copy just <runtime name> or <app name>.app
             // We now have option to include arbitrary content, so we copy
             // everything in the mounted image.
@@ -74,28 +90,31 @@ public final class MacHelper {
                 ThrowingConsumer.toConsumer(consumer).accept(childPath);
             }
         } finally {
-            String cmdline[] = {
+            String detachCMD[] = {
                 "/usr/bin/hdiutil",
                 "detach",
                 "-verbose",
                 mountPoint.toAbsolutePath().toString()};
             // "hdiutil detach" might not work right away due to resource busy error, so
             // repeat detach several times.
-            RetryExecutor retryExecutor = new RetryExecutor();
+            RetryExecutor detachExecutor = new RetryExecutor();
             // Image can get detach even if we got resource busy error, so stop
             // trying to detach it if it is no longer attached.
-            retryExecutor.setExecutorInitializer(exec -> {
-                if (!Files.exists(mountPoint)) {
-                    retryExecutor.abort();
+            final Path mp = mountPoint;
+            detachExecutor.setExecutorInitializer(exec -> {
+                if (!Files.exists(mp)) {
+                    detachExecutor.abort();
                 }
             });
             try {
                 // 10 times with 6 second delays.
-                retryExecutor.setMaxAttemptsCount(10)
+                detachExecutor.setMaxAttemptsCount(10)
                         .setAttemptTimeoutMillis(6000)
-                        .execute(cmdline);
+                        .setWriteOutputToFile(true)
+                        .saveOutput(true)
+                        .execute(detachCMD);
             } catch (IOException ex) {
-                if (!retryExecutor.isAborted()) {
+                if (!detachExecutor.isAborted()) {
                     // Now force to detach if it still attached
                     if (Files.exists(mountPoint)) {
                         Executor.of("/usr/bin/hdiutil", "detach",
@@ -225,10 +244,14 @@ public final class MacHelper {
         pkg.uninstallHandler = cmd -> {
             cmd.verifyIsOfType(PackageType.MAC_PKG);
 
-            Executor.of("sudo", "rm", "-rf")
-                    .addArgument(cmd.appInstallationDirectory())
-                    .execute();
-
+            if (Files.exists(getUninstallCommand(cmd))) {
+                Executor.of("sudo", "/bin/sh",
+                        getUninstallCommand(cmd).toString()).execute();
+            } else {
+                Executor.of("sudo", "rm", "-rf")
+                        .addArgument(cmd.appInstallationDirectory())
+                        .execute();
+            }
         };
 
         return pkg;
@@ -247,8 +270,32 @@ public final class MacHelper {
                         cmd.name() + (cmd.isRuntime() ? "" : ".app"));
     }
 
+    static Path getUninstallCommand(JPackageCommand cmd) {
+        cmd.verifyIsOfType(PackageType.MAC_PKG);
+        return cmd.pathToUnpackedPackageFile(Path.of(
+                "/Library/Application Support", getPackageName(cmd),
+                "uninstall.command"));
+    }
+
+    static Path getServicePlistFilePath(JPackageCommand cmd, String launcherName) {
+        cmd.verifyIsOfType(PackageType.MAC_PKG);
+        return cmd.pathToUnpackedPackageFile(
+                Path.of("/Library/LaunchDaemons").resolve(
+                        getServicePListFileName(getPackageId(cmd),
+                                Optional.ofNullable(launcherName).orElseGet(
+                                        cmd::name))));
+    }
+
     private static String getPackageName(JPackageCommand cmd) {
         return cmd.getArgumentValue("--mac-package-name", cmd::installerName);
+    }
+
+    private static String getPackageId(JPackageCommand cmd) {
+        return cmd.getArgumentValue("--mac-package-identifier", () -> {
+            return cmd.getArgumentValue("--main-class", cmd::name, className -> {
+                return JavaAppDesc.parse(className).packageName();
+            });
+        });
     }
 
     public static final class PListWrapper {
@@ -314,6 +361,34 @@ public final class MacHelper {
         return dbf.newDocumentBuilder();
     }
 
+    private static String getServicePListFileName(String packageName,
+            String launcherName) {
+        try {
+            return getServicePListFileName.invoke(null, packageName,
+                    launcherName).toString();
+        } catch (InvocationTargetException | IllegalAccessException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private static Method initGetServicePListFileName() {
+        try {
+            return Class.forName(
+                    "jdk.jpackage.internal.MacLaunchersAsServices").getMethod(
+                            "getServicePListFileName", String.class, String.class);
+        } catch (ClassNotFoundException ex) {
+            if (TKit.isOSX()) {
+                throw new RuntimeException(ex);
+            } else {
+                return null;
+            }
+        } catch (NoSuchMethodException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     static final Set<Path> CRITICAL_RUNTIME_FILES = Set.of(Path.of(
             "Contents/Home/lib/server/libjvm.dylib"));
+
+    private final static Method getServicePListFileName = initGetServicePListFileName();
 }

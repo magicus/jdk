@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,8 +23,11 @@
 
 /*
  * @test
+ * @key randomness
+ *
+ * @library /test/lib
  * @modules jdk.incubator.vector
- * @run testng/othervm -ea -esa -Xbatch -XX:-TieredCompilation $vectorteststype$
+ * @run testng/othervm/timeout=300 -ea -esa -Xbatch -XX:-TieredCompilation $vectorteststype$
  */
 
 #warn This file is preprocessed before being compiled
@@ -89,6 +92,14 @@ public class $vectorteststype$ extends AbstractVectorTest {
     private static final int Max = 256;  // juts so we can do N/$bits$
 #end[MaxBit]
 
+#if[BITWISE]
+    private static final $type$ CONST_SHIFT = $Boxtype$.SIZE / 2;
+#end[BITWISE]
+#if[FP]
+    // for floating point reduction ops that may introduce rounding errors
+    private static final $type$ RELATIVE_ROUNDING_ERROR = ($type$)0.000001;
+#end[FP]
+
     static final int BUFFER_REPS = Integer.getInteger("jdk.incubator.vector.test.buffer-vectors", 25000 / $bits$);
 
     interface FUnOp {
@@ -147,6 +158,9 @@ public class $vectorteststype$ extends AbstractVectorTest {
 
     static void assertReductionArraysEquals($type$[] r, $type$ rc, $type$[] a,
                                             FReductionOp f, FReductionAllOp fa) {
+#if[FP]
+        assertReductionArraysEquals(r, rc, a, f, fa, ($type$)0.0);
+#else[FP]
         int i = 0;
         try {
             Assert.assertEquals(rc, fa.apply(a));
@@ -157,7 +171,25 @@ public class $vectorteststype$ extends AbstractVectorTest {
             Assert.assertEquals(rc, fa.apply(a), "Final result is incorrect!");
             Assert.assertEquals(r[i], f.apply(a, i), "at index #" + i);
         }
+#end[FP]
     }
+#if[FP]
+
+    static void assertReductionArraysEquals($type$[] r, $type$ rc, $type$[] a,
+                                            FReductionOp f, FReductionAllOp fa,
+                                            $type$ relativeError) {
+        int i = 0;
+        try {
+            Assert.assertEquals(rc, fa.apply(a), Math.abs(rc * relativeError));
+            for (; i < a.length; i += SPECIES.length()) {
+                Assert.assertEquals(r[i], f.apply(a, i), Math.abs(r[i] * relativeError));
+            }
+        } catch (AssertionError e) {
+            Assert.assertEquals(rc, fa.apply(a), Math.abs(rc * relativeError), "Final result is incorrect!");
+            Assert.assertEquals(r[i], f.apply(a, i), Math.abs(r[i] * relativeError), "at index #" + i);
+        }
+    }
+#end[FP]
 
     interface FReductionMaskedOp {
         $type$ apply($type$[] a, int idx, boolean[] mask);
@@ -169,6 +201,9 @@ public class $vectorteststype$ extends AbstractVectorTest {
 
     static void assertReductionArraysEqualsMasked($type$[] r, $type$ rc, $type$[] a, boolean[] mask,
                                             FReductionMaskedOp f, FReductionAllMaskedOp fa) {
+#if[FP]
+        assertReductionArraysEqualsMasked(r, rc, a, mask, f, fa, ($type$)0.0);
+#else[FP]
         int i = 0;
         try {
             Assert.assertEquals(rc, fa.apply(a, mask));
@@ -179,7 +214,26 @@ public class $vectorteststype$ extends AbstractVectorTest {
             Assert.assertEquals(rc, fa.apply(a, mask), "Final result is incorrect!");
             Assert.assertEquals(r[i], f.apply(a, i, mask), "at index #" + i);
         }
+#end[FP]
     }
+#if[FP]
+
+    static void assertReductionArraysEqualsMasked($type$[] r, $type$ rc, $type$[] a, boolean[] mask,
+                                            FReductionMaskedOp f, FReductionAllMaskedOp fa,
+                                            $type$ relativeError) {
+        int i = 0;
+        try {
+            Assert.assertEquals(rc, fa.apply(a, mask), Math.abs(rc * relativeError));
+            for (; i < a.length; i += SPECIES.length()) {
+                Assert.assertEquals(r[i], f.apply(a, i, mask), Math.abs(r[i] *
+relativeError));
+            }
+        } catch (AssertionError e) {
+            Assert.assertEquals(rc, fa.apply(a, mask), Math.abs(rc * relativeError), "Final result is incorrect!");
+            Assert.assertEquals(r[i], f.apply(a, i, mask), Math.abs(r[i] * relativeError), "at index #" + i);
+        }
+    }
+#end[FP]
 
 #if[!Long]
     interface FReductionOpLong {
@@ -287,6 +341,55 @@ public class $vectorteststype$ extends AbstractVectorTest {
         } catch (AssertionError e) {
             int idx = i + j;
             Assert.assertEquals(r[i+j], a[i+order[i+j]], "at index #" + idx + ", input = " + a[i+order[i+j]]);
+        }
+    }
+
+    static void assertcompressArraysEquals($type$[] r, $type$[] a, boolean[] m, int vector_len) {
+        int i = 0, j = 0, k = 0;
+        try {
+            for (; i < a.length; i += vector_len) {
+                k = 0;
+                for (j = 0; j < vector_len; j++) {
+                    if (m[(i + j) % SPECIES.length()]) {
+                        Assert.assertEquals(r[i + k], a[i + j]);
+                        k++;
+                    }
+                }
+                for (; k < vector_len; k++) {
+                    Assert.assertEquals(r[i + k], ($type$)0);
+                }
+            }
+        } catch (AssertionError e) {
+            int idx = i + k;
+            if (m[(i + j) % SPECIES.length()]) {
+                Assert.assertEquals(r[idx], a[i + j], "at index #" + idx);
+            } else {
+                Assert.assertEquals(r[idx], ($type$)0, "at index #" + idx);
+            }
+        }
+    }
+
+    static void assertexpandArraysEquals($type$[] r, $type$[] a, boolean[] m, int vector_len) {
+        int i = 0, j = 0, k = 0;
+        try {
+            for (; i < a.length; i += vector_len) {
+                k = 0;
+                for (j = 0; j < vector_len; j++) {
+                    if (m[(i + j) % SPECIES.length()]) {
+                        Assert.assertEquals(r[i + j], a[i + k]);
+                        k++;
+                    } else {
+                        Assert.assertEquals(r[i + j], ($type$)0);
+                    }
+                }
+            }
+        } catch (AssertionError e) {
+            int idx = i + j;
+            if (m[idx % SPECIES.length()]) {
+                Assert.assertEquals(r[idx], a[i + k], "at index #" + idx);
+            } else {
+                Assert.assertEquals(r[idx], ($type$)0, "at index #" + idx);
+            }
         }
     }
 
@@ -488,6 +591,50 @@ public class $vectorteststype$ extends AbstractVectorTest {
             }
         } catch (AssertionError err) {
             Assert.assertEquals(r[i+j], f.apply(a[i+j], b[j], mask[i]), "at index #" + i + ", input1 = " + a[i+j] + ", input2 = " + b[j] + ", mask = " + mask[i]);
+        }
+    }
+
+    interface FBinConstOp {
+        $type$ apply($type$ a);
+    }
+
+    interface FBinConstMaskOp {
+        $type$ apply($type$ a, boolean m);
+
+        static FBinConstMaskOp lift(FBinConstOp f) {
+            return (a, m) -> m ? f.apply(a) : a;
+        }
+    }
+
+    static void assertShiftConstEquals($type$[] r, $type$[] a, FBinConstOp f) {
+        int i = 0;
+        int j = 0;
+        try {
+            for (; j < a.length; j += SPECIES.length()) {
+                for (i = 0; i < SPECIES.length(); i++) {
+                    Assert.assertEquals(r[i+j], f.apply(a[i+j]));
+                }
+            }
+        } catch (AssertionError e) {
+            Assert.assertEquals(r[i+j], f.apply(a[i+j]), "at index #" + i + ", " + j);
+        }
+    }
+
+    static void assertShiftConstEquals($type$[] r, $type$[] a, boolean[] mask, FBinConstOp f) {
+        assertShiftConstEquals(r, a, mask, FBinConstMaskOp.lift(f));
+    }
+
+    static void assertShiftConstEquals($type$[] r, $type$[] a, boolean[] mask, FBinConstMaskOp f) {
+        int i = 0;
+        int j = 0;
+        try {
+            for (; j < a.length; j += SPECIES.length()) {
+                for (i = 0; i < SPECIES.length(); i++) {
+                    Assert.assertEquals(r[i+j], f.apply(a[i+j], mask[i]));
+                }
+            }
+        } catch (AssertionError err) {
+            Assert.assertEquals(r[i+j], f.apply(a[i+j], mask[i]), "at index #" + i + ", input1 = " + a[i+j] + ", mask = " + mask[i]);
         }
     }
 
@@ -1019,8 +1166,8 @@ public class $vectorteststype$ extends AbstractVectorTest {
             Assert.assertEquals(r[i], (long)(a[i+offs]), "at index #" + i + ", input = " + a[i+offs]);
         }
     }
-
 #if[!Double]
+
     static void assertArraysEquals(double[] r, $type$[] a, int offs) {
         int i = 0;
         try {
@@ -1032,7 +1179,6 @@ public class $vectorteststype$ extends AbstractVectorTest {
         }
     }
 #end[!Double]
-
 
     static $bitstype$ bits($type$ e) {
         return {#if[FP]? $Type$.$type$To$Bitstype$Bits(e): e};
@@ -1051,6 +1197,16 @@ public class $vectorteststype$ extends AbstractVectorTest {
                 return fill(s * BUFFER_REPS,
                             i -> ((($type$)(i + 1) == 0) ? 1 : ($type$)(i + 1)));
             }),
+#if[FP]
+            withToString("$type$[0.01 + (i / (i + 1))]", (int s) -> {
+                return fill(s * BUFFER_REPS,
+                            i -> ($type$)0.01 + (($type$)i / (i + 1)));
+            }),
+            withToString("$type$[i -> i % 17 == 0 ? cornerCaseValue(i) : 0.01 + (i / (i + 1))]", (int s) -> {
+                return fill(s * BUFFER_REPS,
+                            i -> i % 17 == 0 ? cornerCaseValue(i) : ($type$)0.01 + (($type$)i / (i + 1)));
+            }),
+#end[FP]
             withToString("$type$[cornerCaseValue(i)]", (int s) -> {
                 return fill(s * BUFFER_REPS,
                             i -> cornerCaseValue(i));
@@ -1127,9 +1283,9 @@ public class $vectorteststype$ extends AbstractVectorTest {
                 })).
                 toArray(Object[][]::new);
     }
-
 #if[!Int]
 #if[!byteOrShort]
+
     @DataProvider
     public Object[][] $type$toIntUnaryOpProvider() {
         return INT_$TYPE$_GENERATORS.stream().
@@ -1138,8 +1294,8 @@ public class $vectorteststype$ extends AbstractVectorTest {
     }
 #end[!byteOrShort]
 #end[!Int]
-
 #if[FP]
+
     @DataProvider
     public Object[][] $type$toLongUnaryOpProvider() {
         return LONG_$TYPE$_GENERATORS.stream().
@@ -1192,8 +1348,8 @@ public class $vectorteststype$ extends AbstractVectorTest {
                 }))).
                 toArray(Object[][]::new);
     }
-
 #if[!Int]
+
     static final List<BiFunction<Integer,Integer,$type$[]>> $TYPE$_SHUFFLE_GENERATORS = List.of(
             withToStringBi("shuffle[random]", (Integer l, Integer m) -> {
                 $type$[] a = new $type$[l];
@@ -1227,7 +1383,6 @@ public class $vectorteststype$ extends AbstractVectorTest {
                 }))).
                 toArray(Object[][]::new);
     }
-
 #end[!Int]
 
     static final List<IntFunction<$type$[]>> $TYPE$_COMPARE_GENERATORS = List.of(
@@ -1359,15 +1514,15 @@ public class $vectorteststype$ extends AbstractVectorTest {
         int length = BUFFER_REPS * vl;
         return new boolean[length];
     };
-
 #if[!Long]
+
     static final IntFunction<long[]> lfr = (vl) -> {
         int length = BUFFER_REPS * vl;
         return new long[length];
     };
 #end[!Long]
-
 #if[BITWISE]
+
     static void replaceZero($type$[] a, $type$ v) {
         for (int i = 0; i < a.length; i++) {
             if (a[i] == 0) {
@@ -1407,6 +1562,49 @@ public class $vectorteststype$ extends AbstractVectorTest {
 #end[short]
 #end[intOrLong]
     }
+
+    static $type$ TRAILING_ZEROS_COUNT_scalar($type$ a) {
+#if[intOrLong]
+        return $Wideboxtype$.numberOfTrailingZeros(a);
+#else[intOrLong]
+#if[short]
+        return (short) (a != 0 ? Integer.numberOfTrailingZeros(a) : 16);
+#else[short]
+        return (byte) (a != 0 ? Integer.numberOfTrailingZeros(a) : 8);
+#end[short]
+#end[intOrLong]
+    }
+
+    static $type$ LEADING_ZEROS_COUNT_scalar($type$ a) {
+#if[intOrLong]
+        return $Wideboxtype$.numberOfLeadingZeros(a);
+#else[intOrLong]
+#if[short]
+        return (short) (a >= 0 ? Integer.numberOfLeadingZeros(a) - 16 : 0);
+#else[short]
+        return (byte) (a >= 0 ? Integer.numberOfLeadingZeros(a) - 24 : 0);
+#end[short]
+#end[intOrLong]
+    }
+
+    static $type$ REVERSE_scalar($type$ a) {
+#if[intOrLong]
+        return $Wideboxtype$.reverse(a);
+#else[intOrLong]
+#if[short]
+        $type$ b = ROL_scalar(a, ($type$) 8);
+        b = (short) (((b & 0x5555) << 1) | ((b & 0xAAAA) >>> 1));
+        b = (short) (((b & 0x3333) << 2) | ((b & 0xCCCC) >>> 2));
+        b = (short) (((b & 0x0F0F) << 4) | ((b & 0xF0F0) >>> 4));
+        return b;
+#else[short]
+        $type$ b = ($type$) ROL_scalar(a, ($type$) 4);
+        b = (byte) (((b & 0x55) << 1) | ((b & 0xAA) >>> 1));
+        b = (byte) (((b & 0x33) << 2) | ((b & 0xCC) >>> 2));
+        return b;
+#end[short]
+#end[intOrLong]
+    }
 #end[BITWISE]
 
     static boolean eq($type$ a, $type$ b) {
@@ -1432,8 +1630,8 @@ public class $vectorteststype$ extends AbstractVectorTest {
     static boolean ge($type$ a, $type$ b) {
         return a >= b;
     }
-
 #if[!FP]
+
     static boolean ult($type$ a, $type$ b) {
         return $Boxtype$.compareUnsigned(a, b) < 0;
     }
@@ -1547,8 +1745,8 @@ public class $vectorteststype$ extends AbstractVectorTest {
         Assert.assertEquals(asIntegral.species(), SPECIES);
 #end[FP]
     }
-
 #if[FP]
+
     @Test
     void viewAsFloatingLanesTest() {
         Vector<?> asFloating = SPECIES.zero().viewAsFloatingLanes();
@@ -1556,11 +1754,13 @@ public class $vectorteststype$ extends AbstractVectorTest {
     }
 #else[FP]
 #if[byteOrShort]
+
     @Test(expectedExceptions = UnsupportedOperationException.class)
     void viewAsFloatingLanesTest() {
         SPECIES.zero().viewAsFloatingLanes();
     }
 #else[byteOrShort]
+
     @Test
     void viewAsFloatingLanesTest() {
         Vector<?> asFloating = SPECIES.zero().viewAsFloatingLanes();
@@ -1572,8 +1772,8 @@ public class $vectorteststype$ extends AbstractVectorTest {
     }
 #end[byteOrShort]
 #end[FP]
-
 #if[BITWISE]
+
     @Test
     // Test div by 0.
     static void bitwiseDivByZeroSmokeTest() {

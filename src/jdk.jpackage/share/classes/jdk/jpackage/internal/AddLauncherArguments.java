@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,10 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import java.util.Optional;
+
+import jdk.internal.util.OperatingSystem;
+
 import jdk.jpackage.internal.Arguments.CLIOptions;
 import static jdk.jpackage.internal.StandardBundlerParam.LAUNCHER_DATA;
 import static jdk.jpackage.internal.StandardBundlerParam.APP_NAME;
@@ -61,6 +65,7 @@ import static jdk.jpackage.internal.StandardBundlerParam.SHORTCUT_HINT;
  * icon
  * arguments
  * java-options
+ * launcher-as-service
  * win-console
  * win-shortcut
  * win-menu
@@ -118,11 +123,15 @@ class AddLauncherArguments {
         Arguments.putUnlessNull(bundleParams, CLIOptions.RELEASE.getId(),
                 getOptionValue(CLIOptions.RELEASE));
 
-        String value = getOptionValue(CLIOptions.ICON);
         Arguments.putUnlessNull(bundleParams, CLIOptions.ICON.getId(),
-                (value == null) ? null : Path.of(value));
+                Optional.ofNullable(getOptionValue(CLIOptions.ICON)).map(
+                        Path::of).orElse(null));
 
-        if (Platform.isWindows())  {
+        Arguments.putUnlessNull(bundleParams,
+                CLIOptions.LAUNCHER_AS_SERVICE.getId(), getOptionValue(
+                CLIOptions.LAUNCHER_AS_SERVICE));
+
+        if (OperatingSystem.isWindows()) {
             Arguments.putUnlessNull(bundleParams,
                     CLIOptions.WIN_CONSOLE_HINT.getId(),
                     getOptionValue(CLIOptions.WIN_CONSOLE_HINT));
@@ -132,7 +141,7 @@ class AddLauncherArguments {
                     getOptionValue(CLIOptions.WIN_MENU_HINT));
         }
 
-        if (Platform.isLinux())  {
+        if (OperatingSystem.isLinux()) {
             Arguments.putUnlessNull(bundleParams, CLIOptions.LINUX_CATEGORY.getId(),
                     getOptionValue(CLIOptions.LINUX_CATEGORY));
             Arguments.putUnlessNull(bundleParams, SHORTCUT_HINT.getID(),

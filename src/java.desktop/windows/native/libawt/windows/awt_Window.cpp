@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,8 +23,8 @@
  * questions.
  */
 
+#include <cmath>
 #include "awt.h"
-
 #include <jlong.h>
 
 #include "awt_Component.h"
@@ -46,16 +46,10 @@
 #include "sun_awt_windows_WCanvasPeer.h"
 
 #include <windowsx.h>
-#include <math.h>
 #if !defined(__int3264)
-typedef __int32 LONG_PTR;
+typedef int32_t LONG_PTR;
 #endif // __int3264
 
-#if defined(_MSC_VER) && _MSC_VER >= 1800
-#  define ROUND_TO_INT(num)    ((int) round(num))
-#else
-#  define ROUND_TO_INT(num)    ((int) floor((num) + 0.5))
-#endif
 // Used for Swing's Menu/Tooltip animation Support
 const int UNSPECIFIED = 0;
 const int TOOLTIP = 1;
@@ -376,6 +370,20 @@ void AwtWindow::RepositionSecurityWarning(JNIEnv *env)
 
 MsgRouting AwtWindow::WmWindowPosChanged(LPARAM windowPos) {
     WINDOWPOS * wp = (WINDOWPOS *)windowPos;
+
+    // There's no good way to detect partial maximization (e.g. Aero Snap),
+    // but by inspecting SWP_* flags we can guess it and reset
+    // prevScaleRec to neutralize the CheckWindowDPIChange logic.
+    // Here are the flags, observed on Windows 11 for reference:
+    // Restore/maximize:        SWP_NOZORDER | SWP_DRAWFRAME
+    // Partial Aero Snap:       SWP_NOZORDER | SWP_NOREPOSITION
+    // DPI change (new screen): SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS
+    if (!(wp->flags & (SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)) &&
+        prevScaleRec.screen != -1 && prevScaleRec.screen != m_screenNum) {
+        prevScaleRec.screen = -1;
+        prevScaleRec.scaleX = -1.0f;
+        prevScaleRec.scaleY = -1.0f;
+    }
 
     // Reposition the warning window
     if (IsUntrusted() && warningWindow != NULL) {
@@ -744,7 +752,7 @@ LRESULT CALLBACK AwtWindow::WarningWindowProc(HWND hwnd, UINT uMsg, WPARAM wPara
 
         case WM_MOUSEACTIVATE:
             {
-                // Retrive the owner of the warning window.
+                // Retrieve the owner of the warning window.
                 HWND javaWindow = ::GetParent(hwnd);
                 if (javaWindow) {
                     // If the window is blocked by a modal dialog, substitute
@@ -1011,16 +1019,28 @@ void AwtWindow::_RepositionSecurityWarning(void* param)
     JNIEnv *env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
 
     RepositionSecurityWarningStruct *rsws =
-        (RepositionSecurityWarningStruct *)param;
+        static_cast<RepositionSecurityWarningStruct *>(param);
     jobject self = rsws->window;
 
-    PDATA pData;
-    JNI_CHECK_PEER_GOTO(self, ret);
-    AwtWindow *window = (AwtWindow *)pData;
+    AwtWindow *window = NULL;
+
+    if (self == NULL) {
+        env->ExceptionClear();
+        JNU_ThrowNullPointerException(env, "self");
+        delete rsws;
+        return;
+    } else {
+        window = (AwtWindow *)JNI_GET_PDATA(self);
+        if (window == NULL) {
+            THROW_NULL_PDATA_IF_NOT_DESTROYED(self);
+            env->DeleteGlobalRef(self);
+            delete rsws;
+            return;
+        }
+    }
 
     window->RepositionSecurityWarning(env);
 
-  ret:
     env->DeleteGlobalRef(self);
     delete rsws;
 }
@@ -1394,7 +1414,9 @@ BOOL AwtWindow::UpdateInsets(jobject insets)
      */
     RECT outside;
     RECT inside;
-    int extraBottomInsets = 0;
+
+    // extra padded border for captioned windows
+    int extraPaddedBorderInsets = ::GetSystemMetrics(SM_CXPADDEDBORDER);
 
     ::GetClientRect(GetHWnd(), &inside);
     ::GetWindowRect(GetHWnd(), &outside);
@@ -1403,12 +1425,13 @@ BOOL AwtWindow::UpdateInsets(jobject insets)
     if (outside.right - outside.left > 0 && outside.bottom - outside.top > 0) {
         ::MapWindowPoints(GetHWnd(), 0, (LPPOINT)&inside, 2);
         m_insets.top = inside.top - outside.top;
-        m_insets.bottom = outside.bottom - inside.bottom + extraBottomInsets;
+        m_insets.bottom = outside.bottom - inside.bottom;
         m_insets.left = inside.left - outside.left;
         m_insets.right = outside.right - inside.right;
     } else {
         m_insets.top = -1;
     }
+
     if (m_insets.left < 0 || m_insets.top < 0 ||
         m_insets.right < 0 || m_insets.bottom < 0)
     {
@@ -1416,20 +1439,11 @@ BOOL AwtWindow::UpdateInsets(jobject insets)
         jobject target = GetTarget(env);
         if (IsUndecorated() == FALSE) {
             /* Get outer frame sizes. */
-            LONG style = GetStyle();
-            if (style & WS_THICKFRAME) {
-                m_insets.left = m_insets.right =
-                    ::GetSystemMetrics(SM_CXSIZEFRAME);
-                m_insets.top = m_insets.bottom =
-                    ::GetSystemMetrics(SM_CYSIZEFRAME);
-            } else {
-                m_insets.left = m_insets.right =
-                    ::GetSystemMetrics(SM_CXDLGFRAME);
-                m_insets.top = m_insets.bottom =
-                    ::GetSystemMetrics(SM_CYDLGFRAME);
-            }
-
-
+            // System metrics are same for resizable & non-resizable frame.
+            m_insets.left = m_insets.right =
+                ::GetSystemMetrics(SM_CXFRAME) + extraPaddedBorderInsets;
+            m_insets.top = m_insets.bottom =
+                ::GetSystemMetrics(SM_CYFRAME) + extraPaddedBorderInsets;
             /* Add in title. */
             m_insets.top += ::GetSystemMetrics(SM_CYCAPTION);
         }
@@ -1437,7 +1451,7 @@ BOOL AwtWindow::UpdateInsets(jobject insets)
             /* fix for 4418125: Undecorated frames are off by one */
             /* undo the -1 set above */
             /* Additional fix for 5059656 */
-                /* Also, 5089312: Window insets should be 0. */
+            /* Also, 5089312: Window insets should be 0. */
             ::memset(&m_insets, 0, sizeof(m_insets));
         }
 
@@ -1450,7 +1464,6 @@ BOOL AwtWindow::UpdateInsets(jobject insets)
             env->DeleteLocalRef(target);
             return FALSE;
         }
-        m_insets.bottom += extraBottomInsets;
         env->DeleteLocalRef(target);
     }
 
@@ -2010,7 +2023,7 @@ LRESULT AwtWindow::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
             mr = WmGetIcon(wParam, retValue);
             break;
         case WM_SYSCOMMAND:
-            //Fixed 6355340: Contents of frame are not layed out properly on maximize
+            //Fixed 6355340: Contents of frame are not laid out properly on maximize
             if ((wParam & 0xFFF0) == SC_SIZE) {
                 AwtWindow::sm_resizing = TRUE;
                 mr = WmSysCommand(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
@@ -2753,7 +2766,7 @@ BOOL AwtWindow::UpdateOwnedIconCallback(HWND hWndOwned, LPARAM lParam)
 
 void AwtWindow::DoUpdateIcon()
 {
-    //Does nothing for windows, is overriden for frames and dialogs
+    //Does nothing for windows, is overridden for frames and dialogs
 }
 
 void AwtWindow::RedrawWindow()
@@ -3115,28 +3128,32 @@ void AwtWindow::_ModalDisable(void *param)
 {
     JNIEnv *env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
 
-    ModalDisableStruct *mds = (ModalDisableStruct *)param;
+    ModalDisableStruct *mds = static_cast<ModalDisableStruct *>(param);
     jobject self = mds->window;
     HWND blockerHWnd = (HWND)mds->blockerHWnd;
 
     AwtWindow *window = NULL;
     HWND windowHWnd = 0;
 
-    JNI_CHECK_NULL_GOTO(self, "peer", ret);
-    PDATA pData = JNI_GET_PDATA(self);
-    if (pData == NULL) {
-        env->DeleteGlobalRef(self);
+    if (self == NULL) {
+        env->ExceptionClear();
+        JNU_ThrowNullPointerException(env, "self");
         delete mds;
         return;
+    } else {
+        window = (AwtWindow *)JNI_GET_PDATA(self);
+        if (window == NULL) {
+            env->DeleteGlobalRef(self);
+            delete mds;
+            return;
+        }
     }
 
-    window = (AwtWindow *)pData;
     windowHWnd = window->GetHWnd();
     if (::IsWindow(windowHWnd)) {
         AwtWindow::SetAndActivateModalBlocker(windowHWnd, blockerHWnd);
     }
 
-ret:
     env->DeleteGlobalRef(self);
 
     delete mds;
@@ -3146,25 +3163,28 @@ void AwtWindow::_ModalEnable(void *param)
 {
     JNIEnv *env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
 
-    jobject self = (jobject)param;
+    jobject self = static_cast<jobject>(param);
 
     AwtWindow *window = NULL;
     HWND windowHWnd = 0;
 
-    JNI_CHECK_NULL_GOTO(self, "peer", ret);
-    PDATA pData = JNI_GET_PDATA(self);
-    if (pData == NULL) {
-        env->DeleteGlobalRef(self);
+    if (self == NULL) {
+        env->ExceptionClear();
+        JNU_ThrowNullPointerException(env, "self");
         return;
+    } else {
+        window = (AwtWindow *)JNI_GET_PDATA(self);
+        if (window == NULL) {
+            env->DeleteGlobalRef(self);
+            return;
+        }
     }
 
-    window = (AwtWindow *)pData;
     windowHWnd = window->GetHWnd();
     if (::IsWindow(windowHWnd)) {
         AwtWindow::SetModalBlocker(windowHWnd, NULL);
     }
 
-  ret:
     env->DeleteGlobalRef(self);
 }
 
@@ -3172,17 +3192,29 @@ void AwtWindow::_SetOpacity(void* param)
 {
     JNIEnv *env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
 
-    OpacityStruct *os = (OpacityStruct *)param;
+    OpacityStruct *os = static_cast<OpacityStruct *>(param);
     jobject self = os->window;
     BYTE iOpacity = (BYTE)os->iOpacity;
 
-    PDATA pData;
-    JNI_CHECK_PEER_GOTO(self, ret);
-    AwtWindow *window = (AwtWindow *)pData;
+    AwtWindow *window = NULL;
+
+    if (self == NULL) {
+        env->ExceptionClear();
+        JNU_ThrowNullPointerException(env, "self");
+        delete os;
+        return;
+    } else {
+        window = (AwtWindow *)JNI_GET_PDATA(self);
+        if (window == NULL) {
+            THROW_NULL_PDATA_IF_NOT_DESTROYED(self);
+            env->DeleteGlobalRef(self);
+            delete os;
+            return;
+        }
+    }
 
     window->SetTranslucency(iOpacity, window->isOpaque());
 
-  ret:
     env->DeleteGlobalRef(self);
     delete os;
 }
@@ -3191,17 +3223,29 @@ void AwtWindow::_SetOpaque(void* param)
 {
     JNIEnv *env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
 
-    OpaqueStruct *os = (OpaqueStruct *)param;
+    OpaqueStruct *os = static_cast<OpaqueStruct *>(param);
     jobject self = os->window;
     BOOL isOpaque = (BOOL)os->isOpaque;
 
-    PDATA pData;
-    JNI_CHECK_PEER_GOTO(self, ret);
-    AwtWindow *window = (AwtWindow *)pData;
+    AwtWindow *window = NULL;
+
+    if (self == NULL) {
+        env->ExceptionClear();
+        JNU_ThrowNullPointerException(env, "self");
+        delete os;
+        return;
+    } else {
+        window = (AwtWindow *)JNI_GET_PDATA(self);
+        if (window == NULL) {
+            THROW_NULL_PDATA_IF_NOT_DESTROYED(self);
+            env->DeleteGlobalRef(self);
+            delete os;
+            return;
+        }
+    }
 
     window->SetTranslucency(window->getOpacity(), isOpaque);
 
-  ret:
     env->DeleteGlobalRef(self);
     delete os;
 }
@@ -3210,18 +3254,36 @@ void AwtWindow::_UpdateWindow(void* param)
 {
     JNIEnv *env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
 
-    UpdateWindowStruct *uws = (UpdateWindowStruct *)param;
+    UpdateWindowStruct *uws = static_cast<UpdateWindowStruct *>(param);
     jobject self = uws->window;
     jintArray data = uws->data;
 
-    PDATA pData;
-    JNI_CHECK_PEER_GOTO(self, ret);
-    AwtWindow *window = (AwtWindow *)pData;
+    AwtWindow *window = NULL;
+
+    if (self == NULL) {
+        env->ExceptionClear();
+        JNU_ThrowNullPointerException(env, "self");
+        if (data != NULL) {
+            env->DeleteGlobalRef(data);
+        }
+        delete uws;
+        return;
+    } else {
+        window = (AwtWindow *)JNI_GET_PDATA(self);
+        if (window == NULL) {
+            THROW_NULL_PDATA_IF_NOT_DESTROYED(self);
+            env->DeleteGlobalRef(self);
+            if (data != NULL) {
+                env->DeleteGlobalRef(data);
+            }
+            delete uws;
+            return;
+        }
+    }
 
     window->UpdateWindow(env, data, (int)uws->width, (int)uws->height,
                          uws->hBitmap);
 
-  ret:
     env->DeleteGlobalRef(self);
     if (data != NULL) {
         env->DeleteGlobalRef(data);
@@ -3238,13 +3300,25 @@ void AwtWindow::_SetFullScreenExclusiveModeState(void *param)
     jobject self = data->window;
     jboolean state = data->isFSEMState;
 
-    PDATA pData;
-    JNI_CHECK_PEER_GOTO(self, ret);
-    AwtWindow *window = (AwtWindow *)pData;
+    AwtWindow *window = NULL;
+
+    if (self == NULL) {
+        env->ExceptionClear();
+        JNU_ThrowNullPointerException(env, "self");
+        delete data;
+        return;
+    } else {
+        window = (AwtWindow *)JNI_GET_PDATA(self);
+        if (window == NULL) {
+            THROW_NULL_PDATA_IF_NOT_DESTROYED(self);
+            env->DeleteGlobalRef(self);
+            delete data;
+            return;
+        }
+    }
 
     window->setFullScreenExclusiveModeState(state != 0);
 
-  ret:
     env->DeleteGlobalRef(self);
     delete data;
 }
@@ -3654,7 +3728,7 @@ int getSystemMetricValue(int msgType) {
     }
     if(dpi != 0 && dpi != 96) {
         float invScaleX = 96.0f / dpi;
-        value = (int) ROUND_TO_INT(value * invScaleX);
+        value = (int) round(value * invScaleX);
     }
     return value;
 }

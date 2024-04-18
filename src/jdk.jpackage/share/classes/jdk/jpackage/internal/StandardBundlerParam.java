@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,9 +25,12 @@
 
 package jdk.jpackage.internal;
 
+import jdk.internal.util.OperatingSystem;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -114,6 +117,9 @@ class StandardBundlerParam<T> extends BundlerParamInfo<T> {
                     params -> {
                         if (isRuntimeInstaller(params)) {
                             return null;
+                        } else if (hasPredefinedAppImage(params)) {
+                            return AppImageFile.extractMainClass(
+                                    getPredefinedAppImage(params));
                         }
                         return LAUNCHER_DATA.fetchFrom(params).qualifiedClassName();
                     },
@@ -345,6 +351,16 @@ class StandardBundlerParam<T> extends BundlerParamInfo<T> {
                     (s, p) -> s
     );
 
+    static final StandardBundlerParam<Boolean> LAUNCHER_AS_SERVICE =
+            new StandardBundlerParam<>(
+                    Arguments.CLIOptions.LAUNCHER_AS_SERVICE.getId(),
+                    Boolean.class,
+                    params -> false,
+                    // valueOf(null) is false, and we actually do want null
+                    (s, p) -> (s == null || "null".equalsIgnoreCase(s)) ?
+                            true : Boolean.valueOf(s)
+            );
+
 
     @SuppressWarnings("unchecked")
     static final StandardBundlerParam<List<Map<String, ? super Object>>> ADD_LAUNCHERS =
@@ -512,6 +528,21 @@ class StandardBundlerParam<T> extends BundlerParamInfo<T> {
                     null : Boolean.valueOf(s)
         );
 
+    static final StandardBundlerParam<Boolean> APP_STORE =
+            new StandardBundlerParam<>(
+            Arguments.CLIOptions.MAC_APP_STORE.getId(),
+            Boolean.class,
+            params -> {
+                if (hasPredefinedAppImage(params)) {
+                    return AppImageFile.load(getPredefinedAppImage(params))
+                            .isAppStore();
+                }
+                return false;
+            },
+            // valueOf(null) is false, we actually do want null in some cases
+            (s, p) -> (s == null || "null".equalsIgnoreCase(s)) ?
+                    null : Boolean.valueOf(s)
+        );
 
     static boolean isRuntimeInstaller(Map<String, ? super Object> params) {
         if (params.containsKey(MODULE.getID()) ||
@@ -522,6 +553,10 @@ class StandardBundlerParam<T> extends BundlerParamInfo<T> {
         // runtime installer requires --runtime-image, if this is false
         // here then we should have thrown error validating args.
         return params.containsKey(PREDEFINED_RUNTIME_IMAGE.getID());
+    }
+
+    static boolean hasPredefinedAppImage(Map<String, ? super Object> params) {
+        return params.containsKey(PREDEFINED_APP_IMAGE.getID());
     }
 
     static Path getPredefinedAppImage(Map<String, ? super Object> params) {
@@ -550,7 +585,7 @@ class StandardBundlerParam<T> extends BundlerParamInfo<T> {
                     PREDEFINED_RUNTIME_IMAGE.getID()));
         }
 
-        if (Platform.isMac()) {
+        if (OperatingSystem.isMacOS()) {
             // On Mac topImage can be runtime root or runtime home.
             Path runtimeHome = topImage.resolve("Contents/Home");
             if (Files.isDirectory(runtimeHome)) {
@@ -562,8 +597,8 @@ class StandardBundlerParam<T> extends BundlerParamInfo<T> {
 
         // copy whole runtime, need to skip jmods and src.zip
         final List<String> excludes = Arrays.asList("jmods", "src.zip");
-        IOUtils.copyRecursive(topImage,
-                appLayout.runtimeHomeDirectory(), excludes);
+        IOUtils.copyRecursive(topImage, appLayout.runtimeHomeDirectory(),
+                        excludes, LinkOption.NOFOLLOW_LINKS);
 
         // if module-path given - copy modules to appDir/mods
         List<Path> modulePath = MODULE_PATH.fetchFrom(params);

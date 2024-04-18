@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -72,13 +72,13 @@ public class PStack extends Tool {
          // compute and cache java Vframes.
          initJFrameCache();
          if (concurrentLocks) {
-            concLocksPrinter = new ConcurrentLocksPrinter();
+            concLocksPrinter = new ConcurrentLocksPrinter(out);
          }
          // print Java level deadlocks
          try {
             DeadlockDetector.print(out);
          } catch (Exception exp) {
-            out.println("can't print deadlock information: " + exp.getMessage());
+            out.println("can't print deadlock information: " + exp);
          }
 
          List<ThreadProxy> l = cdbg.getThreadList();
@@ -97,7 +97,7 @@ public class PStack extends Tool {
                out.print("----------------- ");
                out.print(th);
                out.println(" -----------------");
-               JavaThread jthread = (JavaThread) proxyToThread.get(th);
+               JavaThread jthread = proxyToThread.get(th);
                if (jthread != null) {
                   jthread.printThreadInfoOn(out);
                }
@@ -140,7 +140,7 @@ public class PStack extends Tool {
                             CodeBlob cb = c.findBlobUnsafe(pc);
                             if (cb.isNMethod()) {
                                if (cb.isNativeMethod()) {
-                                  out.print(((CompiledMethod)cb).getMethod().externalNameAndSignature());
+                                  out.print(((NMethod)cb).getMethod().externalNameAndSignature());
                                   long diff = pc.minus(cb.codeBegin());
                                   if (diff != 0L) {
                                     out.print(" + 0x" + Long.toHexString(diff));
@@ -190,9 +190,9 @@ public class PStack extends Tool {
                // continue, may be we can do a better job for other threads
             }
             if (concurrentLocks) {
-               JavaThread jthread = (JavaThread) proxyToThread.get(th);
+               JavaThread jthread = proxyToThread.get(th);
                if (jthread != null) {
-                   concLocksPrinter.print(jthread, out);
+                   concLocksPrinter.print(jthread);
                }
             }
          } // for threads
@@ -248,7 +248,7 @@ public class PStack extends Tool {
       if (fp == null) {
          return null;
       }
-      JavaVFrame[] jvframes = (JavaVFrame[]) jframeCache.get(th);
+      JavaVFrame[] jvframes = jframeCache.get(th);
       if (jvframes == null) return null; // not a java thread
       List<String> names = new ArrayList<>(10);
       for (int fCount = 0; fCount < jvframes.length; fCount++) {

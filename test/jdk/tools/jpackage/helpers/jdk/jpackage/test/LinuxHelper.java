@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,8 @@
 package jdk.jpackage.test;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,6 +41,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jdk.jpackage.internal.IOUtils;
+import jdk.jpackage.test.Functional.ThrowingConsumer;
 import jdk.jpackage.test.PackageTest.PackageHandlers;
 
 
@@ -78,6 +81,14 @@ public final class LinuxHelper {
                         () -> cmd.name()).replaceAll("\\s+", "_"));
         return cmd.appLayout().destktopIntegrationDirectory().resolve(
                 desktopFileName);
+    }
+
+    static Path getServiceUnitFilePath(JPackageCommand cmd, String launcherName) {
+        cmd.verifyIsOfType(PackageType.LINUX);
+        return cmd.pathToUnpackedPackageFile(
+                Path.of("/lib/systemd/system").resolve(getServiceUnitFileName(
+                        getPackageName(cmd),
+                        Optional.ofNullable(launcherName).orElseGet(cmd::name))));
     }
 
     static String getBundleName(JPackageCommand cmd) {
@@ -453,12 +464,23 @@ public final class LinuxHelper {
         }
     }
 
-    private static Path getSystemDesktopFilesFolder() {
+    static Path getSystemDesktopFilesFolder() {
         return Stream.of("/usr/share/applications",
                 "/usr/local/share/applications").map(Path::of).filter(dir -> {
             return Files.exists(dir.resolve("defaults.list"));
         }).findFirst().orElseThrow(() -> new RuntimeException(
                 "Failed to locate system .desktop files folder"));
+    }
+
+    private static void withTestFileAssociationsFile(FileAssociations fa,
+            ThrowingConsumer<Path> consumer) {
+        boolean iterated[] = new boolean[] { false };
+        PackageTest.withFileAssociationsTestRuns(fa, (testRun, testFiles) -> {
+            if (!iterated[0]) {
+                iterated[0] = true;
+                consumer.accept(testFiles.get(0));
+            }
+        });
     }
 
     static void addFileAssociationsVerifier(PackageTest test, FileAssociations fa) {
@@ -467,7 +489,7 @@ public final class LinuxHelper {
                 return;
             }
 
-            PackageTest.withTestFileAssociationsFile(fa, testFile -> {
+            withTestFileAssociationsFile(fa, testFile -> {
                 String mimeType = queryFileMimeType(testFile);
 
                 TKit.assertEquals(fa.getMime(), mimeType, String.format(
@@ -491,7 +513,7 @@ public final class LinuxHelper {
         });
 
         test.addUninstallVerifier(cmd -> {
-            PackageTest.withTestFileAssociationsFile(fa, testFile -> {
+            withTestFileAssociationsFile(fa, testFile -> {
                 String mimeType = queryFileMimeType(testFile);
 
                 TKit.assertNotEquals(fa.getMime(), mimeType, String.format(
@@ -536,12 +558,17 @@ public final class LinuxHelper {
         final String xdgCmdName = "xdg-icon-resource";
 
         Stream<String> scriptletBodyStream = scriptletBody.stream()
-                .filter(str -> str.startsWith(xdgCmdName))
                 .filter(str -> Pattern.compile(
                         "\\b" + dashMime + "\\b").matcher(str).find());
         if (scriptletType == Scriptlet.PostInstall) {
+            scriptletBodyStream = scriptletBodyStream.filter(str -> str.
+                    startsWith(xdgCmdName));
             scriptletBodyStream = scriptletBodyStream.filter(str -> List.of(
                     str.split("\\s+")).contains(iconPathInPackage.toString()));
+        } else {
+            scriptletBodyStream = scriptletBodyStream.filter(str -> str.
+                    contains(xdgCmdName)).filter(str -> str.startsWith(
+                    "do_if_file_belongs_to_single_package"));
         }
 
         scriptletBodyStream.peek(xdgCmd -> {
@@ -668,6 +695,31 @@ public final class LinuxHelper {
         return arch;
     }
 
+    private static String getServiceUnitFileName(String packageName,
+            String launcherName) {
+        try {
+            return getServiceUnitFileName.invoke(null, packageName, launcherName).toString();
+        } catch (InvocationTargetException | IllegalAccessException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private static Method initGetServiceUnitFileName() {
+        try {
+            return Class.forName(
+                    "jdk.jpackage.internal.LinuxLaunchersAsServices").getMethod(
+                            "getServiceUnitFileName", String.class, String.class);
+        } catch (ClassNotFoundException ex) {
+            if (TKit.isLinux()) {
+                throw new RuntimeException(ex);
+            } else {
+                return null;
+            }
+        } catch (NoSuchMethodException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     static final Set<Path> CRITICAL_RUNTIME_FILES = Set.of(Path.of(
             "lib/server/libjvm.so"));
 
@@ -677,4 +729,6 @@ public final class LinuxHelper {
 
     // Values grabbed from https://linux.die.net/man/1/xdg-icon-resource
     private final static Set<Integer> XDG_CMD_VALID_ICON_SIZES = Set.of(16, 22, 32, 48, 64, 128);
+
+    private final static Method getServiceUnitFileName = initGetServiceUnitFileName();
 }

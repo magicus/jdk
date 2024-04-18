@@ -1,13 +1,11 @@
 #!/bin/bash
 #
-# Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 2 only, as
-# published by the Free Software Foundation.  Oracle designates this
-# particular file as subject to the "Classpath" exception as provided
-# by Oracle in the LICENSE file that accompanied this code.
+# published by the Free Software Foundation.
 #
 # This code is distributed in the hope that it will be useful, but WITHOUT
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -70,8 +68,11 @@ bool_reduction_template="BoolReduction-op"
 with_op_template="With-Op"
 shift_template="Shift-op"
 shift_masked_template="Shift-Masked-op"
+shift_const_template="Shift-Const-op"
+shift_masked_const_template="Shift-Masked-Const-op"
 get_template="Get-op"
 rearrange_template="Rearrange"
+compressexpand_template="CompressExpand"
 broadcast_template="Broadcast"
 zero_template="Zero"
 slice_template="Slice-op"
@@ -143,7 +144,7 @@ function replace_variables {
 
   # Guard the test if necessary
   if [ "$guard" != "" ]; then
-    echo -e "#if[${guard}]\n" >> $output
+    echo -e "#if[${guard}]" >> $output
   fi
   if [ "$test" != "" ]; then
     sed -e "$sed_prog" < ${filename}.current >> $output
@@ -164,7 +165,7 @@ function replace_variables {
     fi
   fi
   if [ "$guard" != "" ]; then
-    echo -e "#end[${guard}]\n" >> $output
+    echo -e "#end[${guard}]" >> $output
   fi
 
   rm -f ${filename}.current
@@ -220,6 +221,7 @@ function gen_op_tmpl {
   replace_variables $unit_filename $unit_output "$kernel" "$test" "$op" "$init" "$guard" "$masked" "$op_name" "$kernel_smoke"
 
   local gen_perf_tests=$generate_perf_tests
+  gen_perf_tests=true
   if [[ $template == *"-Broadcast-"* ]] || [[ $template == "Miscellaneous" ]] ||
      [[ $template == *"Compare-Masked"* ]] || [[ $template == *"Compare-Broadcast"* ]]; then
     gen_perf_tests=false
@@ -264,10 +266,16 @@ function gen_binary_alu_bcst_long_op {
   gen_op_tmpl $binary_broadcast_masked_long "$@"
 }
 
-function gen_shift_cst_op {
+function gen_shift_op {
   echo "Generating Shift constant op $1 ($2)..."
   gen_op_tmpl $shift_template "$@"
   gen_op_tmpl $shift_masked_template "$@"
+}
+
+function gen_shift_cst_op {
+  echo "Generating Shift constant op $1 ($2)..."
+  gen_op_tmpl $shift_const_template "$@"
+  gen_op_tmpl $shift_masked_const_template "$@"
 }
 
 function gen_unary_alu_op {
@@ -402,6 +410,8 @@ gen_binary_alu_op "AND_NOT" "a \& ~b" "BITWISE"
 gen_binary_alu_op "OR+or"    "a | b"   "BITWISE"
 # Missing:        "OR_UNCHECKED"
 gen_binary_alu_op "XOR"   "a ^ b"   "BITWISE"
+gen_binary_alu_op "COMPRESS_BITS" "\$Boxtype\$.compress(a, b)" "intOrLong"
+gen_binary_alu_op "EXPAND_BITS" "\$Boxtype\$.expand(a, b)" "intOrLong"
 # Generate the broadcast versions
 gen_binary_alu_bcst_op "add+withMask" "a + b"
 gen_binary_alu_bcst_op "sub+withMask" "a - b"
@@ -424,19 +434,28 @@ gen_binary_alu_op "ASHR" "(a >> (b \& 0xF))" "short"
 gen_binary_alu_op "LSHR" "(a >>> b)" "intOrLong"
 gen_binary_alu_op "LSHR" "((a \& 0xFF) >>> (b \& 0x7))" "byte"
 gen_binary_alu_op "LSHR" "((a \& 0xFFFF) >>> (b \& 0xF))" "short"
-gen_shift_cst_op  "LSHL" "(a << b)" "intOrLong"
-gen_shift_cst_op  "LSHL" "(a << (b \& 7))" "byte"
-gen_shift_cst_op  "LSHL" "(a << (b \& 15))" "short"
-gen_shift_cst_op  "LSHR" "(a >>> b)" "intOrLong"
-gen_shift_cst_op  "LSHR" "((a \& 0xFF) >>> (b \& 7))" "byte"
-gen_shift_cst_op  "LSHR" "((a \& 0xFFFF) >>> (b \& 15))" "short"
-gen_shift_cst_op  "ASHR" "(a >> b)" "intOrLong"
-gen_shift_cst_op  "ASHR" "(a >> (b \& 7))" "byte"
-gen_shift_cst_op  "ASHR" "(a >> (b \& 15))" "short"
+gen_shift_op  "LSHL" "(a << b)" "intOrLong"
+gen_shift_op  "LSHL" "(a << (b \& 7))" "byte"
+gen_shift_op  "LSHL" "(a << (b \& 15))" "short"
+gen_shift_op  "LSHR" "(a >>> b)" "intOrLong"
+gen_shift_op  "LSHR" "((a \& 0xFF) >>> (b \& 7))" "byte"
+gen_shift_op  "LSHR" "((a \& 0xFFFF) >>> (b \& 15))" "short"
+gen_shift_op  "ASHR" "(a >> b)" "intOrLong"
+gen_shift_op  "ASHR" "(a >> (b \& 7))" "byte"
+gen_shift_op  "ASHR" "(a >> (b \& 15))" "short"
 gen_binary_alu_op "ROR" "ROR_scalar(a,b)" "BITWISE"
 gen_binary_alu_op "ROL" "ROL_scalar(a,b)" "BITWISE"
-gen_shift_cst_op  "ROR" "ROR_scalar(a,b)" "BITWISE"
-gen_shift_cst_op  "ROL" "ROL_scalar(a,b)" "BITWISE"
+gen_shift_op  "ROR" "ROR_scalar(a, b)" "BITWISE"
+gen_shift_op  "ROL" "ROL_scalar(a, b)" "BITWISE"
+
+# Constant Shifts
+gen_shift_cst_op  "LSHR" "(a >>> CONST_SHIFT)" "intOrLong"
+gen_shift_cst_op  "LSHR" "((a \& 0xFF) >>> CONST_SHIFT)" "byte"
+gen_shift_cst_op  "LSHR" "((a \& 0xFFFF) >>> CONST_SHIFT)" "short"
+gen_shift_cst_op  "LSHL" "(a << CONST_SHIFT)" "BITWISE"
+gen_shift_cst_op  "ASHR" "(a >> CONST_SHIFT)" "BITWISE"
+gen_shift_cst_op  "ROR" "ROR_scalar(a, CONST_SHIFT)" "BITWISE"
+gen_shift_cst_op  "ROL" "ROL_scalar(a, CONST_SHIFT)" "BITWISE"
 
 # Masked reductions.
 gen_binary_op_no_masked "MIN+min" "Math.min(a, b)"
@@ -490,6 +509,9 @@ gen_op_tmpl $blend "blend" ""
 
 # Rearrange
 gen_op_tmpl $rearrange_template "rearrange" ""
+
+# Compress/Expand
+gen_op_tmpl $compressexpand_template "compress_expand" ""
 
 # Get
 gen_get_op "lane" ""
@@ -545,6 +567,15 @@ gen_unary_alu_op "ABS+abs" "Math.abs((\$type\$)a)"
 gen_unary_alu_op "NOT+not" "~((\$type\$)a)" "BITWISE"
 gen_unary_alu_op "ZOMO" "(a==0?0:-1)" "BITWISE"
 gen_unary_alu_op "SQRT+sqrt" "Math.sqrt((double)a)" "FP"
+gen_unary_alu_op "BIT_COUNT" "\$Boxtype\$.bitCount(a)" "intOrLong"
+gen_unary_alu_op "BIT_COUNT" "Integer.bitCount((int)a \& 0xFF)" "byte"
+gen_unary_alu_op "BIT_COUNT" "Integer.bitCount((int)a \& 0xFFFF)" "short"
+gen_unary_alu_op "TRAILING_ZEROS_COUNT" "TRAILING_ZEROS_COUNT_scalar(a)" "BITWISE"
+gen_unary_alu_op "LEADING_ZEROS_COUNT" "LEADING_ZEROS_COUNT_scalar(a)" "BITWISE"
+gen_unary_alu_op "REVERSE" "REVERSE_scalar(a)" "BITWISE"
+gen_unary_alu_op "REVERSE_BYTES" "\$Boxtype\$.reverseBytes(a)" "intOrLong"
+gen_unary_alu_op "REVERSE_BYTES" "\$Boxtype\$.reverseBytes(a)" "short"
+gen_unary_alu_op "REVERSE_BYTES" "a" "byte"
 
 # Miscellaneous Smoke Tests
 gen_op_tmpl $miscellaneous_template "MISC" "" ""

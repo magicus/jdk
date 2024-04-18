@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,6 +33,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -42,9 +43,11 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
+import jdk.internal.access.JavaLangAccess;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.event.DeserializationEvent;
 import jdk.internal.misc.Unsafe;
+import jdk.internal.util.ByteArray;
 import sun.reflect.misc.ReflectUtil;
 import sun.security.action.GetBooleanAction;
 import sun.security.action.GetIntegerAction;
@@ -116,18 +119,18 @@ import sun.security.action.GetIntegerAction;
  * the object's most specific class.
  *
  * <p>For example to read from a stream as written by the example in
- * ObjectOutputStream:
+ * {@link ObjectOutputStream}:
  * <br>
- * <pre>
- *      FileInputStream fis = new FileInputStream("t.tmp");
- *      ObjectInputStream ois = new ObjectInputStream(fis);
- *
- *      int i = ois.readInt();
- *      String today = (String) ois.readObject();
- *      Date date = (Date) ois.readObject();
- *
- *      ois.close();
- * </pre>
+ * {@snippet lang="java" :
+ *     try (FileInputStream fis = new FileInputStream("t.tmp");
+ *          ObjectInputStream ois = new ObjectInputStream(fis)) {
+ *         String label = (String) ois.readObject();
+ *         LocalDateTime dateTime = (LocalDateTime) ois.readObject();
+ *         // Use label and dateTime
+ *     } catch (Exception ex) {
+ *         // handle exception
+ *     }
+ * }
  *
  * <p>Classes control how they are serialized by implementing either the
  * java.io.Serializable or java.io.Externalizable interfaces.
@@ -142,14 +145,14 @@ import sun.security.action.GetIntegerAction;
  * serialization and deserialization process should implement methods
  * with the following signatures:
  *
- * <pre>
- * private void writeObject(java.io.ObjectOutputStream stream)
- *     throws IOException;
- * private void readObject(java.io.ObjectInputStream stream)
- *     throws IOException, ClassNotFoundException;
- * private void readObjectNoData()
- *     throws ObjectStreamException;
- * </pre>
+ * {@snippet lang="java":
+ *     private void writeObject(java.io.ObjectOutputStream stream)
+ *         throws IOException;
+ *     private void readObject(java.io.ObjectInputStream stream)
+ *         throws IOException, ClassNotFoundException;
+ *     private void readObjectNoData()
+ *         throws ObjectStreamException;
+ * }
  *
  * <p>The method name, modifiers, return type, and number and type of
  * parameters must match exactly for the method to be used by
@@ -241,6 +244,7 @@ import sun.security.action.GetIntegerAction;
  * <cite>Java Object Serialization Specification,</cite> Section 1.13,
  * "Serialization of Records"</a> for additional information.
  *
+ * @spec serialization/index.html Java Object Serialization Specification
  * @author      Mike Warres
  * @author      Roger Riggs
  * @see java.io.DataInput
@@ -258,21 +262,6 @@ public class ObjectInputStream
 
     /** marker for unshared objects in internal handle table */
     private static final Object unsharedMarker = new Object();
-
-    /**
-     * immutable table mapping primitive type names to corresponding
-     * class objects
-     */
-    private static final Map<String, Class<?>> primClasses =
-        Map.of("boolean", boolean.class,
-               "byte", byte.class,
-               "char", char.class,
-               "short", short.class,
-               "int", int.class,
-               "long", long.class,
-               "float", float.class,
-               "double", double.class,
-               "void", void.class);
 
     private static class Caches {
         /** cache of subclass security audit results */
@@ -307,8 +296,8 @@ public class ObjectInputStream
          * The maximum number of interfaces allowed for a proxy is limited to 65535 by
          * {@link java.lang.reflect.Proxy#newProxyInstance(ClassLoader, Class[], InvocationHandler)}.
          */
-        static final int PROXY_INTERFACE_LIMIT = Math.max(0, Math.min(65535, GetIntegerAction
-                .privilegedGetProperty("jdk.serialProxyInterfaceLimit", 65535)));
+        static final int PROXY_INTERFACE_LIMIT = Math.clamp(GetIntegerAction
+                .privilegedGetProperty("jdk.serialProxyInterfaceLimit", 65535), 0, 65535);
     }
 
     /*
@@ -403,6 +392,7 @@ public class ObjectInputStream
      * @see     ObjectInputStream#readFields()
      * @see     ObjectOutputStream#ObjectOutputStream(OutputStream)
      */
+    @SuppressWarnings("this-escape")
     public ObjectInputStream(InputStream in) throws IOException {
         verifySubclass();
         bin = new BlockDataInputStream(in);
@@ -771,9 +761,9 @@ public class ObjectInputStream
      *
      * <p>The default implementation of this method in
      * {@code ObjectInputStream} returns the result of calling
-     * <pre>
+     * {@snippet lang="java":
      *     Class.forName(desc.getName(), false, loader)
-     * </pre>
+     * }
      * where {@code loader} is the first class loader on the current
      * thread's stack (starting from the currently executing method) that is
      * neither the {@linkplain ClassLoader#getPlatformClassLoader() platform
@@ -801,7 +791,7 @@ public class ObjectInputStream
         try {
             return Class.forName(name, false, latestUserDefinedLoader());
         } catch (ClassNotFoundException ex) {
-            Class<?> cl = primClasses.get(name);
+            Class<?> cl = Class.forPrimitiveName(name);
             if (cl != null) {
                 return cl;
             } else {
@@ -833,9 +823,9 @@ public class ObjectInputStream
      * objects for the interfaces that are named in the {@code interfaces}
      * parameter.  The {@code Class} object for each interface name
      * {@code i} is the value returned by calling
-     * <pre>
+     * {@snippet lang="java":
      *     Class.forName(i, false, loader)
-     * </pre>
+     * }
      * where {@code loader} is the first class loader on the current
      * thread's stack (starting from the currently executing method) that is
      * neither the {@linkplain ClassLoader#getPlatformClassLoader() platform
@@ -1017,8 +1007,9 @@ public class ObjectInputStream
      * Reads a byte of data. This method will block if no input is available.
      *
      * @return  the byte read, or -1 if the end of the stream is reached.
-     * @throws  IOException If an I/O error has occurred.
+     * @throws  IOException {@inheritDoc}
      */
+    @Override
     public int read() throws IOException {
         return bin.read();
     }
@@ -1041,6 +1032,7 @@ public class ObjectInputStream
      * @throws  IOException If an I/O error has occurred.
      * @see java.io.DataInputStream#readFully(byte[],int,int)
      */
+    @Override
     public int read(byte[] buf, int off, int len) throws IOException {
         if (buf == null) {
             throw new NullPointerException();
@@ -1056,16 +1048,17 @@ public class ObjectInputStream
      * @throws  IOException if there are I/O errors while reading from the
      *          underlying {@code InputStream}
      */
+    @Override
     public int available() throws IOException {
         return bin.available();
     }
 
     /**
-     * Closes the input stream. Must be called to release any resources
-     * associated with the stream.
+     * {@inheritDoc}
      *
-     * @throws  IOException If an I/O error has occurred.
+     * @throws  IOException {@inheritDoc}
      */
+    @Override
     public void close() throws IOException {
         /*
          * Even if stream already closed, propagate redundant close to
@@ -1090,9 +1083,9 @@ public class ObjectInputStream
     }
 
     /**
-     * Reads an 8 bit byte.
+     * Reads an 8-bit byte.
      *
-     * @return  the 8 bit byte read.
+     * @return  the 8-bit byte read.
      * @throws  EOFException If end of file is reached.
      * @throws  IOException If other I/O error has occurred.
      */
@@ -1101,9 +1094,9 @@ public class ObjectInputStream
     }
 
     /**
-     * Reads an unsigned 8 bit byte.
+     * Reads an unsigned 8-bit byte.
      *
-     * @return  the 8 bit byte read.
+     * @return  the 8-bit byte read.
      * @throws  EOFException If end of file is reached.
      * @throws  IOException If other I/O error has occurred.
      */
@@ -1112,9 +1105,9 @@ public class ObjectInputStream
     }
 
     /**
-     * Reads a 16 bit char.
+     * Reads a 16-bit char.
      *
-     * @return  the 16 bit char read.
+     * @return  the 16-bit char read.
      * @throws  EOFException If end of file is reached.
      * @throws  IOException If other I/O error has occurred.
      */
@@ -1123,9 +1116,9 @@ public class ObjectInputStream
     }
 
     /**
-     * Reads a 16 bit short.
+     * Reads a 16-bit short.
      *
-     * @return  the 16 bit short read.
+     * @return  the 16-bit short read.
      * @throws  EOFException If end of file is reached.
      * @throws  IOException If other I/O error has occurred.
      */
@@ -1134,9 +1127,9 @@ public class ObjectInputStream
     }
 
     /**
-     * Reads an unsigned 16 bit short.
+     * Reads an unsigned 16-bit short.
      *
-     * @return  the 16 bit short read.
+     * @return  the 16-bit short read.
      * @throws  EOFException If end of file is reached.
      * @throws  IOException If other I/O error has occurred.
      */
@@ -1145,9 +1138,9 @@ public class ObjectInputStream
     }
 
     /**
-     * Reads a 32 bit int.
+     * Reads a 32-bit int.
      *
-     * @return  the 32 bit integer read.
+     * @return  the 32-bit integer read.
      * @throws  EOFException If end of file is reached.
      * @throws  IOException If other I/O error has occurred.
      */
@@ -1156,9 +1149,9 @@ public class ObjectInputStream
     }
 
     /**
-     * Reads a 64 bit long.
+     * Reads a 64-bit long.
      *
-     * @return  the read 64 bit long.
+     * @return  the read 64-bit long.
      * @throws  EOFException If end of file is reached.
      * @throws  IOException If other I/O error has occurred.
      */
@@ -1167,9 +1160,9 @@ public class ObjectInputStream
     }
 
     /**
-     * Reads a 32 bit float.
+     * Reads a 32-bit float.
      *
-     * @return  the 32 bit float read.
+     * @return  the 32-bit float read.
      * @throws  EOFException If end of file is reached.
      * @throws  IOException If other I/O error has occurred.
      */
@@ -1178,9 +1171,9 @@ public class ObjectInputStream
     }
 
     /**
-     * Reads a 64 bit double.
+     * Reads a 64-bit double.
      *
-     * @return  the 64 bit double read.
+     * @return  the 64-bit double read.
      * @throws  EOFException If end of file is reached.
      * @throws  IOException If other I/O error has occurred.
      */
@@ -1225,6 +1218,7 @@ public class ObjectInputStream
      * @return  the actual number of bytes skipped.
      * @throws  IOException If an I/O error has occurred.
      */
+    @Override
     public int skipBytes(int len) throws IOException {
         return bin.skipBytes(len);
     }
@@ -1445,16 +1439,16 @@ public class ObjectInputStream
      * @param arrayLength the array length
      * @throws NullPointerException if arrayType is null
      * @throws IllegalArgumentException if arrayType isn't actually an array type
-     * @throws NegativeArraySizeException if arrayLength is negative
+     * @throws StreamCorruptedException if arrayLength is negative
      * @throws InvalidClassException if the filter rejects creation
      */
-    private void checkArray(Class<?> arrayType, int arrayLength) throws InvalidClassException {
+    private void checkArray(Class<?> arrayType, int arrayLength) throws ObjectStreamException {
         if (! arrayType.isArray()) {
             throw new IllegalArgumentException("not an array type");
         }
 
         if (arrayLength < 0) {
-            throw new NegativeArraySizeException();
+            throw new StreamCorruptedException("Array length is negative");
         }
 
         filterCheck(arrayType, arrayLength);
@@ -1996,9 +1990,8 @@ public class ObjectInputStream
             resolveEx = ex;
         } catch (IllegalAccessError aie) {
             throw new InvalidClassException(aie.getMessage(), aie);
-        } catch (OutOfMemoryError memerr) {
-            throw new InvalidObjectException("Proxy interface limit exceeded: " +
-                                             Arrays.toString(ifaces), memerr);
+        } catch (OutOfMemoryError oome) {
+            throw genInvalidObjectException(oome, ifaces);
         }
 
         // Call filterCheck on the class before reading anything else
@@ -2010,9 +2003,8 @@ public class ObjectInputStream
             totalObjectRefs++;
             depth++;
             desc.initProxy(cl, resolveEx, readClassDesc(false));
-        } catch (OutOfMemoryError memerr) {
-            throw new InvalidObjectException("Proxy interface limit exceeded: " +
-                                             Arrays.toString(ifaces), memerr);
+        } catch (OutOfMemoryError oome) {
+            throw genInvalidObjectException(oome, ifaces);
         } finally {
             depth--;
         }
@@ -2020,6 +2012,14 @@ public class ObjectInputStream
         handles.finish(descHandle);
         passHandle = descHandle;
         return desc;
+    }
+
+    // Generate an InvalidObjectException for an OutOfMemoryError
+    // Use String.concat() to avoid string formatting invoke dynamic
+    private static InvalidObjectException genInvalidObjectException(OutOfMemoryError oome,
+                                                                    String[] ifaces) {
+        return new InvalidObjectException("Proxy interface limit exceeded: "
+                .concat(Arrays.toString(ifaces)), oome);
     }
 
     /**
@@ -2132,7 +2132,9 @@ public class ObjectInputStream
 
         ObjectStreamClass desc = readClassDesc(false);
         int len = bin.readInt();
-
+        if (len < 0) {
+            throw new StreamCorruptedException("Array length is negative");
+        }
         filterCheck(desc.forClass(), len);
 
         Object array = null;
@@ -2426,8 +2428,6 @@ public class ObjectInputStream
                     // Read fields of the current descriptor into a new FieldValues and discard
                     new FieldValues(slotDesc, true);
                 } else if (slotDesc.hasReadObjectMethod()) {
-                    ThreadDeath t = null;
-                    boolean reset = false;
                     SerialCallbackContext oldContext = curContext;
                     if (oldContext != null)
                         oldContext.check();
@@ -2446,19 +2446,10 @@ public class ObjectInputStream
                          */
                         handles.markException(passHandle, ex);
                     } finally {
-                        do {
-                            try {
-                                curContext.setUsed();
-                                if (oldContext!= null)
-                                    oldContext.check();
-                                curContext = oldContext;
-                                reset = true;
-                            } catch (ThreadDeath x) {
-                                t = x;  // defer until reset is true
-                            }
-                        } while (!reset);
-                        if (t != null)
-                            throw t;
+                        curContext.setUsed();
+                        if (oldContext!= null)
+                            oldContext.check();
+                        curContext = oldContext;
                     }
 
                     /*
@@ -2638,7 +2629,7 @@ public class ObjectInputStream
 
         public boolean get(String name, boolean val) {
             int off = getFieldOffset(name, Boolean.TYPE);
-            return (off >= 0) ? Bits.getBoolean(primValues, off) : val;
+            return (off >= 0) ? ByteArray.getBoolean(primValues, off) : val;
         }
 
         public byte get(String name, byte val) {
@@ -2648,32 +2639,32 @@ public class ObjectInputStream
 
         public char get(String name, char val) {
             int off = getFieldOffset(name, Character.TYPE);
-            return (off >= 0) ? Bits.getChar(primValues, off) : val;
+            return (off >= 0) ? ByteArray.getChar(primValues, off) : val;
         }
 
         public short get(String name, short val) {
             int off = getFieldOffset(name, Short.TYPE);
-            return (off >= 0) ? Bits.getShort(primValues, off) : val;
+            return (off >= 0) ? ByteArray.getShort(primValues, off) : val;
         }
 
         public int get(String name, int val) {
             int off = getFieldOffset(name, Integer.TYPE);
-            return (off >= 0) ? Bits.getInt(primValues, off) : val;
+            return (off >= 0) ? ByteArray.getInt(primValues, off) : val;
         }
 
         public float get(String name, float val) {
             int off = getFieldOffset(name, Float.TYPE);
-            return (off >= 0) ? Bits.getFloat(primValues, off) : val;
+            return (off >= 0) ? ByteArray.getFloat(primValues, off) : val;
         }
 
         public long get(String name, long val) {
             int off = getFieldOffset(name, Long.TYPE);
-            return (off >= 0) ? Bits.getLong(primValues, off) : val;
+            return (off >= 0) ? ByteArray.getLong(primValues, off) : val;
         }
 
         public double get(String name, double val) {
             int off = getFieldOffset(name, Double.TYPE);
-            return (off >= 0) ? Bits.getDouble(primValues, off) : val;
+            return (off >= 0) ? ByteArray.getDouble(primValues, off) : val;
         }
 
         public Object get(String name, Object val) throws ClassNotFoundException {
@@ -3006,6 +2997,8 @@ public class ObjectInputStream
         private static final int CHAR_BUF_SIZE = 256;
         /** readBlockHeader() return value indicating header read may block */
         private static final int HEADER_BLOCKED = -2;
+        /** access to internal methods to count ASCII and inflate latin1/ASCII bytes to char */
+        private static final JavaLangAccess JLA = SharedSecrets.getJavaLangAccess();
 
         /** buffer for reading general/block data */
         private final byte[] buf = new byte[MAX_BLOCK_SIZE];
@@ -3121,7 +3114,7 @@ public class ObjectInputStream
                                 return HEADER_BLOCKED;
                             }
                             in.readFully(hbuf, 0, 5);
-                            int len = Bits.getInt(hbuf, 1);
+                            int len = ByteArray.getInt(hbuf, 1);
                             if (len < 0) {
                                 throw new StreamCorruptedException(
                                     "illegal block data header length: " +
@@ -3420,7 +3413,7 @@ public class ObjectInputStream
             } else if (end - pos < 2) {
                 return din.readChar();
             }
-            char v = Bits.getChar(buf, pos);
+            char v = ByteArray.getChar(buf, pos);
             pos += 2;
             return v;
         }
@@ -3432,7 +3425,7 @@ public class ObjectInputStream
             } else if (end - pos < 2) {
                 return din.readShort();
             }
-            short v = Bits.getShort(buf, pos);
+            short v = ByteArray.getShort(buf, pos);
             pos += 2;
             return v;
         }
@@ -3444,7 +3437,7 @@ public class ObjectInputStream
             } else if (end - pos < 2) {
                 return din.readUnsignedShort();
             }
-            int v = Bits.getShort(buf, pos) & 0xFFFF;
+            int v = ByteArray.getShort(buf, pos) & 0xFFFF;
             pos += 2;
             return v;
         }
@@ -3456,7 +3449,7 @@ public class ObjectInputStream
             } else if (end - pos < 4) {
                 return din.readInt();
             }
-            int v = Bits.getInt(buf, pos);
+            int v = ByteArray.getInt(buf, pos);
             pos += 4;
             return v;
         }
@@ -3468,7 +3461,7 @@ public class ObjectInputStream
             } else if (end - pos < 4) {
                 return din.readFloat();
             }
-            float v = Bits.getFloat(buf, pos);
+            float v = ByteArray.getFloat(buf, pos);
             pos += 4;
             return v;
         }
@@ -3480,7 +3473,7 @@ public class ObjectInputStream
             } else if (end - pos < 8) {
                 return din.readLong();
             }
-            long v = Bits.getLong(buf, pos);
+            long v = ByteArray.getLong(buf, pos);
             pos += 8;
             return v;
         }
@@ -3492,7 +3485,7 @@ public class ObjectInputStream
             } else if (end - pos < 8) {
                 return din.readDouble();
             }
-            double v = Bits.getDouble(buf, pos);
+            double v = ByteArray.getDouble(buf, pos);
             pos += 8;
             return v;
         }
@@ -3530,7 +3523,7 @@ public class ObjectInputStream
                 }
 
                 while (off < stop) {
-                    v[off++] = Bits.getBoolean(buf, pos++);
+                    v[off++] = ByteArray.getBoolean(buf, pos++);
                 }
             }
         }
@@ -3551,7 +3544,7 @@ public class ObjectInputStream
                 }
 
                 while (off < stop) {
-                    v[off++] = Bits.getChar(buf, pos);
+                    v[off++] = ByteArray.getChar(buf, pos);
                     pos += 2;
                 }
             }
@@ -3573,7 +3566,7 @@ public class ObjectInputStream
                 }
 
                 while (off < stop) {
-                    v[off++] = Bits.getShort(buf, pos);
+                    v[off++] = ByteArray.getShort(buf, pos);
                     pos += 2;
                 }
             }
@@ -3595,7 +3588,7 @@ public class ObjectInputStream
                 }
 
                 while (off < stop) {
-                    v[off++] = Bits.getInt(buf, pos);
+                    v[off++] = ByteArray.getInt(buf, pos);
                     pos += 4;
                 }
             }
@@ -3617,7 +3610,7 @@ public class ObjectInputStream
                 }
 
                 while (off < stop) {
-                    v[off++] = Bits.getFloat(buf, pos);
+                    v[off++] = ByteArray.getFloat(buf, pos);
                     pos += 4;
                 }
             }
@@ -3639,7 +3632,7 @@ public class ObjectInputStream
                 }
 
                 while (off < stop) {
-                    v[off++] = Bits.getLong(buf, pos);
+                    v[off++] = ByteArray.getLong(buf, pos);
                     pos += 8;
                 }
             }
@@ -3661,7 +3654,7 @@ public class ObjectInputStream
                 }
 
                 while (off < stop) {
-                    v[off++] = Bits.getDouble(buf, pos);
+                    v[off++] = ByteArray.getDouble(buf, pos);
                     pos += 8;
                 }
             }
@@ -3682,8 +3675,32 @@ public class ObjectInputStream
          * utflen bytes.
          */
         private String readUTFBody(long utflen) throws IOException {
+            if (!blkmode) {
+                end = pos = 0;
+            }
+
             StringBuilder sbuf;
             if (utflen > 0 && utflen < Integer.MAX_VALUE) {
+                // Scan for leading ASCII chars
+                int avail = end - pos;
+                int ascii = JLA.countPositives(buf, pos, Math.min(avail, (int)utflen));
+                if (ascii == utflen) {
+                    // Complete match, consume the buf[pos ... pos + ascii] range and return.
+                    // Modified UTF-8 and ISO-8859-1 are both ASCII-compatible encodings bytes
+                    // thus we can treat the range as ISO-8859-1 and avoid a redundant scan
+                    // in the String constructor
+                    String utf = new String(buf, pos, ascii, StandardCharsets.ISO_8859_1);
+                    pos += ascii;
+                    return utf;
+                }
+                // Avoid allocating a StringBuilder if there's enough data in buf and
+                // cbuf is large enough
+                if (avail >= utflen && utflen <= CHAR_BUF_SIZE) {
+                    JLA.inflateBytesToChars(buf, pos, cbuf, 0, ascii);
+                    pos += ascii;
+                    int cbufPos = readUTFSpan(ascii, utflen - ascii);
+                    return new String(cbuf, 0, cbufPos);
+                }
                 // a reasonable initial capacity based on the UTF length
                 int initialCapacity = Math.min((int)utflen, 0xFFFF);
                 sbuf = new StringBuilder(initialCapacity);
@@ -3691,14 +3708,14 @@ public class ObjectInputStream
                 sbuf = new StringBuilder();
             }
 
-            if (!blkmode) {
-                end = pos = 0;
-            }
-
             while (utflen > 0) {
                 int avail = end - pos;
                 if (avail >= 3 || (long) avail == utflen) {
-                    utflen -= readUTFSpan(sbuf, utflen);
+                    int cbufPos = readUTFSpan(0, utflen);
+                    // pos has advanced: adjust utflen by the difference in
+                    // available bytes
+                    utflen -= avail - (end - pos);
+                    sbuf.append(cbuf, 0, cbufPos);
                 } else {
                     if (blkmode) {
                         // near block boundary, read one byte at a time
@@ -3720,18 +3737,17 @@ public class ObjectInputStream
 
         /**
          * Reads span of UTF-encoded characters out of internal buffer
-         * (starting at offset pos and ending at or before offset end),
-         * consuming no more than utflen bytes.  Appends read characters to
-         * sbuf.  Returns the number of bytes consumed.
+         * (starting at offset pos), consuming no more than utflen bytes.
+         * Appends read characters to cbuf. Returns the current position
+         * in cbuf.
          */
-        private long readUTFSpan(StringBuilder sbuf, long utflen)
+        private int readUTFSpan(int cpos, long utflen)
             throws IOException
         {
-            int cpos = 0;
             int start = pos;
             int avail = Math.min(end - pos, CHAR_BUF_SIZE);
             // stop short of last char unless all of utf bytes in buffer
-            int stop = pos + ((utflen > avail) ? avail - 2 : (int) utflen);
+            int stop = start + ((utflen > avail) ? avail - 2 : (int) utflen);
             boolean outOfBounds = false;
 
             try {
@@ -3776,9 +3792,7 @@ public class ObjectInputStream
                     throw new UTFDataFormatException();
                 }
             }
-
-            sbuf.append(cbuf, 0, cpos);
-            return pos - start;
+            return cpos;
         }
 
         /**
@@ -3869,7 +3883,7 @@ public class ObjectInputStream
      * as memory conservation, it does not enforce this constraint.
      */
     // REMIND: add full description of exception propagation algorithm?
-    private static class HandleTable {
+    private static final class HandleTable {
 
         /* status codes indicating whether object has associated exception */
         private static final byte STATUS_OK = 1;

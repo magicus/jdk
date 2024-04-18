@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,20 +23,18 @@
  */
 package com.sun.hotspot.igv.view.widgets;
 
-import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.Properties;
-import com.sun.hotspot.igv.data.services.GraphViewer;
+import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.util.DoubleClickAction;
 import com.sun.hotspot.igv.util.DoubleClickHandler;
+import com.sun.hotspot.igv.util.PropertiesConverter;
 import com.sun.hotspot.igv.util.PropertiesSheet;
 import com.sun.hotspot.igv.view.DiagramScene;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.JMenu;
@@ -48,13 +46,14 @@ import org.netbeans.api.visual.action.WidgetAction;
 import org.netbeans.api.visual.layout.LayoutFactory;
 import org.netbeans.api.visual.layout.LayoutFactory.SerialAlignment;
 import org.netbeans.api.visual.model.ObjectState;
+import org.netbeans.api.visual.widget.ImageWidget;
 import org.netbeans.api.visual.widget.LabelWidget;
 import org.netbeans.api.visual.widget.Widget;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
 import org.openide.nodes.Sheet;
-import org.openide.util.Lookup;
+import org.openide.util.ImageUtilities;
 
 /**
  *
@@ -62,17 +61,15 @@ import org.openide.util.Lookup;
  */
 public class FigureWidget extends Widget implements Properties.Provider, PopupMenuProvider, DoubleClickHandler {
 
-    public static final boolean VERTICAL_LAYOUT = true;
     private static final double LABEL_ZOOM_FACTOR = 0.3;
     private Figure figure;
-    private Widget leftWidget;
-    private Widget rightWidget;
     private Widget middleWidget;
     private ArrayList<LabelWidget> labelWidgets;
     private DiagramScene diagramScene;
     private boolean boundary;
     private final Node node;
     private Widget dummyTop;
+    private static final Image warningSign = ImageUtilities.loadImage("com/sun/hotspot/igv/view/images/warning.png");
 
     public void setBoundary(boolean b) {
         boundary = b;
@@ -82,16 +79,22 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         return boundary;
     }
 
-    public Node getNode() {
-        return node;
-    }
-
     @Override
     public boolean isHitAt(Point localLocation) {
         return middleWidget.isHitAt(localLocation);
     }
 
-    public FigureWidget(final Figure f, WidgetAction hoverAction, WidgetAction selectAction, DiagramScene scene, Widget parent) {
+    private void formatExtraLabel(boolean selected) {
+        // If the figure contains an extra label, use a light italic font to
+        // differentiate it from the regular label.
+        if (getFigure().getProperties().get("extra_label") != null) {
+            LabelWidget extraLabelWidget = labelWidgets.get(labelWidgets.size() - 1);
+            extraLabelWidget.setFont(Diagram.FONT.deriveFont(Font.ITALIC));
+            extraLabelWidget.setForeground(selected ? getTextColor() : Color.DARK_GRAY);
+        }
+    }
+
+    public FigureWidget(final Figure f, DiagramScene scene) {
         super(scene);
 
         assert this.getScene() != null;
@@ -100,7 +103,6 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         this.figure = f;
         this.setCheckClipping(true);
         this.diagramScene = scene;
-        parent.addChild(this);
 
         Widget outer = new Widget(scene);
         outer.setBackground(f.getColor());
@@ -114,7 +116,7 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         middleWidget.setBackground(f.getColor());
         middleWidget.setOpaque(true);
         middleWidget.getActions().addAction(new DoubleClickAction(this));
-        middleWidget.setCheckClipping(true);
+        middleWidget.setCheckClipping(false);
 
         dummyTop = new Widget(scene);
         int extraTopHeight =
@@ -123,19 +125,38 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         dummyTop.setMinimumSize(new Dimension(Figure.INSET / 2, 1 + extraTopHeight));
         middleWidget.addChild(dummyTop);
 
+        // This widget includes the node text and possibly a warning sign to the right.
+        Widget nodeInfoWidget = new Widget(scene);
+        nodeInfoWidget.setLayout(LayoutFactory.createAbsoluteLayout());
+        middleWidget.addChild(nodeInfoWidget);
+
+        Widget textWidget = new Widget(scene);
+        textWidget.setLayout(LayoutFactory.createVerticalFlowLayout(textAlign, 0));
+        nodeInfoWidget.addChild(textWidget);
+
         String[] strings = figure.getLines();
         labelWidgets = new ArrayList<>(strings.length);
 
         for (String displayString : strings) {
             LabelWidget lw = new LabelWidget(scene);
             labelWidgets.add(lw);
-            middleWidget.addChild(lw);
+            textWidget.addChild(lw);
             lw.setLabel(displayString);
-            lw.setFont(figure.getDiagram().getFont());
+            lw.setFont(Diagram.FONT);
             lw.setForeground(getTextColor());
             lw.setAlignment(LabelWidget.Alignment.CENTER);
             lw.setVerticalAlignment(LabelWidget.VerticalAlignment.CENTER);
             lw.setBorder(BorderFactory.createEmptyBorder());
+            lw.setCheckClipping(false);
+        }
+        formatExtraLabel(false);
+
+        if (getFigure().getWarning() != null) {
+            ImageWidget warningWidget = new ImageWidget(scene, warningSign);
+            Point warningLocation = new Point(getFigure().getWidth() - Figure.WARNING_WIDTH - Figure.INSET / 2, 0);
+            warningWidget.setPreferredLocation(warningLocation);
+            warningWidget.setToolTipText(getFigure().getWarning());
+            nodeInfoWidget.addChild(warningWidget);
         }
 
         Widget dummyBottom = new Widget(scene);
@@ -159,24 +180,18 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
             }
         };
         node.setDisplayName(getName());
-    }
 
-    public Widget getLeftWidget() {
-        return leftWidget;
-    }
-
-    public Widget getRightWidget() {
-        return rightWidget;
+        this.setToolTipText(PropertiesConverter.convertToHTML(f.getProperties()));
     }
 
     @Override
     protected void notifyStateChanged(ObjectState previousState, ObjectState state) {
         super.notifyStateChanged(previousState, state);
 
-        Font font = this.figure.getDiagram().getFont();
+        Font font = Diagram.FONT;
         int thickness = 1;
         if (state.isSelected()) {
-            font = this.figure.getDiagram().getBoldFont();
+            font = Diagram.BOLD_FONT;
             thickness = 2;
         }
 
@@ -190,6 +205,7 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         for (LabelWidget labelWidget : labelWidgets) {
             labelWidget.setFont(font);
         }
+        formatExtraLabel(state.isSelected());
         repaint();
     }
 
@@ -262,27 +278,6 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         build(menu, getFigure(), this, false, diagramScene);
         menu.addSeparator();
         build(menu, getFigure(), this, true, diagramScene);
-
-        if (getFigure().getSubgraphs() != null) {
-            menu.addSeparator();
-            JMenu subgraphs = new JMenu("Subgraphs");
-            menu.add(subgraphs);
-
-            final GraphViewer viewer = Lookup.getDefault().lookup(GraphViewer.class);
-            for (final InputGraph subgraph : getFigure().getSubgraphs()) {
-                Action a = new AbstractAction() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        viewer.view(subgraph, true);
-                    }
-                };
-
-                a.setEnabled(true);
-                a.putValue(Action.NAME, subgraph.getName());
-                subgraphs.add(a);
-            }
-        }
 
         return menu;
     }
@@ -360,20 +355,18 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
 
     @Override
     public void handleDoubleClick(Widget w, WidgetAction.WidgetMouseEvent e) {
-
         if (diagramScene.isAllVisible()) {
-            final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getGraphToView().getGroup().getAllNodes());
-            hiddenNodes.removeAll(this.getFigure().getSource().getSourceNodesAsSet());
-            this.diagramScene.getModel().showNot(hiddenNodes);
+            final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getGroup().getAllNodes());
+            hiddenNodes.remove(this.getFigure().getInputNode().getId());
+            this.diagramScene.getModel().setHiddenNodes(hiddenNodes);
         } else if (isBoundary()) {
-
             final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getHiddenNodes());
-            hiddenNodes.removeAll(this.getFigure().getSource().getSourceNodesAsSet());
-            this.diagramScene.getModel().showNot(hiddenNodes);
+            hiddenNodes.remove(this.getFigure().getInputNode().getId());
+            this.diagramScene.getModel().setHiddenNodes(hiddenNodes);
         } else {
             final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getHiddenNodes());
-            hiddenNodes.addAll(this.getFigure().getSource().getSourceNodesAsSet());
-            this.diagramScene.getModel().showNot(hiddenNodes);
+            hiddenNodes.add(this.getFigure().getInputNode().getId());
+            this.diagramScene.getModel().setHiddenNodes(hiddenNodes);
         }
     }
 }

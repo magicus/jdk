@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,7 @@
  */
 package jdk.incubator.vector;
 
-import java.nio.ByteBuffer;
+import java.lang.foreign.MemorySegment;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.IntUnaryOperator;
@@ -463,6 +463,22 @@ final class FloatMaxVector extends FloatVector {
 
     @Override
     @ForceInline
+    public FloatMaxVector compress(VectorMask<Float> m) {
+        return (FloatMaxVector)
+            super.compressTemplate(FloatMaxMask.class,
+                                   (FloatMaxMask) m);  // specialize
+    }
+
+    @Override
+    @ForceInline
+    public FloatMaxVector expand(VectorMask<Float> m) {
+        return (FloatMaxVector)
+            super.expandTemplate(FloatMaxMask.class,
+                                   (FloatMaxMask) m);  // specialize
+    }
+
+    @Override
+    @ForceInline
     public FloatMaxVector selectFrom(Vector<Float> v) {
         return (FloatMaxVector)
             super.selectFromTemplate((FloatMaxVector) v);  // specialize
@@ -621,10 +637,11 @@ final class FloatMaxVector extends FloatVector {
 
         @Override
         @ForceInline
-        public FloatMaxMask eq(VectorMask<Float> mask) {
-            Objects.requireNonNull(mask);
-            FloatMaxMask m = (FloatMaxMask)mask;
-            return xor(m.not());
+        /*package-private*/
+        FloatMaxMask indexPartiallyInUpperRange(long offset, long limit) {
+            return (FloatMaxMask) VectorSupport.indexPartiallyInUpperRange(
+                FloatMaxMask.class, float.class, VLENGTH, offset, limit,
+                (o, l) -> (FloatMaxMask) TRUE_MASK.indexPartiallyInRange(o, l));
         }
 
         // Unary operations
@@ -634,6 +651,15 @@ final class FloatMaxVector extends FloatVector {
         public FloatMaxMask not() {
             return xor(maskAll(true));
         }
+
+        @Override
+        @ForceInline
+        public FloatMaxMask compress() {
+            return (FloatMaxMask)VectorSupport.compressExpandOp(VectorSupport.VECTOR_OP_MASK_COMPRESS,
+                FloatMaxVector.class, FloatMaxMask.class, ETYPE, VLENGTH, null, this,
+                (v1, m1) -> VSPECIES.iota().compare(VectorOperators.LT, m1.trueCount()));
+        }
+
 
         // Binary operations
 
@@ -657,9 +683,9 @@ final class FloatMaxVector extends FloatVector {
                                           (m1, m2, vm) -> m1.bOp(m2, (i, a, b) -> a | b));
         }
 
+        @Override
         @ForceInline
-        /* package-private */
-        FloatMaxMask xor(VectorMask<Float> mask) {
+        public FloatMaxMask xor(VectorMask<Float> mask) {
             Objects.requireNonNull(mask);
             FloatMaxMask m = (FloatMaxMask)mask;
             return VectorSupport.binaryOp(VECTOR_OP_XOR, FloatMaxMask.class, null, int.class, VLENGTH,
@@ -698,6 +724,16 @@ final class FloatMaxVector extends FloatVector {
             }
             return VectorSupport.maskReductionCoerced(VECTOR_OP_MASK_TOLONG, FloatMaxMask.class, int.class, VLENGTH, this,
                                                       (m) -> toLongHelper(m.getBits()));
+        }
+
+        // laneIsSet
+
+        @Override
+        @ForceInline
+        public boolean laneIsSet(int i) {
+            Objects.checkIndex(i, length());
+            return VectorSupport.extract(FloatMaxMask.class, float.class, VLENGTH,
+                                         this, i, (m, idx) -> (m.getBits()[idx] ? 1L : 0L)) == 1L;
         }
 
         // Reductions
@@ -811,8 +847,8 @@ final class FloatMaxVector extends FloatVector {
     @ForceInline
     @Override
     final
-    FloatVector fromArray0(float[] a, int offset, VectorMask<Float> m) {
-        return super.fromArray0Template(FloatMaxMask.class, a, offset, (FloatMaxMask) m);  // specialize
+    FloatVector fromArray0(float[] a, int offset, VectorMask<Float> m, int offsetInRange) {
+        return super.fromArray0Template(FloatMaxMask.class, a, offset, (FloatMaxMask) m, offsetInRange);  // specialize
     }
 
     @ForceInline
@@ -827,29 +863,15 @@ final class FloatMaxVector extends FloatVector {
     @ForceInline
     @Override
     final
-    FloatVector fromByteArray0(byte[] a, int offset) {
-        return super.fromByteArray0Template(a, offset);  // specialize
+    FloatVector fromMemorySegment0(MemorySegment ms, long offset) {
+        return super.fromMemorySegment0Template(ms, offset);  // specialize
     }
 
     @ForceInline
     @Override
     final
-    FloatVector fromByteArray0(byte[] a, int offset, VectorMask<Float> m) {
-        return super.fromByteArray0Template(FloatMaxMask.class, a, offset, (FloatMaxMask) m);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    FloatVector fromByteBuffer0(ByteBuffer bb, int offset) {
-        return super.fromByteBuffer0Template(bb, offset);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    FloatVector fromByteBuffer0(ByteBuffer bb, int offset, VectorMask<Float> m) {
-        return super.fromByteBuffer0Template(FloatMaxMask.class, bb, offset, (FloatMaxMask) m);  // specialize
+    FloatVector fromMemorySegment0(MemorySegment ms, long offset, VectorMask<Float> m, int offsetInRange) {
+        return super.fromMemorySegment0Template(FloatMaxMask.class, ms, offset, (FloatMaxMask) m, offsetInRange);  // specialize
     }
 
     @ForceInline
@@ -877,22 +899,8 @@ final class FloatMaxVector extends FloatVector {
     @ForceInline
     @Override
     final
-    void intoByteArray0(byte[] a, int offset) {
-        super.intoByteArray0Template(a, offset);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    void intoByteArray0(byte[] a, int offset, VectorMask<Float> m) {
-        super.intoByteArray0Template(FloatMaxMask.class, a, offset, (FloatMaxMask) m);  // specialize
-    }
-
-    @ForceInline
-    @Override
-    final
-    void intoByteBuffer0(ByteBuffer bb, int offset, VectorMask<Float> m) {
-        super.intoByteBuffer0Template(FloatMaxMask.class, bb, offset, (FloatMaxMask) m);
+    void intoMemorySegment0(MemorySegment ms, long offset, VectorMask<Float> m) {
+        super.intoMemorySegment0Template(FloatMaxMask.class, ms, offset, (FloatMaxMask) m);
     }
 
 
@@ -901,3 +909,4 @@ final class FloatMaxVector extends FloatVector {
     // ================================================
 
 }
+

@@ -94,25 +94,20 @@ public class GenerateBreakIteratorData {
         rules = (ResourceBundle) Class.forName(
             localizedBundleName("sun.text.resources", "BreakIteratorRules")).getDeclaredConstructor().newInstance();
 
-        if (info.containsKey("CharacterData")) {
-            generateDataFile(info.getString("CharacterData"),
-                             rules.getString("CharacterBreakRules"),
-                             classNames[0]);
-        }
         if (info.containsKey("WordData")) {
             generateDataFile(info.getString("WordData"),
                              rules.getString("WordBreakRules"),
-                             classNames[1]);
+                             classNames[0]);
         }
         if (info.containsKey("LineData")) {
             generateDataFile(info.getString("LineData"),
                              rules.getString("LineBreakRules"),
-                             classNames[2]);
+                             classNames[1]);
         }
         if (info.containsKey("SentenceData")) {
             generateDataFile(info.getString("SentenceData"),
                              rules.getString("SentenceBreakRules"),
-                             classNames[3]);
+                             classNames[2]);
         }
     }
 
