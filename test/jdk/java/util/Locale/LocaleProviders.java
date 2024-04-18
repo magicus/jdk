@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,10 +22,26 @@
  */
 import java.text.*;
 import java.text.spi.*;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.time.temporal.WeekFields;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.StreamHandler;
 import java.util.spi.*;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import jdk.test.lib.Utils;
+import jdk.test.lib.process.ProcessTools;
 import sun.util.locale.provider.LocaleProviderAdapter;
+
+import static java.util.logging.LogManager.*;
 
 public class LocaleProviders {
 
@@ -92,6 +108,18 @@ public class LocaleProviders {
                 bug8232860Test();
                 break;
 
+            case "bug8245241Test":
+                bug8245241Test(args[1]);
+                break;
+
+            case "bug8248695Test":
+                bug8248695Test();
+                break;
+
+            case "bug8257964Test":
+                bug8257964Test();
+                break;
+
             default:
                 throw new RuntimeException("Test method '"+methodName+"' not found.");
         }
@@ -103,7 +131,7 @@ public class LocaleProviders {
     }
 
     static void adapterTest(String expected, String lang, String ctry) {
-        Locale testLocale = new Locale(lang, ctry);
+        Locale testLocale = Locale.of(lang, ctry);
         LocaleProviderAdapter ldaExpected =
             LocaleProviderAdapter.forType(LocaleProviderAdapter.Type.valueOf(expected));
         if (!ldaExpected.getDateFormatProvider().isSupportedLocale(testLocale)) {
@@ -224,34 +252,25 @@ public class LocaleProviders {
     static void bug8013086Test(String lang, String ctry) {
         try {
             // Throws a NullPointerException if the test fails.
-            System.out.println(new SimpleDateFormat("z", new Locale(lang, ctry)).parse("UTC"));
+            System.out.println(new SimpleDateFormat("z", Locale.of(lang, ctry)).parse("UTC"));
         } catch (ParseException pe) {
             // ParseException is fine in this test, as it's not "UTC"
-}
+        }
     }
 
     static void bug8013903Test() {
         if (IS_WINDOWS) {
             Date sampleDate = new Date(0x10000000000L);
-            String hostResult = "\u5e73\u6210 16.11.03 (Wed) AM 11:53:47";
-            String jreResult = "\u5e73\u6210 16.11.03 (\u6c34) \u5348\u524d 11:53:47";
-            Locale l = new Locale("ja", "JP", "JP");
+            String expected = "\u5e73\u6210 16.11.03 (\u6c34) \u5348\u524d 11:53:47";
+            Locale l = Locale.of("ja", "JP", "JP");
             SimpleDateFormat sdf = new SimpleDateFormat("GGGG yyyy.MMM.dd '('E')' a hh:mm:ss", l);
             sdf.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
             String result = sdf.format(sampleDate);
             System.out.println(result);
-            if (LocaleProviderAdapter.getAdapterPreference()
-                .contains(LocaleProviderAdapter.Type.JRE)) {
-                if (!jreResult.equals(result)) {
-                    throw new RuntimeException("Format failed. result: \"" +
-                        result + "\", expected: \"" + jreResult);
-                }
-            } else {
-                // Windows display names. Subject to change if Windows changes its format.
-                if (!hostResult.equals(result)) {
-                    throw new RuntimeException("Format failed. result: \"" +
-                        result + "\", expected: \"" + hostResult);
-                }
+            // Windows display names. Subject to change if Windows changes its format.
+            if (!expected.equals(result)) {
+                throw new RuntimeException("Format failed. result: \"" +
+                    result + "\", expected: \"" + expected);
             }
         }
     }
@@ -272,7 +291,7 @@ public class LocaleProviders {
 
     static void bug8220227Test() {
         if (IS_WINDOWS) {
-            Locale l = new Locale("xx","XX");
+            Locale l = Locale.of("xx","XX");
             String country = l.getDisplayCountry();
             if (country.endsWith("(XX)")) {
                 throw new RuntimeException(
@@ -372,6 +391,112 @@ public class LocaleProviders {
                 "Default format locale is not Locale.US: " + defLoc + ", or\n" +
                 "OS is neither macOS/Windows, or\n" +
                 "provider is not HOST: " + type);
+        }
+    }
+
+    static void bug8245241Test(String expected) {
+        // this will ensure LocaleProviderAdapter initialization
+        DateFormat.getDateInstance();
+        LogConfig.handler.flush();
+
+        if (LogConfig.logRecordList.stream()
+                .noneMatch(r -> r.getLevel() == Level.INFO &&
+                                r.getMessage().equals(expected))) {
+            throw new RuntimeException("Expected log was not emitted.");
+        }
+    }
+
+    // Set the root logger on loading the logging class
+    public static class LogConfig {
+        final static CopyOnWriteArrayList<LogRecord> logRecordList = new CopyOnWriteArrayList<>();
+        final static StreamHandler handler = new StreamHandler() {
+            @Override
+            public void publish(LogRecord record) {
+                logRecordList.add(record);
+                System.out.println("LogRecord: " + record.getMessage());
+            }
+        };
+        static {
+            getLogManager().getLogger("").addHandler(handler);
+        }
+    }
+
+    static void bug8248695Test() {
+        Locale l = Locale.getDefault(Locale.Category.FORMAT);
+        LocaleProviderAdapter lda = LocaleProviderAdapter.getAdapter(DateFormatProvider.class, l);
+        LocaleProviderAdapter.Type type = lda.getAdapterType();
+        if (type == LocaleProviderAdapter.Type.HOST) {
+            System.out.println("Locale: " + l);
+            var ld = LocalDate.now();
+            var zdt = ZonedDateTime.now(ZoneId.of("America/Los_Angeles"));
+            var df = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(l);
+            var tf = DateTimeFormatter.ofLocalizedTime(FormatStyle.FULL).withLocale(l);
+            var dtf = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL).withLocale(l);
+
+            // Checks there's no "unsupported temporal field" exception thrown, such as HourOfDay
+            System.out.println(df.format(ld));
+            System.out.println(tf.format(zdt));
+
+            // Checks there's no "Too many pattern letters: aa" exception thrown, if
+            // underlying OS provides the "am/pm" pattern.
+            System.out.println(dtf.format(zdt));
+        }
+    }
+
+    // Run only if the underlying platform locale is en-GB
+    // (Setting the java locale via command line properties does not substitute this)
+    static void bug8257964Test() {
+        var defLoc = Locale.getDefault(Locale.Category.FORMAT);
+        var type = LocaleProviderAdapter.getAdapter(CalendarNameProvider.class, Locale.UK)
+                .getAdapterType();
+        if (defLoc.equals(Locale.UK) &&
+                type == LocaleProviderAdapter.Type.HOST &&
+                (IS_WINDOWS || IS_MAC)) {
+            Calendar instance = Calendar.getInstance(Locale.UK);
+            int result = instance.getMinimalDaysInFirstWeek();
+            if (result != 4) {
+                throw new RuntimeException("MinimalDaysInFirstWeek for Locale.UK is incorrect. " +
+                        "returned: " + result);
+            }
+
+            LocalDate date = LocalDate.of(2020,12,31);
+            result = date.get(WeekFields.of(Locale.UK).weekOfWeekBasedYear());
+            if (result != 53) {
+                throw new RuntimeException("weekNumber is incorrect. " +
+                        "returned: " + result);
+            }
+            System.out.println("bug8257964Test succeeded.");
+        } else {
+            System.out.println("Test ignored. Either :-\n" +
+                    "Default format locale is not Locale.UK: " + defLoc + ", or\n" +
+                    "OS is neither macOS/Windows, or\n" +
+                    "provider is not HOST: " + type);
+        }
+    }
+
+    /* Method is used by the LocaleProviders* related tests to launch a
+     * LocaleProviders test method with the appropriate LocaleProvider (e.g. CLDR,
+     * COMPAT, ETC.)
+     */
+    static void test(String prefList, String methodName, String... params) throws Throwable {
+
+        List<String> command = List.of(
+                "-ea", "-esa",
+                "-cp", Utils.TEST_CLASS_PATH,
+                // Required for LocaleProvidersLogger
+                "-Djava.util.logging.config.class=LocaleProviders$LogConfig",
+                "-Djava.locale.providers=" + prefList,
+                "--add-exports=java.base/sun.util.locale.provider=ALL-UNNAMED",
+                "LocaleProviders", methodName);
+
+        // Build process with arguments, if required by the method
+        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
+                Stream.concat(command.stream(), Stream.of(params)).toList());
+
+        // Evaluate process status
+        int exitCode = ProcessTools.executeCommand(pb).getExitValue();
+        if (exitCode != 0) {
+            throw new RuntimeException("Unexpected exit code: " + exitCode);
         }
     }
 }

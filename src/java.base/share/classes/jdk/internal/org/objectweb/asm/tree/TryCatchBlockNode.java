@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.tree;
 
 import java.util.List;
@@ -97,8 +98,9 @@ public class TryCatchBlockNode {
       * @param start the beginning of the exception handler's scope (inclusive).
       * @param end the end of the exception handler's scope (exclusive).
       * @param handler the beginning of the exception handler's code.
-      * @param type the internal name of the type of exceptions handled by the handler, or {@literal
-      *     null} to catch any exceptions (for "finally" blocks).
+      * @param type the internal name of the type of exceptions handled by the handler (see {@link
+      *     jdk.internal.org.objectweb.asm.Type#getInternalName()}), or {@literal null} to catch any exceptions (for
+      *     "finally" blocks).
       */
     public TryCatchBlockNode(
             final LabelNode start, final LabelNode end, final LabelNode handler, final String type) {

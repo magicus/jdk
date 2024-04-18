@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,12 +33,8 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/time.h>
-#ifdef __solaris__
-#include <thread.h>
-#else
 #include <pthread.h>
 #include <poll.h>
-#endif
 
 #include "socket_md.h"
 #include "sysSocket.h"
@@ -193,11 +189,9 @@ int
 dbgsysSetSocketOption(int fd, jint cmd, jboolean on, jvalue value)
 {
     if (cmd == TCP_NODELAY) {
-        struct protoent *proto = getprotobyname("TCP");
-        int tcp_level = (proto == 0 ? IPPROTO_TCP: proto->p_proto);
         uint32_t onl = (uint32_t)on;
 
-        if (setsockopt(fd, tcp_level, TCP_NODELAY,
+        if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,
                        (char *)&onl, sizeof(uint32_t)) < 0) {
                 return SYS_ERR;
         }
@@ -277,35 +271,6 @@ dbgsysGetLastIOError(char *buf, jint size) {
     return 0;
 }
 
-#ifdef __solaris__
-int
-dbgsysTlsAlloc() {
-    thread_key_t tk;
-    if (thr_keycreate(&tk, NULL)) {
-        perror("thr_keycreate");
-        exit(-1);
-    }
-    return (int)tk;
-}
-
-void
-dbgsysTlsFree(int index) {
-   /* no-op */
-}
-
-void
-dbgsysTlsPut(int index, void *value) {
-    thr_setspecific((thread_key_t)index, value) ;
-}
-
-void *
-dbgsysTlsGet(int index) {
-    void* r = NULL;
-    thr_getspecific((thread_key_t)index, &r);
-    return r;
-}
-
-#else
 int
 dbgsysTlsAlloc() {
     pthread_key_t key;
@@ -330,8 +295,6 @@ void *
 dbgsysTlsGet(int index) {
     return pthread_getspecific((pthread_key_t)index);
 }
-
-#endif
 
 long
 dbgsysCurrentTimeMillis() {

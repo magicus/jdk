@@ -127,8 +127,8 @@ public class TreeEndPosTest {
     }
 
     static void testUninitializedVariable() throws IOException {
-        compile(JavaSource.createJavaSource("Object o = new A().new B(); class A { }",
-                "B()"));
+        compile(JavaSource.createJavaSource("Object o = new A().new BT(); class A { }",
+                "BT"));
     }
     static void testMissingAnnotationValue() throws IOException {
         compile(JavaSource.createJavaSource("@Foo(\"vvvv\")",
@@ -147,7 +147,7 @@ public class TreeEndPosTest {
 
     static void testFinalVariableWithConstructor() throws IOException {
         compile(JavaSource.createJavaSource("public Bug (){} private static final String Foo; public void bar() { }",
-                "{}"));
+                "private static final String Foo;"));
     }
 
     static void testWholeTextSpan() throws IOException {

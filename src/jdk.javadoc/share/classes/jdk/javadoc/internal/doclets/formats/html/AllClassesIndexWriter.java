@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,23 +27,20 @@ package jdk.javadoc.internal.doclets.formats.html;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import javax.lang.model.element.TypeElement;
 
-import com.sun.source.doctree.DocTree;
+import com.sun.source.doctree.DeprecatedTree;
 import jdk.javadoc.internal.doclets.formats.html.markup.BodyContents;
 import jdk.javadoc.internal.doclets.formats.html.markup.ContentBuilder;
 import jdk.javadoc.internal.doclets.formats.html.markup.HtmlStyle;
 import jdk.javadoc.internal.doclets.formats.html.markup.HtmlTree;
 import jdk.javadoc.internal.doclets.formats.html.Navigation.PageMode;
-import jdk.javadoc.internal.doclets.formats.html.markup.Table;
-import jdk.javadoc.internal.doclets.formats.html.markup.TableHeader;
-import jdk.javadoc.internal.doclets.toolkit.Content;
 import jdk.javadoc.internal.doclets.toolkit.util.DocFileIOException;
-import jdk.javadoc.internal.doclets.toolkit.util.DocPath;
 import jdk.javadoc.internal.doclets.toolkit.util.DocPaths;
-import jdk.javadoc.internal.doclets.toolkit.util.IndexBuilder;
-import jdk.javadoc.internal.doclets.toolkit.util.IndexItem;
+import jdk.javadoc.internal.doclets.toolkit.util.Utils.ElementFlag;
 
 /**
  * Generate the file with list of all the classes in this run.
@@ -51,108 +48,78 @@ import jdk.javadoc.internal.doclets.toolkit.util.IndexItem;
 public class AllClassesIndexWriter extends HtmlDocletWriter {
 
     /**
-     * Index of all the classes.
-     */
-    protected IndexBuilder indexBuilder;
-
-    /**
      * Construct AllClassesIndexWriter object. Also initializes the indexBuilder variable in this
      * class.
      *
      * @param configuration The current configuration
-     * @param filename Path to the file which is getting generated.
-     * @param indexBuilder Unicode based Index from {@link IndexBuilder}
      */
-    public AllClassesIndexWriter(HtmlConfiguration configuration,
-            DocPath filename, IndexBuilder indexBuilder) {
-        super(configuration, filename);
-        this.indexBuilder = indexBuilder;
+    public AllClassesIndexWriter(HtmlConfiguration configuration) {
+        super(configuration, DocPaths.ALLCLASSES_INDEX);
     }
 
-    /**
-     * Create AllClassesIndexWriter object.
-     *
-     * @param configuration The current configuration
-     * @param indexBuilder IndexBuilder object for all classes index.
-     * @throws DocFileIOException
-     */
-    public static void generate(HtmlConfiguration configuration,
-            IndexBuilder indexBuilder) throws DocFileIOException {
-        generate(configuration, indexBuilder, DocPaths.ALLCLASSES_INDEX);
-    }
-
-    private static void generate(HtmlConfiguration configuration, IndexBuilder indexBuilder,
-            DocPath fileName) throws DocFileIOException {
-        AllClassesIndexWriter allClassGen = new AllClassesIndexWriter(configuration,
-                fileName, indexBuilder);
-        allClassGen.buildAllClassesFile();
-    }
-
-    /**
-     * Print all the classes in the file.
-     */
-    protected void buildAllClassesFile() throws DocFileIOException {
-        String label = resources.getText("doclet.All_Classes");
-        Content header = new ContentBuilder();
-        addTop(header);
-        Navigation navBar = new Navigation(null, configuration, PageMode.ALL_CLASSES, path);
-        navBar.setUserHeader(getUserHeaderFooter(true));
-        header.add(navBar.getContent(Navigation.Position.TOP));
+    @Override
+    public void buildPage() throws DocFileIOException {
+        messages.notice("doclet.Building_Index_For_All_Classes");
+        String label = resources.getText("doclet.All_Classes_And_Interfaces");
         Content allClassesContent = new ContentBuilder();
         addContents(allClassesContent);
         Content mainContent = new ContentBuilder();
         mainContent.add(allClassesContent);
-        Content footer = HtmlTree.FOOTER();
-        navBar.setUserFooter(getUserHeaderFooter(false));
-        footer.add(navBar.getContent(Navigation.Position.BOTTOM));
-        addBottom(footer);
-        HtmlTree bodyTree = getBody(getWindowTitle(label));
-        bodyTree.add(new BodyContents()
-                .setHeader(header)
+        HtmlTree body = getBody(getWindowTitle(label));
+        body.add(new BodyContents()
+                .setHeader(getHeader(PageMode.ALL_CLASSES))
                 .addMainContent(mainContent)
-                .setFooter(footer));
-        printHtmlDocument(null, "class index", bodyTree);
+                .setFooter(getFooter()));
+        printHtmlDocument(null, "class index", body);
     }
 
     /**
-     * Add all types to the content tree.
+     * Add all types to the content.
      *
-     * @param content HtmlTree content to which the links will be added
+     * @param target the content to which the links will be added
      */
-    protected void addContents(Content content) {
-        Table table = new Table(HtmlStyle.typeSummary, HtmlStyle.summaryTable)
+    protected void addContents(Content target) {
+        var table = new Table<TypeElement>(HtmlStyle.summaryTable)
                 .setHeader(new TableHeader(contents.classLabel, contents.descriptionLabel))
-                .setRowScopeColumn(1)
                 .setColumnStyles(HtmlStyle.colFirst, HtmlStyle.colLast)
-                .setId("all-classes-table")
-                .setDefaultTab(resources.getText("doclet.All_Classes"))
-                .addTab(resources.interfaceSummary, utils::isInterface)
-                .addTab(resources.classSummary, e -> utils.isOrdinaryClass((TypeElement)e))
-                .addTab(resources.enumSummary, utils::isEnum)
-                .addTab(resources.exceptionSummary, e -> utils.isException((TypeElement)e))
-                .addTab(resources.errorSummary, e -> utils.isError((TypeElement)e))
-                .addTab(resources.annotationTypeSummary, utils::isAnnotationType)
-                .setTabScript(i -> "show(" + i + ");");
-        for (Character unicode : indexBuilder.keys()) {
-            for (IndexItem indexItem : indexBuilder.getMemberList(unicode)) {
-                TypeElement typeElement = (TypeElement) indexItem.getElement();
-                if (typeElement == null || !utils.isCoreClass(typeElement)) {
-                    continue;
-                }
-                addTableRow(table, typeElement);
-            }
+                .setId(HtmlIds.ALL_CLASSES_TABLE)
+                .setDefaultTab(contents.allClassesAndInterfacesLabel)
+                .addTab(contents.interfaces, utils::isPlainInterface)
+                .addTab(contents.classes, utils::isNonThrowableClass)
+                .addTab(contents.enums, utils::isEnum)
+                .addTab(contents.records, utils::isRecord)
+                .addTab(contents.exceptionClasses, utils::isThrowable)
+                .addTab(contents.annotationTypes, utils::isAnnotationInterface);
+        Set<TypeElement> typeElements = getTypeElements();
+        for (TypeElement typeElement : typeElements) {
+            addTableRow(table, typeElement);
         }
-        Content titleContent = contents.allClassesLabel;
-        Content pHeading = HtmlTree.HEADING_TITLE(Headings.PAGE_TITLE_HEADING,
+        Content titleContent = contents.allClassesAndInterfacesLabel;
+        var pHeading = HtmlTree.HEADING_TITLE(Headings.PAGE_TITLE_HEADING,
                 HtmlStyle.title, titleContent);
-        Content headerDiv = HtmlTree.DIV(HtmlStyle.header, pHeading);
-        content.add(headerDiv);
+        var headerDiv = HtmlTree.DIV(HtmlStyle.header, pHeading);
+        target.add(headerDiv);
         if (!table.isEmpty()) {
-            content.add(table);
-            if (table.needsScript()) {
-                getMainBodyScript().append(table.getScript());
-            }
+            target.add(table);
         }
+    }
+
+    private Set<TypeElement> getTypeElements() {
+        Set<TypeElement> classes = new TreeSet<>(utils.comparators.allClassesComparator());
+        boolean noDeprecated = options.noDeprecated();
+        Set<TypeElement> includedTypes = configuration.getIncludedTypeElements();
+        for (TypeElement typeElement : includedTypes) {
+            if (utils.hasHiddenTag(typeElement) || !utils.isCoreClass(typeElement)) {
+                continue;
+            }
+            if (noDeprecated
+                    && (utils.isDeprecated(typeElement)
+                    || utils.isDeprecated(utils.containingPackage(typeElement)))) {
+                continue;
+            }
+            classes.add(typeElement);
+        }
+        return classes;
     }
 
     /**
@@ -161,14 +128,18 @@ public class AllClassesIndexWriter extends HtmlDocletWriter {
      * @param table the table to which the row will be added
      * @param klass the type to be added to the table
      */
-    protected void addTableRow(Table table, TypeElement klass) {
+    protected void addTableRow(Table<TypeElement> table, TypeElement klass) {
         List<Content> rowContents = new ArrayList<>();
-        Content classLink = getLink(new LinkInfoImpl(
-                configuration, LinkInfoImpl.Kind.INDEX, klass));
+        Content classLink = getLink(new HtmlLinkInfo(
+                configuration, HtmlLinkInfo.Kind.SHOW_TYPE_PARAMS_IN_LABEL, klass));
         ContentBuilder description = new ContentBuilder();
-        if (utils.isDeprecated(klass)) {
+        Set<ElementFlag> flags = utils.elementFlags(klass);
+        if (flags.contains(ElementFlag.PREVIEW)) {
+            description.add(contents.previewPhrase);
+            addSummaryComment(klass, description);
+        } else if (flags.contains(ElementFlag.DEPRECATED)) {
             description.add(getDeprecatedPhrase(klass));
-            List<? extends DocTree> tags = utils.getDeprecatedTrees(klass);
+            List<? extends DeprecatedTree> tags = utils.getDeprecatedTrees(klass);
             if (!tags.isEmpty()) {
                 addSummaryDeprecatedComment(klass, tags.get(0), description);
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,21 +27,24 @@
  * @summary CDS dumping with java agent.
  * @library /test/lib /test/hotspot/jtreg/runtime/cds/appcds /test/hotspot/jtreg/runtime/cds/appcds/test-classes
  * @requires vm.cds
- * @requires vm.flavor != "minimal"
- * @build SimpleAgent Hello
+ * @requires vm.jvmti
+ * @build SimpleAgent Hello AppWithBMH
  * @run main/othervm DumpingWithJavaAgent
  */
 
 import jdk.test.lib.cds.CDSOptions;
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
+import jdk.test.lib.helpers.ClassFileInstaller;
 
 public class DumpingWithJavaAgent {
     public static String appClasses[] = {
         "Hello",
+        "AppWithBMH",
     };
     public static String agentClasses[] = {
         "SimpleAgent",
+        "SimpleAgent$1"
     };
 
     public static String warningMessages[] = {
@@ -64,8 +67,18 @@ public class DumpingWithJavaAgent {
         String appJar =
             ClassFileInstaller.writeJar("DumpingWithJavaAgent.jar", appClasses);
 
+        // CDS dumping with a java agent performing class transformation on BoundMethodHandle$Species classes
+        OutputAnalyzer output = TestCommon.testDump(appJar, TestCommon.list("AppWithBMH"),
+            "-XX:+UnlockDiagnosticVMOptions", diagnosticOption,
+            "-javaagent:" + agentJar + "=doTransform",
+            "AppWithBMH");
+        TestCommon.checkDump(output);
+        output.shouldContain(warningMessages[0]);
+        output.shouldContain(warningMessages[1]);
+        output.shouldContain("inside SimpleAgent");
+
         // CDS dumping with a java agent with the AllowArchvingWithJavaAgent diagnostic option.
-        OutputAnalyzer output = TestCommon.testDump(appJar, TestCommon.list("Hello"),
+        output = TestCommon.testDump(appJar, TestCommon.list("Hello"),
             "-XX:+UnlockDiagnosticVMOptions", diagnosticOption,
             "-javaagent:" + agentJar);
         TestCommon.checkDump(output);

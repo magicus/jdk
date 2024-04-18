@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,8 +27,8 @@ package gc.stress;
  * @test TestReclaimStringsLeaksMemory
  * @bug 8180048
  * @summary Ensure that during a Full GC interned string memory is reclaimed completely.
- * @requires vm.gc=="null" & !vm.graal.enabled & !vm.debug
- * @key gc
+ * @requires vm.gc == "null"
+ * @requires !vm.debug
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  * @run driver gc.stress.TestReclaimStringsLeaksMemory
@@ -48,21 +48,21 @@ import jdk.test.lib.process.ProcessTools;
 
 public class TestReclaimStringsLeaksMemory {
 
-    // The amount of memory in kB reserved in the "Symbol" category that indicates a memory leak for
+    // The amount of memory in B reserved in the "Symbol" category that indicates a memory leak for
     // this test.
-    public static final int ReservedThreshold = 70000;
+    public static final int ReservedThreshold = 70000000;
 
     public static void main(String[] args) throws Exception {
         ArrayList<String> baseargs = new ArrayList<>(Arrays.asList("-Xms256M",
                                                                    "-Xmx256M",
-                                                                   "-Xlog:gc*,stringtable*=debug:gc.log",
+                                                                   "-Xlog:gc*,stringtable*=debug,oopstorage+blocks=debug:gc.log",
                                                                    "-XX:NativeMemoryTracking=summary",
                                                                    "-XX:+UnlockDiagnosticVMOptions",
                                                                    "-XX:+PrintNMTStatistics" ));
         baseargs.addAll(Arrays.asList(args));
         baseargs.add(GCTest.class.getName());
-        ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(baseargs);
-        verifySymbolMemoryUsageNotTooHigh(new OutputAnalyzer(pb.start()));
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(baseargs);
+        verifySymbolMemoryUsageNotTooHigh(output);
     }
 
     private static void verifySymbolMemoryUsageNotTooHigh(OutputAnalyzer output) throws Exception {
@@ -77,7 +77,7 @@ public class TestReclaimStringsLeaksMemory {
         }
 
         int reserved = Integer.parseInt(m.group(1));
-        Asserts.assertLT(reserved, ReservedThreshold, "Reserved memory size is " + reserved + "KB which is greater than or equal to " + ReservedThreshold + "KB indicating a memory leak");
+        Asserts.assertLT(reserved, ReservedThreshold, "Reserved memory size is " + reserved + "B which is greater than or equal to " + ReservedThreshold + "B indicating a memory leak");
 
         output.shouldHaveExitValue(0);
     }
@@ -108,4 +108,3 @@ public class TestReclaimStringsLeaksMemory {
         }
     }
 }
-

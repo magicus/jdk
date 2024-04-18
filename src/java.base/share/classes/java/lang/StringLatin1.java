@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,31 +27,32 @@ package java.lang;
 
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import jdk.internal.HotSpotIntrinsicCandidate;
 import jdk.internal.util.ArraysSupport;
+import jdk.internal.util.DecimalDigits;
+import jdk.internal.vm.annotation.IntrinsicCandidate;
 
 import static java.lang.String.LATIN1;
 import static java.lang.String.UTF16;
+import static java.lang.String.checkIndex;
 import static java.lang.String.checkOffset;
 
 final class StringLatin1 {
-
     public static char charAt(byte[] value, int index) {
-        if (index < 0 || index >= value.length) {
-            throw new StringIndexOutOfBoundsException(index);
-        }
+        checkIndex(index, value.length);
         return (char)(value[index] & 0xff);
     }
 
+    public static boolean canEncode(char cp) {
+        return cp <= 0xff;
+    }
+
     public static boolean canEncode(int cp) {
-        return cp >>> 8 == 0;
+        return cp >=0 && cp <= 0xff;
     }
 
     public static int length(byte[] value) {
@@ -82,15 +83,129 @@ final class StringLatin1 {
         return ret;
     }
 
-    public static void getChars(byte[] value, int srcBegin, int srcEnd, char dst[], int dstBegin) {
+    /**
+     * Places characters representing the integer i into the
+     * character array buf. The characters are placed into
+     * the buffer backwards starting with the least significant
+     * digit at the specified index (exclusive), and working
+     * backwards from there.
+     *
+     * @implNote This method converts positive inputs into negative
+     * values, to cover the Integer.MIN_VALUE case. Converting otherwise
+     * (negative to positive) will expose -Integer.MIN_VALUE that overflows
+     * integer.
+     *
+     * @param i     value to convert
+     * @param index next index, after the least significant digit
+     * @param buf   target buffer, Latin1-encoded
+     * @return index of the most significant digit or minus sign, if present
+     */
+    static int getChars(int i, int index, byte[] buf) {
+        // Used by trusted callers.  Assumes all necessary bounds checks have been done by the caller.
+        int q;
+        int charPos = index;
+
+        boolean negative = i < 0;
+        if (!negative) {
+            i = -i;
+        }
+
+        // Generate two digits per iteration
+        while (i <= -100) {
+            q = i / 100;
+            charPos -= 2;
+            writeDigitPair(buf, charPos, (q * 100) - i);
+            i = q;
+        }
+
+        // We know there are at most two digits left at this point.
+        if (i < -9) {
+            charPos -= 2;
+            writeDigitPair(buf, charPos, -i);
+        } else {
+            buf[--charPos] = (byte)('0' - i);
+        }
+
+        if (negative) {
+            buf[--charPos] = (byte)'-';
+        }
+        return charPos;
+    }
+
+    /**
+     * Places characters representing the long i into the
+     * character array buf. The characters are placed into
+     * the buffer backwards starting with the least significant
+     * digit at the specified index (exclusive), and working
+     * backwards from there.
+     *
+     * @implNote This method converts positive inputs into negative
+     * values, to cover the Long.MIN_VALUE case. Converting otherwise
+     * (negative to positive) will expose -Long.MIN_VALUE that overflows
+     * long.
+     *
+     * @param i     value to convert
+     * @param index next index, after the least significant digit
+     * @param buf   target buffer, Latin1-encoded
+     * @return index of the most significant digit or minus sign, if present
+     */
+    static int getChars(long i, int index, byte[] buf) {
+        // Used by trusted callers.  Assumes all necessary bounds checks have been done by the caller.
+        long q;
+        int charPos = index;
+
+        boolean negative = (i < 0);
+        if (!negative) {
+            i = -i;
+        }
+
+        // Get 2 digits/iteration using longs until quotient fits into an int
+        while (i <= Integer.MIN_VALUE) {
+            q = i / 100;
+            charPos -= 2;
+            writeDigitPair(buf, charPos, (int)((q * 100) - i));
+            i = q;
+        }
+
+        // Get 2 digits/iteration using ints
+        int q2;
+        int i2 = (int)i;
+        while (i2 <= -100) {
+            q2 = i2 / 100;
+            charPos -= 2;
+            writeDigitPair(buf, charPos, (q2 * 100) - i2);
+            i2 = q2;
+        }
+
+        // We know there are at most two digits left at this point.
+        if (i2 < -9) {
+            charPos -= 2;
+            writeDigitPair(buf, charPos, -i2);
+        } else {
+            buf[--charPos] = (byte)('0' - i2);
+        }
+
+        if (negative) {
+            buf[--charPos] = (byte)'-';
+        }
+        return charPos;
+    }
+
+    private static void writeDigitPair(byte[] buf, int charPos, int value) {
+        short pair = DecimalDigits.digitPair(value);
+        buf[charPos] = (byte)(pair);
+        buf[charPos + 1] = (byte)(pair >> 8);
+    }
+
+    public static void getChars(byte[] value, int srcBegin, int srcEnd, char[] dst, int dstBegin) {
         inflate(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
     }
 
-    public static void getBytes(byte[] value, int srcBegin, int srcEnd, byte dst[], int dstBegin) {
+    public static void getBytes(byte[] value, int srcBegin, int srcEnd, byte[] dst, int dstBegin) {
         System.arraycopy(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
     }
 
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static boolean equals(byte[] value, byte[] other) {
         if (value.length == other.length) {
             for (int i = 0; i < value.length; i++) {
@@ -103,7 +218,7 @@ final class StringLatin1 {
         return false;
     }
 
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static int compareTo(byte[] value, byte[] other) {
         int len1 = value.length;
         int len2 = other.length;
@@ -112,15 +227,11 @@ final class StringLatin1 {
 
     public static int compareTo(byte[] value, byte[] other, int len1, int len2) {
         int lim = Math.min(len1, len2);
-        for (int k = 0; k < lim; k++) {
-            if (value[k] != other[k]) {
-                return getChar(value, k) - getChar(other, k);
-            }
-        }
-        return len1 - len2;
+        int k = ArraysSupport.mismatch(value, other, lim);
+        return (k < 0) ? len1 - len2 : getChar(value, k) - getChar(other, k);
     }
 
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static int compareToUTF16(byte[] value, byte[] other) {
         int len1 = length(value);
         int len2 = StringUTF16.length(other);
@@ -192,24 +303,23 @@ final class StringLatin1 {
     }
 
     public static int hashCode(byte[] value) {
-        int h = 0;
-        for (byte v : value) {
-            h = 31 * h + (v & 0xff);
-        }
-        return h;
+        return switch (value.length) {
+            case 0 -> 0;
+            case 1 -> value[0] & 0xff;
+            default -> ArraysSupport.vectorizedHashCode(value, 0, value.length, 0, ArraysSupport.T_BOOLEAN);
+        };
     }
 
-    public static int indexOf(byte[] value, int ch, int fromIndex) {
+    // Caller must ensure that from- and toIndex are within bounds
+    public static int indexOf(byte[] value, int ch, int fromIndex, int toIndex) {
         if (!canEncode(ch)) {
             return -1;
         }
-        int max = value.length;
-        if (fromIndex < 0) {
-            fromIndex = 0;
-        } else if (fromIndex >= max) {
-            // Note: fromIndex might be near -1>>>1.
-            return -1;
-        }
+        return indexOfChar(value, ch, fromIndex, toIndex);
+    }
+
+    @IntrinsicCandidate
+    private static int indexOfChar(byte[] value, int ch, int fromIndex, int max) {
         byte c = (byte)ch;
         for (int i = fromIndex; i < max; i++) {
             if (value[i] == c) {
@@ -219,7 +329,7 @@ final class StringLatin1 {
         return -1;
     }
 
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static int indexOf(byte[] value, byte[] str) {
         if (str.length == 0) {
             return 0;
@@ -230,7 +340,7 @@ final class StringLatin1 {
         return indexOf(value, value.length, str, str.length, 0);
     }
 
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static int indexOf(byte[] value, int valueCount, byte[] str, int strCount, int fromIndex) {
         byte first = str[0];
         int max = (valueCount - strCount);
@@ -357,7 +467,7 @@ final class StringLatin1 {
             resultLen = Math.addExact(valLen,
                     Math.multiplyExact(++p, replLen - targLen));
         } catch (ArithmeticException ignored) {
-            throw new OutOfMemoryError();
+            throw new OutOfMemoryError("Required length exceeds implementation limit");
         }
         if (resultLen == 0) {
             return "";
@@ -386,17 +496,9 @@ final class StringLatin1 {
                                           byte[] other, int ooffset, int len) {
         int last = toffset + len;
         while (toffset < last) {
-            char c1 = (char)(value[toffset++] & 0xff);
-            char c2 = (char)(other[ooffset++] & 0xff);
-            if (c1 == c2) {
-                continue;
-            }
-            int u1 = CharacterDataLatin1.instance.toUpperCase(c1);
-            int u2 = CharacterDataLatin1.instance.toUpperCase(c2);
-            if (u1 == u2) {
-                continue;
-            }
-            if (Character.toLowerCase(u1) == Character.toLowerCase(u2)) {
+            byte b1 = value[toffset++];
+            byte b2 = other[ooffset++];
+            if (CharacterDataLatin1.equalsIgnoreCase(b1, b2)) {
                 continue;
             }
             return false;
@@ -432,10 +534,9 @@ final class StringLatin1 {
         }
         int first;
         final int len = value.length;
-        // Now check if there are any characters that need to be changed, or are surrogate
+        // Now check if there are any characters that need to be changed
         for (first = 0 ; first < len; first++) {
-            int cp = value[first] & 0xff;
-            if (cp != CharacterDataLatin1.instance.toLowerCase(cp)) {  // no need to check Character.ERROR
+            if (CharacterDataLatin1.instance.isUpperCase(value[first] & 0xff)) {
                 break;
             }
         }
@@ -449,12 +550,7 @@ final class StringLatin1 {
         System.arraycopy(value, 0, result, 0, first);  // Just copy the first few
                                                        // lowerCase characters.
         for (int i = first; i < len; i++) {
-            int cp = value[i] & 0xff;
-            cp = CharacterDataLatin1.instance.toLowerCase(cp);
-            if (!canEncode(cp)) {                      // not a latin1 character
-                return toLowerCaseEx(str, value, first, locale, false);
-            }
-            result[i] = (byte)cp;
+            result[i] = (byte)CharacterDataLatin1.instance.toLowerCase(value[i] & 0xff);
         }
         return new String(result, LATIN1);
     }
@@ -506,10 +602,11 @@ final class StringLatin1 {
         int first;
         final int len = value.length;
 
-        // Now check if there are any characters that need to be changed, or are surrogate
+        // Now check if there are any characters that need to be changed
         for (first = 0 ; first < len; first++ ) {
             int cp = value[first] & 0xff;
-            if (cp != CharacterDataLatin1.instance.toUpperCaseEx(cp)) {   // no need to check Character.ERROR
+            boolean notUpperCaseEx = cp >= 'a' && (cp <= 'z' || cp == 0xb5 || (cp >= 0xdf && cp != 0xf7));
+            if (notUpperCaseEx) {
                 break;
             }
         }
@@ -524,8 +621,7 @@ final class StringLatin1 {
         System.arraycopy(value, 0, result, 0, first);  // Just copy the first few
                                                        // upperCase characters.
         for (int i = first; i < len; i++) {
-            int cp = value[i] & 0xff;
-            cp = CharacterDataLatin1.instance.toUpperCaseEx(cp);
+            int cp = CharacterDataLatin1.instance.toUpperCaseEx(value[i] & 0xff);
             if (!canEncode(cp)) {                      // not a latin1 character
                 return toUpperCaseEx(str, value, first, locale, false);
             }
@@ -638,7 +734,7 @@ final class StringLatin1 {
         return (right != value.length) ? newString(value, 0, right) : null;
     }
 
-    private final static class LinesSpliterator implements Spliterator<String> {
+    private static final class LinesSpliterator implements Spliterator<String> {
         private byte[] value;
         private int index;        // current index, modified on advance/split
         private final int fence;  // one past last index
@@ -770,7 +866,7 @@ final class StringLatin1 {
     }
 
     // inflatedCopy byte[] -> char[]
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static void inflate(byte[] src, int srcOff, char[] dst, int dstOff, int len) {
         for (int i = 0; i < len; i++) {
             dst[dstOff++] = (char)(src[srcOff++] & 0xff);
@@ -778,7 +874,7 @@ final class StringLatin1 {
     }
 
     // inflatedCopy byte[] -> byte[]
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static void inflate(byte[] src, int srcOff, byte[] dst, int dstOff, int len) {
         StringUTF16.inflate(src, srcOff, dst, dstOff, len);
     }

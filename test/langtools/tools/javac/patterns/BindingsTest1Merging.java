@@ -2,12 +2,12 @@
  * @test /nodynamiccopyright/
  * @bug 8231827
  * @summary Basic tests for bindings from instanceof - tests for merging pattern variables
- * @compile/fail/ref=BindingsTest1Merging.out -XDrawDiagnostics --enable-preview -source ${jdk.version} BindingsTest1Merging.java
+ * @compile/fail/ref=BindingsTest1Merging.out -XDrawDiagnostics BindingsTest1Merging.java
  */
 
 public class BindingsTest1Merging {
     public static boolean Ktrue() { return true; }
-    public static void main(String[] args) {
+    public static void meth() {
         Object o1 = "hello";
         Integer i = 42;
         Object o2 = i;

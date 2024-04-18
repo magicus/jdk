@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2018, 2019, Red Hat, Inc. All rights reserved.
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Red Hat, Inc. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,11 +26,12 @@
 #define SHARE_GC_SHARED_TASKTERMINATOR_HPP
 
 #include "memory/allocation.hpp"
+#include "memory/padded.hpp"
 #include "runtime/mutex.hpp"
-#include "runtime/thread.hpp"
 
 class TaskQueueSetSuper;
 class TerminatorTerminator;
+class Thread;
 
 /*
  * Provides a task termination protocol.
@@ -44,34 +45,51 @@ class TerminatorTerminator;
  * SIGPLAN International Symposium on Memory Management (ISMM 2016). ACM,
  * New York, NY, USA, 46-54. DOI: https://doi.org/10.1145/2926697.2926706"
  *
- * Instead of a dedicated spin-master, our implementation will let spin-master relinquish
- * the role before it goes to sleep/wait, allowing newly arrived threads to compete for the role.
- * The intention of above enhancement is to reduce spin-master's latency on detecting new tasks
- * for stealing and termination condition.
+ * Instead of a dedicated spin-master, our implementation will let spin-master
+ * relinquish the role before it goes to sleep/wait, allowing newly arrived
+ * threads to compete for the role.
+ * The intention of above enhancement is to reduce spin-master's latency on
+ * detecting new tasks for stealing and termination condition.
  */
 class TaskTerminator : public CHeapObj<mtGC> {
+  class DelayContext {
+    uint _yield_count;
+    // Number of hard spin loops done since last yield
+    uint _hard_spin_count;
+    // Number of iterations in the current hard spin loop.
+    uint _hard_spin_limit;
+
+    void reset_hard_spin_information();
+  public:
+    DelayContext();
+
+    // Should the caller sleep (wait) or perform a spin step?
+    bool needs_sleep() const;
+    // Perform one delay iteration.
+    void do_step();
+  };
+
   uint _n_threads;
   TaskQueueSetSuper* _queue_set;
 
-  DEFINE_PAD_MINUS_SIZE(0, DEFAULT_CACHE_LINE_SIZE, 0);
+  DEFINE_PAD_MINUS_SIZE(0, DEFAULT_PADDING_SIZE, 0);
   volatile uint _offered_termination;
-  DEFINE_PAD_MINUS_SIZE(1, DEFAULT_CACHE_LINE_SIZE, sizeof(volatile uint));
+  DEFINE_PAD_MINUS_SIZE(1, DEFAULT_PADDING_SIZE, sizeof(volatile uint));
+
+  Monitor _blocker;
+  Thread* _spin_master;
 
   void assert_queue_set_empty() const NOT_DEBUG_RETURN;
 
-  void yield();
-
-  Monitor*    _blocker;
-  Thread*     _spin_master;
+  // Prepare for return from offer_termination. Gives up the spin master token
+  // and wakes up up to tasks threads waiting on _blocker (the default value
+  // means to wake up everyone).
+  void prepare_for_return(Thread* this_thread, size_t tasks = SIZE_MAX);
 
   // If we should exit current termination protocol
   bool exit_termination(size_t tasks, TerminatorTerminator* terminator);
 
   size_t tasks_in_queue_set() const;
-
-  // Perform spin-master task.
-  // Return true if termination condition is detected, otherwise return false
-  bool do_spin_master_work(TerminatorTerminator* terminator);
 
   NONCOPYABLE(TaskTerminator);
 
@@ -84,12 +102,12 @@ public:
   // "false", available work has been observed in one of the task queues,
   // so the global task is not complete.
   bool offer_termination() {
-    return offer_termination(NULL);
+    return offer_termination(nullptr);
   }
 
   // As above, but it also terminates if the should_exit_termination()
   // method of the terminator parameter returns true. If terminator is
-  // NULL, then it is ignored.
+  // null, then it is ignored.
   bool offer_termination(TerminatorTerminator* terminator);
 
   // Reset the terminator, so that it may be reused again.

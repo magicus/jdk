@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +26,7 @@
 #define SHARE_GC_SHARED_LOCATIONPRINTER_INLINE_HPP
 
 #include "gc/shared/locationPrinter.hpp"
+
 #include "oops/compressedOops.inline.hpp"
 #include "oops/oopsHierarchy.hpp"
 
@@ -33,19 +34,19 @@ template <typename CollectedHeapT>
 oop BlockLocationPrinter<CollectedHeapT>::base_oop_or_null(void* addr) {
   if (is_valid_obj(addr)) {
     // We were just given an oop directly.
-    return oop(addr);
+    return cast_to_oop(addr);
   }
 
   // Try to find addr using block_start.
   HeapWord* p = CollectedHeapT::heap()->block_start(addr);
-  if (p != NULL && CollectedHeapT::heap()->block_is_obj(p)) {
+  if (p != nullptr && CollectedHeapT::heap()->block_is_obj(p)) {
     if (!is_valid_obj(p)) {
-      return NULL;
+      return nullptr;
     }
-    return oop(p);
+    return cast_to_oop(p);
   }
 
-  return NULL;
+  return nullptr;
 }
 
 template <typename CollectedHeapT>
@@ -53,28 +54,29 @@ bool BlockLocationPrinter<CollectedHeapT>::print_location(outputStream* st, void
   // Check if addr points into Java heap.
   if (CollectedHeapT::heap()->is_in(addr)) {
     oop o = base_oop_or_null(addr);
-    if (o != NULL) {
+    if (o != nullptr) {
       if ((void*)o == addr) {
-        st->print(INTPTR_FORMAT " is an oop: ", p2i(addr));
+        st->print(PTR_FORMAT " is an oop: ", p2i(addr));
       } else {
-        st->print(INTPTR_FORMAT " is pointing into object: " , p2i(addr));
+        st->print(PTR_FORMAT " is pointing into object: " , p2i(addr));
       }
       o->print_on(st);
       return true;
     }
   } else if (CollectedHeapT::heap()->is_in_reserved(addr)) {
-    st->print_cr(INTPTR_FORMAT " is an unallocated location in the heap", p2i(addr));
+    st->print_cr(PTR_FORMAT " is an unallocated location in the heap", p2i(addr));
     return true;
   }
 
   // Compressed oop needs to be decoded first.
 #ifdef _LP64
   if (UseCompressedOops && ((uintptr_t)addr &~ (uintptr_t)max_juint) == 0) {
-    narrowOop narrow_oop = (narrowOop)(uintptr_t)addr;
+    narrowOop narrow_oop = CompressedOops::narrow_oop_cast((uintptr_t)addr);
     oop o = CompressedOops::decode_raw(narrow_oop);
 
     if (is_valid_obj(o)) {
-      st->print(UINT32_FORMAT " is a compressed pointer to object: ", narrow_oop);
+      st->print(UINT32_FORMAT " is a compressed pointer to object: ",
+                CompressedOops::narrow_oop_value(narrow_oop));
       o->print_on(st);
       return true;
     }

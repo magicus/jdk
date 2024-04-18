@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2024, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2016, 2018 SAP SE. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -31,11 +31,12 @@
 
 // Sets the default values for platform dependent flags used by the runtime system.
 // (see globals.hpp)
-// Sorted according to sparc.
 
 define_pd_global(bool,  ImplicitNullChecks,          true);  // Generate code for implicit null checks.
 define_pd_global(bool,  TrapBasedNullChecks,         true);
-define_pd_global(bool,  UncommonNullCast,            true);  // Uncommon-trap NULLs passed to check cast.
+define_pd_global(bool,  UncommonNullCast,            true);  // Uncommon-trap nulls passed to check cast.
+
+define_pd_global(bool,  DelayCompilerStubsGeneration, COMPILER2_OR_JVMCI);
 
 define_pd_global(uintx, CodeCacheSegmentSize,        256);
 // This shall be at least 32 for proper branch target alignment.
@@ -44,7 +45,6 @@ define_pd_global(uintx, CodeCacheSegmentSize,        256);
 // code size significantly by padding nops between IVC and second UEP.
 define_pd_global(intx,  CodeEntryAlignment,          64);
 define_pd_global(intx,  OptoLoopAlignment,           2);
-define_pd_global(intx,  InlineFrequencyCount,        100);
 define_pd_global(intx,  InlineSmallCode,             2000);
 
 #define DEFAULT_STACK_YELLOW_PAGES   (2)
@@ -64,6 +64,8 @@ define_pd_global(intx,  StackRedPages,               DEFAULT_STACK_RED_PAGES);
 define_pd_global(intx,  StackShadowPages,            DEFAULT_STACK_SHADOW_PAGES);
 define_pd_global(intx,  StackReservedPages,          DEFAULT_STACK_RESERVED_PAGES);
 
+define_pd_global(bool,  VMContinuations, false);
+
 define_pd_global(bool, RewriteBytecodes,     true);
 define_pd_global(bool, RewriteFrequentPairs, true);
 
@@ -76,46 +78,45 @@ define_pd_global(bool, CompactStrings, true);
 // 8146801 (Short Array Allocation): No performance work done here yet.
 define_pd_global(intx, InitArrayShortSize, 1*BytesPerLong);
 
-#define ARCH_FLAGS(develop,      \
-                   product,      \
-                   diagnostic,   \
-                   experimental, \
-                   notproduct,   \
-                   range,        \
-                   constraint)   \
+#define ARCH_FLAGS(develop,                                                   \
+                   product,                                                   \
+                   range,                                                     \
+                   constraint)                                                \
                                                                               \
   /* Reoptimize code-sequences of calls at runtime, e.g. replace an */        \
   /* indirect call by a direct call.                                */        \
-  product(bool, ReoptimizeCallSequences, true,                                \
+  product(bool, ReoptimizeCallSequences, true, DIAGNOSTIC,                    \
           "Reoptimize code-sequences of calls at runtime.")                   \
                                                                               \
-  product(bool, UseByteReverseInstruction, true,                              \
+  product(bool, UseByteReverseInstruction, true, DIAGNOSTIC,                  \
           "Use byte reverse instruction.")                                    \
                                                                               \
-  product(bool, ExpandLoadingBaseDecode, true, "Expand the assembler "        \
-          "instruction required to load the base from DecodeN nodes during "  \
-          "matching.")                                                        \
-  product(bool, ExpandLoadingBaseDecode_NN, true, "Expand the assembler "     \
-          "instruction required to load the base from DecodeN_NN nodes "      \
-          "during matching.")                                                 \
-  product(bool, ExpandLoadingBaseEncode, true, "Expand the assembler "        \
-          "instruction required to load the base from EncodeP nodes during "  \
-          "matching.")                                                        \
-  product(bool, ExpandLoadingBaseEncode_NN, true, "Expand the assembler "     \
-          "instruction required to load the base from EncodeP_NN nodes "      \
-          "during matching.")                                                 \
+  product(bool, ExpandLoadingBaseDecode, true, DIAGNOSTIC,                    \
+          "Expand the assembler instruction required to load the base from "  \
+          "DecodeN nodes during matching.")                                   \
+  product(bool, ExpandLoadingBaseDecode_NN, true, DIAGNOSTIC,                 \
+          "Expand the assembler instruction required to load the base from "  \
+          "DecodeN_NN nodes during matching.")                                \
+  product(bool, ExpandLoadingBaseEncode, true, DIAGNOSTIC,                    \
+          "Expand the assembler instruction required to load the base from "  \
+          "EncodeP nodes during matching.")                                   \
+  product(bool, ExpandLoadingBaseEncode_NN, true, DIAGNOSTIC,                 \
+          "Expand the assembler instruction required to load the base from "  \
+          "EncodeP_NN nodes during matching.")                                \
                                                                               \
   /* Seems to pay off with 2 pages already. */                                \
-  product(size_t, MVCLEThreshold, +2*(4*K),                                   \
+  product(size_t, MVCLEThreshold, +2*(4*K), DIAGNOSTIC,                       \
           "Threshold above which page-aligned MVCLE copy/init is used.")      \
                                                                               \
-  product(bool, PreferLAoverADD, false,                                       \
+  product(bool, PreferLAoverADD, false, DIAGNOSTIC,                           \
           "Use LA/LAY instructions over ADD instructions (z/Architecture).")  \
                                                                               \
   develop(bool, ZapEmptyStackFields, false, "Write 0x0101... to empty stack"  \
           " fields. Use this to ease stack debugging.")                       \
                                                                               \
-  product(bool, TraceTraps, false, "Trace all traps the signal handler"       \
-          "handles.")
+  product(bool, TraceTraps, false, DIAGNOSTIC,                                \
+          "Trace all traps the signal handler handles.")
+
+// end of ARCH_FLAGS
 
 #endif // CPU_S390_GLOBALS_S390_HPP

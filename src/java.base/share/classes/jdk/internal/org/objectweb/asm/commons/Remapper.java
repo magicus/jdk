@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.commons;
 
 import jdk.internal.org.objectweb.asm.ConstantDynamic;
@@ -79,7 +80,7 @@ public abstract class Remapper {
       * @param descriptor a type descriptor.
       * @return the given descriptor, with its [array element type] internal name remapped with {@link
       *     #map(String)} (if the descriptor corresponds to an array or object type, otherwise the
-      *     descriptor is returned as is).
+      *     descriptor is returned as is). See {@link Type#getInternalName()}.
       */
     public String mapDesc(final String descriptor) {
         return mapType(Type.getType(descriptor)).getDescriptor();
@@ -93,7 +94,7 @@ public abstract class Remapper {
       * @return the given type, with its [array element type] internal name remapped with {@link
       *     #map(String)} (if the type is an array or object type, otherwise the type is returned as
       *     is) or, of the type is a method type, with its descriptor remapped with {@link
-      *     #mapMethodDesc(String)}.
+      *     #mapMethodDesc(String)}. See {@link Type#getInternalName()}.
       */
     private Type mapType(final Type type) {
         switch (type.getSort()) {
@@ -117,8 +118,10 @@ public abstract class Remapper {
     /**
       * Returns the given internal name, remapped with {@link #map(String)}.
       *
-      * @param internalName the internal name (or array type descriptor) of some (array) class.
-      * @return the given internal name, remapped with {@link #map(String)}.
+      * @param internalName the internal name (or array type descriptor) of some (array) class (see
+      *     {@link Type#getInternalName()}).
+      * @return the given internal name, remapped with {@link #map(String)} (see {@link
+      *     Type#getInternalName()}).
       */
     public String mapType(final String internalName) {
         if (internalName == null) {
@@ -130,8 +133,10 @@ public abstract class Remapper {
     /**
       * Returns the given internal names, remapped with {@link #map(String)}.
       *
-      * @param internalNames the internal names (or array type descriptors) of some (array) classes.
-      * @return the given internal name, remapped with {@link #map(String)}.
+      * @param internalNames the internal names (or array type descriptors) of some (array) classes
+      *     (see {@link Type#getInternalName()}).
+      * @return the given internal name, remapped with {@link #map(String)} (see {@link
+      *     Type#getInternalName()}).
       */
     public String[] mapTypes(final String[] internalNames) {
         String[] remappedInternalNames = null;
@@ -190,13 +195,15 @@ public abstract class Remapper {
         }
         if (value instanceof Handle) {
             Handle handle = (Handle) value;
+            boolean isFieldHandle = handle.getTag() <= Opcodes.H_PUTSTATIC;
+
             return new Handle(
                     handle.getTag(),
                     mapType(handle.getOwner()),
-                    mapMethodName(handle.getOwner(), handle.getName(), handle.getDesc()),
-                    handle.getTag() <= Opcodes.H_PUTSTATIC
-                            ? mapDesc(handle.getDesc())
-                            : mapMethodDesc(handle.getDesc()),
+                    isFieldHandle
+                            ? mapFieldName(handle.getOwner(), handle.getName(), handle.getDesc())
+                            : mapMethodName(handle.getOwner(), handle.getName(), handle.getDesc()),
+                    isFieldHandle ? mapDesc(handle.getDesc()) : mapMethodDesc(handle.getDesc()),
                     handle.isInterface());
         }
         if (value instanceof ConstantDynamic) {
@@ -267,18 +274,46 @@ public abstract class Remapper {
     }
 
     /**
+      * Maps an annotation attribute name. The default implementation of this method returns the given
+      * name, unchanged. Subclasses can override.
+      *
+      * @param descriptor the descriptor of the annotation class.
+      * @param name the name of the annotation attribute.
+      * @return the new name of the annotation attribute.
+      */
+    public String mapAnnotationAttributeName(final String descriptor, final String name) {
+        return name;
+    }
+
+    /**
       * Maps an inner class name to its new name. The default implementation of this method provides a
       * strategy that will work for inner classes produced by Java, but not necessarily other
       * languages. Subclasses can override.
       *
-      * @param name the fully-qualified internal name of the inner class.
-      * @param ownerName the internal name of the owner class of the inner class.
-      * @param innerName the internal name of the inner class.
+      * @param name the fully-qualified internal name of the inner class (see {@link
+      *     Type#getInternalName()}).
+      * @param ownerName the internal name of the owner class of the inner class (see {@link
+      *     Type#getInternalName()}).
+      * @param innerName the internal name of the inner class (see {@link Type#getInternalName()}).
       * @return the new inner name of the inner class.
       */
     public String mapInnerClassName(
             final String name, final String ownerName, final String innerName) {
         final String remappedInnerName = this.mapType(name);
+
+        if (remappedInnerName.equals(name)) {
+            return innerName;
+        } else {
+            int originSplit = name.lastIndexOf('/');
+            int remappedSplit = remappedInnerName.lastIndexOf('/');
+            if (originSplit != -1 && remappedSplit != -1) {
+                if (name.substring(originSplit).equals(remappedInnerName.substring(remappedSplit))) {
+                    // class name not changed
+                    return innerName;
+                }
+            }
+        }
+
         if (remappedInnerName.contains("$")) {
             int index = remappedInnerName.lastIndexOf('$') + 1;
             while (index < remappedInnerName.length()
@@ -295,7 +330,8 @@ public abstract class Remapper {
       * Maps a method name to its new name. The default implementation of this method returns the given
       * name, unchanged. Subclasses can override.
       *
-      * @param owner the internal name of the owner class of the method.
+      * @param owner the internal name of the owner class of the method (see {@link
+      *     Type#getInternalName()}).
       * @param name the name of the method.
       * @param descriptor the descriptor of the method.
       * @return the new name of the method.
@@ -320,7 +356,8 @@ public abstract class Remapper {
       * Maps a record component name to its new name. The default implementation of this method returns
       * the given name, unchanged. Subclasses can override.
       *
-      * @param owner the internal name of the owner class of the field.
+      * @param owner the internal name of the owner class of the field (see {@link
+      *     Type#getInternalName()}).
       * @param name the name of the field.
       * @param descriptor the descriptor of the field.
       * @return the new name of the field.
@@ -334,7 +371,8 @@ public abstract class Remapper {
       * Maps a field name to its new name. The default implementation of this method returns the given
       * name, unchanged. Subclasses can override.
       *
-      * @param owner the internal name of the owner class of the field.
+      * @param owner the internal name of the owner class of the field (see {@link
+      *     Type#getInternalName()}).
       * @param name the name of the field.
       * @param descriptor the descriptor of the field.
       * @return the new name of the field.
@@ -369,8 +407,8 @@ public abstract class Remapper {
       * Maps the internal name of a class to its new name. The default implementation of this method
       * returns the given name, unchanged. Subclasses can override.
       *
-      * @param internalName the internal name of a class.
-      * @return the new internal name.
+      * @param internalName the internal name of a class (see {@link Type#getInternalName()}).
+      * @return the new internal name (see {@link Type#getInternalName()}).
       */
     public String map(final String internalName) {
         return internalName;

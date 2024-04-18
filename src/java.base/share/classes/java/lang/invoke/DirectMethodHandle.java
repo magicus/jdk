@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,12 +30,11 @@ import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.Stable;
 import sun.invoke.util.ValueConversions;
 import sun.invoke.util.VerifyAccess;
-import sun.invoke.util.VerifyType;
 import sun.invoke.util.Wrapper;
 
-import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.Function;
 
 import static java.lang.invoke.LambdaForm.*;
 import static java.lang.invoke.LambdaForm.Kind.*;
@@ -49,7 +48,7 @@ import static java.lang.invoke.MethodTypeForm.*;
  * to a class member.
  * @author jrose
  */
-class DirectMethodHandle extends MethodHandle {
+sealed class DirectMethodHandle extends MethodHandle {
     final MemberName member;
     final boolean crackable;
 
@@ -63,7 +62,7 @@ class DirectMethodHandle extends MethodHandle {
             member.isMethod() && !member.isAbstract()) {
             // Check for corner case: invokeinterface of Object method
             MemberName m = new MemberName(Object.class, member.getName(), member.getMethodType(), member.getReferenceKind());
-            m = MemberName.getFactory().resolveOrNull(m.getReferenceKind(), m, null);
+            m = MemberName.getFactory().resolveOrNull(m.getReferenceKind(), m, null, LM_TRUSTED);
             if (m != null && m.isPublic()) {
                 assert(member.getReferenceKind() == m.getReferenceKind());  // else this.form is wrong
                 member = m;
@@ -85,8 +84,8 @@ class DirectMethodHandle extends MethodHandle {
         if (!member.isField()) {
             // refKind reflects the original type of lookup via findSpecial or
             // findVirtual etc.
-            switch (refKind) {
-                case REF_invokeSpecial: {
+            return switch (refKind) {
+                case REF_invokeSpecial -> {
                     member = member.asSpecial();
                     // if caller is an interface we need to adapt to get the
                     // receiver check inserted
@@ -94,20 +93,20 @@ class DirectMethodHandle extends MethodHandle {
                         throw new InternalError("callerClass must not be null for REF_invokeSpecial");
                     }
                     LambdaForm lform = preparedLambdaForm(member, callerClass.isInterface());
-                    return new Special(mtype, lform, member, true, callerClass);
+                    yield new Special(mtype, lform, member, true, callerClass);
                 }
-                case REF_invokeInterface: {
+                case REF_invokeInterface -> {
                     // for interfaces we always need the receiver typecheck,
                     // so we always pass 'true' to ensure we adapt if needed
                     // to include the REF_invokeSpecial case
                     LambdaForm lform = preparedLambdaForm(member, true);
-                    return new Interface(mtype, lform, member, true, refc);
+                    yield new Interface(mtype, lform, member, true, refc);
                 }
-                default: {
+                default -> {
                     LambdaForm lform = preparedLambdaForm(member);
-                    return new DirectMethodHandle(mtype, lform, member, true);
+                    yield new DirectMethodHandle(mtype, lform, member, true);
                 }
-            }
+            };
         } else {
             LambdaForm lform = preparedFieldLambdaForm(member);
             if (member.isStatic()) {
@@ -129,12 +128,11 @@ class DirectMethodHandle extends MethodHandle {
     }
     static DirectMethodHandle make(MemberName member) {
         if (member.isConstructor())
-            return makeAllocator(member);
+            return makeAllocator(member.getDeclaringClass(), member);
         return make(member.getDeclaringClass(), member);
     }
-    private static DirectMethodHandle makeAllocator(MemberName ctor) {
+    static DirectMethodHandle makeAllocator(Class<?> instanceClass, MemberName ctor) {
         assert(ctor.isConstructor() && ctor.getName().equals("<init>"));
-        Class<?> instanceClass = ctor.getDeclaringClass();
         ctor = ctor.asConstructor();
         assert(ctor.isConstructor() && ctor.getReferenceKind() == REF_newInvokeSpecial) : ctor;
         MethodType mtype = ctor.getMethodType().changeReturnType(instanceClass);
@@ -171,8 +169,8 @@ class DirectMethodHandle extends MethodHandle {
     }
 
     @Override
-    String internalProperties() {
-        return "\n& DMH.MN="+internalMemberName();
+    String internalProperties(int indentLevel) {
+        return "\n" + debugPrefix(indentLevel) + "& DMH.MN=" + internalMemberName();
     }
 
     //// Implementation methods.
@@ -193,20 +191,19 @@ class DirectMethodHandle extends MethodHandle {
         assert(m.isInvocable()) : m;  // call preparedFieldLambdaForm instead
         MethodType mtype = m.getInvocationType().basicType();
         assert(!m.isMethodHandleInvoke()) : m;
-        int which;
         // MemberName.getReferenceKind represents the JVM optimized form of the call
         // as distinct from the "kind" passed to DMH.make which represents the original
         // bytecode-equivalent request. Specifically private/final methods that use a direct
         // call have getReferenceKind adapted to REF_invokeSpecial, even though the actual
         // invocation mode may be invokevirtual or invokeinterface.
-        switch (m.getReferenceKind()) {
-        case REF_invokeVirtual:    which = LF_INVVIRTUAL;    break;
-        case REF_invokeStatic:     which = LF_INVSTATIC;     break;
-        case REF_invokeSpecial:    which = LF_INVSPECIAL;    break;
-        case REF_invokeInterface:  which = LF_INVINTERFACE;  break;
-        case REF_newInvokeSpecial: which = LF_NEWINVSPECIAL; break;
-        default:  throw new InternalError(m.toString());
-        }
+        int which = switch (m.getReferenceKind()) {
+            case REF_invokeVirtual    -> LF_INVVIRTUAL;
+            case REF_invokeStatic     -> LF_INVSTATIC;
+            case REF_invokeSpecial    -> LF_INVSPECIAL;
+            case REF_invokeInterface  -> LF_INVINTERFACE;
+            case REF_newInvokeSpecial -> LF_NEWINVSPECIAL;
+            default -> throw new InternalError(m.toString());
+        };
         if (which == LF_INVSTATIC && shouldBeInitialized(m)) {
             // precompute the barrier-free version:
             preparedLambdaForm(mtype, which);
@@ -260,7 +257,8 @@ class DirectMethodHandle extends MethodHandle {
                     .changeReturnType(void.class);          // <init> returns void
         MemberName linker = new MemberName(MethodHandle.class, linkerName, mtypeWithArg, REF_invokeStatic);
         try {
-            linker = IMPL_NAMES.resolveOrFail(REF_invokeStatic, linker, null, NoSuchMethodException.class);
+            linker = IMPL_NAMES.resolveOrFail(REF_invokeStatic, linker, null, LM_TRUSTED,
+                                              NoSuchMethodException.class);
         } catch (ReflectiveOperationException ex) {
             throw newInternalError(ex);
         }
@@ -298,7 +296,7 @@ class DirectMethodHandle extends MethodHandle {
             result = NEW_OBJ;
         }
         names[LINKER_CALL] = new Name(linker, outArgs);
-        LambdaForm lform = new LambdaForm(ARG_LIMIT, names, result, kind);
+        LambdaForm lform = LambdaForm.create(ARG_LIMIT, names, result, kind);
 
         // This is a tricky bit of code.  Don't send it through the LF interpreter.
         lform.compileToBytecode();
@@ -362,57 +360,31 @@ class DirectMethodHandle extends MethodHandle {
             VerifyAccess.isSamePackage(ValueConversions.class, cls)) {
             // It is a system class.  It is probably in the process of
             // being initialized, but we will help it along just to be safe.
-            if (UNSAFE.shouldBeInitialized(cls)) {
-                UNSAFE.ensureClassInitialized(cls);
-            }
+            UNSAFE.ensureClassInitialized(cls);
             return false;
         }
         return UNSAFE.shouldBeInitialized(cls);
     }
 
-    private static class EnsureInitialized extends ClassValue<WeakReference<Thread>> {
-        @Override
-        protected WeakReference<Thread> computeValue(Class<?> type) {
-            UNSAFE.ensureClassInitialized(type);
-            if (UNSAFE.shouldBeInitialized(type))
-                // If the previous call didn't block, this can happen.
-                // We are executing inside <clinit>.
-                return new WeakReference<>(Thread.currentThread());
-            return null;
-        }
-        static final EnsureInitialized INSTANCE = new EnsureInitialized();
-    }
-
     private void ensureInitialized() {
         if (checkInitialized(member)) {
             // The coast is clear.  Delete the <clinit> barrier.
-            if (member.isField())
-                updateForm(preparedFieldLambdaForm(member));
-            else
-                updateForm(preparedLambdaForm(member));
+            updateForm(new Function<>() {
+                public LambdaForm apply(LambdaForm oldForm) {
+                    return (member.isField() ? preparedFieldLambdaForm(member)
+                                             : preparedLambdaForm(member));
+                }
+            });
         }
     }
     private static boolean checkInitialized(MemberName member) {
         Class<?> defc = member.getDeclaringClass();
-        WeakReference<Thread> ref = EnsureInitialized.INSTANCE.get(defc);
-        if (ref == null) {
-            return true;  // the final state
-        }
-        Thread clinitThread = ref.get();
-        // Somebody may still be running defc.<clinit>.
-        if (clinitThread == Thread.currentThread()) {
-            // If anybody is running defc.<clinit>, it is this thread.
-            if (UNSAFE.shouldBeInitialized(defc))
-                // Yes, we are running it; keep the barrier for now.
-                return false;
-        } else {
-            // We are in a random thread.  Block.
-            UNSAFE.ensureClassInitialized(defc);
-        }
-        assert(!UNSAFE.shouldBeInitialized(defc));
-        // put it into the final state
-        EnsureInitialized.INSTANCE.remove(defc);
-        return true;
+        UNSAFE.ensureClassInitialized(defc);
+        // Once we get here either defc was fully initialized by another thread, or
+        // defc was already being initialized by the current thread. In the latter case
+        // the barrier must remain. We can detect this simply by checking if initialization
+        // is still needed.
+        return !UNSAFE.shouldBeInitialized(defc);
     }
 
     /*non-public*/
@@ -421,7 +393,7 @@ class DirectMethodHandle extends MethodHandle {
     }
 
     /** This subclass represents invokespecial instructions. */
-    static class Special extends DirectMethodHandle {
+    static final class Special extends DirectMethodHandle {
         private final Class<?> caller;
         private Special(MethodType mtype, LambdaForm form, MemberName member, boolean crackable, Class<?> caller) {
             super(mtype, form, member, crackable);
@@ -442,16 +414,21 @@ class DirectMethodHandle extends MethodHandle {
         }
         Object checkReceiver(Object recv) {
             if (!caller.isInstance(recv)) {
-                String msg = String.format("Receiver class %s is not a subclass of caller class %s",
-                                           recv.getClass().getName(), caller.getName());
-                throw new IncompatibleClassChangeError(msg);
+                if (recv != null) {
+                    String msg = String.format("Receiver class %s is not a subclass of caller class %s",
+                                               recv.getClass().getName(), caller.getName());
+                    throw new IncompatibleClassChangeError(msg);
+                } else {
+                    String msg = String.format("Cannot invoke %s with null receiver", member);
+                    throw new NullPointerException(msg);
+                }
             }
             return recv;
         }
     }
 
     /** This subclass represents invokeinterface instructions. */
-    static class Interface extends DirectMethodHandle {
+    static final class Interface extends DirectMethodHandle {
         private final Class<?> refc;
         private Interface(MethodType mtype, LambdaForm form, MemberName member, boolean crackable, Class<?> refc) {
             super(mtype, form, member, crackable);
@@ -470,9 +447,14 @@ class DirectMethodHandle extends MethodHandle {
         @Override
         Object checkReceiver(Object recv) {
             if (!refc.isInstance(recv)) {
-                String msg = String.format("Receiver class %s does not implement the requested interface %s",
-                                           recv.getClass().getName(), refc.getName());
-                throw new IncompatibleClassChangeError(msg);
+                if (recv != null) {
+                    String msg = String.format("Receiver class %s does not implement the requested interface %s",
+                                               recv.getClass().getName(), refc.getName());
+                    throw new IncompatibleClassChangeError(msg);
+                } else {
+                    String msg = String.format("Cannot invoke %s with null receiver", member);
+                    throw new NullPointerException(msg);
+                }
             }
             return recv;
         }
@@ -484,7 +466,7 @@ class DirectMethodHandle extends MethodHandle {
     }
 
     /** This subclass handles constructor references. */
-    static class Constructor extends DirectMethodHandle {
+    static final class Constructor extends DirectMethodHandle {
         final MemberName initMethod;
         final Class<?>   instanceClass;
 
@@ -519,7 +501,7 @@ class DirectMethodHandle extends MethodHandle {
     }
 
     /** This subclass handles non-static field references. */
-    static class Accessor extends DirectMethodHandle {
+    static final class Accessor extends DirectMethodHandle {
         final Class<?> fieldType;
         final int      fieldOffset;
         private Accessor(MethodType mtype, LambdaForm form, MemberName member,
@@ -565,7 +547,7 @@ class DirectMethodHandle extends MethodHandle {
     }
 
     /** This subclass handles static field references. */
-    static class StaticAccessor extends DirectMethodHandle {
+    static final class StaticAccessor extends DirectMethodHandle {
         private final Class<?> fieldType;
         private final Object   staticBase;
         private final long     staticOffset;
@@ -617,7 +599,7 @@ class DirectMethodHandle extends MethodHandle {
     }
 
     Object checkCast(Object obj) {
-        return member.getReturnType().cast(obj);
+        return member.getMethodType().returnType().cast(obj);
     }
 
     // Caching machinery for field accessors:
@@ -645,12 +627,14 @@ class DirectMethodHandle extends MethodHandle {
     private static final LambdaForm[] ACCESSOR_FORMS
             = new LambdaForm[afIndex(AF_LIMIT, false, 0)];
     static int ftypeKind(Class<?> ftype) {
-        if (ftype.isPrimitive())
+        if (ftype.isPrimitive()) {
             return Wrapper.forPrimitiveType(ftype).ordinal();
-        else if (VerifyType.isNullReferenceConversion(Object.class, ftype))
+        } else if (ftype.isInterface() || ftype.isAssignableFrom(Object.class)) {
+            // retyping can be done without a cast
             return FT_UNCHECKED_REF;
-        else
+        } else {
             return FT_CHECKED_REF;
+        }
     }
 
     /**
@@ -661,14 +645,13 @@ class DirectMethodHandle extends MethodHandle {
     private static LambdaForm preparedFieldLambdaForm(MemberName m) {
         Class<?> ftype = m.getFieldType();
         boolean isVolatile = m.isVolatile();
-        byte formOp;
-        switch (m.getReferenceKind()) {
-        case REF_getField:      formOp = AF_GETFIELD;    break;
-        case REF_putField:      formOp = AF_PUTFIELD;    break;
-        case REF_getStatic:     formOp = AF_GETSTATIC;   break;
-        case REF_putStatic:     formOp = AF_PUTSTATIC;   break;
-        default:  throw new InternalError(m.toString());
-        }
+        byte formOp = switch (m.getReferenceKind()) {
+            case REF_getField  -> AF_GETFIELD;
+            case REF_putField  -> AF_PUTFIELD;
+            case REF_getStatic -> AF_GETSTATIC;
+            case REF_putStatic -> AF_PUTSTATIC;
+            default -> throw new InternalError(m.toString());
+        };
         if (shouldBeInitialized(m)) {
             // precompute the barrier-free version:
             preparedFieldLambdaForm(formOp, isVolatile, ftype);
@@ -771,7 +754,8 @@ class DirectMethodHandle extends MethodHandle {
             linkerType = MethodType.methodType(void.class, Object.class, long.class, ft);
         MemberName linker = new MemberName(Unsafe.class, kind.methodName, linkerType, REF_invokeVirtual);
         try {
-            linker = IMPL_NAMES.resolveOrFail(REF_invokeVirtual, linker, null, NoSuchMethodException.class);
+            linker = IMPL_NAMES.resolveOrFail(REF_invokeVirtual, linker, null, LM_TRUSTED,
+                                              NoSuchMethodException.class);
         } catch (ReflectiveOperationException ex) {
             throw newInternalError(ex);
         }
@@ -829,9 +813,9 @@ class DirectMethodHandle extends MethodHandle {
         LambdaForm form;
         if (needsCast || needsInit) {
             // can't use the pre-generated form when casting and/or initializing
-            form = new LambdaForm(ARG_LIMIT, names, RESULT);
+            form = LambdaForm.create(ARG_LIMIT, names, RESULT);
         } else {
-            form = new LambdaForm(ARG_LIMIT, names, RESULT, kind);
+            form = LambdaForm.create(ARG_LIMIT, names, RESULT, kind);
         }
 
         if (LambdaForm.debugNames()) {
@@ -912,15 +896,17 @@ class DirectMethodHandle extends MethodHandle {
                 case NF_constructorMethod:
                     return getNamedFunction("constructorMethod", OBJ_OBJ_TYPE);
                 case NF_UNSAFE:
-                    MemberName member = new MemberName(MethodHandleStatics.class, "UNSAFE", Unsafe.class, REF_getField);
+                    MemberName member = new MemberName(MethodHandleStatics.class, "UNSAFE", Unsafe.class, REF_getStatic);
                     return new NamedFunction(
-                            MemberName.getFactory()
-                                    .resolveOrFail(REF_getField, member, DirectMethodHandle.class, NoSuchMethodException.class));
+                            MemberName.getFactory().resolveOrFail(REF_getStatic, member,
+                                                                  DirectMethodHandle.class, LM_TRUSTED,
+                                                                  NoSuchFieldException.class));
                 case NF_checkReceiver:
                     member = new MemberName(DirectMethodHandle.class, "checkReceiver", OBJ_OBJ_TYPE, REF_invokeVirtual);
                     return new NamedFunction(
-                        MemberName.getFactory()
-                            .resolveOrFail(REF_invokeVirtual, member, DirectMethodHandle.class, NoSuchMethodException.class));
+                            MemberName.getFactory().resolveOrFail(REF_invokeVirtual, member,
+                                                                  DirectMethodHandle.class, LM_TRUSTED,
+                                                                  NoSuchMethodException.class));
                 default:
                     throw newInternalError("Unknown function: " + func);
             }
@@ -934,8 +920,9 @@ class DirectMethodHandle extends MethodHandle {
     {
         MemberName member = new MemberName(DirectMethodHandle.class, name, type, REF_invokeStatic);
         return new NamedFunction(
-            MemberName.getFactory()
-                .resolveOrFail(REF_invokeStatic, member, DirectMethodHandle.class, NoSuchMethodException.class));
+                MemberName.getFactory().resolveOrFail(REF_invokeStatic, member,
+                                                      DirectMethodHandle.class, LM_TRUSTED,
+                                                      NoSuchMethodException.class));
     }
 
     static {

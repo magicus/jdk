@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,7 +36,7 @@ import javadoc.tester.JavadocTester;
 public class TestOverriddenDeprecatedMethods extends JavadocTester {
 
     public static void main(String args[]) throws Exception {
-        TestOverriddenDeprecatedMethods tester = new TestOverriddenDeprecatedMethods();
+        var tester = new TestOverriddenDeprecatedMethods();
         tester.runTests();
     }
 
@@ -44,6 +44,7 @@ public class TestOverriddenDeprecatedMethods extends JavadocTester {
     public void test() {
         javadoc("-d", "out-deprecated",
                 "-sourcepath", testSrc,
+                "--no-platform-links",
                 "--override-methods","summary",
                 "pkg1");
 
@@ -61,13 +62,13 @@ public class TestOverriddenDeprecatedMethods extends JavadocTester {
                 """
                     <span class="annotations">@Deprecated
                     </span><span class="modifiers">public</span>&nbsp;<span class="return-type">void\
-                    </span>&nbsp;<span class="member-name">func1</span>()""",
+                    </span>&nbsp;<span class="element-name">func1</span>()""",
                 """
                     <div class="deprecation-block"><span class="deprecated-label">Deprecated.</span></div>""",
                 """
                     <span class="annotations">@Deprecated
                     </span><span class="modifiers">public</span>&nbsp;<span class="return-type">void\
-                    </span>&nbsp;<span class="member-name">func2</span>()""",
+                    </span>&nbsp;<span class="element-name">func2</span>()""",
                 """
                     <div class="deprecation-block"><span class="deprecated-label">Deprecated.</span></div>""",
                 """

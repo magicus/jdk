@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
  * @test
  * @bug 8174962 8010319
  * @summary Redefine class with interface method call
+ * @requires vm.jvmti
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  * @modules java.compiler
@@ -52,12 +53,13 @@ public class RedefineInterfaceCall {
     static String newI1 =
       "interface I1 { default int m() { return 1; } }";
 
-    static String newC =
-        "class RedefineInterfaceCall_C implements I2 { " +
-        "  public int test(I2 i) { " +
-        "    return i.m(); " +
-        "  } " +
-        "} ";
+    static String newC = """
+        class RedefineInterfaceCall_C implements I2 {
+            public int test(I2 i) {
+                return i.m();
+            }
+        }
+        """;
 
     static int test(I2 i) {
         return i.m(); // invokeinterface cpCacheEntry

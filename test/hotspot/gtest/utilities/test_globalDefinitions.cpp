@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,10 +22,14 @@
  */
 
 #include "precompiled.hpp"
+#include "memory/resourceArea.hpp"
 #include "runtime/os.hpp"
-#include "unittest.hpp"
 #include "utilities/align.hpp"
 #include "utilities/globalDefinitions.hpp"
+#include "utilities/ostream.hpp"
+#include "unittest.hpp"
+
+#include <type_traits>
 
 static ::testing::AssertionResult testPageAddress(
   const char* expected_addr_expr,
@@ -52,7 +56,7 @@ static ::testing::AssertionResult testPageAddress(
 }
 
 TEST_VM(globalDefinitions, clamp_address_in_page) {
-  const intptr_t page_sizes[] = {os::vm_page_size(), 4096, 8192, 65536, 2 * 1024 * 1024};
+  const intptr_t page_sizes[] = {static_cast<intptr_t>(os::vm_page_size()), 4096, 8192, 65536, 2 * 1024 * 1024};
   const int num_page_sizes = sizeof(page_sizes) / sizeof(page_sizes[0]);
 
   for (int i = 0; i < num_page_sizes; i++) {
@@ -189,37 +193,100 @@ TEST(globalDefinitions, byte_size_in_exact_unit) {
 #endif
 }
 
-#define EXPECT_EQ_LOG2(fn, type)                                \
-{                                                               \
-  int limit = sizeof (type) * BitsPerByte;                      \
-  if (IsSigned<type>::value) {                                  \
-    EXPECT_EQ(limit - 1, fn(std::numeric_limits<type>::min())); \
-    EXPECT_EQ(limit - 1, fn((type)-1));                         \
-    limit--;                                                    \
-  }                                                             \
-  {                                                             \
-    /* Test the all-1s bit patterns */                          \
-    type var = 1;                                               \
-    for (int i = 0; i < limit; i++, var = (var << 1) | 1) {     \
-      EXPECT_EQ(i, fn(var));                                    \
-    }                                                           \
-  }                                                             \
-  {                                                             \
-    /* Test the powers of 2 and powers + 1*/                    \
-    type var = 1;                                               \
-    for (int i = 0; i < limit; i++, var <<= 1) {                \
-      EXPECT_EQ(i, fn(var));                                    \
-      EXPECT_EQ(i, fn(var | 1));                                \
-    }                                                           \
-  }                                                             \
+TEST(globalDefinitions, array_size) {
+  const size_t test_size = 10;
+
+  {
+    int test_array[test_size] = {};
+    static_assert(test_size == ARRAY_SIZE(test_array), "must be");
+  }
+
+  {
+    double test_array[test_size] = {};
+    static_assert(test_size == ARRAY_SIZE(test_array), "must be");
+  }
+
+  struct ArrayElt { int x; };
+
+  {
+    ArrayElt test_array[test_size] = {};
+    static_assert(test_size == ARRAY_SIZE(test_array), "must be");
+  }
+
+  {
+    const ArrayElt test_array[] = { {0}, {1}, {2}, {3}, {4}, {5} };
+    static_assert(6 == ARRAY_SIZE(test_array), "must be");
+  }
+
 }
 
-TEST(globalDefinitions, log2) {
-  EXPECT_EQ_LOG2(log2_intptr, uintptr_t);
-  EXPECT_EQ_LOG2(log2_intptr, intptr_t);
-  EXPECT_EQ_LOG2(log2_long, julong);
-  EXPECT_EQ_LOG2(log2_int, int);
-  EXPECT_EQ_LOG2(log2_jint, jint);
-  EXPECT_EQ_LOG2(log2_uint, uint);
-  EXPECT_EQ_LOG2(log2_jlong, jlong);
+#define check_format(format, value, expected)                  \
+  do {                                                         \
+    ResourceMark rm;                                           \
+    stringStream out;                                          \
+    out.print((format), (value));                              \
+    const char* result = out.as_string();                      \
+    EXPECT_STREQ((result), (expected)) << "Failed with"        \
+        << " format '"   << (format)   << "'"                  \
+        << " value '"    << (value);                           \
+  } while (false)
+
+TEST(globalDefinitions, format_specifiers) {
+  check_format(INT8_FORMAT_X_0,        (int8_t)0x01,      "0x01");
+  check_format(UINT8_FORMAT_X_0,       (uint8_t)0x01u,    "0x01");
+
+  check_format(INT16_FORMAT_X_0,       (int16_t)0x0123,   "0x0123");
+  check_format(UINT16_FORMAT_X_0,      (uint16_t)0x0123u, "0x0123");
+
+  check_format(INT32_FORMAT,           123,               "123");
+  check_format(INT32_FORMAT_X,         0x123,             "0x123");
+  check_format(INT32_FORMAT_X_0,       0x123,             "0x00000123");
+  check_format(INT32_FORMAT_W(5),      123,               "  123");
+  check_format(INT32_FORMAT_W(-5),     123,               "123  ");
+  check_format(UINT32_FORMAT,          123u,              "123");
+  check_format(UINT32_FORMAT_X,        0x123u,            "0x123");
+  check_format(UINT32_FORMAT_X_0,      0x123u,            "0x00000123");
+  check_format(UINT32_FORMAT_W(5),     123u,              "  123");
+  check_format(UINT32_FORMAT_W(-5),    123u,              "123  ");
+
+  check_format(INT64_FORMAT,           (int64_t)123,      "123");
+  check_format(INT64_FORMAT_X,         (int64_t)0x123,    "0x123");
+  check_format(INT64_FORMAT_X_0,       (int64_t)0x123,    "0x0000000000000123");
+  check_format(INT64_FORMAT_W(5),      (int64_t)123,      "  123");
+  check_format(INT64_FORMAT_W(-5),     (int64_t)123,      "123  ");
+
+  check_format(UINT64_FORMAT,          (uint64_t)123,     "123");
+  check_format(UINT64_FORMAT_X,        (uint64_t)0x123,   "0x123");
+  check_format(UINT64_FORMAT_X_0,      (uint64_t)0x123,   "0x0000000000000123");
+  check_format(UINT64_FORMAT_W(5),     (uint64_t)123,     "  123");
+  check_format(UINT64_FORMAT_W(-5),    (uint64_t)123,     "123  ");
+
+  check_format(SSIZE_FORMAT,           (ssize_t)123,      "123");
+  check_format(SSIZE_FORMAT,           (ssize_t)-123,     "-123");
+  check_format(SSIZE_FORMAT,           (ssize_t)2147483647, "2147483647");
+  check_format(SSIZE_FORMAT,           (ssize_t)-2147483647, "-2147483647");
+  check_format(SSIZE_PLUS_FORMAT,      (ssize_t)123,      "+123");
+  check_format(SSIZE_PLUS_FORMAT,      (ssize_t)-123,     "-123");
+  check_format(SSIZE_PLUS_FORMAT,      (ssize_t)2147483647, "+2147483647");
+  check_format(SSIZE_PLUS_FORMAT,      (ssize_t)-2147483647, "-2147483647");
+  check_format(SSIZE_FORMAT_W(5),      (ssize_t)123,      "  123");
+  check_format(SSIZE_FORMAT_W(-5),     (ssize_t)123,      "123  ");
+  check_format(SIZE_FORMAT,            (size_t)123u,      "123");
+  check_format(SIZE_FORMAT_X,          (size_t)0x123u,    "0x123");
+  check_format(SIZE_FORMAT_X_0,        (size_t)0x123u,    "0x" LP64_ONLY("00000000") "00000123");
+  check_format(SIZE_FORMAT_W(5),       (size_t)123u,      "  123");
+  check_format(SIZE_FORMAT_W(-5),      (size_t)123u,      "123  ");
+
+  check_format(INTX_FORMAT,            (intx)123,         "123");
+  check_format(INTX_FORMAT_X,          (intx)0x123,       "0x123");
+  check_format(INTX_FORMAT_W(5),       (intx)123,         "  123");
+  check_format(INTX_FORMAT_W(-5),      (intx)123,         "123  ");
+
+  check_format(UINTX_FORMAT,           (uintx)123u,       "123");
+  check_format(UINTX_FORMAT_X,         (uintx)0x123u,     "0x123");
+  check_format(UINTX_FORMAT_W(5),      (uintx)123u,       "  123");
+  check_format(UINTX_FORMAT_W(-5),     (uintx)123u,       "123  ");
+
+  check_format(INTPTR_FORMAT,          (intptr_t)0x123,   "0x" LP64_ONLY("00000000") "00000123");
+  check_format(PTR_FORMAT,             (uintptr_t)0x123,  "0x" LP64_ONLY("00000000") "00000123");
 }

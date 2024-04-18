@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,9 +39,6 @@ import javax.lang.model.SourceVersion;
  * <p>Tools can be located using {@link
  * java.util.ServiceLoader#load(Class)}.
  *
- * @author Neal M Gafter
- * @author Peter von der Ah&eacute;
- * @author Jonathan Gibbons
  * @since 1.6
  */
 public interface Tool {
@@ -76,7 +73,7 @@ public interface Tool {
     int run(InputStream in, OutputStream out, OutputStream err, String... arguments);
 
     /**
-     * Returns the source versions of the Java&trade; programming language
+     * Returns the source versions of the Java programming language
      * supported by this tool.
      * @return a set of supported source versions
      */

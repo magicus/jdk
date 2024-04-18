@@ -24,13 +24,12 @@
  */
 
 #include "precompiled.hpp"
-#include "gc/shared/cardTableRS.hpp"
+#include "gc/shared/cardTable.hpp"
 #include "gc/shared/gcArguments.hpp"
 #include "logging/log.hpp"
 #include "runtime/arguments.hpp"
 #include "runtime/globals.hpp"
 #include "runtime/globals_extension.hpp"
-#include "utilities/defaultStream.hpp"
 #include "utilities/macros.hpp"
 
 size_t HeapAlignment = 0;
@@ -59,15 +58,6 @@ void GCArguments::initialize() {
     // If class unloading is disabled, also disable concurrent class unloading.
     FLAG_SET_CMDLINE(ClassUnloadingWithConcurrentMark, false);
   }
-
-  if (!FLAG_IS_DEFAULT(AllocateOldGenAt)) {
-    // CompressedOops not supported when AllocateOldGenAt is set.
-    LP64_ONLY(FLAG_SET_DEFAULT(UseCompressedOops, false));
-    LP64_ONLY(FLAG_SET_DEFAULT(UseCompressedClassPointers, false));
-    // When AllocateOldGenAt is set, we cannot use largepages for entire heap memory.
-    // Only young gen which is allocated in dram can use large pages, but we currently don't support that.
-    FLAG_SET_DEFAULT(UseLargePages, false);
-  }
 }
 
 void GCArguments::initialize_heap_sizes() {
@@ -83,7 +73,7 @@ size_t GCArguments::compute_heap_alignment() {
   // byte entry and the os page size is 4096, the maximum heap size should
   // be 512*4096 = 2MB aligned.
 
-  size_t alignment = CardTableRS::ct_max_alignment_constraint();
+  size_t alignment = CardTable::ct_max_alignment_constraint();
 
   if (UseLargePages) {
       // In presence of large pages we have to make sure that our
@@ -92,21 +82,6 @@ size_t GCArguments::compute_heap_alignment() {
   }
 
   return alignment;
-}
-
-bool GCArguments::check_args_consistency() {
-  bool status = true;
-  if (!FLAG_IS_DEFAULT(AllocateHeapAt) && !FLAG_IS_DEFAULT(AllocateOldGenAt)) {
-    jio_fprintf(defaultStream::error_stream(),
-      "AllocateHeapAt and AllocateOldGenAt cannot be used together.\n");
-    status = false;
-  }
-  if (!FLAG_IS_DEFAULT(AllocateOldGenAt) && (UseSerialGC || UseEpsilonGC || UseZGC)) {
-    jio_fprintf(defaultStream::error_stream(),
-      "AllocateOldGenAt is not supported for selected GC.\n");
-    status = false;
-  }
-  return status;
 }
 
 #ifdef ASSERT
@@ -152,6 +127,11 @@ void GCArguments::initialize_heap_flags_and_sizes() {
     }
   }
 
+  if (FLAG_IS_CMDLINE(InitialHeapSize) && FLAG_IS_CMDLINE(MinHeapSize) &&
+      InitialHeapSize < MinHeapSize) {
+    vm_exit_during_initialization("Incompatible minimum and initial heap sizes specified");
+  }
+
   // Check heap parameter properties
   if (MaxHeapSize < 2 * M) {
     vm_exit_during_initialization("Too small maximum heap");
@@ -175,11 +155,6 @@ void GCArguments::initialize_heap_flags_and_sizes() {
     FLAG_SET_ERGO(MaxHeapSize, align_up(MaxHeapSize, HeapAlignment));
   }
 
-  if (FLAG_IS_CMDLINE(InitialHeapSize) && FLAG_IS_CMDLINE(MinHeapSize) &&
-      InitialHeapSize < MinHeapSize) {
-    vm_exit_during_initialization("Incompatible minimum and initial heap sizes specified");
-  }
-
   if (!FLAG_IS_DEFAULT(InitialHeapSize) && InitialHeapSize > MaxHeapSize) {
     FLAG_SET_ERGO(MaxHeapSize, InitialHeapSize);
   } else if (!FLAG_IS_DEFAULT(MaxHeapSize) && InitialHeapSize > MaxHeapSize) {
@@ -196,4 +171,8 @@ void GCArguments::initialize_heap_flags_and_sizes() {
   FLAG_SET_ERGO(MinHeapDeltaBytes, align_up(MinHeapDeltaBytes, SpaceAlignment));
 
   DEBUG_ONLY(assert_flags();)
+}
+
+size_t GCArguments::heap_virtual_to_physical_ratio() {
+  return 1;
 }

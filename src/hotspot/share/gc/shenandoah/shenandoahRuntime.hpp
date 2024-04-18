@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Red Hat, Inc. All rights reserved.
+ * Copyright (c) 2018, 2022, Red Hat, Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,7 @@
 #ifndef SHARE_GC_SHENANDOAH_SHENANDOAHRUNTIME_HPP
 #define SHARE_GC_SHENANDOAH_SHENANDOAHRUNTIME_HPP
 
-#include "memory/allocation.hpp"
+#include "memory/allStatic.hpp"
 #include "oops/oopsHierarchy.hpp"
 
 class JavaThread;
@@ -38,10 +38,14 @@ public:
 
   static void write_ref_field_pre_entry(oopDesc* orig, JavaThread* thread);
 
-  static oopDesc* load_reference_barrier(oopDesc* src, oop* load_addr);
-  static oopDesc* load_reference_barrier_narrow(oopDesc* src, narrowOop* load_addr);
+  static oopDesc* load_reference_barrier_strong(oopDesc* src, oop* load_addr);
+  static oopDesc* load_reference_barrier_strong_narrow(oopDesc* src, narrowOop* load_addr);
 
-  static oopDesc* load_reference_barrier_native(oopDesc* src, oop* load_addr);
+  static oopDesc* load_reference_barrier_weak(oopDesc* src, oop* load_addr);
+  static oopDesc* load_reference_barrier_weak_narrow(oopDesc* src, narrowOop* load_addr);
+
+  static oopDesc* load_reference_barrier_phantom(oopDesc* src, oop* load_addr);
+  static oopDesc* load_reference_barrier_phantom_narrow(oopDesc* src, narrowOop* load_addr);
 
   static void shenandoah_clone_barrier(oopDesc* src);
 };

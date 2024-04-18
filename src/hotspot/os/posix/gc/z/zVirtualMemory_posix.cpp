@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,25 +29,24 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 
-void ZVirtualMemoryManager::initialize_os() {
+void ZVirtualMemoryManager::pd_initialize_before_reserve() {
   // Does nothing
 }
 
-static void unmap(uintptr_t start, size_t size) {
-  const int res = munmap((void*)start, size);
-  assert(res == 0, "Failed to unmap memory");
+void ZVirtualMemoryManager::pd_initialize_after_reserve() {
+  // Does nothing
 }
 
-static bool map(uintptr_t start, size_t size) {
-  const void* const res = mmap((void*)start, size, PROT_NONE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_NORESERVE, -1, 0);
+bool ZVirtualMemoryManager::pd_reserve(zaddress_unsafe addr, size_t size) {
+  void* const res = mmap((void*)untype(addr), size, PROT_NONE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_NORESERVE, -1, 0);
   if (res == MAP_FAILED) {
     // Failed to reserve memory
     return false;
   }
 
-  if ((uintptr_t)res != start) {
+  if (res != (void*)untype(addr)) {
     // Failed to reserve memory at the requested address
-    unmap((uintptr_t)res, size);
+    munmap(res, size);
     return false;
   }
 
@@ -55,31 +54,7 @@ static bool map(uintptr_t start, size_t size) {
   return true;
 }
 
-bool ZVirtualMemoryManager::reserve_contiguous_platform(uintptr_t start, size_t size) {
-  // Reserve address views
-  const uintptr_t marked0 = ZAddress::marked0(start);
-  const uintptr_t marked1 = ZAddress::marked1(start);
-  const uintptr_t remapped = ZAddress::remapped(start);
-
-  if (!map(marked0, size)) {
-    return false;
-  }
-
-  if (!map(marked1, size)) {
-    unmap(marked0, size);
-    return false;
-  }
-
-  if (!map(remapped, size)) {
-    unmap(marked0, size);
-    unmap(marked1, size);
-    return false;
-  }
-
-  // Register address views with native memory tracker
-  nmt_reserve(marked0, size);
-  nmt_reserve(marked1, size);
-  nmt_reserve(remapped, size);
-
-  return true;
+void ZVirtualMemoryManager::pd_unreserve(zaddress_unsafe addr, size_t size) {
+  const int res = munmap((void*)untype(addr), size);
+  assert(res == 0, "Failed to unmap memory");
 }

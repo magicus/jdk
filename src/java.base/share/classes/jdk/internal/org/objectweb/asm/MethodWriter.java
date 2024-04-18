@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm;
 
 /**
@@ -497,7 +498,8 @@ final class MethodWriter extends MethodVisitor {
 
     /**
       * Indicates what must be computed. Must be one of {@link #COMPUTE_ALL_FRAMES}, {@link
-      * #COMPUTE_INSERTED_FRAMES}, {@link #COMPUTE_MAX_STACK_AND_LOCAL} or {@link #COMPUTE_NOTHING}.
+      * #COMPUTE_INSERTED_FRAMES}, {@link COMPUTE_MAX_STACK_AND_LOCAL_FROM_FRAMES}, {@link
+      * #COMPUTE_MAX_STACK_AND_LOCAL} or {@link #COMPUTE_NOTHING}.
       */
     private final int compute;
 
@@ -564,8 +566,9 @@ final class MethodWriter extends MethodVisitor {
       * the number of stack elements. The local variables start at index 3 and are followed by the
       * operand stack elements. In summary frame[0] = offset, frame[1] = numLocal, frame[2] = numStack.
       * Local variables and operand stack entries contain abstract types, as defined in {@link Frame},
-      * but restricted to {@link Frame#CONSTANT_KIND}, {@link Frame#REFERENCE_KIND} or {@link
-      * Frame#UNINITIALIZED_KIND} abstract types. Long and double types use only one array entry.
+      * but restricted to {@link Frame#CONSTANT_KIND}, {@link Frame#REFERENCE_KIND}, {@link
+      * Frame#UNINITIALIZED_KIND} or {@link Frame#FORWARD_UNINITIALIZED_KIND} abstract types. Long and
+      * double types use only one array entry.
       */
     private int[] currentFrame;
 
@@ -623,7 +626,7 @@ final class MethodWriter extends MethodVisitor {
             final String signature,
             final String[] exceptions,
             final int compute) {
-        super(/* latest api = */ Opcodes.ASM8);
+        super(/* latest api = */ Opcodes.ASM9);
         this.symbolTable = symbolTable;
         this.accessFlags = "<init>".equals(name) ? access | Constants.ACC_CONSTRUCTOR : access;
         this.nameIndex = symbolTable.addConstantUtf8(name);
@@ -723,7 +726,7 @@ final class MethodWriter extends MethodVisitor {
         if (visible) {
             if (lastRuntimeVisibleParameterAnnotations == null) {
                 lastRuntimeVisibleParameterAnnotations =
-                        new AnnotationWriter[Type.getArgumentTypes(descriptor).length];
+                        new AnnotationWriter[Type.getArgumentCount(descriptor)];
             }
             return lastRuntimeVisibleParameterAnnotations[parameter] =
                     AnnotationWriter.create(
@@ -731,7 +734,7 @@ final class MethodWriter extends MethodVisitor {
         } else {
             if (lastRuntimeInvisibleParameterAnnotations == null) {
                 lastRuntimeInvisibleParameterAnnotations =
-                        new AnnotationWriter[Type.getArgumentTypes(descriptor).length];
+                        new AnnotationWriter[Type.getArgumentCount(descriptor)];
             }
             return lastRuntimeInvisibleParameterAnnotations[parameter] =
                     AnnotationWriter.create(
@@ -935,26 +938,26 @@ final class MethodWriter extends MethodVisitor {
     }
 
     @Override
-    public void visitVarInsn(final int opcode, final int var) {
+    public void visitVarInsn(final int opcode, final int varIndex) {
         lastBytecodeOffset = code.length;
         // Add the instruction to the bytecode of the method.
-        if (var < 4 && opcode != Opcodes.RET) {
+        if (varIndex < 4 && opcode != Opcodes.RET) {
             int optimizedOpcode;
             if (opcode < Opcodes.ISTORE) {
-                optimizedOpcode = Constants.ILOAD_0 + ((opcode - Opcodes.ILOAD) << 2) + var;
+                optimizedOpcode = Constants.ILOAD_0 + ((opcode - Opcodes.ILOAD) << 2) + varIndex;
             } else {
-                optimizedOpcode = Constants.ISTORE_0 + ((opcode - Opcodes.ISTORE) << 2) + var;
+                optimizedOpcode = Constants.ISTORE_0 + ((opcode - Opcodes.ISTORE) << 2) + varIndex;
             }
             code.putByte(optimizedOpcode);
-        } else if (var >= 256) {
-            code.putByte(Constants.WIDE).put12(opcode, var);
+        } else if (varIndex >= 256) {
+            code.putByte(Constants.WIDE).put12(opcode, varIndex);
         } else {
-            code.put11(opcode, var);
+            code.put11(opcode, varIndex);
         }
         // If needed, update the maximum stack size and number of locals, and stack map frames.
         if (currentBasicBlock != null) {
             if (compute == COMPUTE_ALL_FRAMES || compute == COMPUTE_INSERTED_FRAMES) {
-                currentBasicBlock.frame.execute(opcode, var, null, null);
+                currentBasicBlock.frame.execute(opcode, varIndex, null, null);
             } else {
                 if (opcode == Opcodes.RET) {
                     // No stack size delta.
@@ -976,9 +979,9 @@ final class MethodWriter extends MethodVisitor {
                     || opcode == Opcodes.DLOAD
                     || opcode == Opcodes.LSTORE
                     || opcode == Opcodes.DSTORE) {
-                currentMaxLocals = var + 2;
+                currentMaxLocals = varIndex + 2;
             } else {
-                currentMaxLocals = var + 1;
+                currentMaxLocals = varIndex + 1;
             }
             if (currentMaxLocals > maxLocals) {
                 maxLocals = currentMaxLocals;
@@ -1229,7 +1232,7 @@ final class MethodWriter extends MethodVisitor {
     @Override
     public void visitLabel(final Label label) {
         // Resolve the forward references to this label, if any.
-        hasAsmInstructions |= label.resolve(code.data, code.length);
+        hasAsmInstructions |= label.resolve(code.data, stackMapTableEntries, code.length);
         // visitLabel starts a new basic block (except for debug only labels), so we need to update the
         // previous and current block references and list of successors.
         if ((label.flags & Label.FLAG_DEBUG_ONLY) != 0) {
@@ -1242,7 +1245,7 @@ final class MethodWriter extends MethodVisitor {
                     // one place, but this does not work for labels which have not been visited yet.
                     // Therefore, when we detect here two labels having the same bytecode offset, we need to
                     // - consolidate the state scattered in these two instances into the canonical instance:
-                    currentBasicBlock.flags |= (label.flags & Label.FLAG_JUMP_TARGET);
+                    currentBasicBlock.flags |= (short)(label.flags & Label.FLAG_JUMP_TARGET);
                     // - make sure the two instances share the same Frame instance (the implementation of
                     // {@link Label#getCanonicalInstance} relies on this property; here label.frame should be
                     // null):
@@ -1258,7 +1261,7 @@ final class MethodWriter extends MethodVisitor {
             if (lastBasicBlock != null) {
                 if (label.bytecodeOffset == lastBasicBlock.bytecodeOffset) {
                     // Same comment as above.
-                    lastBasicBlock.flags |= (label.flags & Label.FLAG_JUMP_TARGET);
+                    lastBasicBlock.flags |= (short)(label.flags & Label.FLAG_JUMP_TARGET);
                     // Here label.frame should be null.
                     label.frame = lastBasicBlock.frame;
                     currentBasicBlock = lastBasicBlock;
@@ -1338,21 +1341,21 @@ final class MethodWriter extends MethodVisitor {
     }
 
     @Override
-    public void visitIincInsn(final int var, final int increment) {
+    public void visitIincInsn(final int varIndex, final int increment) {
         lastBytecodeOffset = code.length;
         // Add the instruction to the bytecode of the method.
-        if ((var > 255) || (increment > 127) || (increment < -128)) {
-            code.putByte(Constants.WIDE).put12(Opcodes.IINC, var).putShort(increment);
+        if ((varIndex > 255) || (increment > 127) || (increment < -128)) {
+            code.putByte(Constants.WIDE).put12(Opcodes.IINC, varIndex).putShort(increment);
         } else {
-            code.putByte(Opcodes.IINC).put11(var, increment);
+            code.putByte(Opcodes.IINC).put11(varIndex, increment);
         }
         // If needed, update the maximum stack size and number of locals, and stack map frames.
         if (currentBasicBlock != null
                 && (compute == COMPUTE_ALL_FRAMES || compute == COMPUTE_INSERTED_FRAMES)) {
-            currentBasicBlock.frame.execute(Opcodes.IINC, var, null, null);
+            currentBasicBlock.frame.execute(Opcodes.IINC, varIndex, null, null);
         }
         if (compute != COMPUTE_NOTHING) {
-            int currentMaxLocals = var + 1;
+            int currentMaxLocals = varIndex + 1;
             if (currentMaxLocals > maxLocals) {
                 maxLocals = currentMaxLocals;
             }
@@ -1825,7 +1828,7 @@ final class MethodWriter extends MethodVisitor {
         if (compute == COMPUTE_ALL_FRAMES) {
             Label nextBasicBlock = new Label();
             nextBasicBlock.frame = new Frame(nextBasicBlock);
-            nextBasicBlock.resolve(code.data, code.length);
+            nextBasicBlock.resolve(code.data, stackMapTableEntries, code.length);
             lastBasicBlock.nextBasicBlock = nextBasicBlock;
             lastBasicBlock = nextBasicBlock;
             currentBasicBlock = null;
@@ -2009,9 +2012,8 @@ final class MethodWriter extends MethodVisitor {
                     .putByte(Frame.ITEM_OBJECT)
                     .putShort(symbolTable.addConstantClass((String) type).index);
         } else {
-            stackMapTableEntries
-                    .putByte(Frame.ITEM_UNINITIALIZED)
-                    .putShort(((Label) type).bytecodeOffset);
+            stackMapTableEntries.putByte(Frame.ITEM_UNINITIALIZED);
+            ((Label) type).put(stackMapTableEntries);
         }
     }
 

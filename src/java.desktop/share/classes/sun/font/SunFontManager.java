@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -231,12 +231,6 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
     private static String[] STR_ARRAY = new String[0];
 
     /**
-     * Deprecated, unsupported hack - actually invokes a bug!
-     * Left in for a customer, don't remove.
-     */
-    private boolean usePlatformFontMetrics = false;
-
-    /**
      * Returns the global SunFontManager instance. This is similar to
      * {@link FontManagerFactory#getInstance()} but it returns a
      * SunFontManager instance instead. This is only used in internal classes
@@ -265,6 +259,11 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
     private static int maxSoftRefCnt = 10;
 
     static {
+        initStatic();
+    }
+
+    @SuppressWarnings("removal")
+    private static void initStatic() {
         AccessController.doPrivileged(new PrivilegedAction<Void>() {
             public Void run() {
                 FontManagerNativeLibrary.load();
@@ -305,6 +304,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
     /* Initialise ptrs used by JNI methods */
     private static native void initIDs();
 
+    @SuppressWarnings("removal")
     protected SunFontManager() {
         AccessController.doPrivileged(new PrivilegedAction<Void>() {
             public Void run() {
@@ -320,7 +320,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                                 break;
                             } else {
                                 if (FontUtilities.debugFonts()) {
-                                    FontUtilities.getLogger().warning("read bad font: " + name);
+                                    FontUtilities.logWarning("read bad font: " + name);
                                 }
                                 badFonts.add(name);
                             }
@@ -353,6 +353,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
                 String[] fontInfo = getDefaultPlatformFont();
                 defaultFontName = fontInfo[0];
+                if (defaultFontName == null && FontUtilities.debugFonts()) {
+                    FontUtilities.logWarning("defaultFontName is null");
+                }
                 defaultFontFileName = fontInfo[1];
 
                 String extraFontPath = fontConfig.getExtraFontPath();
@@ -400,10 +403,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                 }
 
                 if (FontUtilities.debugFonts()) {
-                    PlatformLogger logger = FontUtilities.getLogger();
-                    logger.info("JRE font directory: " + jreFontDirName);
-                    logger.info("Extra font path: " + extraFontPath);
-                    logger.info("Debug font path: " + dbgFontPath);
+                    FontUtilities.logInfo("JRE font directory: " + jreFontDirName);
+                    FontUtilities.logInfo("Extra font path: " + extraFontPath);
+                    FontUtilities.logInfo("Debug font path: " + dbgFontPath);
                 }
 
                 if (dbgFontPath != null) {
@@ -440,46 +442,12 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                     registerFontDirs(extraFontPath);
                 }
 
-                /* On Solaris, we need to register the Japanese TrueType
-                 * directory so that we can find the corresponding
-                 * bitmap fonts. This could be done by listing the
-                 * directory in the font configuration file, but we
-                 * don't want to confuse users with this quirk. There
-                 * are no bitmap fonts for other writing systems that
-                 * correspond to TrueType fonts and have matching XLFDs.
-                 * We need to register the bitmap fonts only in
-                 * environments where they're on the X font path, i.e.,
-                 * in the Japanese locale. Note that if the X Toolkit
-                 * is in use the font path isn't set up by JDK, but
-                 * users of a JA locale should have it
-                 * set up already by their login environment.
-                 */
-                if (FontUtilities.isSolaris && Locale.JAPAN.equals(Locale.getDefault())) {
-                    registerFontDir("/usr/openwin/lib/locale/ja/X11/fonts/TT");
-                }
-
                 initCompositeFonts(fontConfig, null);
 
                 return null;
             }
         });
 
-        boolean platformFont = AccessController.doPrivileged(
-            new PrivilegedAction<Boolean>() {
-                    public Boolean run() {
-                        String prop = System.getProperty("java2d.font.usePlatformFont");
-                        String env = System.getenv("JAVA2D_USEPLATFORMFONT");
-                        return "true".equals(prop) || env != null;
-                    }
-            });
-
-        if (platformFont) {
-            usePlatformFontMetrics = true;
-            System.out.println("Enabling platform font metrics for win32. This is an unsupported option.");
-            System.out.println("This yields incorrect composite font metrics as reported by 1.1.x releases.");
-            System.out.println("It is appropriate only for use by applications which do not use any Java 2");
-            System.out.println("functionality. This property will be removed in a later release.");
-        }
     }
 
     public Font2DHandle getNewComposite(String family, int style,
@@ -577,10 +545,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
     }
 
     private void addCompositeToFontList(CompositeFont f, int rank) {
-
         if (FontUtilities.isLogging()) {
-            FontUtilities.getLogger().info("Add to Family "+ f.familyName +
-                        ", Font " + f.fullName + " rank="+rank);
+            FontUtilities.logInfo("Add to Family " + f.familyName +
+                        ", Font " + f.fullName + " rank=" + rank);
         }
         f.setRank(rank);
         compositeFonts.put(f.fullName, f);
@@ -640,8 +607,8 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         f.setRank(rank);
         if (!physicalFonts.containsKey(fontName)) {
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger().info("Add to Family "+familyName +
-                            ", Font " + fontName + " rank="+rank);
+                FontUtilities.logInfo("Add to Family " + familyName +
+                            ", Font " + fontName + " rank=" + rank);
             }
             physicalFonts.put(fontName, f);
             FontFamily family = FontFamily.getFamily(familyName);
@@ -714,21 +681,18 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                  */
                 if (oldFont.platName.startsWith(jreFontDirName)) {
                     if (FontUtilities.isLogging()) {
-                        FontUtilities.getLogger()
-                              .warning("Unexpected attempt to replace a JRE " +
-                                       " font " + fontName + " from " +
-                                        oldFont.platName +
+                        FontUtilities.logWarning("Unexpected attempt to replace a JRE " +
+                                       " font " + fontName + " from " + oldFont.platName +
                                        " with " + newFont.platName);
                     }
                     return oldFont;
                 }
 
                 if (FontUtilities.isLogging()) {
-                    FontUtilities.getLogger()
-                          .info("Replace in Family " + familyName +
-                                ",Font " + fontName + " new rank="+rank +
-                                " from " + oldFont.platName +
-                                " with " + newFont.platName);
+                    FontUtilities.logInfo("Replace in Family " + familyName +
+                                    ",Font " + fontName + " new rank="+rank +
+                                    " from " + oldFont.platName +
+                                    " with " + newFont.platName);
                 }
                 replaceFont(oldFont, newFont);
                 physicalFonts.put(fontName, newFont);
@@ -918,8 +882,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
             return null;
         }
         if (FontUtilities.isLogging()) {
-            FontUtilities.getLogger()
-                            .info("Opening deferred font file " + fileNameKey);
+            FontUtilities.logInfo("Opening deferred font file " + fileNameKey);
         }
 
         PhysicalFont physicalFont = null;
@@ -1006,14 +969,12 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
             }
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger()
-                      .info("Registered file " + fileName + " as font " +
-                            physicalFont + " rank="  + fontRank);
+                FontUtilities.logInfo("Registered file " + fileName + " as font " +
+                                physicalFont + " rank="  + fontRank);
             }
         } catch (FontFormatException ffe) {
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger().warning("Unusable font: " +
-                               fileName + " " + ffe.toString());
+                FontUtilities.logInfo("Unusable font: " + fileName + " " + ffe.toString());
             }
         }
         if (physicalFont != null &&
@@ -1057,8 +1018,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                     defaultPhysicalFont = (PhysicalFont)font2d;
                 } else {
                     if (FontUtilities.isLogging()) {
-                        FontUtilities.getLogger()
-                            .warning("Font returned by findFont2D for default font name " +
+                        FontUtilities.logWarning("Font returned by findFont2D for default font name " +
                                      defaultFontName + " is not a physical font: " + font2d.getFontName(null));
                     }
                 }
@@ -1135,6 +1095,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
     private boolean haveCheckedUnreferencedFontFiles;
 
+    @SuppressWarnings("removal")
     private String[] getFontFilesFromPath(boolean noType1) {
         final FilenameFilter filter;
         if (noType1) {
@@ -1319,8 +1280,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                     }
                     fontToFamilyNameMap.remove(name);
                     if (FontUtilities.isLogging()) {
-                        FontUtilities.getLogger()
-                                             .info("No file for font:" + name);
+                        FontUtilities.logInfo("No file for font:" + name);
                     }
                 }
             }
@@ -1365,13 +1325,12 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
          */
         HashMap<String,String> fontToFileMap2 = null;
         HashMap<String,String> fontToFamilyNameMap2 = null;
-        HashMap<String,ArrayList<String>> familyToFontListMap2 = null;;
+        HashMap<String,ArrayList<String>> familyToFontListMap2 = null;
 
         for (String pathFile : getFontFilesFromPath(false)) {
             if (!registryFiles.contains(pathFile)) {
                 if (FontUtilities.isLogging()) {
-                    FontUtilities.getLogger()
-                                 .info("Found non-registry file : " + pathFile);
+                    FontUtilities.logInfo("Found non-registry file : " + pathFile);
                 }
                 PhysicalFont f = registerFontFile(getPathName(pathFile));
                 if (f == null) {
@@ -1415,8 +1374,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                 TrueTypeFont ttf;
                 String fullPath = getPathName(file);
                 if (FontUtilities.isLogging()) {
-                    FontUtilities.getLogger()
-                                   .info("Trying to resolve file " + fullPath);
+                    FontUtilities.logInfo("Trying to resolve file " + fullPath);
                 }
                 do {
                     ttf = new TrueTypeFont(fullPath, null, fn++, false);
@@ -1426,9 +1384,8 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                         fontToFileMap.put(fontName, file);
                         unmappedFonts.remove(fontName);
                         if (FontUtilities.isLogging()) {
-                            FontUtilities.getLogger()
-                                  .info("Resolved absent registry entry for " +
-                                        fontName + " located in " + fullPath);
+                            FontUtilities.logInfo("Resolved absent registry entry for " +
+                                            fontName + " located in " + fullPath);
                         }
                     }
                 }
@@ -1461,9 +1418,10 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         public String boldFileName;
         public String italicFileName;
         public String boldItalicFileName;
+        boolean failed;
     }
 
-    static HashMap<String, FamilyDescription> platformFontMap;
+    static volatile HashMap<String, FamilyDescription> platformFontMap;
 
     /**
      * default implementation does nothing.
@@ -1472,9 +1430,12 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         return new HashMap<>(0);
     }
 
+    @SuppressWarnings("removal")
     Font2D findFontFromPlatformMap(String lcName, int style) {
+        HashMap<String, FamilyDescription> platformFontMap = SunFontManager.platformFontMap;
         if (platformFontMap == null) {
             platformFontMap = populateHardcodedFileNameMap();
+            SunFontManager.platformFontMap = platformFontMap;
         }
 
         if (platformFontMap == null || platformFontMap.size() == 0) {
@@ -1488,7 +1449,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         }
 
         FamilyDescription fd = platformFontMap.get(firstWord);
-        if (fd == null) {
+        if (fd == null || fd.failed) {
             return null;
         }
         /* Once we've established that its at least the first word,
@@ -1553,10 +1514,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
         if (failure) {
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger().
-                    info("Hardcoded file missing looking for " + lcName);
+                FontUtilities.logInfo("Hardcoded file missing looking for " + lcName);
             }
-            platformFontMap.remove(firstWord);
+            fd.failed = true;
             return null;
         }
 
@@ -1581,10 +1541,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
         if (failure) {
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger().
-                    info("Hardcoded file missing looking for " + lcName);
+                FontUtilities.logInfo("Hardcoded file missing looking for " + lcName);
             }
-            platformFontMap.remove(firstWord);
+            fd.failed = true;
             return null;
         }
 
@@ -1727,7 +1686,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
     /* Used to register any font files that are found by platform APIs
      * that weren't previously found in the standard font locations.
-     * the isAbsolute() check is needed since that's whats stored in the
+     * the isAbsolute() check is needed since that's what's stored in the
      * set, and on windows, the fonts in the system font directory that
      * are in the fontToFileMap are just basenames. We don't want to try
      * to register those again, but we do want to register other registry
@@ -1765,6 +1724,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         } else if (pathDirs.length==1) {
             return pathDirs[0] + File.separator + s;
         } else {
+            @SuppressWarnings("removal")
             String path = AccessController.doPrivileged(
                  new PrivilegedAction<String>() {
                      public String run() {
@@ -1849,9 +1809,8 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
             String fileName = fontToFileMap.get(fontNameLC);
             if (fileName == null) {
                 if (FontUtilities.isLogging()) {
-                    FontUtilities.getLogger()
-                          .info("Platform lookup : No file for font " +
-                                fontList[f] + " in family " +familyName);
+                    FontUtilities.logInfo("Platform lookup : No file for font " +
+                                    fontList[f] + " in family " +familyName);
                 }
                 return null;
             }
@@ -1906,6 +1865,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
      * may be able to emulate the required style.
      */
     public Font2D findFont2D(String name, int style, int fallback) {
+        if (name == null) return null;
         String lowerCaseName = name.toLowerCase(Locale.ENGLISH);
         String mapName = lowerCaseName + dotStyleStr(style);
 
@@ -1919,9 +1879,8 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         if (font != null) {
             return font;
         }
-
         if (FontUtilities.isLogging()) {
-            FontUtilities.getLogger().info("Search for font: " + name);
+            FontUtilities.logInfo("Search for font: " + name);
         }
 
         // The check below is just so that the bitmap fonts being set by
@@ -2035,9 +1994,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
             font = findFontFromPlatformMap(lowerCaseName, style);
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger()
-                    .info("findFontFromPlatformMap returned " + font);
+                FontUtilities.logInfo("findFontFromPlatformMap returned " + font);
             }
+
             if (font != null) {
                 fontNameCache.put(mapName, font);
                 return font;
@@ -2056,10 +2015,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
             font = findFontFromPlatform(lowerCaseName, style);
             if (font != null) {
                 if (FontUtilities.isLogging()) {
-                    FontUtilities.getLogger()
-                          .info("Found font via platform API for request:\"" +
-                                name + "\":, style="+style+
-                                " found font: " + font);
+                    FontUtilities.logInfo("Found font via platform API for request:\"" +
+                                    name + "\":, style="+style+
+                                    " found font: " + font);
                 }
                 fontNameCache.put(mapName, font);
                 return font;
@@ -2084,33 +2042,6 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                 fontNameCache.put(mapName, font);
                 return font;
             }
-        }
-
-        /* Some apps use deprecated 1.0 names such as helvetica and courier. On
-         * Solaris these are Type1 fonts in /usr/openwin/lib/X11/fonts/Type1.
-         * If running on Solaris will register all the fonts in this
-         * directory.
-         * May as well register the whole directory without actually testing
-         * the font name is one of the deprecated names as the next step would
-         * load all fonts which are in this directory anyway.
-         * In the event that this lookup is successful it potentially "hides"
-         * TrueType versions of such fonts that are elsewhere but since they
-         * do not exist on Solaris this is not a problem.
-         * Set a flag to indicate we've done this registration to avoid
-         * repetition and more seriously, to avoid recursion.
-         */
-        if (FontUtilities.isSolaris &&!loaded1dot0Fonts) {
-            /* "timesroman" is a special case since that's not the
-             * name of any known font on Solaris or elsewhere.
-             */
-            if (lowerCaseName.equals("timesroman")) {
-                font = findFont2D("serif", style, fallback);
-                fontNameCache.put(mapName, font);
-            }
-            register1dot0Fonts();
-            loaded1dot0Fonts = true;
-            Font2D ff = findFont2D(name, style, fallback);
-            return ff;
         }
 
         /* We check for application registered fonts before
@@ -2157,8 +2088,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
          */
         if (!loadedAllFonts) {
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger()
-                                       .info("Load fonts looking for:" + name);
+                FontUtilities.logInfo("Load fonts looking for:" + name);
             }
             loadFonts();
             loadedAllFonts = true;
@@ -2167,8 +2097,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
         if (!loadedAllFontFiles) {
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger()
-                                  .info("Load font files looking for:" + name);
+                FontUtilities.logInfo("Load font files looking for:" + name);
             }
             loadFontFiles();
             loadedAllFontFiles = true;
@@ -2226,9 +2155,8 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
             fontNameCache.put(mapName, font);
             return font;
         }
-
         if (FontUtilities.isLogging()) {
-            FontUtilities.getLogger().info("No font found for:" + name);
+            FontUtilities.logInfo("No font found for:" + name);
         }
 
         switch (fallback) {
@@ -2236,15 +2164,6 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         case LOGICAL_FALLBACK: return getDefaultLogicalFont(style);
         default: return null;
         }
-    }
-
-    /*
-     * Workaround for apps which are dependent on a font metrics bug
-     * in JDK 1.1. This is an unsupported win32 private setting.
-     * Left in for a customer - do not remove.
-     */
-    public boolean usePlatformFontMetrics() {
-        return usePlatformFontMetrics;
     }
 
     public int getNumFonts() {
@@ -2262,6 +2181,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
     private int createdFontCount = 0;
 
+    @SuppressWarnings("removal")
     public Font2D[] createFont2D(File fontFile, int fontFormat, boolean all,
                                  boolean isCopy, CreatedFontTracker tracker)
     throws FontFormatException {
@@ -2403,8 +2323,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
             return;
         } else {
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger()
-                                     .severe("Deregister bad font: " + font2D);
+                FontUtilities.logSevere("Deregister bad font: " + font2D);
             }
             replaceFont((PhysicalFont)font2D, getDefaultPhysicalFont());
         }
@@ -2427,8 +2346,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
          */
         if (oldFont == newFont) {
             if (FontUtilities.isLogging()) {
-                FontUtilities.getLogger()
-                      .severe("Can't replace bad font with itself " + oldFont);
+                FontUtilities.logSevere("Can't replace bad font with itself " + oldFont);
             }
             PhysicalFont[] physFonts = getPhysicalFonts();
             for (int i=0; i<physFonts.length;i++) {
@@ -2439,8 +2357,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
             }
             if (oldFont == newFont) {
                 if (FontUtilities.isLogging()) {
-                    FontUtilities.getLogger()
-                           .severe("This is bad. No good physicalFonts found.");
+                    FontUtilities.logSevere("This is bad. No good physicalFonts found.");
                 }
                 return;
             }
@@ -2541,10 +2458,8 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
      * before returning the default case.
      */
     private Font2D findFont2DAllLocales(String name, int style) {
-
         if (FontUtilities.isLogging()) {
-            FontUtilities.getLogger()
-                           .info("Searching localised font names for:" + name);
+            FontUtilities.logInfo("Searching localised font names for:" + name);
         }
 
         /* If reach here and no match has been located, then if we have
@@ -2680,9 +2595,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
      */
     public synchronized void useAlternateFontforJALocales() {
         if (FontUtilities.isLogging()) {
-            FontUtilities.getLogger()
-                .info("Entered useAlternateFontforJALocales().");
+            FontUtilities.logInfo("Entered useAlternateFontforJALocales().");
         }
+
         if (!FontUtilities.isWindows) {
             return;
         }
@@ -2695,8 +2610,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
     public synchronized void preferLocaleFonts() {
         if (FontUtilities.isLogging()) {
-            FontUtilities.getLogger().info("Entered preferLocaleFonts().");
+            FontUtilities.logInfo("Entered preferLocaleFonts().");
         }
+
         /* Test if re-ordering will have any effect */
         if (!FontConfiguration.willReorderForStartupLocale()) {
             return;
@@ -2711,9 +2627,9 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
     public synchronized void preferProportionalFonts() {
         if (FontUtilities.isLogging()) {
-            FontUtilities.getLogger()
-                .info("Entered preferProportionalFonts().");
+            FontUtilities.logInfo("Entered preferProportionalFonts().");
         }
+
         /* If no proportional fonts are configured, there's no need
          * to take any action.
          */
@@ -2915,7 +2831,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
      */
     protected abstract String[] getDefaultPlatformFont();
 
-    // Begin: Refactored from SunGraphicsEnviroment.
+    // Begin: Refactored from SunGraphicsEnvironment.
 
     /*
      * helper function for registerFonts
@@ -2953,8 +2869,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
             if (badFonts != null && badFonts.contains(fullName)) {
                 if (FontUtilities.debugFonts()) {
-                    FontUtilities.getLogger()
-                                         .warning("skip bad font " + fullName);
+                    FontUtilities.logWarning("skip bad font " + fullName);
                 }
                 continue; // skip this font file.
             }
@@ -2973,7 +2888,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                         message += ", " + natNames[nn];
                     }
                 }
-                FontUtilities.getLogger().info(message);
+                FontUtilities.logInfo(message);
             }
             fontNames[fontCount] = fullName;
             nativeNames[fontCount++] = getNativeNames(fullName, null);
@@ -3015,6 +2930,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         return fontPath;
     }
 
+    @SuppressWarnings("removal")
     protected void loadFonts() {
         if (discoveredAllFonts) {
             return;
@@ -3023,8 +2939,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         synchronized (this) {
             if (FontUtilities.debugFonts()) {
                 Thread.dumpStack();
-                FontUtilities.getLogger()
-                            .info("SunGraphicsEnvironment.loadFonts() called");
+                FontUtilities.logInfo("SunGraphicsEnvironment.loadFonts() called");
             }
             initialiseDeferredFonts();
 
@@ -3133,6 +3048,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         return defaultFontName;
     }
 
+    @SuppressWarnings("removal")
     public void loadFontFiles() {
         loadFonts();
         if (loadedAllFontFiles) {
@@ -3142,7 +3058,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         synchronized (this) {
             if (FontUtilities.debugFonts()) {
                 Thread.dumpStack();
-                FontUtilities.getLogger().info("loadAllFontFiles() called");
+                FontUtilities.logInfo("loadAllFontFiles() called");
             }
             AccessController.doPrivileged(new PrivilegedAction<Void>() {
                 public Void run() {
@@ -3174,10 +3090,8 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
     private void
         initCompositeFonts(FontConfiguration fontConfig,
                            ConcurrentHashMap<String, Font2D>  altNameCache) {
-
         if (FontUtilities.isLogging()) {
-            FontUtilities.getLogger()
-                            .info("Initialising composite fonts");
+            FontUtilities.logInfo("Initialising composite fonts");
         }
 
         int numCoreFonts = fontConfig.getNumberCoreFonts();
@@ -3277,8 +3191,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                                       true);
             }
             if (FontUtilities.debugFonts()) {
-                FontUtilities.getLogger()
-                               .info("registered " + descriptor.getFaceName());
+                FontUtilities.logInfo("registered " + descriptor.getFaceName());
             }
         }
     }
@@ -3408,14 +3321,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                 }
             }
 
-            String[] fontNames = null;
-            if (fontMapNames.size() > 0) {
-                fontNames = new String[fontMapNames.size()];
-                Object [] keyNames = fontMapNames.keySet().toArray();
-                for (int i=0; i < keyNames.length; i++) {
-                    fontNames[i] = (String)keyNames[i];
-                }
-            }
+            String[] fontNames = fontMapNames.keySet().toArray(new String[0]);
             Font[] fonts = new Font[fontNames.length];
             for (int i=0; i < fontNames.length; i++) {
                 fonts[i] = new Font(fontNames[i], Font.PLAIN, 1);
@@ -3484,11 +3390,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         // Add any native font family names here
         addNativeFontFamilyNames(familyNames, requestedLocale);
 
-        String[] retval =  new String[familyNames.size()];
-        Object [] keyNames = familyNames.keySet().toArray();
-        for (int i=0; i < keyNames.length; i++) {
-            retval[i] = familyNames.get(keyNames[i]);
-        }
+        String[] retval = familyNames.values().toArray(new String[0]);
         if (requestedLocale.equals(Locale.getDefault())) {
             lastDefaultLocale = requestedLocale;
             allFamilies = new String[retval.length];
@@ -3500,6 +3402,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
     // Provides an aperture to add native font family names to the map
     protected void addNativeFontFamilyNames(TreeMap<String, String> familyNames, Locale requestedLocale) { }
 
+    @SuppressWarnings("removal")
     public void register1dot0Fonts() {
         AccessController.doPrivileged(new PrivilegedAction<Void>() {
             public Void run() {
@@ -3539,6 +3442,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
      * on windows and uses that if set.
      */
     private static Locale systemLocale = null;
+    @SuppressWarnings("removal")
     private static Locale getSystemStartupLocale() {
         if (systemLocale == null) {
             systemLocale = AccessController.doPrivileged(new PrivilegedAction<Locale>() {
@@ -3562,7 +3466,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                     String language = System.getProperty("user.language", "en");
                     String country  = System.getProperty("user.country","");
                     String variant  = System.getProperty("user.variant","");
-                    return new Locale(language, country, variant);
+                    return Locale.of(language, country, variant);
                 }
             });
         }

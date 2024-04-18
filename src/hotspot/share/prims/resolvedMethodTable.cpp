@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "classfile/classLoaderData.hpp"
 #include "classfile/javaClasses.hpp"
 #include "gc/shared/oopStorage.inline.hpp"
 #include "gc/shared/oopStorageSet.hpp"
@@ -52,10 +53,12 @@ static const size_t GROW_HINT = 32;
 
 static const size_t ResolvedMethodTableSizeLog = 10;
 
-unsigned int method_hash(const Method* method) {
-  unsigned int name_hash = method->name()->identity_hash();
-  unsigned int signature_hash = method->signature()->identity_hash();
-  return name_hash ^ signature_hash;
+static unsigned int method_hash(const Method* method) {
+  unsigned int hash = method->method_holder()->class_loader_data()->identity_hash();
+  hash = (hash * 31) ^ method->klass_name()->identity_hash();
+  hash = (hash * 31) ^ method->name()->identity_hash();
+  hash = (hash * 31) ^ method->signature()->identity_hash();
+  return hash;
 }
 
 typedef ConcurrentHashTable<ResolvedMethodTableConfig,
@@ -64,11 +67,11 @@ typedef ConcurrentHashTable<ResolvedMethodTableConfig,
 class ResolvedMethodTableConfig : public AllStatic {
  private:
  public:
-  typedef WeakHandle<vm_resolved_method_table_data> Value;
+  typedef WeakHandle Value;
 
   static uintx get_hash(Value const& value, bool* is_dead) {
     oop val_oop = value.peek();
-    if (val_oop == NULL) {
+    if (val_oop == nullptr) {
       *is_dead = true;
       return 0;
     }
@@ -78,29 +81,31 @@ class ResolvedMethodTableConfig : public AllStatic {
   }
 
   // We use default allocation/deallocation but counted
-  static void* allocate_node(size_t size, Value const& value) {
+  static void* allocate_node(void* context, size_t size, Value const& value) {
     ResolvedMethodTable::item_added();
     return AllocateHeap(size, mtClass);
   }
-  static void free_node(void* memory, Value const& value) {
-    value.release();
+  static void free_node(void* context, void* memory, Value& value) {
+    value.release(ResolvedMethodTable::_oop_storage);
     FreeHeap(memory);
     ResolvedMethodTable::item_removed();
   }
 };
 
-static ResolvedMethodTableHash* _local_table           = NULL;
+static ResolvedMethodTableHash* _local_table           = nullptr;
 static size_t                   _current_size          = (size_t)1 << ResolvedMethodTableSizeLog;
 
 volatile bool            ResolvedMethodTable::_has_work              = false;
+OopStorage*              ResolvedMethodTable::_oop_storage;
 
 volatile size_t          _items_count           = 0;
-volatile size_t          _uncleaned_items_count = 0;
 
 void ResolvedMethodTable::create_table() {
   _local_table  = new ResolvedMethodTableHash(ResolvedMethodTableSizeLog, END_SIZE, GROW_HINT);
   log_trace(membername, table)("Start size: " SIZE_FORMAT " (" SIZE_FORMAT ")",
                                _current_size, ResolvedMethodTableSizeLog);
+  _oop_storage = OopStorageSet::create_weak("ResolvedMethodTable Weak", mtClass);
+  _oop_storage->register_num_dead_callback(&gc_notification);
 }
 
 size_t ResolvedMethodTable::table_size() {
@@ -121,11 +126,9 @@ class ResolvedMethodTableLookup : StackObj {
   uintx get_hash() const {
     return _hash;
   }
-  bool equals(WeakHandle<vm_resolved_method_table_data>* value, bool* is_dead) {
+  bool equals(WeakHandle* value) {
     oop val_oop = value->peek();
-    if (val_oop == NULL) {
-      // dead oop, mark this hash dead for cleaning
-      *is_dead = true;
+    if (val_oop == nullptr) {
       return false;
     }
     bool equals = _method == java_lang_invoke_ResolvedMethodName::vmtarget(val_oop);
@@ -136,6 +139,10 @@ class ResolvedMethodTableLookup : StackObj {
     _found = Handle(_thread, value->resolve());
     return true;
   }
+  bool is_dead(WeakHandle* value) {
+    oop val_oop = value->peek();
+    return val_oop == nullptr;
+  }
 };
 
 
@@ -145,9 +152,9 @@ class ResolvedMethodGet : public StackObj {
   Handle        _return;
 public:
   ResolvedMethodGet(Thread* thread, const Method* method) : _thread(thread), _method(method) {}
-  void operator()(WeakHandle<vm_resolved_method_table_data>* val) {
+  void operator()(WeakHandle* val) {
     oop result = val->resolve();
-    assert(result != NULL, "Result should be reachable");
+    assert(result != nullptr, "Result should be reachable");
     _return = Handle(_thread, result);
     log_get();
   }
@@ -193,7 +200,7 @@ oop ResolvedMethodTable::add_method(const Method* method, Handle rmethod_name) {
     if (_local_table->get(thread, lookup, rmg)) {
       return rmg.get_res_oop();
     }
-    WeakHandle<vm_resolved_method_table_data> wh = WeakHandle<vm_resolved_method_table_data>::create(rmethod_name);
+    WeakHandle wh(_oop_storage, rmethod_name);
     // The hash table takes ownership of the WeakHandle, even if it's not inserted.
     if (_local_table->insert(thread, lookup, wh)) {
       log_insert(method);
@@ -212,24 +219,26 @@ void ResolvedMethodTable::item_removed() {
 }
 
 double ResolvedMethodTable::get_load_factor() {
-  return (double)_items_count/_current_size;
+  return double(_items_count)/double(_current_size);
 }
 
-double ResolvedMethodTable::get_dead_factor() {
-  return (double)_uncleaned_items_count/_current_size;
+double ResolvedMethodTable::get_dead_factor(size_t num_dead) {
+  return double(num_dead)/double(_current_size);
 }
 
 static const double PREF_AVG_LIST_LEN = 2.0;
 // If we have as many dead items as 50% of the number of bucket
 static const double CLEAN_DEAD_HIGH_WATER_MARK = 0.5;
 
-void ResolvedMethodTable::check_concurrent_work() {
-  if (_has_work) {
+void ResolvedMethodTable::gc_notification(size_t num_dead) {
+  log_trace(membername, table)("Uncleaned items:" SIZE_FORMAT, num_dead);
+
+  if (has_work()) {
     return;
   }
 
   double load_factor = get_load_factor();
-  double dead_factor = get_dead_factor();
+  double dead_factor = get_dead_factor(num_dead);
   // We should clean/resize if we have more dead than alive,
   // more items than preferred load factor or
   // more dead items than water mark.
@@ -244,12 +253,15 @@ void ResolvedMethodTable::check_concurrent_work() {
 
 void ResolvedMethodTable::trigger_concurrent_work() {
   MutexLocker ml(Service_lock, Mutex::_no_safepoint_check_flag);
-  _has_work = true;
+  Atomic::store(&_has_work, true);
   Service_lock->notify_all();
 }
 
+bool ResolvedMethodTable::has_work() {
+  return Atomic::load_acquire(&_has_work);
+}
+
 void ResolvedMethodTable::do_concurrent_work(JavaThread* jt) {
-  _has_work = false;
   double load_factor = get_load_factor();
   log_debug(membername, table)("Concurrent work, live factor: %g", load_factor);
   // We prefer growing, since that also removes dead items
@@ -258,6 +270,7 @@ void ResolvedMethodTable::do_concurrent_work(JavaThread* jt) {
   } else {
     clean_dead_entries(jt);
   }
+  Atomic::release_store(&_has_work, false);
 }
 
 void ResolvedMethodTable::grow(JavaThread* jt) {
@@ -282,7 +295,7 @@ void ResolvedMethodTable::grow(JavaThread* jt) {
 }
 
 struct ResolvedMethodTableDoDelete : StackObj {
-  void operator()(WeakHandle<vm_resolved_method_table_data>* val) {
+  void operator()(WeakHandle* val) {
     /* do nothing */
   }
 };
@@ -291,10 +304,10 @@ struct ResolvedMethodTableDeleteCheck : StackObj {
   long _count;
   long _item;
   ResolvedMethodTableDeleteCheck() : _count(0), _item(0) {}
-  bool operator()(WeakHandle<vm_resolved_method_table_data>* val) {
+  bool operator()(WeakHandle* val) {
     ++_item;
     oop tmp = val->peek();
-    if (tmp == NULL) {
+    if (tmp == nullptr) {
       ++_count;
       return true;
     } else {
@@ -323,31 +336,15 @@ void ResolvedMethodTable::clean_dead_entries(JavaThread* jt) {
   }
   log_info(membername, table)("Cleaned %ld of %ld", stdc._count, stdc._item);
 }
-void ResolvedMethodTable::reset_dead_counter() {
-  _uncleaned_items_count = 0;
-}
-
-void ResolvedMethodTable::inc_dead_counter(size_t ndead) {
-  size_t total = Atomic::add(&_uncleaned_items_count, ndead);
-  log_trace(membername, table)(
-     "Uncleaned items:" SIZE_FORMAT " added: " SIZE_FORMAT " total:" SIZE_FORMAT,
-     _uncleaned_items_count, ndead, total);
-}
-
-// After the parallel walk this method must be called to trigger
-// cleaning. Note it might trigger a resize instead.
-void ResolvedMethodTable::finish_dead_counter() {
-  check_concurrent_work();
-}
 
 #if INCLUDE_JVMTI
 class AdjustMethodEntries : public StackObj {
   bool* _trace_name_printed;
 public:
   AdjustMethodEntries(bool* trace_name_printed) : _trace_name_printed(trace_name_printed) {};
-  bool operator()(WeakHandle<vm_resolved_method_table_data>* entry) {
+  bool operator()(WeakHandle* entry) {
     oop mem_name = entry->peek();
-    if (mem_name == NULL) {
+    if (mem_name == nullptr) {
       // Removed
       return true;
     }
@@ -387,9 +384,9 @@ void ResolvedMethodTable::adjust_method_entries(bool * trace_name_printed) {
 // Verification
 class VerifyResolvedMethod : StackObj {
  public:
-  bool operator()(WeakHandle<vm_resolved_method_table_data>* val) {
+  bool operator()(WeakHandle* val) {
     oop obj = val->peek();
-    if (obj != NULL) {
+    if (obj != nullptr) {
       Method* method = (Method*)java_lang_invoke_ResolvedMethodName::vmtarget(obj);
       guarantee(method->is_method(), "Must be");
       guarantee(!method->is_old(), "Must be");

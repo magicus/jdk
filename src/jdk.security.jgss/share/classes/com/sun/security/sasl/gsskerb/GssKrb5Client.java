@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,6 +35,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import javax.security.auth.callback.CallbackHandler;
 
 // JGSS
+import sun.security.jgss.krb5.internal.TlsChannelBindingImpl;
 import org.ietf.jgss.*;
 
 /**
@@ -111,8 +112,8 @@ final class GssKrb5Client extends GssKrb5Base implements SaslClient {
             GSSCredential credentials = null;
             if (props != null) {
                 Object prop = props.get(Sasl.CREDENTIALS);
-                if (prop != null && prop instanceof GSSCredential) {
-                    credentials = (GSSCredential) prop;
+                if (prop instanceof GSSCredential c) {
+                    credentials = c;
                     logger.log(Level.FINE,
                         "KRB5CLNT01:Using the credentials supplied in " +
                         "javax.security.sasl.credentials");
@@ -149,6 +150,16 @@ final class GssKrb5Client extends GssKrb5Base implements SaslClient {
                 }
             }
             secCtx.requestMutualAuth(mutual);
+
+            if (props != null) {
+                // TLS Channel Binding
+                // Property name is defined in the TLSChannelBinding class of
+                // the java.naming module
+                byte[] tlsCB = (byte[])props.get("jdk.internal.sasl.tlschannelbinding");
+                if (tlsCB != null) {
+                    secCtx.setChannelBinding(new TlsChannelBindingImpl(tlsCB));
+                }
+            }
 
             // Always specify potential need for integrity and confidentiality
             // Decision will be made during final handshake

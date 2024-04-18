@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2015, 2019, Red Hat, Inc. All rights reserved.
+ * Copyright (c) 2015, 2021, Red Hat, Inc. All rights reserved.
+ * Copyright (C) 2022 THL A29 Limited, a Tencent company. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +25,7 @@
 
 #include "precompiled.hpp"
 
+#include "classfile/javaClasses.hpp"
 #include "gc/shenandoah/c2/shenandoahSupport.hpp"
 #include "gc/shenandoah/c2/shenandoahBarrierSetC2.hpp"
 #include "gc/shenandoah/shenandoahBarrierSetAssembler.hpp"
@@ -44,26 +46,23 @@
 
 bool ShenandoahBarrierC2Support::expand(Compile* C, PhaseIterGVN& igvn) {
   ShenandoahBarrierSetC2State* state = ShenandoahBarrierSetC2::bsc2()->state();
-  if ((state->enqueue_barriers_count() +
+  if ((state->iu_barriers_count() +
        state->load_reference_barriers_count()) > 0) {
-    bool attempt_more_loopopts = ShenandoahLoopOptsAfterExpansion;
+    assert(C->post_loop_opts_phase(), "no loop opts allowed");
+    C->reset_post_loop_opts_phase(); // ... but we know what we are doing
     C->clear_major_progress();
-    PhaseIdealLoop ideal_loop(igvn, LoopOptsShenandoahExpand);
+    PhaseIdealLoop::optimize(igvn, LoopOptsShenandoahExpand);
     if (C->failing()) return false;
-    PhaseIdealLoop::verify(igvn);
-    DEBUG_ONLY(verify_raw_mem(C->root());)
-    if (attempt_more_loopopts) {
-      C->set_major_progress();
-      if (!C->optimize_loops(igvn, LoopOptsShenandoahPostExpand)) {
-        return false;
-      }
-      C->clear_major_progress();
-      if (C->range_check_cast_count() > 0) {
-        // No more loop optimizations. Remove all range check dependent CastIINodes.
-        C->remove_range_check_casts(igvn);
-        igvn.optimize();
-      }
+
+    C->set_major_progress();
+    if (!C->optimize_loops(igvn, LoopOptsShenandoahPostExpand)) {
+      return false;
     }
+    C->clear_major_progress();
+    C->process_for_post_loop_opts_igvn(igvn);
+    if (C->failing()) return false;
+
+    C->set_post_loop_opts_phase(); // now for real!
   }
   return true;
 }
@@ -157,7 +156,7 @@ bool ShenandoahBarrierC2Support::verify_helper(Node* in, Node_Stack& phis, Vecto
 
   while (true) {
     if (in->bottom_type() == TypePtr::NULL_PTR) {
-      if (trace) {tty->print_cr("NULL");}
+      if (trace) {tty->print_cr("null");}
     } else if (!in->bottom_type()->make_ptr()->make_oopptr()) {
       if (trace) {tty->print_cr("Non oop");}
     } else {
@@ -190,7 +189,7 @@ bool ShenandoahBarrierC2Support::verify_helper(Node* in, Node_Stack& phis, Vecto
           uint i = 0;
           for (; i < phis.size(); i++) {
             Node* n = phis.node_at(i);
-            if (n->Opcode() == Op_ShenandoahEnqueueBarrier) {
+            if (n->Opcode() == Op_ShenandoahIUBarrier) {
               break;
             }
           }
@@ -200,7 +199,7 @@ bool ShenandoahBarrierC2Support::verify_helper(Node* in, Node_Stack& phis, Vecto
         }
         barriers_used.push(in);
         if (trace) {tty->print("Found barrier"); in->dump();}
-      } else if (in->Opcode() == Op_ShenandoahEnqueueBarrier) {
+      } else if (in->Opcode() == Op_ShenandoahIUBarrier) {
         if (t != ShenandoahOopStore) {
           in = in->in(1);
           continue;
@@ -264,10 +263,10 @@ bool ShenandoahBarrierC2Support::verify_helper(Node* in, Node_Stack& phis, Vecto
 }
 
 void ShenandoahBarrierC2Support::report_verify_failure(const char* msg, Node* n1, Node* n2) {
-  if (n1 != NULL) {
+  if (n1 != nullptr) {
     n1->dump(+10);
   }
-  if (n2 != NULL) {
+  if (n2 != nullptr) {
     n2->dump(+10);
   }
   fatal("%s", msg);
@@ -279,7 +278,7 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
   GrowableArray<Node*> barriers;
   Unique_Node_List barriers_used;
   Node_Stack phis(0);
-  VectorSet visited(Thread::current()->resource_area());
+  VectorSet visited;
   const bool trace = false;
   const bool verify_no_useless_barrier = false;
 
@@ -297,8 +296,8 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
         if (adr_type->isa_oopptr() && adr_type->is_oopptr()->offset() == oopDesc::mark_offset_in_bytes()) {
           if (trace) {tty->print_cr("Mark load");}
         } else if (adr_type->isa_instptr() &&
-                   adr_type->is_instptr()->klass()->is_subtype_of(Compile::current()->env()->Reference_klass()) &&
-                   adr_type->is_instptr()->offset() == java_lang_ref_Reference::referent_offset) {
+                   adr_type->is_instptr()->instance_klass()->is_subtype_of(Compile::current()->env()->Reference_klass()) &&
+                   adr_type->is_instptr()->offset() == java_lang_ref_Reference::referent_offset()) {
           if (trace) {tty->print_cr("Reference.get()");}
         } else if (!verify_helper(n->in(MemNode::Address), phis, visited, ShenandoahLoad, trace, barriers_used)) {
           report_verify_failure("Shenandoah verification: Load should have barriers", n);
@@ -327,7 +326,7 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
           }
         }
 
-        if (verify && !verify_helper(n->in(MemNode::ValueIn), phis, visited, ShenandoahStoreValEnqueueBarrier ? ShenandoahOopStore : ShenandoahValue, trace, barriers_used)) {
+        if (verify && !verify_helper(n->in(MemNode::ValueIn), phis, visited, ShenandoahIUBarrier ? ShenandoahOopStore : ShenandoahValue, trace, barriers_used)) {
           report_verify_failure("Shenandoah verification: Store should have barriers", n);
         }
       }
@@ -369,7 +368,7 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
       }
     } else if (n->is_LoadStore()) {
       if (n->in(MemNode::ValueIn)->bottom_type()->make_ptr() &&
-          !verify_helper(n->in(MemNode::ValueIn), phis, visited, ShenandoahStoreValEnqueueBarrier ? ShenandoahOopStore : ShenandoahValue, trace, barriers_used)) {
+          !verify_helper(n->in(MemNode::ValueIn), phis, visited, ShenandoahIUBarrier ? ShenandoahOopStore : ShenandoahValue, trace, barriers_used)) {
         report_verify_failure("Shenandoah verification: LoadStore (value) should have barriers", n);
       }
 
@@ -386,6 +385,12 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
           verify_type t;
         } args[6];
       } calls[] = {
+        "array_partition_stub",
+        { { TypeFunc::Parms, ShenandoahStore }, { TypeFunc::Parms+4, ShenandoahStore },   { -1, ShenandoahNone },
+          { -1, ShenandoahNone },                { -1, ShenandoahNone },                  { -1, ShenandoahNone } },
+        "arraysort_stub",
+        { { TypeFunc::Parms, ShenandoahStore },  { -1, ShenandoahNone },                  { -1, ShenandoahNone },
+          { -1,  ShenandoahNone},                 { -1,  ShenandoahNone},                 { -1,  ShenandoahNone} },
         "aescrypt_encryptBlock",
         { { TypeFunc::Parms, ShenandoahLoad },   { TypeFunc::Parms+1, ShenandoahStore },  { TypeFunc::Parms+2, ShenandoahLoad },
           { -1,  ShenandoahNone},                 { -1,  ShenandoahNone},                 { -1,  ShenandoahNone} },
@@ -455,10 +460,13 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
         "encodeBlock",
         { { TypeFunc::Parms, ShenandoahLoad },  { TypeFunc::Parms+3, ShenandoahStore },   { -1, ShenandoahNone },
           { -1,  ShenandoahNone},                 { -1,  ShenandoahNone},                 { -1,  ShenandoahNone} },
+        "decodeBlock",
+        { { TypeFunc::Parms, ShenandoahLoad },  { TypeFunc::Parms+3, ShenandoahStore },   { -1, ShenandoahNone },
+          { -1,  ShenandoahNone},                 { -1,  ShenandoahNone},                 { -1,  ShenandoahNone} },
       };
 
       if (call->is_call_to_arraycopystub()) {
-        Node* dest = NULL;
+        Node* dest = nullptr;
         const TypeTuple* args = n->as_Call()->_tf->domain();
         for (uint i = TypeFunc::Parms, j = 0; i < args->cnt(); i++) {
           if (args->field_at(i)->isa_ptr()) {
@@ -518,7 +526,7 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
           }
         }
       }
-    } else if (n->Opcode() == Op_ShenandoahEnqueueBarrier || n->Opcode() == Op_ShenandoahLoadReferenceBarrier) {
+    } else if (n->Opcode() == Op_ShenandoahIUBarrier || n->Opcode() == Op_ShenandoahLoadReferenceBarrier) {
       // skip
     } else if (n->is_AddP()
                || n->is_Phi()
@@ -561,9 +569,11 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
         { { 2, ShenandoahLoad },                  { 4, ShenandoahLoad } },
         Op_StrEquals,
         { { 2, ShenandoahLoad },                  { 3, ShenandoahLoad } },
+        Op_VectorizedHashCode,
+        { { 2, ShenandoahLoad },                  { -1, ShenandoahNone } },
         Op_EncodeISOArray,
         { { 2, ShenandoahLoad },                  { 3, ShenandoahStore } },
-        Op_HasNegatives,
+        Op_CountPositives,
         { { 2, ShenandoahLoad },                  { -1, ShenandoahNone} },
         Op_CastP2X,
         { { 1, ShenandoahLoad },                  { -1, ShenandoahNone} },
@@ -591,7 +601,7 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
           }
         }
         for (uint j = 1; j < stop; j++) {
-          if (n->in(j) != NULL && n->in(j)->bottom_type()->make_ptr() &&
+          if (n->in(j) != nullptr && n->in(j)->bottom_type()->make_ptr() &&
               n->in(j)->bottom_type()->make_ptr()->make_oopptr()) {
             uint k = 0;
             for (; k < inputs_len && others[i].inputs[k].pos != (int)j; k++);
@@ -602,7 +612,7 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
         }
       } else {
         for (uint j = 1; j < stop; j++) {
-          if (n->in(j) != NULL && n->in(j)->bottom_type()->make_ptr() &&
+          if (n->in(j) != nullptr && n->in(j)->bottom_type()->make_ptr() &&
               n->in(j)->bottom_type()->make_ptr()->make_oopptr()) {
             fatal("%s not covered", n->Name());
           }
@@ -612,7 +622,7 @@ void ShenandoahBarrierC2Support::verify(RootNode* root) {
 
     if (n->is_SafePoint()) {
       SafePointNode* sfpt = n->as_SafePoint();
-      if (verify_no_useless_barrier && sfpt->jvms() != NULL) {
+      if (verify_no_useless_barrier && sfpt->jvms() != nullptr) {
         for (uint i = sfpt->jvms()->scloff(); i < sfpt->jvms()->endoff(); i++) {
           if (!verify_helper(sfpt->in(i), phis, visited, ShenandoahLoad, trace, barriers_used)) {
             phis.clear();
@@ -661,7 +671,7 @@ bool ShenandoahBarrierC2Support::is_dominator_same_ctrl(Node* c, Node* d, Node* 
         }
       }
       for (uint i = 0; i < m->req(); i++) {
-        if (m->in(i) != NULL && phase->ctrl_or_self(m->in(i)) == c) {
+        if (m->in(i) != nullptr && phase->ctrl_or_self(m->in(i)) == c) {
           wq.push(m->in(i));
         }
       }
@@ -678,7 +688,7 @@ bool ShenandoahBarrierC2Support::is_dominator(Node* d_c, Node* n_c, Node* d, Nod
 }
 
 Node* next_mem(Node* mem, int alias) {
-  Node* res = NULL;
+  Node* res = nullptr;
   if (mem->is_Proj()) {
     res = mem->in(0);
   } else if (mem->is_SafePoint() || mem->is_MemBar()) {
@@ -688,7 +698,7 @@ Node* next_mem(Node* mem, int alias) {
   } else if (mem->is_MergeMem()) {
     res = mem->as_MergeMem()->memory_at(alias);
   } else if (mem->is_Store() || mem->is_LoadStore() || mem->is_ClearArray()) {
-    assert(alias = Compile::AliasIdxRaw, "following raw memory can't lead to a barrier");
+    assert(alias == Compile::AliasIdxRaw, "following raw memory can't lead to a barrier");
     res = mem->in(MemNode::Memory);
   } else {
 #ifdef ASSERT
@@ -700,10 +710,10 @@ Node* next_mem(Node* mem, int alias) {
 }
 
 Node* ShenandoahBarrierC2Support::no_branches(Node* c, Node* dom, bool allow_one_proj, PhaseIdealLoop* phase) {
-  Node* iffproj = NULL;
+  Node* iffproj = nullptr;
   while (c != dom) {
     Node* next = phase->idom(c);
-    assert(next->unique_ctrl_out() == c || c->is_Proj() || c->is_Region(), "multiple control flow out but no proj or region?");
+    assert(next->unique_ctrl_out_or_null() == c || c->is_Proj() || c->is_Region(), "multiple control flow out but no proj or region?");
     if (c->is_Region()) {
       ResourceMark rm;
       Unique_Node_List wq;
@@ -728,7 +738,7 @@ Node* ShenandoahBarrierC2Support::no_branches(Node* c, Node* dom, bool allow_one
           for (DUIterator_Fast jmax, j = n->fast_outs(jmax); j < jmax; j++) {
             Node* u = n->fast_out(j);
             if (u->is_CFG()) {
-              if (!wq.member(u) && !u->as_Proj()->is_uncommon_trap_proj(Deoptimization::Reason_none)) {
+              if (!wq.member(u) && !u->as_Proj()->is_uncommon_trap_proj()) {
                 return NodeSentinel;
               }
             }
@@ -737,13 +747,13 @@ Node* ShenandoahBarrierC2Support::no_branches(Node* c, Node* dom, bool allow_one
       }
     } else  if (c->is_Proj()) {
       if (c->is_IfProj()) {
-        if (c->as_Proj()->is_uncommon_trap_if_pattern(Deoptimization::Reason_none) != NULL) {
+        if (c->as_Proj()->is_uncommon_trap_if_pattern() != nullptr) {
           // continue;
         } else {
           if (!allow_one_proj) {
             return NodeSentinel;
           }
-          if (iffproj == NULL) {
+          if (iffproj == nullptr) {
             iffproj = c;
           } else {
             return NodeSentinel;
@@ -753,7 +763,7 @@ Node* ShenandoahBarrierC2Support::no_branches(Node* c, Node* dom, bool allow_one
         return NodeSentinel; // unsupported
       } else if (c->Opcode() == Op_CatchProj) {
         return NodeSentinel; // unsupported
-      } else if (c->Opcode() == Op_CProj && next->Opcode() == Op_NeverBranch) {
+      } else if (c->Opcode() == Op_CProj && next->is_NeverBranch()) {
         return NodeSentinel; // unsupported
       } else {
         assert(next->unique_ctrl_out() == c, "unsupported branch pattern");
@@ -766,13 +776,13 @@ Node* ShenandoahBarrierC2Support::no_branches(Node* c, Node* dom, bool allow_one
 
 Node* ShenandoahBarrierC2Support::dom_mem(Node* mem, Node* ctrl, int alias, Node*& mem_ctrl, PhaseIdealLoop* phase) {
   ResourceMark rm;
-  VectorSet wq(Thread::current()->resource_area());
+  VectorSet wq;
   wq.set(mem->_idx);
   mem_ctrl = phase->ctrl_or_self(mem);
   while (!phase->is_dominator(mem_ctrl, ctrl) || mem_ctrl == ctrl) {
     mem = next_mem(mem, alias);
     if (wq.test_set(mem->_idx)) {
-      return NULL;
+      return nullptr;
     }
     mem_ctrl = phase->ctrl_or_self(mem);
   }
@@ -784,11 +794,11 @@ Node* ShenandoahBarrierC2Support::dom_mem(Node* mem, Node* ctrl, int alias, Node
 }
 
 Node* ShenandoahBarrierC2Support::find_bottom_mem(Node* ctrl, PhaseIdealLoop* phase) {
-  Node* mem = NULL;
+  Node* mem = nullptr;
   Node* c = ctrl;
   do {
     if (c->is_Region()) {
-      for (DUIterator_Fast imax, i = c->fast_outs(imax); i < imax && mem == NULL; i++) {
+      for (DUIterator_Fast imax, i = c->fast_outs(imax); i < imax && mem == nullptr; i++) {
         Node* u = c->fast_out(i);
         if (u->is_Phi() && u->bottom_type() == Type::MEMORY) {
           if (u->adr_type() == TypePtr::BOTTOM) {
@@ -797,12 +807,12 @@ Node* ShenandoahBarrierC2Support::find_bottom_mem(Node* ctrl, PhaseIdealLoop* ph
         }
       }
     } else {
-      if (c->is_Call() && c->as_Call()->adr_type() != NULL) {
+      if (c->is_Call() && c->as_Call()->adr_type() != nullptr) {
         CallProjections projs;
         c->as_Call()->extract_projections(&projs, true, false);
-        if (projs.fallthrough_memproj != NULL) {
+        if (projs.fallthrough_memproj != nullptr) {
           if (projs.fallthrough_memproj->adr_type() == TypePtr::BOTTOM) {
-            if (projs.catchall_memproj == NULL) {
+            if (projs.catchall_memproj == nullptr) {
               mem = projs.fallthrough_memproj;
             } else {
               if (phase->is_dominator(projs.fallthrough_catchproj, ctrl)) {
@@ -815,7 +825,7 @@ Node* ShenandoahBarrierC2Support::find_bottom_mem(Node* ctrl, PhaseIdealLoop* ph
           }
         } else {
           Node* proj = c->as_Call()->proj_out(TypeFunc::Memory);
-          if (proj != NULL &&
+          if (proj != nullptr &&
               proj->adr_type() == TypePtr::BOTTOM) {
             mem = proj;
           }
@@ -827,15 +837,15 @@ Node* ShenandoahBarrierC2Support::find_bottom_mem(Node* ctrl, PhaseIdealLoop* ph
               u->bottom_type() == Type::MEMORY &&
               u->adr_type() == TypePtr::BOTTOM) {
               assert(c->is_SafePoint() || c->is_MemBar() || c->is_Start(), "");
-              assert(mem == NULL, "only one proj");
+              assert(mem == nullptr, "only one proj");
               mem = u;
           }
         }
-        assert(!c->is_Call() || c->as_Call()->adr_type() != NULL || mem == NULL, "no mem projection expected");
+        assert(!c->is_Call() || c->as_Call()->adr_type() != nullptr || mem == nullptr, "no mem projection expected");
       }
     }
     c = phase->idom(c);
-  } while (mem == NULL);
+  } while (mem == nullptr);
   return mem;
 }
 
@@ -868,7 +878,7 @@ void ShenandoahBarrierC2Support::test_gc_state(Node*& ctrl, Node* raw_mem, Node*
   Node* gc_state_offset = igvn.MakeConX(in_bytes(ShenandoahThreadLocalData::gc_state_offset()));
   Node* gc_state_addr   = new AddPNode(phase->C->top(), thread, gc_state_offset);
   Node* gc_state        = new LoadBNode(old_ctrl, raw_mem, gc_state_addr,
-                                        DEBUG_ONLY(phase->C->get_adr_type(Compile::AliasIdxRaw)) NOT_DEBUG(NULL),
+                                        DEBUG_ONLY(phase->C->get_adr_type(Compile::AliasIdxRaw)) NOT_DEBUG(nullptr),
                                         TypeInt::BYTE, MemNode::unordered);
   Node* gc_state_and    = new AndINode(gc_state, igvn.intcon(flags));
   Node* gc_state_cmp    = new CmpINode(gc_state_and, igvn.zerocon(T_INT));
@@ -924,10 +934,17 @@ void ShenandoahBarrierC2Support::test_in_cset(Node*& ctrl, Node*& not_cset_ctrl,
 
   Node* raw_val        = new CastP2XNode(old_ctrl, val);
   Node* cset_idx       = new URShiftXNode(raw_val, igvn.intcon(ShenandoahHeapRegion::region_size_bytes_shift_jint()));
-  Node* cset_addr      = igvn.makecon(TypeRawPtr::make(ShenandoahHeap::in_cset_fast_test_addr()));
-  Node* cset_load_addr = new AddPNode(phase->C->top(), cset_addr, cset_idx);
-  Node* cset_load      = new LoadBNode(old_ctrl, raw_mem, cset_load_addr,
-                                       DEBUG_ONLY(phase->C->get_adr_type(Compile::AliasIdxRaw)) NOT_DEBUG(NULL),
+
+  // Figure out the target cset address with raw pointer math.
+  // This avoids matching AddP+LoadB that would emit inefficient code.
+  // See JDK-8245465.
+  Node* cset_addr_ptr  = igvn.makecon(TypeRawPtr::make(ShenandoahHeap::in_cset_fast_test_addr()));
+  Node* cset_addr      = new CastP2XNode(old_ctrl, cset_addr_ptr);
+  Node* cset_load_addr = new AddXNode(cset_addr, cset_idx);
+  Node* cset_load_ptr  = new CastX2PNode(cset_load_addr);
+
+  Node* cset_load      = new LoadBNode(old_ctrl, raw_mem, cset_load_ptr,
+                                       DEBUG_ONLY(phase->C->get_adr_type(Compile::AliasIdxRaw)) NOT_DEBUG(nullptr),
                                        TypeInt::BYTE, MemNode::unordered);
   Node* cset_cmp       = new CmpINode(cset_load, igvn.zerocon(T_INT));
   Node* cset_bool      = new BoolNode(cset_cmp, BoolTest::ne);
@@ -941,39 +958,61 @@ void ShenandoahBarrierC2Support::test_in_cset(Node*& ctrl, Node*& not_cset_ctrl,
   phase->register_control(ctrl,          loop, cset_iff);
   phase->register_control(not_cset_ctrl, loop, cset_iff);
 
-  phase->set_ctrl(cset_addr, phase->C->root());
+  phase->set_ctrl(cset_addr_ptr, phase->C->root());
 
   phase->register_new_node(raw_val,        old_ctrl);
   phase->register_new_node(cset_idx,       old_ctrl);
+  phase->register_new_node(cset_addr,      old_ctrl);
   phase->register_new_node(cset_load_addr, old_ctrl);
+  phase->register_new_node(cset_load_ptr,  old_ctrl);
   phase->register_new_node(cset_load,      old_ctrl);
   phase->register_new_node(cset_cmp,       old_ctrl);
   phase->register_new_node(cset_bool,      old_ctrl);
 }
 
-void ShenandoahBarrierC2Support::call_lrb_stub(Node*& ctrl, Node*& val, Node* load_addr, Node*& result_mem, Node* raw_mem, bool is_native, PhaseIdealLoop* phase) {
+void ShenandoahBarrierC2Support::call_lrb_stub(Node*& ctrl, Node*& val, Node* load_addr,
+                                               DecoratorSet decorators, PhaseIdealLoop* phase) {
   IdealLoopTree*loop = phase->get_loop(ctrl);
   const TypePtr* obj_type = phase->igvn().type(val)->is_oopptr();
 
-  // The slow path stub consumes and produces raw memory in addition
-  // to the existing memory edges
-  Node* base = find_bottom_mem(ctrl, phase);
-  MergeMemNode* mm = MergeMemNode::make(base);
-  mm->set_memory_at(Compile::AliasIdxRaw, raw_mem);
-  phase->register_new_node(mm, ctrl);
-
-  address target = LP64_ONLY(UseCompressedOops) NOT_LP64(false) ?
-          CAST_FROM_FN_PTR(address, ShenandoahRuntime::load_reference_barrier_narrow) :
-          CAST_FROM_FN_PTR(address, ShenandoahRuntime::load_reference_barrier);
-
-  address calladdr = is_native ? CAST_FROM_FN_PTR(address, ShenandoahRuntime::load_reference_barrier_native)
-                               : target;
-  const char* name = is_native ? "load_reference_barrier_native" : "load_reference_barrier";
+  address calladdr = nullptr;
+  const char* name = nullptr;
+  bool is_strong  = ShenandoahBarrierSet::is_strong_access(decorators);
+  bool is_weak    = ShenandoahBarrierSet::is_weak_access(decorators);
+  bool is_phantom = ShenandoahBarrierSet::is_phantom_access(decorators);
+  bool is_native  = ShenandoahBarrierSet::is_native_access(decorators);
+  bool is_narrow  = UseCompressedOops && !is_native;
+  if (is_strong) {
+    if (is_narrow) {
+      calladdr = CAST_FROM_FN_PTR(address, ShenandoahRuntime::load_reference_barrier_strong_narrow);
+      name = "load_reference_barrier_strong_narrow";
+    } else {
+      calladdr = CAST_FROM_FN_PTR(address, ShenandoahRuntime::load_reference_barrier_strong);
+      name = "load_reference_barrier_strong";
+    }
+  } else if (is_weak) {
+    if (is_narrow) {
+      calladdr = CAST_FROM_FN_PTR(address, ShenandoahRuntime::load_reference_barrier_weak_narrow);
+      name = "load_reference_barrier_weak_narrow";
+    } else {
+      calladdr = CAST_FROM_FN_PTR(address, ShenandoahRuntime::load_reference_barrier_weak);
+      name = "load_reference_barrier_weak";
+    }
+  } else {
+    assert(is_phantom, "only remaining strength");
+    if (is_narrow) {
+      calladdr = CAST_FROM_FN_PTR(address, ShenandoahRuntime::load_reference_barrier_phantom_narrow);
+      name = "load_reference_barrier_phantom_narrow";
+    } else {
+      calladdr = CAST_FROM_FN_PTR(address, ShenandoahRuntime::load_reference_barrier_phantom);
+      name = "load_reference_barrier_phantom";
+    }
+  }
   Node* call = new CallLeafNode(ShenandoahBarrierSetC2::shenandoah_load_reference_barrier_Type(), calladdr, name, TypeRawPtr::BOTTOM);
 
   call->init_req(TypeFunc::Control, ctrl);
   call->init_req(TypeFunc::I_O, phase->C->top());
-  call->init_req(TypeFunc::Memory, mm);
+  call->init_req(TypeFunc::Memory, phase->C->top());
   call->init_req(TypeFunc::FramePtr, phase->C->top());
   call->init_req(TypeFunc::ReturnAdr, phase->C->top());
   call->init_req(TypeFunc::Parms, val);
@@ -981,8 +1020,6 @@ void ShenandoahBarrierC2Support::call_lrb_stub(Node*& ctrl, Node*& val, Node* lo
   phase->register_control(call, loop, ctrl);
   ctrl = new ProjNode(call, TypeFunc::Control);
   phase->register_control(ctrl, loop, call);
-  result_mem = new ProjNode(call, TypeFunc::Memory);
-  phase->register_new_node(result_mem, call);
   val = new ProjNode(call, TypeFunc::Parms);
   phase->register_new_node(val, call);
   val = new CheckCastPPNode(ctrl, val, obj_type);
@@ -1008,7 +1045,7 @@ void ShenandoahBarrierC2Support::fix_ctrl(Node* barrier, Node* region, const Mem
     Node *n = uses_to_ignore.at(next);
     for (uint i = 0; i < n->req(); i++) {
       Node* in = n->in(i);
-      if (in != NULL && phase->has_ctrl(in) && phase->get_ctrl(in) == ctrl) {
+      if (in != nullptr && phase->has_ctrl(in) && phase->get_ctrl(in) == ctrl) {
         uses_to_ignore.push(in);
       }
     }
@@ -1026,7 +1063,7 @@ void ShenandoahBarrierC2Support::fix_ctrl(Node* barrier, Node* region, const Mem
           is_dominator_same_ctrl(old_c, barrier, u, phase) ||
           ShenandoahBarrierSetC2::is_shenandoah_state_load(u)) {
         phase->igvn().rehash_node_delayed(u);
-        int nb = u->replace_edge(ctrl, region);
+        int nb = u->replace_edge(ctrl, region, &phase->igvn());
         if (u->is_CFG()) {
           if (phase->idom(u) == ctrl) {
             phase->set_idom(u, region, phase->dom_depth(region));
@@ -1043,14 +1080,14 @@ void ShenandoahBarrierC2Support::fix_ctrl(Node* barrier, Node* region, const Mem
 }
 
 static Node* create_phis_on_call_return(Node* ctrl, Node* c, Node* n, Node* n_clone, const CallProjections& projs, PhaseIdealLoop* phase) {
-  Node* region = NULL;
+  Node* region = nullptr;
   while (c != ctrl) {
     if (c->is_Region()) {
       region = c;
     }
     c = phase->idom(c);
   }
-  assert(region != NULL, "");
+  assert(region != nullptr, "");
   Node* phi = new PhiNode(region, n->bottom_type());
   for (uint j = 1; j < region->req(); j++) {
     Node* in = region->in(j);
@@ -1070,15 +1107,16 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
   ShenandoahBarrierSetC2State* state = ShenandoahBarrierSetC2::bsc2()->state();
 
   Unique_Node_List uses;
-  for (int i = 0; i < state->enqueue_barriers_count(); i++) {
-    Node* barrier = state->enqueue_barrier(i);
+  for (int i = 0; i < state->iu_barriers_count(); i++) {
+    Node* barrier = state->iu_barrier(i);
     Node* ctrl = phase->get_ctrl(barrier);
     IdealLoopTree* loop = phase->get_loop(ctrl);
-    if (loop->_head->is_OuterStripMinedLoop()) {
+    Node* head = loop->head();
+    if (head->is_OuterStripMinedLoop()) {
       // Expanding a barrier here will break loop strip mining
       // verification. Transform the loop so the loop nest doesn't
       // appear as strip mined.
-      OuterStripMinedLoopNode* outer = loop->_head->as_OuterStripMinedLoop();
+      OuterStripMinedLoopNode* outer = head->as_OuterStripMinedLoop();
       hide_strip_mined_loop(outer, outer->unique_ctrl_out()->as_CountedLoop(), phase);
     }
   }
@@ -1087,27 +1125,24 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
   Node_List clones;
   for (int i = state->load_reference_barriers_count() - 1; i >= 0; i--) {
     ShenandoahLoadReferenceBarrierNode* lrb = state->load_reference_barrier(i);
-    if (lrb->is_redundant()) {
-      continue;
-    }
 
     Node* ctrl = phase->get_ctrl(lrb);
     Node* val = lrb->in(ShenandoahLoadReferenceBarrierNode::ValueIn);
 
-    CallStaticJavaNode* unc = NULL;
-    Node* unc_ctrl = NULL;
+    CallStaticJavaNode* unc = nullptr;
+    Node* unc_ctrl = nullptr;
     Node* uncasted_val = val;
 
     for (DUIterator_Fast imax, i = lrb->fast_outs(imax); i < imax; i++) {
       Node* u = lrb->fast_out(i);
       if (u->Opcode() == Op_CastPP &&
-          u->in(0) != NULL &&
+          u->in(0) != nullptr &&
           phase->is_dominator(u->in(0), ctrl)) {
         const Type* u_t = phase->igvn().type(u);
 
         if (u_t->meet(TypePtr::NULL_PTR) != u_t &&
             u->in(0)->Opcode() == Op_IfTrue &&
-            u->in(0)->as_Proj()->is_uncommon_trap_if_pattern(Deoptimization::Reason_none) &&
+            u->in(0)->as_Proj()->is_uncommon_trap_if_pattern() &&
             u->in(0)->in(0)->is_If() &&
             u->in(0)->in(0)->in(1)->Opcode() == Op_Bool &&
             u->in(0)->in(0)->in(1)->as_Bool()->_test._test == BoolTest::ne &&
@@ -1122,7 +1157,7 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
           }
 
           Node* branch = no_branches(ctrl, u->in(0), false, phase);
-          assert(branch == NULL || branch == NodeSentinel, "was not looking for a branch");
+          assert(branch == nullptr || branch == NodeSentinel, "was not looking for a branch");
           if (branch == NodeSentinel) {
             continue;
           }
@@ -1153,7 +1188,7 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
           if (idx < n->req()) {
             Node* in = n->in(idx);
             stack.set_index(idx+1);
-            if (in != NULL) {
+            if (in != nullptr) {
               if (phase->has_ctrl(in)) {
                 if (phase->is_dominator(call, phase->get_ctrl(in))) {
 #ifdef ASSERT
@@ -1178,7 +1213,7 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
       call->extract_projections(&projs, false, false);
 
 #ifdef ASSERT
-      VectorSet cloned(Thread::current()->resource_area());
+      VectorSet cloned;
 #endif
       Node* lrb_clone = lrb->clone();
       phase->register_new_node(lrb_clone, projs.catchall_catchproj);
@@ -1210,7 +1245,7 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
             stack.push(u, 0);
             assert(!cloned.test_set(u->_idx), "only one clone");
             Node* u_clone = u->clone();
-            int nb = u_clone->replace_edge(n, n_clone);
+            int nb = u_clone->replace_edge(n, n_clone, &phase->igvn());
             assert(nb > 0, "should have replaced some uses");
             phase->register_new_node(u_clone, projs.catchall_catchproj);
             clones.push(u_clone);
@@ -1232,7 +1267,7 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
             } else {
               if (phase->is_dominator(projs.catchall_catchproj, c)) {
                 phase->igvn().rehash_node_delayed(u);
-                int nb = u->replace_edge(n, n_clone);
+                int nb = u->replace_edge(n, n_clone, &phase->igvn());
                 assert(nb > 0, "should have replaced some uses");
                 replaced = true;
               } else if (!phase->is_dominator(projs.fallthrough_catchproj, c)) {
@@ -1250,7 +1285,8 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
                   Node* nn_clone = clones.at(clones.size()-3);
                   assert(nn->Opcode() == nn_clone->Opcode(), "mismatch");
 
-                  int nb = cmp_clone->replace_edge(nn, create_phis_on_call_return(ctrl, c, nn, nn_clone, projs, phase));
+                  int nb = cmp_clone->replace_edge(nn, create_phis_on_call_return(ctrl, c, nn, nn_clone, projs, phase),
+                                                   &phase->igvn());
                   assert(nb > 0, "should have replaced some uses");
 
                   phase->register_new_node(bol_clone, u->in(0));
@@ -1260,7 +1296,7 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
 
                 } else {
                   phase->igvn().rehash_node_delayed(u);
-                  int nb = u->replace_edge(n, create_phis_on_call_return(ctrl, c, n, n_clone, projs, phase));
+                  int nb = u->replace_edge(n, create_phis_on_call_return(ctrl, c, n, n_clone, projs, phase), &phase->igvn());
                   assert(nb > 0, "should have replaced some uses");
                 }
                 replaced = true;
@@ -1281,16 +1317,14 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
 
   for (int i = 0; i < state->load_reference_barriers_count(); i++) {
     ShenandoahLoadReferenceBarrierNode* lrb = state->load_reference_barrier(i);
-    if (lrb->is_redundant()) {
-      continue;
-    }
     Node* ctrl = phase->get_ctrl(lrb);
     IdealLoopTree* loop = phase->get_loop(ctrl);
-    if (loop->_head->is_OuterStripMinedLoop()) {
+    Node* head = loop->head();
+    if (head->is_OuterStripMinedLoop()) {
       // Expanding a barrier here will break loop strip mining
       // verification. Transform the loop so the loop nest doesn't
       // appear as strip mined.
-      OuterStripMinedLoopNode* outer = loop->_head->as_OuterStripMinedLoop();
+      OuterStripMinedLoopNode* outer = head->as_OuterStripMinedLoop();
       hide_strip_mined_loop(outer, outer->unique_ctrl_out()->as_CountedLoop(), phase);
     }
   }
@@ -1300,69 +1334,68 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
   Unique_Node_List uses_to_ignore;
   for (int i = state->load_reference_barriers_count() - 1; i >= 0; i--) {
     ShenandoahLoadReferenceBarrierNode* lrb = state->load_reference_barrier(i);
-    if (lrb->is_redundant()) {
-      phase->igvn().replace_node(lrb, lrb->in(ShenandoahLoadReferenceBarrierNode::ValueIn));
-      continue;
-    }
     uint last = phase->C->unique();
     Node* ctrl = phase->get_ctrl(lrb);
     Node* val = lrb->in(ShenandoahLoadReferenceBarrierNode::ValueIn);
 
-
     Node* orig_ctrl = ctrl;
 
     Node* raw_mem = fixer.find_mem(ctrl, lrb);
-    Node* init_raw_mem = raw_mem;
-    Node* raw_mem_for_ctrl = fixer.find_mem(ctrl, NULL);
+    Node* raw_mem_for_ctrl = fixer.find_mem(ctrl, nullptr);
 
     IdealLoopTree *loop = phase->get_loop(ctrl);
 
-    Node* heap_stable_ctrl = NULL;
-    Node* null_ctrl = NULL;
+    Node* heap_stable_ctrl = nullptr;
+    Node* null_ctrl = nullptr;
 
     assert(val->bottom_type()->make_oopptr(), "need oop");
-    assert(val->bottom_type()->make_oopptr()->const_oop() == NULL, "expect non-constant");
+    assert(val->bottom_type()->make_oopptr()->const_oop() == nullptr, "expect non-constant");
 
-    enum { _heap_stable = 1, _not_cset, _evac_path, PATH_LIMIT };
+    enum { _heap_stable = 1, _evac_path, _not_cset, PATH_LIMIT };
     Node* region = new RegionNode(PATH_LIMIT);
     Node* val_phi = new PhiNode(region, val->bottom_type()->is_oopptr());
-    Node* raw_mem_phi = PhiNode::make(region, raw_mem, Type::MEMORY, TypeRawPtr::BOTTOM);
 
     // Stable path.
-    test_gc_state(ctrl, raw_mem, heap_stable_ctrl, phase, ShenandoahHeap::HAS_FORWARDED);
+    int flags = ShenandoahHeap::HAS_FORWARDED;
+    if (!ShenandoahBarrierSet::is_strong_access(lrb->decorators())) {
+      flags |= ShenandoahHeap::WEAK_ROOTS;
+    }
+    test_gc_state(ctrl, raw_mem, heap_stable_ctrl, phase, flags);
     IfNode* heap_stable_iff = heap_stable_ctrl->in(0)->as_If();
 
     // Heap stable case
     region->init_req(_heap_stable, heap_stable_ctrl);
     val_phi->init_req(_heap_stable, val);
-    raw_mem_phi->init_req(_heap_stable, raw_mem);
 
-    // Test for in-cset.
+    // Test for in-cset, unless it's a native-LRB. Native LRBs need to return null
+    // even for non-cset objects to prevent resurrection of such objects.
     // Wires !in_cset(obj) to slot 2 of region and phis
-    Node* not_cset_ctrl = NULL;
-    test_in_cset(ctrl, not_cset_ctrl, val, raw_mem, phase);
-    if (not_cset_ctrl != NULL) {
+    Node* not_cset_ctrl = nullptr;
+    if (ShenandoahBarrierSet::is_strong_access(lrb->decorators())) {
+      test_in_cset(ctrl, not_cset_ctrl, val, raw_mem, phase);
+    }
+    if (not_cset_ctrl != nullptr) {
       region->init_req(_not_cset, not_cset_ctrl);
       val_phi->init_req(_not_cset, val);
-      raw_mem_phi->init_req(_not_cset, raw_mem);
+    } else {
+      region->del_req(_not_cset);
+      val_phi->del_req(_not_cset);
     }
 
     // Resolve object when orig-value is in cset.
     // Make the unconditional resolve for fwdptr.
 
     // Call lrb-stub and wire up that path in slots 4
-    Node* result_mem = NULL;
+    Node* result_mem = nullptr;
 
     Node* addr;
-    if (ShenandoahSelfFixing) {
-      VectorSet visited(Thread::current()->resource_area());
+    {
+      VectorSet visited;
       addr = get_load_addr(phase, visited, lrb);
-    } else {
-      addr = phase->igvn().zerocon(T_OBJECT);
     }
     if (addr->Opcode() == Op_AddP) {
       Node* orig_base = addr->in(AddPNode::Base);
-      Node* base = new CheckCastPPNode(ctrl, orig_base, orig_base->bottom_type(), true);
+      Node* base = new CheckCastPPNode(ctrl, orig_base, orig_base->bottom_type(), ConstraintCastNode::StrongDependency);
       phase->register_new_node(base, ctrl);
       if (addr->in(AddPNode::Base) == addr->in((AddPNode::Address))) {
         // Field access
@@ -1385,15 +1418,13 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
         }
       }
     }
-    call_lrb_stub(ctrl, val, addr, result_mem, raw_mem, lrb->is_native(), phase);
+    call_lrb_stub(ctrl, val, addr, lrb->decorators(), phase);
     region->init_req(_evac_path, ctrl);
     val_phi->init_req(_evac_path, val);
-    raw_mem_phi->init_req(_evac_path, result_mem);
 
     phase->register_control(region, loop, heap_stable_iff);
     Node* out_val = val_phi;
     phase->register_new_node(val_phi, region);
-    phase->register_new_node(raw_mem_phi, region);
 
     fix_ctrl(lrb, region, fixer, uses, uses_to_ignore, last, phase);
 
@@ -1406,24 +1437,17 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
     for(uint next = 0; next < uses.size(); next++ ) {
       Node *n = uses.at(next);
       assert(phase->get_ctrl(n) == ctrl, "bad control");
-      assert(n != init_raw_mem, "should leave input raw mem above the barrier");
+      assert(n != raw_mem, "should leave input raw mem above the barrier");
       phase->set_ctrl(n, region);
       follow_barrier_uses(n, ctrl, uses, phase);
     }
-
-    // The slow path call produces memory: hook the raw memory phi
-    // from the expanded load reference barrier with the rest of the graph
-    // which may require adding memory phis at every post dominated
-    // region and at enclosing loop heads. Use the memory state
-    // collected in memory_nodes to fix the memory graph. Update that
-    // memory state as we go.
-    fixer.fix_mem(ctrl, region, init_raw_mem, raw_mem_for_ctrl, raw_mem_phi, uses);
+    fixer.record_new_ctrl(ctrl, region, raw_mem, raw_mem_for_ctrl);
   }
   // Done expanding load-reference-barriers.
   assert(ShenandoahBarrierSetC2::bsc2()->state()->load_reference_barriers_count() == 0, "all load reference barrier nodes should have been replaced");
 
-  for (int i = state->enqueue_barriers_count() - 1; i >= 0; i--) {
-    Node* barrier = state->enqueue_barrier(i);
+  for (int i = state->iu_barriers_count() - 1; i >= 0; i--) {
+    Node* barrier = state->iu_barrier(i);
     Node* pre_val = barrier->in(1);
 
     if (phase->igvn().type(pre_val)->higher_equal(TypePtr::NULL_PTR)) {
@@ -1447,9 +1471,9 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
     IdealLoopTree* loop = phase->get_loop(ctrl);
     Node* raw_mem = fixer.find_mem(ctrl, barrier);
     Node* init_raw_mem = raw_mem;
-    Node* raw_mem_for_ctrl = fixer.find_mem(ctrl, NULL);
-    Node* heap_stable_ctrl = NULL;
-    Node* null_ctrl = NULL;
+    Node* raw_mem_for_ctrl = fixer.find_mem(ctrl, nullptr);
+    Node* heap_stable_ctrl = nullptr;
+    Node* null_ctrl = nullptr;
     uint last = phase->C->unique();
 
     enum { _heap_stable = 1, _heap_unstable, PATH_LIMIT };
@@ -1466,9 +1490,9 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
     phi->init_req(_heap_stable, raw_mem);
 
     // Null path
-    Node* reg2_ctrl = NULL;
+    Node* reg2_ctrl = nullptr;
     test_null(ctrl, pre_val, null_ctrl, phase);
-    if (null_ctrl != NULL) {
+    if (null_ctrl != nullptr) {
       reg2_ctrl = null_ctrl->in(0);
       region2->init_req(_null_path, null_ctrl);
       phi2->init_req(_null_path, raw_mem);
@@ -1487,7 +1511,7 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
     phase->register_new_node(index_adr, ctrl);
 
     BasicType index_bt = TypeX_X->basic_type();
-    assert(sizeof(size_t) == type2aelembytes(index_bt), "Loading G1 SATBMarkQueue::_index with wrong size.");
+    assert(sizeof(size_t) == type2aelembytes(index_bt), "Loading Shenandoah SATBMarkQueue::_index with wrong size.");
     const TypePtr* adr_type = TypeRawPtr::BOTTOM;
     Node* index = new LoadXNode(ctrl, raw_mem, index_adr, adr_type, TypeX_X, MemNode::unordered);
     phase->register_new_node(index, ctrl);
@@ -1496,7 +1520,7 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
     Node* index_test = new BoolNode(index_cmp, BoolTest::ne);
     phase->register_new_node(index_test, ctrl);
     IfNode* queue_full_iff = new IfNode(ctrl, index_test, PROB_LIKELY(0.999), COUNT_UNKNOWN);
-    if (reg2_ctrl == NULL) reg2_ctrl = queue_full_iff;
+    if (reg2_ctrl == nullptr) reg2_ctrl = queue_full_iff;
     phase->register_control(queue_full_iff, loop, ctrl);
     Node* not_full = new IfTrueNode(queue_full_iff);
     phase->register_control(not_full, loop, queue_full_iff);
@@ -1570,13 +1594,13 @@ void ShenandoahBarrierC2Support::pin_and_expand(PhaseIdealLoop* phase) {
 
     phase->igvn().replace_node(barrier, pre_val);
   }
-  assert(state->enqueue_barriers_count() == 0, "all enqueue barrier nodes should have been replaced");
+  assert(state->iu_barriers_count() == 0, "all enqueue barrier nodes should have been replaced");
 
 }
 
 Node* ShenandoahBarrierC2Support::get_load_addr(PhaseIdealLoop* phase, VectorSet& visited, Node* in) {
   if (visited.test_set(in->_idx)) {
-    return NULL;
+    return nullptr;
   }
   switch (in->Opcode()) {
     case Op_Proj:
@@ -1603,17 +1627,17 @@ Node* ShenandoahBarrierC2Support::get_load_addr(PhaseIdealLoop* phase, VectorSet
       Node* t = get_load_addr(phase, visited, in->in(CMoveNode::IfTrue));
       Node* f = get_load_addr(phase, visited, in->in(CMoveNode::IfFalse));
       // Handle unambiguous cases: single address reported on both branches.
-      if (t != NULL && f == NULL) return t;
-      if (t == NULL && f != NULL) return f;
-      if (t != NULL && t == f)    return t;
+      if (t != nullptr && f == nullptr) return t;
+      if (t == nullptr && f != nullptr) return f;
+      if (t != nullptr && t == f)    return t;
       // Ambiguity.
       return phase->igvn().zerocon(T_OBJECT);
     }
     case Op_Phi: {
-      Node* addr = NULL;
+      Node* addr = nullptr;
       for (uint i = 1; i < in->req(); i++) {
         Node* addr1 = get_load_addr(phase, visited, in->in(i));
-        if (addr == NULL) {
+        if (addr == nullptr) {
           addr = addr1;
         }
         if (addr != addr1) {
@@ -1624,7 +1648,7 @@ Node* ShenandoahBarrierC2Support::get_load_addr(PhaseIdealLoop* phase, VectorSet
     }
     case Op_ShenandoahLoadReferenceBarrier:
       return get_load_addr(phase, visited, in->in(ShenandoahLoadReferenceBarrierNode::ValueIn));
-    case Op_ShenandoahEnqueueBarrier:
+    case Op_ShenandoahIUBarrier:
       return get_load_addr(phase, visited, in->in(1));
     case Op_CallDynamicJava:
     case Op_CallLeaf:
@@ -1655,7 +1679,7 @@ void ShenandoahBarrierC2Support::move_gc_state_test_out_of_loop(IfNode* iff, Pha
 
   assert(is_gc_state_load(load), "broken");
   if (!phase->is_dominator(load->in(0), entry_c)) {
-    Node* mem_ctrl = NULL;
+    Node* mem_ctrl = nullptr;
     Node* mem = dom_mem(load->in(MemNode::Memory), loop_head, Compile::AliasIdxRaw, mem_ctrl, phase);
     load = load->clone();
     load->set_req(MemNode::Memory, mem);
@@ -1710,11 +1734,26 @@ bool ShenandoahBarrierC2Support::identical_backtoback_ifs(Node* n, PhaseIdealLoo
   return true;
 }
 
+bool ShenandoahBarrierC2Support::merge_point_safe(Node* region) {
+  for (DUIterator_Fast imax, i = region->fast_outs(imax); i < imax; i++) {
+    Node* n = region->fast_out(i);
+    if (n->is_LoadStore()) {
+      // Splitting a LoadStore node through phi, causes it to lose its SCMemProj: the split if code doesn't have support
+      // for a LoadStore at the region the if is split through because that's not expected to happen (LoadStore nodes
+      // should be between barrier nodes). It does however happen with Shenandoah though because barriers can get
+      // expanded around a LoadStore node.
+      return false;
+    }
+  }
+  return true;
+}
+
+
 void ShenandoahBarrierC2Support::merge_back_to_back_tests(Node* n, PhaseIdealLoop* phase) {
   assert(is_heap_stable_test(n), "no other tests");
   if (identical_backtoback_ifs(n, phase)) {
     Node* n_ctrl = n->in(0);
-    if (phase->can_split_if(n_ctrl)) {
+    if (phase->can_split_if(n_ctrl) && merge_point_safe(n_ctrl)) {
       IfNode* dom_if = phase->idom(n_ctrl)->as_If();
       if (is_heap_stable_test(n)) {
         Node* gc_state_load = n->in(1)->in(1)->in(1)->in(1);
@@ -1749,7 +1788,7 @@ void ShenandoahBarrierC2Support::merge_back_to_back_tests(Node* n, PhaseIdealLoo
 IfNode* ShenandoahBarrierC2Support::find_unswitching_candidate(const IdealLoopTree* loop, PhaseIdealLoop* phase) {
   // Find first invariant test that doesn't exit the loop
   LoopNode *head = loop->_head->as_Loop();
-  IfNode* unswitch_iff = NULL;
+  IfNode* unswitch_iff = nullptr;
   Node* n = head->in(LoopNode::LoopBackControl);
   int loop_has_sfpts = -1;
   while (n != head) {
@@ -1819,19 +1858,19 @@ void ShenandoahBarrierC2Support::optimize_after_expansion(VectorSet &visited, No
   }
 
   if (!phase->C->major_progress()) {
-    VectorSet seen(Thread::current()->resource_area());
+    VectorSet seen;
     for (uint i = 0; i < heap_stable_tests.size(); i++) {
       Node* n = heap_stable_tests.at(i);
       IdealLoopTree* loop = phase->get_loop(n);
       if (loop != phase->ltree_root() &&
-          loop->_child == NULL &&
+          loop->_child == nullptr &&
           !loop->_irreducible) {
         Node* head = loop->_head;
         if (head->is_Loop() &&
             (!head->is_CountedLoop() || head->as_CountedLoop()->is_main_loop() || head->as_CountedLoop()->is_normal_loop()) &&
             !seen.test_set(head->_idx)) {
           IfNode* iff = find_unswitching_candidate(loop, phase);
-          if (iff != NULL) {
+          if (iff != nullptr) {
             Node* bol = iff->in(1);
             if (head->as_Loop()->is_strip_mined()) {
               head->as_Loop()->verify_strip_mined(0);
@@ -1858,111 +1897,12 @@ void ShenandoahBarrierC2Support::optimize_after_expansion(VectorSet &visited, No
   }
 }
 
-#ifdef ASSERT
-void ShenandoahBarrierC2Support::verify_raw_mem(RootNode* root) {
-  const bool trace = false;
-  ResourceMark rm;
-  Unique_Node_List nodes;
-  Unique_Node_List controls;
-  Unique_Node_List memories;
-
-  nodes.push(root);
-  for (uint next = 0; next < nodes.size(); next++) {
-    Node *n  = nodes.at(next);
-    if (ShenandoahBarrierSetC2::is_shenandoah_lrb_call(n)) {
-      controls.push(n);
-      if (trace) { tty->print("XXXXXX verifying"); n->dump(); }
-      for (uint next2 = 0; next2 < controls.size(); next2++) {
-        Node *m = controls.at(next2);
-        for (DUIterator_Fast imax, i = m->fast_outs(imax); i < imax; i++) {
-          Node* u = m->fast_out(i);
-          if (u->is_CFG() && !u->is_Root() &&
-              !(u->Opcode() == Op_CProj && u->in(0)->Opcode() == Op_NeverBranch && u->as_Proj()->_con == 1) &&
-              !(u->is_Region() && u->unique_ctrl_out()->Opcode() == Op_Halt)) {
-            if (trace) { tty->print("XXXXXX pushing control"); u->dump(); }
-            controls.push(u);
-          }
-        }
-      }
-      memories.push(n->as_Call()->proj_out(TypeFunc::Memory));
-      for (uint next2 = 0; next2 < memories.size(); next2++) {
-        Node *m = memories.at(next2);
-        assert(m->bottom_type() == Type::MEMORY, "");
-        for (DUIterator_Fast imax, i = m->fast_outs(imax); i < imax; i++) {
-          Node* u = m->fast_out(i);
-          if (u->bottom_type() == Type::MEMORY && (u->is_Mem() || u->is_ClearArray())) {
-            if (trace) { tty->print("XXXXXX pushing memory"); u->dump(); }
-            memories.push(u);
-          } else if (u->is_LoadStore()) {
-            if (trace) { tty->print("XXXXXX pushing memory"); u->find_out_with(Op_SCMemProj)->dump(); }
-            memories.push(u->find_out_with(Op_SCMemProj));
-          } else if (u->is_MergeMem() && u->as_MergeMem()->memory_at(Compile::AliasIdxRaw) == m) {
-            if (trace) { tty->print("XXXXXX pushing memory"); u->dump(); }
-            memories.push(u);
-          } else if (u->is_Phi()) {
-            assert(u->bottom_type() == Type::MEMORY, "");
-            if (u->adr_type() == TypeRawPtr::BOTTOM || u->adr_type() == TypePtr::BOTTOM) {
-              assert(controls.member(u->in(0)), "");
-              if (trace) { tty->print("XXXXXX pushing memory"); u->dump(); }
-              memories.push(u);
-            }
-          } else if (u->is_SafePoint() || u->is_MemBar()) {
-            for (DUIterator_Fast jmax, j = u->fast_outs(jmax); j < jmax; j++) {
-              Node* uu = u->fast_out(j);
-              if (uu->bottom_type() == Type::MEMORY) {
-                if (trace) { tty->print("XXXXXX pushing memory"); uu->dump(); }
-                memories.push(uu);
-              }
-            }
-          }
-        }
-      }
-      for (uint next2 = 0; next2 < controls.size(); next2++) {
-        Node *m = controls.at(next2);
-        if (m->is_Region()) {
-          bool all_in = true;
-          for (uint i = 1; i < m->req(); i++) {
-            if (!controls.member(m->in(i))) {
-              all_in = false;
-              break;
-            }
-          }
-          if (trace) { tty->print("XXX verifying %s", all_in ? "all in" : ""); m->dump(); }
-          bool found_phi = false;
-          for (DUIterator_Fast jmax, j = m->fast_outs(jmax); j < jmax && !found_phi; j++) {
-            Node* u = m->fast_out(j);
-            if (u->is_Phi() && memories.member(u)) {
-              found_phi = true;
-              for (uint i = 1; i < u->req() && found_phi; i++) {
-                Node* k = u->in(i);
-                if (memories.member(k) != controls.member(m->in(i))) {
-                  found_phi = false;
-                }
-              }
-            }
-          }
-          assert(found_phi || all_in, "");
-        }
-      }
-      controls.clear();
-      memories.clear();
-    }
-    for( uint i = 0; i < n->len(); ++i ) {
-      Node *m = n->in(i);
-      if (m != NULL) {
-        nodes.push(m);
-      }
-    }
-  }
-}
-#endif
-
-ShenandoahEnqueueBarrierNode::ShenandoahEnqueueBarrierNode(Node* val) : Node(NULL, val) {
-  ShenandoahBarrierSetC2::bsc2()->state()->add_enqueue_barrier(this);
+ShenandoahIUBarrierNode::ShenandoahIUBarrierNode(Node* val) : Node(nullptr, val) {
+  ShenandoahBarrierSetC2::bsc2()->state()->add_iu_barrier(this);
 }
 
-const Type* ShenandoahEnqueueBarrierNode::bottom_type() const {
-  if (in(1) == NULL || in(1)->is_top()) {
+const Type* ShenandoahIUBarrierNode::bottom_type() const {
+  if (in(1) == nullptr || in(1)->is_top()) {
     return Type::TOP;
   }
   const Type* t = in(1)->bottom_type();
@@ -1972,8 +1912,8 @@ const Type* ShenandoahEnqueueBarrierNode::bottom_type() const {
   return t->is_oopptr();
 }
 
-const Type* ShenandoahEnqueueBarrierNode::Value(PhaseGVN* phase) const {
-  if (in(1) == NULL) {
+const Type* ShenandoahIUBarrierNode::Value(PhaseGVN* phase) const {
+  if (in(1) == nullptr) {
     return Type::TOP;
   }
   const Type* t = phase->type(in(1));
@@ -1986,12 +1926,12 @@ const Type* ShenandoahEnqueueBarrierNode::Value(PhaseGVN* phase) const {
   return t->is_oopptr();
 }
 
-int ShenandoahEnqueueBarrierNode::needed(Node* n) {
-  if (n == NULL ||
+int ShenandoahIUBarrierNode::needed(Node* n) {
+  if (n == nullptr ||
       n->is_Allocate() ||
-      n->Opcode() == Op_ShenandoahEnqueueBarrier ||
+      n->Opcode() == Op_ShenandoahIUBarrier ||
       n->bottom_type() == TypePtr::NULL_PTR ||
-      (n->bottom_type()->make_oopptr() != NULL && n->bottom_type()->make_oopptr()->const_oop() != NULL)) {
+      (n->bottom_type()->make_oopptr() != nullptr && n->bottom_type()->make_oopptr()->const_oop() != nullptr)) {
     return NotNeeded;
   }
   if (n->is_Phi() ||
@@ -2001,13 +1941,13 @@ int ShenandoahEnqueueBarrierNode::needed(Node* n) {
   return Needed;
 }
 
-Node* ShenandoahEnqueueBarrierNode::next(Node* n) {
+Node* ShenandoahIUBarrierNode::next(Node* n) {
   for (;;) {
-    if (n == NULL) {
+    if (n == nullptr) {
       return n;
     } else if (n->bottom_type() == TypePtr::NULL_PTR) {
       return n;
-    } else if (n->bottom_type()->make_oopptr() != NULL && n->bottom_type()->make_oopptr()->const_oop() != NULL) {
+    } else if (n->bottom_type()->make_oopptr() != nullptr && n->bottom_type()->make_oopptr()->const_oop() != nullptr) {
       return n;
     } else if (n->is_ConstraintCast() ||
                n->Opcode() == Op_DecodeN ||
@@ -2020,10 +1960,10 @@ Node* ShenandoahEnqueueBarrierNode::next(Node* n) {
     }
   }
   ShouldNotReachHere();
-  return NULL;
+  return nullptr;
 }
 
-Node* ShenandoahEnqueueBarrierNode::Identity(PhaseGVN* phase) {
+Node* ShenandoahIUBarrierNode::Identity(PhaseGVN* phase) {
   PhaseIterGVN* igvn = phase->is_IterGVN();
 
   Node* n = next(in(1));
@@ -2033,7 +1973,7 @@ Node* ShenandoahEnqueueBarrierNode::Identity(PhaseGVN* phase) {
   if (cont == NotNeeded) {
     return in(1);
   } else if (cont == MaybeNeeded) {
-    if (igvn == NULL) {
+    if (igvn == nullptr) {
       phase->record_for_igvn(this);
       return this;
     } else {
@@ -2045,7 +1985,7 @@ Node* ShenandoahEnqueueBarrierNode::Identity(PhaseGVN* phase) {
         if (n->is_Phi()) {
           for (uint i = 1; i < n->req(); i++) {
             Node* m = n->in(i);
-            if (m != NULL) {
+            if (m != nullptr) {
               wq.push(m);
             }
           }
@@ -2056,7 +1996,7 @@ Node* ShenandoahEnqueueBarrierNode::Identity(PhaseGVN* phase) {
           m = n->in(CMoveNode::IfTrue);
           wq.push(m);
         }
-        Node* orig_n = NULL;
+        Node* orig_n = nullptr;
         do {
           if (wq_i >= wq.size()) {
             return in(1);
@@ -2081,7 +2021,7 @@ Node* ShenandoahEnqueueBarrierNode::Identity(PhaseGVN* phase) {
 static bool has_never_branch(Node* root) {
   for (uint i = 1; i < root->req(); i++) {
     Node* in = root->in(i);
-    if (in != NULL && in->Opcode() == Op_Halt && in->in(0)->is_Proj() && in->in(0)->in(0)->Opcode() == Op_NeverBranch) {
+    if (in != nullptr && in->Opcode() == Op_Halt && in->in(0)->is_Proj() && in->in(0)->in(0)->is_NeverBranch()) {
       return true;
     }
   }
@@ -2091,7 +2031,7 @@ static bool has_never_branch(Node* root) {
 
 void MemoryGraphFixer::collect_memory_nodes() {
   Node_Stack stack(0);
-  VectorSet visited(Thread::current()->resource_area());
+  VectorSet visited;
   Node_List regions;
 
   // Walk the raw memory graph and create a mapping from CFG node to
@@ -2102,7 +2042,7 @@ void MemoryGraphFixer::collect_memory_nodes() {
     int opc = n->Opcode();
     uint i = stack.index();
     if (i < n->req()) {
-      Node* mem = NULL;
+      Node* mem = nullptr;
       if (opc == Op_Root) {
         Node* in = n->in(i);
         int in_opc = in->Opcode();
@@ -2112,62 +2052,21 @@ void MemoryGraphFixer::collect_memory_nodes() {
           if (in->in(0)->is_Region()) {
             Node* r = in->in(0);
             for (uint j = 1; j < r->req(); j++) {
-              assert(r->in(j)->Opcode() != Op_NeverBranch, "");
+              assert(!r->in(j)->is_NeverBranch(), "");
             }
           } else {
             Node* proj = in->in(0);
             assert(proj->is_Proj(), "");
             Node* in = proj->in(0);
-            assert(in->is_CallStaticJava() || in->Opcode() == Op_NeverBranch || in->Opcode() == Op_Catch || proj->is_IfProj(), "");
+            assert(in->is_CallStaticJava() || in->is_NeverBranch() || in->Opcode() == Op_Catch || proj->is_IfProj(), "");
             if (in->is_CallStaticJava()) {
               mem = in->in(TypeFunc::Memory);
             } else if (in->Opcode() == Op_Catch) {
               Node* call = in->in(0)->in(0);
               assert(call->is_Call(), "");
               mem = call->in(TypeFunc::Memory);
-            } else if (in->Opcode() == Op_NeverBranch) {
-              Node* head = in->in(0);
-              assert(head->is_Region(), "unexpected infinite loop graph shape");
-
-              Node* phi_mem = NULL;
-              for (DUIterator_Fast jmax, j = head->fast_outs(jmax); j < jmax; j++) {
-                Node* u = head->fast_out(j);
-                if (u->is_Phi() && u->bottom_type() == Type::MEMORY) {
-                  if (_phase->C->get_alias_index(u->adr_type()) == _alias) {
-                    assert(phi_mem == NULL || phi_mem->adr_type() == TypePtr::BOTTOM, "");
-                    phi_mem = u;
-                  } else if (u->adr_type() == TypePtr::BOTTOM) {
-                    assert(phi_mem == NULL || _phase->C->get_alias_index(phi_mem->adr_type()) == _alias, "");
-                    if (phi_mem == NULL) {
-                      phi_mem = u;
-                    }
-                  }
-                }
-              }
-              if (phi_mem == NULL) {
-                for (uint j = 1; j < head->req(); j++) {
-                  Node* tail = head->in(j);
-                  if (!_phase->is_dominator(head, tail)) {
-                    continue;
-                  }
-                  Node* c = tail;
-                  while (c != head) {
-                    if (c->is_SafePoint() && !c->is_CallLeaf()) {
-                      Node* m =c->in(TypeFunc::Memory);
-                      if (m->is_MergeMem()) {
-                        m = m->as_MergeMem()->memory_at(_alias);
-                      }
-                      assert(mem == NULL || mem == m, "several memory states");
-                      mem = m;
-                    }
-                    c = _phase->idom(c);
-                  }
-                  assert(mem != NULL, "should have found safepoint");
-                }
-                assert(mem != NULL, "should have found safepoint");
-              } else {
-                mem = phi_mem;
-              }
+            } else if (in->is_NeverBranch()) {
+              mem = collect_memory_for_infinite_loop(in);
             }
           }
         } else {
@@ -2184,7 +2083,7 @@ void MemoryGraphFixer::collect_memory_nodes() {
       }
       i++;
       stack.set_index(i);
-      if (mem == NULL) {
+      if (mem == nullptr) {
         continue;
       }
       for (;;) {
@@ -2237,7 +2136,7 @@ void MemoryGraphFixer::collect_memory_nodes() {
   if (trace) {
     for (int i = rpo_list.size() - 1; i >= 0; i--) {
       Node* c = rpo_list.at(i);
-      if (_memory_nodes[c->_idx] != NULL) {
+      if (_memory_nodes[c->_idx] != nullptr) {
         tty->print("X %d", c->_idx);  _memory_nodes[c->_idx]->dump();
       }
     }
@@ -2246,7 +2145,7 @@ void MemoryGraphFixer::collect_memory_nodes() {
   uint last = _phase->C->unique();
 
 #ifdef ASSERT
-  uint8_t max_depth = 0;
+  uint16_t max_depth = 0;
   for (LoopTreeIterator iter(_phase->ltree_root()); !iter.done(); iter.next()) {
     IdealLoopTree* lpt = iter.current();
     max_depth = MAX2(max_depth, lpt->_nest);
@@ -2268,15 +2167,15 @@ void MemoryGraphFixer::collect_memory_nodes() {
       Node* prev_mem = _memory_nodes[c->_idx];
       if (c->is_Region() && (_include_lsm || !c->is_OuterStripMinedLoop())) {
         Node* prev_region = regions[c->_idx];
-        Node* unique = NULL;
+        Node* unique = nullptr;
         for (uint j = 1; j < c->req() && unique != NodeSentinel; j++) {
           Node* m = _memory_nodes[c->in(j)->_idx];
-          assert(m != NULL || (c->is_Loop() && j == LoopNode::LoopBackControl && iteration == 1) || _phase->C->has_irreducible_loop() || has_never_branch(_phase->C->root()), "expect memory state");
-          if (m != NULL) {
+          assert(m != nullptr || (c->is_Loop() && j == LoopNode::LoopBackControl && iteration == 1) || _phase->C->has_irreducible_loop() || has_never_branch(_phase->C->root()), "expect memory state");
+          if (m != nullptr) {
             if (m == prev_region && ((c->is_Loop() && j == LoopNode::LoopBackControl) || (prev_region->is_Phi() && prev_region->in(0) == c))) {
-              assert(c->is_Loop() && j == LoopNode::LoopBackControl || _phase->C->has_irreducible_loop() || has_never_branch(_phase->C->root()), "");
+              assert((c->is_Loop() && j == LoopNode::LoopBackControl) || _phase->C->has_irreducible_loop() || has_never_branch(_phase->C->root()), "");
               // continue
-            } else if (unique == NULL) {
+            } else if (unique == nullptr) {
               unique = m;
             } else if (m == unique) {
               // continue
@@ -2285,47 +2184,50 @@ void MemoryGraphFixer::collect_memory_nodes() {
             }
           }
         }
-        assert(unique != NULL, "empty phi???");
+        assert(unique != nullptr, "empty phi???");
         if (unique != NodeSentinel) {
-          if (prev_region != NULL && prev_region->is_Phi() && prev_region->in(0) == c) {
+          if (prev_region != nullptr && prev_region->is_Phi() && prev_region->in(0) == c) {
             dead_phis.push(prev_region);
           }
           regions.map(c->_idx, unique);
         } else {
-          Node* phi = NULL;
-          if (prev_region != NULL && prev_region->is_Phi() && prev_region->in(0) == c && prev_region->_idx >= last) {
+          Node* phi = nullptr;
+          if (prev_region != nullptr && prev_region->is_Phi() && prev_region->in(0) == c && prev_region->_idx >= last) {
             phi = prev_region;
             for (uint k = 1; k < c->req(); k++) {
               Node* m = _memory_nodes[c->in(k)->_idx];
-              assert(m != NULL, "expect memory state");
+              assert(m != nullptr, "expect memory state");
               phi->set_req(k, m);
             }
           } else {
-            for (DUIterator_Fast jmax, j = c->fast_outs(jmax); j < jmax && phi == NULL; j++) {
+            for (DUIterator_Fast jmax, j = c->fast_outs(jmax); j < jmax && phi == nullptr; j++) {
               Node* u = c->fast_out(j);
               if (u->is_Phi() && u->bottom_type() == Type::MEMORY &&
                   (u->adr_type() == TypePtr::BOTTOM || _phase->C->get_alias_index(u->adr_type()) == _alias)) {
                 phi = u;
-                for (uint k = 1; k < c->req() && phi != NULL; k++) {
+                for (uint k = 1; k < c->req() && phi != nullptr; k++) {
                   Node* m = _memory_nodes[c->in(k)->_idx];
-                  assert(m != NULL, "expect memory state");
+                  assert(m != nullptr, "expect memory state");
                   if (u->in(k) != m) {
-                    phi = NULL;
+                    phi = NodeSentinel;
                   }
                 }
               }
             }
-            if (phi == NULL) {
+            if (phi == NodeSentinel) {
               phi = new PhiNode(c, Type::MEMORY, _phase->C->get_adr_type(_alias));
               for (uint k = 1; k < c->req(); k++) {
                 Node* m = _memory_nodes[c->in(k)->_idx];
-                assert(m != NULL, "expect memory state");
+                assert(m != nullptr, "expect memory state");
                 phi->init_req(k, m);
               }
             }
           }
-          assert(phi != NULL, "");
-          regions.map(c->_idx, phi);
+          if (phi != nullptr) {
+            regions.map(c->_idx, phi);
+          } else {
+            assert(c->unique_ctrl_out()->Opcode() == Op_Halt, "expected memory state");
+          }
         }
         Node* current_region = regions[c->_idx];
         if (current_region != prev_region) {
@@ -2334,9 +2236,9 @@ void MemoryGraphFixer::collect_memory_nodes() {
             _memory_nodes.map(c->_idx, current_region);
           }
         }
-      } else if (prev_mem == NULL || prev_mem->is_Phi() || ctrl_or_self(prev_mem) != c) {
+      } else if (prev_mem == nullptr || prev_mem->is_Phi() || ctrl_or_self(prev_mem) != c) {
         Node* m = _memory_nodes[_phase->idom(c)->_idx];
-        assert(m != NULL, "expect memory state");
+        assert(m != nullptr || c->Opcode() == Op_Halt, "expect memory state");
         if (m != prev_mem) {
           _memory_nodes.map(c->_idx, m);
           progress = true;
@@ -2354,13 +2256,14 @@ void MemoryGraphFixer::collect_memory_nodes() {
   while (dead_phis.size() > 0) {
     Node* n = dead_phis.pop();
     n->replace_by(_phase->C->top());
-    n->destruct();
+    n->destruct(&_phase->igvn());
   }
   for (int i = rpo_list.size() - 1; i >= 0; i--) {
     Node* c = rpo_list.at(i);
     if (c->is_Region() && (_include_lsm || !c->is_OuterStripMinedLoop())) {
       Node* n = regions[c->_idx];
-      if (n->is_Phi() && n->_idx >= last && n->in(0) == c) {
+      assert(n != nullptr || c->unique_ctrl_out()->Opcode() == Op_Halt, "expected memory state");
+      if (n != nullptr && n->is_Phi() && n->_idx >= last && n->in(0) == c) {
         _phase->register_new_node(n, c);
       }
     }
@@ -2369,10 +2272,12 @@ void MemoryGraphFixer::collect_memory_nodes() {
     Node* c = rpo_list.at(i);
     if (c->is_Region() && (_include_lsm || !c->is_OuterStripMinedLoop())) {
       Node* n = regions[c->_idx];
+      assert(n != nullptr || c->unique_ctrl_out()->Opcode() == Op_Halt, "expected memory state");
       for (DUIterator_Fast imax, i = c->fast_outs(imax); i < imax; i++) {
         Node* u = c->fast_out(i);
         if (u->is_Phi() && u->bottom_type() == Type::MEMORY &&
             u != n) {
+          assert(c->unique_ctrl_out()->Opcode() != Op_Halt, "expected memory state");
           if (u->adr_type() == TypePtr::BOTTOM) {
             fix_memory_uses(u, n, n, c);
           } else if (_phase->C->get_alias_index(u->adr_type()) == _alias) {
@@ -2385,14 +2290,75 @@ void MemoryGraphFixer::collect_memory_nodes() {
   }
 }
 
+Node* MemoryGraphFixer::collect_memory_for_infinite_loop(const Node* in) {
+  Node* mem = nullptr;
+  Node* head = in->in(0);
+  assert(head->is_Region(), "unexpected infinite loop graph shape");
+
+  Node* phi_mem = nullptr;
+  for (DUIterator_Fast jmax, j = head->fast_outs(jmax); j < jmax; j++) {
+    Node* u = head->fast_out(j);
+    if (u->is_Phi() && u->bottom_type() == Type::MEMORY) {
+      if (_phase->C->get_alias_index(u->adr_type()) == _alias) {
+        assert(phi_mem == nullptr || phi_mem->adr_type() == TypePtr::BOTTOM, "");
+        phi_mem = u;
+      } else if (u->adr_type() == TypePtr::BOTTOM) {
+        assert(phi_mem == nullptr || _phase->C->get_alias_index(phi_mem->adr_type()) == _alias, "");
+        if (phi_mem == nullptr) {
+          phi_mem = u;
+        }
+      }
+    }
+  }
+  if (phi_mem == nullptr) {
+    ResourceMark rm;
+    Node_Stack stack(0);
+    stack.push(head, 1);
+    do {
+      Node* n = stack.node();
+      uint i = stack.index();
+      if (i >= n->req()) {
+        stack.pop();
+      } else {
+        stack.set_index(i + 1);
+        Node* c = n->in(i);
+        assert(c != head, "should have found a safepoint on the way");
+        if (stack.size() != 1 || _phase->is_dominator(head, c)) {
+          for (;;) {
+            if (c->is_Region()) {
+              stack.push(c, 1);
+              break;
+            } else if (c->is_SafePoint() && !c->is_CallLeaf()) {
+              Node* m = c->in(TypeFunc::Memory);
+              if (m->is_MergeMem()) {
+                m = m->as_MergeMem()->memory_at(_alias);
+              }
+              assert(mem == nullptr || mem == m, "several memory states");
+              mem = m;
+              break;
+            } else {
+              assert(c != c->in(0), "");
+              c = c->in(0);
+            }
+          }
+        }
+      }
+    } while (stack.size() > 0);
+    assert(mem != nullptr, "should have found safepoint");
+  } else {
+    mem = phi_mem;
+  }
+  return mem;
+}
+
 Node* MemoryGraphFixer::get_ctrl(Node* n) const {
   Node* c = _phase->get_ctrl(n);
-  if (n->is_Proj() && n->in(0) != NULL && n->in(0)->is_Call()) {
+  if (n->is_Proj() && n->in(0) != nullptr && n->in(0)->is_Call()) {
     assert(c == n->in(0), "");
     CallNode* call = c->as_Call();
     CallProjections projs;
     call->extract_projections(&projs, true, false);
-    if (projs.catchall_memproj != NULL) {
+    if (projs.catchall_memproj != nullptr) {
       if (projs.fallthrough_memproj == n) {
         c = projs.fallthrough_catchproj;
       } else {
@@ -2414,19 +2380,34 @@ Node* MemoryGraphFixer::ctrl_or_self(Node* n) const {
 }
 
 bool MemoryGraphFixer::mem_is_valid(Node* m, Node* c) const {
-  return m != NULL && get_ctrl(m) == c;
+  return m != nullptr && get_ctrl(m) == c;
 }
 
 Node* MemoryGraphFixer::find_mem(Node* ctrl, Node* n) const {
-  assert(n == NULL || _phase->ctrl_or_self(n) == ctrl, "");
+  assert(n == nullptr || _phase->ctrl_or_self(n) == ctrl, "");
+  assert(!ctrl->is_Call() || ctrl == n, "projection expected");
+#ifdef ASSERT
+  if ((ctrl->is_Proj() && ctrl->in(0)->is_Call()) ||
+      (ctrl->is_Catch() && ctrl->in(0)->in(0)->is_Call())) {
+    CallNode* call = ctrl->is_Proj() ? ctrl->in(0)->as_Call() : ctrl->in(0)->in(0)->as_Call();
+    int mems = 0;
+    for (DUIterator_Fast imax, i = call->fast_outs(imax); i < imax; i++) {
+      Node* u = call->fast_out(i);
+      if (u->bottom_type() == Type::MEMORY) {
+        mems++;
+      }
+    }
+    assert(mems <= 1, "No node right after call if multiple mem projections");
+  }
+#endif
   Node* mem = _memory_nodes[ctrl->_idx];
   Node* c = ctrl;
   while (!mem_is_valid(mem, c) &&
-         (!c->is_CatchProj() || mem == NULL || c->in(0)->in(0)->in(0) != get_ctrl(mem))) {
+         (!c->is_CatchProj() || mem == nullptr || c->in(0)->in(0)->in(0) != get_ctrl(mem))) {
     c = _phase->idom(c);
     mem = _memory_nodes[c->_idx];
   }
-  if (n != NULL && mem_is_valid(mem, c)) {
+  if (n != nullptr && mem_is_valid(mem, c)) {
     while (!ShenandoahBarrierC2Support::is_dominator_same_ctrl(c, mem, n, _phase) && _phase->ctrl_or_self(mem) == ctrl) {
       mem = next_mem(mem, _alias);
     }
@@ -2438,7 +2419,7 @@ Node* MemoryGraphFixer::find_mem(Node* ctrl, Node* n) const {
         c = _phase->idom(c);
         mem = _memory_nodes[c->_idx];
       } while (!mem_is_valid(mem, c) &&
-               (!c->is_CatchProj() || mem == NULL || c->in(0)->in(0)->in(0) != get_ctrl(mem)));
+               (!c->is_CatchProj() || mem == nullptr || c->in(0)->in(0)->in(0) != get_ctrl(mem)));
     }
   }
   assert(mem->bottom_type() == Type::MEMORY, "");
@@ -2464,7 +2445,7 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
   GrowableArray<Node*> phis;
   if (mem_for_ctrl != mem) {
     Node* old = mem_for_ctrl;
-    Node* prev = NULL;
+    Node* prev = nullptr;
     while (old != mem) {
       prev = old;
       if (old->is_Store() || old->is_ClearArray() || old->is_LoadStore()) {
@@ -2477,7 +2458,7 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
         ShouldNotReachHere();
       }
     }
-    assert(prev != NULL, "");
+    assert(prev != nullptr, "");
     if (new_ctrl != ctrl) {
       _memory_nodes.map(ctrl->_idx, mem);
       _memory_nodes.map(new_ctrl->_idx, mem_for_ctrl);
@@ -2500,7 +2481,7 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
               !has_mem_phi(u) &&
               u->unique_ctrl_out()->Opcode() != Op_Halt) {
             DEBUG_ONLY(if (trace) { tty->print("ZZZ region"); u->dump(); });
-            DEBUG_ONLY(if (trace && m != NULL) { tty->print("ZZZ mem"); m->dump(); });
+            DEBUG_ONLY(if (trace && m != nullptr) { tty->print("ZZZ mem"); m->dump(); });
 
             if (!mem_is_valid(m, u) || !m->is_Phi()) {
               bool push = true;
@@ -2520,7 +2501,7 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
                   DEBUG_ONLY(if (trace) { tty->print("ZZZ NOT setting mem"); m->dump(); });
                   for (;;) {
                     assert(m->is_Mem() || m->is_LoadStore() || m->is_Proj(), "");
-                    Node* next = NULL;
+                    Node* next = nullptr;
                     if (m->is_Proj()) {
                       next = m->in(0);
                     } else {
@@ -2556,7 +2537,7 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
               }
             }
           } else if (!mem_is_valid(m, u) &&
-                     !(u->Opcode() == Op_CProj && u->in(0)->Opcode() == Op_NeverBranch && u->as_Proj()->_con == 1)) {
+                     !(u->Opcode() == Op_CProj && u->in(0)->is_NeverBranch() && u->as_Proj()->_con == 1)) {
             uses.push(u);
           }
         }
@@ -2567,14 +2548,14 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
       Node* r = n->in(0);
       DEBUG_ONLY(if (trace) { tty->print("ZZZ fixing new phi"); n->dump(); });
       for (uint j = 1; j < n->req(); j++) {
-        Node* m = find_mem(r->in(j), NULL);
+        Node* m = find_mem(r->in(j), nullptr);
         _phase->igvn().replace_input_of(n, j, m);
         DEBUG_ONLY(if (trace) { tty->print("ZZZ fixing new phi: %d", j); m->dump(); });
       }
     }
   }
   uint last = _phase->C->unique();
-  MergeMemNode* mm = NULL;
+  MergeMemNode* mm = nullptr;
   int alias = _alias;
   DEBUG_ONLY(if (trace) { tty->print("ZZZ raw mem is"); mem->dump(); });
   // Process loads first to not miss an anti-dependency: if the memory
@@ -2606,7 +2587,7 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
       } else if (u->is_MergeMem()) {
         MergeMemNode* u_mm = u->as_MergeMem();
         if (u_mm->memory_at(alias) == mem) {
-          MergeMemNode* newmm = NULL;
+          MergeMemNode* newmm = nullptr;
           for (DUIterator_Fast jmax, j = u->fast_outs(jmax); j < jmax; j++) {
             Node* uu = u->fast_out(j);
             assert(!uu->is_MergeMem(), "chain of MergeMems?");
@@ -2616,7 +2597,7 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
               int nb = 0;
               for (uint k = 1; k < uu->req(); k++) {
                 if (uu->in(k) == u) {
-                  Node* m = find_mem(region->in(k), NULL);
+                  Node* m = find_mem(region->in(k), nullptr);
                   if (m != mem) {
                     DEBUG_ONLY(if (trace) { tty->print("ZZZ setting memory of phi %d", k); uu->dump(); });
                     newmm = clone_merge_mem(u, mem, m, _phase->ctrl_or_self(m), i);
@@ -2651,7 +2632,7 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
           bool replaced = false;
           for (uint j = 1; j < u->req(); j++) {
             if (u->in(j) == mem) {
-              Node* m = find_mem(region->in(j), NULL);
+              Node* m = find_mem(region->in(j), nullptr);
               Node* nnew = m;
               if (m != mem) {
                 if (u->adr_type() == TypePtr::BOTTOM) {
@@ -2669,8 +2650,8 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
           }
         }
       } else if ((u->adr_type() == TypePtr::BOTTOM && u->Opcode() != Op_StrInflatedCopy) ||
-                 u->adr_type() == NULL) {
-        assert(u->adr_type() != NULL ||
+                 u->adr_type() == nullptr) {
+        assert(u->adr_type() != nullptr ||
                u->Opcode() == Op_Rethrow ||
                u->Opcode() == Op_Return ||
                u->Opcode() == Op_SafePoint ||
@@ -2711,6 +2692,13 @@ void MemoryGraphFixer::fix_mem(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_
 #endif
 }
 
+void MemoryGraphFixer::record_new_ctrl(Node* ctrl, Node* new_ctrl, Node* mem, Node* mem_for_ctrl) {
+  if (mem_for_ctrl != mem && new_ctrl != ctrl) {
+    _memory_nodes.map(ctrl->_idx, mem);
+    _memory_nodes.map(new_ctrl->_idx, mem_for_ctrl);
+  }
+}
+
 MergeMemNode* MemoryGraphFixer::allocate_merge_mem(Node* mem, Node* rep_proj, Node* rep_ctrl) const {
   MergeMemNode* mm = MergeMemNode::make(mem);
   mm->set_memory_at(_alias, rep_proj);
@@ -2719,7 +2707,7 @@ MergeMemNode* MemoryGraphFixer::allocate_merge_mem(Node* mem, Node* rep_proj, No
 }
 
 MergeMemNode* MemoryGraphFixer::clone_merge_mem(Node* u, Node* mem, Node* rep_proj, Node* rep_ctrl, DUIterator& i) const {
-  MergeMemNode* newmm = NULL;
+  MergeMemNode* newmm = nullptr;
   MergeMemNode* u_mm = u->as_MergeMem();
   Node* c = _phase->get_ctrl(u);
   if (_phase->is_dominator(c, rep_ctrl)) {
@@ -2779,7 +2767,7 @@ bool MemoryGraphFixer::should_process_phi(Node* phi) const {
 
 void MemoryGraphFixer::fix_memory_uses(Node* mem, Node* replacement, Node* rep_proj, Node* rep_ctrl) const {
   uint last = _phase-> C->unique();
-  MergeMemNode* mm = NULL;
+  MergeMemNode* mm = nullptr;
   assert(mem->bottom_type() == Type::MEMORY, "");
   for (DUIterator i = mem->outs(); mem->has_out(i); i++) {
     Node* u = mem->out(i);
@@ -2787,7 +2775,7 @@ void MemoryGraphFixer::fix_memory_uses(Node* mem, Node* replacement, Node* rep_p
       if (u->is_MergeMem()) {
         MergeMemNode* u_mm = u->as_MergeMem();
         if (u_mm->memory_at(_alias) == mem) {
-          MergeMemNode* newmm = NULL;
+          MergeMemNode* newmm = nullptr;
           for (DUIterator_Fast jmax, j = u->fast_outs(jmax); j < jmax; j++) {
             Node* uu = u->fast_out(j);
             assert(!uu->is_MergeMem(), "chain of MergeMems?");
@@ -2797,7 +2785,7 @@ void MemoryGraphFixer::fix_memory_uses(Node* mem, Node* replacement, Node* rep_p
                 int nb = 0;
                 for (uint k = 1; k < uu->req(); k++) {
                   if (uu->in(k) == u && _phase->is_dominator(rep_ctrl, region->in(k))) {
-                    if (newmm == NULL) {
+                    if (newmm == nullptr) {
                       newmm = clone_merge_mem(u, mem, rep_proj, rep_ctrl, i);
                     }
                     if (newmm != u) {
@@ -2813,7 +2801,7 @@ void MemoryGraphFixer::fix_memory_uses(Node* mem, Node* replacement, Node* rep_p
               }
             } else {
               if (rep_ctrl != uu && ShenandoahBarrierC2Support::is_dominator(rep_ctrl, _phase->ctrl_or_self(uu), replacement, uu, _phase)) {
-                if (newmm == NULL) {
+                if (newmm == nullptr) {
                   newmm = clone_merge_mem(u, mem, rep_proj, rep_ctrl, i);
                 }
                 if (newmm != u) {
@@ -2833,7 +2821,7 @@ void MemoryGraphFixer::fix_memory_uses(Node* mem, Node* replacement, Node* rep_p
             if (u->in(j) == mem && _phase->is_dominator(rep_ctrl, region->in(j))) {
               Node* nnew = rep_proj;
               if (u->adr_type() == TypePtr::BOTTOM) {
-                if (mm == NULL) {
+                if (mm == nullptr) {
                   mm = allocate_merge_mem(mem, rep_proj, rep_ctrl);
                 }
                 nnew = mm;
@@ -2848,18 +2836,16 @@ void MemoryGraphFixer::fix_memory_uses(Node* mem, Node* replacement, Node* rep_p
 
         }
       } else if ((u->adr_type() == TypePtr::BOTTOM && u->Opcode() != Op_StrInflatedCopy) ||
-                 u->adr_type() == NULL) {
-        assert(u->adr_type() != NULL ||
+                 u->adr_type() == nullptr) {
+        assert(u->adr_type() != nullptr ||
                u->Opcode() == Op_Rethrow ||
                u->Opcode() == Op_Return ||
                u->Opcode() == Op_SafePoint ||
-               u->Opcode() == Op_StoreIConditional ||
-               u->Opcode() == Op_StoreLConditional ||
                (u->is_CallStaticJava() && u->as_CallStaticJava()->uncommon_trap_request() != 0) ||
                (u->is_CallStaticJava() && u->as_CallStaticJava()->_entry_point == OptoRuntime::rethrow_stub()) ||
                u->Opcode() == Op_CallLeaf, "%s", u->Name());
         if (ShenandoahBarrierC2Support::is_dominator(rep_ctrl, _phase->ctrl_or_self(u), replacement, u, _phase)) {
-          if (mm == NULL) {
+          if (mm == nullptr) {
             mm = allocate_merge_mem(mem, rep_proj, rep_ctrl);
           }
           _phase->igvn().replace_input_of(u, u->find_edge(mem), mm);
@@ -2875,37 +2861,48 @@ void MemoryGraphFixer::fix_memory_uses(Node* mem, Node* replacement, Node* rep_p
   }
 }
 
-ShenandoahLoadReferenceBarrierNode::ShenandoahLoadReferenceBarrierNode(Node* ctrl, Node* obj, bool native)
-: Node(ctrl, obj), _native(native) {
+ShenandoahLoadReferenceBarrierNode::ShenandoahLoadReferenceBarrierNode(Node* ctrl, Node* obj, DecoratorSet decorators)
+: Node(ctrl, obj), _decorators(decorators) {
   ShenandoahBarrierSetC2::bsc2()->state()->add_load_reference_barrier(this);
 }
 
-bool ShenandoahLoadReferenceBarrierNode::is_native() const {
-  return _native;
+DecoratorSet ShenandoahLoadReferenceBarrierNode::decorators() const {
+  return _decorators;
 }
 
 uint ShenandoahLoadReferenceBarrierNode::size_of() const {
   return sizeof(*this);
 }
 
+static DecoratorSet mask_decorators(DecoratorSet decorators) {
+  return decorators & (ON_STRONG_OOP_REF | ON_WEAK_OOP_REF | ON_PHANTOM_OOP_REF | ON_UNKNOWN_OOP_REF | IN_NATIVE);
+}
+
 uint ShenandoahLoadReferenceBarrierNode::hash() const {
-  return Node::hash() + (_native ? 1 : 0);
+  uint hash = Node::hash();
+  hash += mask_decorators(_decorators);
+  return hash;
 }
 
 bool ShenandoahLoadReferenceBarrierNode::cmp( const Node &n ) const {
   return Node::cmp(n) && n.Opcode() == Op_ShenandoahLoadReferenceBarrier &&
-         _native == ((const ShenandoahLoadReferenceBarrierNode&)n)._native;
+         mask_decorators(_decorators) == mask_decorators(((const ShenandoahLoadReferenceBarrierNode&)n)._decorators);
 }
 
 const Type* ShenandoahLoadReferenceBarrierNode::bottom_type() const {
-  if (in(ValueIn) == NULL || in(ValueIn)->is_top()) {
+  if (in(ValueIn) == nullptr || in(ValueIn)->is_top()) {
     return Type::TOP;
   }
   const Type* t = in(ValueIn)->bottom_type();
   if (t == TypePtr::NULL_PTR) {
     return t;
   }
-  return t->is_oopptr();
+
+  if (ShenandoahBarrierSet::is_strong_access(decorators())) {
+    return t;
+  }
+
+  return t->meet(TypePtr::NULL_PTR);
 }
 
 const Type* ShenandoahLoadReferenceBarrierNode::Value(PhaseGVN* phase) const {
@@ -2917,8 +2914,11 @@ const Type* ShenandoahLoadReferenceBarrierNode::Value(PhaseGVN* phase) const {
     return t2;
   }
 
-  const Type* type = t2->is_oopptr();
-  return type;
+  if (ShenandoahBarrierSet::is_strong_access(decorators())) {
+    return t2;
+  }
+
+  return t2->meet(TypePtr::NULL_PTR);
 }
 
 Node* ShenandoahLoadReferenceBarrierNode::Identity(PhaseGVN* phase) {
@@ -2935,7 +2935,7 @@ bool ShenandoahLoadReferenceBarrierNode::needs_barrier(PhaseGVN* phase, Node* n)
 }
 
 bool ShenandoahLoadReferenceBarrierNode::needs_barrier_impl(PhaseGVN* phase, Node* n, Unique_Node_List &visited) {
-  if (n == NULL) return false;
+  if (n == nullptr) return false;
   if (visited.member(n)) {
     return false; // Been there.
   }
@@ -2958,7 +2958,7 @@ bool ShenandoahLoadReferenceBarrierNode::needs_barrier_impl(PhaseGVN* phase, Nod
     // tty->print_cr("optimize barrier on null");
     return false;
   }
-  if (type->make_oopptr() && type->make_oopptr()->const_oop() != NULL) {
+  if (type->make_oopptr() && type->make_oopptr()->const_oop() != nullptr) {
     // tty->print_cr("optimize barrier on constant");
     return false;
   }
@@ -3000,7 +3000,7 @@ bool ShenandoahLoadReferenceBarrierNode::needs_barrier_impl(PhaseGVN* phase, Nod
     case Op_CMoveP:
       return needs_barrier_impl(phase, n->in(2), visited) ||
              needs_barrier_impl(phase, n->in(3), visited);
-    case Op_ShenandoahEnqueueBarrier:
+    case Op_ShenandoahIUBarrier:
       return needs_barrier_impl(phase, n->in(1), visited);
     case Op_CreateEx:
       return false;
@@ -3015,165 +3015,5 @@ bool ShenandoahLoadReferenceBarrierNode::needs_barrier_impl(PhaseGVN* phase, Nod
   n->dump(-2);
   ShouldNotReachHere();
 #endif
-  return true;
-}
-
-bool ShenandoahLoadReferenceBarrierNode::is_redundant() {
-  Unique_Node_List visited;
-  Node_Stack stack(0);
-  stack.push(this, 0);
-
-  // Check if the barrier is actually useful: go over nodes looking for useful uses
-  // (e.g. memory accesses). Stop once we detected a required use. Otherwise, walk
-  // until we ran out of nodes, and then declare the barrier redundant.
-  while (stack.size() > 0) {
-    Node* n = stack.node();
-    if (visited.member(n)) {
-      stack.pop();
-      continue;
-    }
-    visited.push(n);
-    bool visit_users = false;
-    switch (n->Opcode()) {
-      case Op_CallStaticJava:
-      case Op_CallDynamicJava:
-      case Op_CallLeaf:
-      case Op_CallLeafNoFP:
-      case Op_CompareAndSwapL:
-      case Op_CompareAndSwapI:
-      case Op_CompareAndSwapB:
-      case Op_CompareAndSwapS:
-      case Op_CompareAndSwapN:
-      case Op_CompareAndSwapP:
-      case Op_CompareAndExchangeL:
-      case Op_CompareAndExchangeI:
-      case Op_CompareAndExchangeB:
-      case Op_CompareAndExchangeS:
-      case Op_CompareAndExchangeN:
-      case Op_CompareAndExchangeP:
-      case Op_WeakCompareAndSwapL:
-      case Op_WeakCompareAndSwapI:
-      case Op_WeakCompareAndSwapB:
-      case Op_WeakCompareAndSwapS:
-      case Op_WeakCompareAndSwapN:
-      case Op_WeakCompareAndSwapP:
-      case Op_ShenandoahCompareAndSwapN:
-      case Op_ShenandoahCompareAndSwapP:
-      case Op_ShenandoahWeakCompareAndSwapN:
-      case Op_ShenandoahWeakCompareAndSwapP:
-      case Op_ShenandoahCompareAndExchangeN:
-      case Op_ShenandoahCompareAndExchangeP:
-      case Op_GetAndSetL:
-      case Op_GetAndSetI:
-      case Op_GetAndSetB:
-      case Op_GetAndSetS:
-      case Op_GetAndSetP:
-      case Op_GetAndSetN:
-      case Op_GetAndAddL:
-      case Op_GetAndAddI:
-      case Op_GetAndAddB:
-      case Op_GetAndAddS:
-      case Op_ShenandoahEnqueueBarrier:
-      case Op_FastLock:
-      case Op_FastUnlock:
-      case Op_Rethrow:
-      case Op_Return:
-      case Op_StoreB:
-      case Op_StoreC:
-      case Op_StoreD:
-      case Op_StoreF:
-      case Op_StoreL:
-      case Op_StoreLConditional:
-      case Op_StoreI:
-      case Op_StoreIConditional:
-      case Op_StoreN:
-      case Op_StoreP:
-      case Op_StoreVector:
-      case Op_StrInflatedCopy:
-      case Op_StrCompressedCopy:
-      case Op_EncodeP:
-      case Op_CastP2X:
-      case Op_SafePoint:
-      case Op_EncodeISOArray:
-      case Op_AryEq:
-      case Op_StrEquals:
-      case Op_StrComp:
-      case Op_StrIndexOf:
-      case Op_StrIndexOfChar:
-      case Op_HasNegatives:
-        // Known to require barriers
-        return false;
-      case Op_CmpP: {
-        if (n->in(1)->bottom_type()->higher_equal(TypePtr::NULL_PTR) ||
-            n->in(2)->bottom_type()->higher_equal(TypePtr::NULL_PTR)) {
-          // One of the sides is known null, no need for barrier.
-        } else {
-          return false;
-        }
-        break;
-      }
-      case Op_LoadB:
-      case Op_LoadUB:
-      case Op_LoadUS:
-      case Op_LoadD:
-      case Op_LoadF:
-      case Op_LoadL:
-      case Op_LoadI:
-      case Op_LoadS:
-      case Op_LoadN:
-      case Op_LoadP:
-      case Op_LoadVector: {
-        const TypePtr* adr_type = n->adr_type();
-        int alias_idx = Compile::current()->get_alias_index(adr_type);
-        Compile::AliasType* alias_type = Compile::current()->alias_type(alias_idx);
-        ciField* field = alias_type->field();
-        bool is_static = field != NULL && field->is_static();
-        bool is_final = field != NULL && field->is_final();
-
-        if (ShenandoahOptimizeStaticFinals && is_static && is_final) {
-          // Loading the constant does not require barriers: it should be handled
-          // as part of GC roots already.
-        } else {
-          return false;
-        }
-        break;
-      }
-      case Op_Conv2B:
-      case Op_LoadRange:
-      case Op_LoadKlass:
-      case Op_LoadNKlass:
-        // Do not require barriers
-        break;
-      case Op_AddP:
-      case Op_CheckCastPP:
-      case Op_CastPP:
-      case Op_CMoveP:
-      case Op_Phi:
-      case Op_ShenandoahLoadReferenceBarrier:
-        // Whether or not these need the barriers depends on their users
-        visit_users = true;
-        break;
-      default: {
-#ifdef ASSERT
-        fatal("Unknown node in is_redundant: %s", NodeClassNames[n->Opcode()]);
-#else
-        // Default to have excess barriers, rather than miss some.
-        return false;
-#endif
-      }
-    }
-
-    stack.pop();
-    if (visit_users) {
-      for (DUIterator_Fast imax, i = n->fast_outs(imax); i < imax; i++) {
-        Node* user = n->fast_out(i);
-        if (user != NULL) {
-          stack.push(user, 0);
-        }
-      }
-    }
-  }
-
-  // No need for barrier found.
   return true;
 }

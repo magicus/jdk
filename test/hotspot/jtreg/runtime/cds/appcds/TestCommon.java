@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,12 +35,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -68,7 +70,7 @@ import cdsutils.DynamicDumpHelper;
  *    prefix + opts + suffix
  */
 public class TestCommon extends CDSTestUtils {
-    private static final String JSA_FILE_PREFIX = System.getProperty("user.dir") +
+    private static final String JSA_FILE_PREFIX = CDSTestUtils.getOutputDir() +
         File.separator;
 
     private static final SimpleDateFormat timeStampFormat =
@@ -115,7 +117,7 @@ public class TestCommon extends CDSTestUtils {
     // to the file; in such cases the File.delete() operation will silently fail, w/o
     // throwing an exception, thus allowing testing to continue.
     public static void deletePriorArchives() {
-        File dir = new File(System.getProperty("user.dir"));
+        File dir = CDSTestUtils.getOutputDirAsFile();
         String files[] = dir.list();
         for (String name : files) {
             if (name.startsWith("appcds-") && name.endsWith(".jsa")) {
@@ -153,10 +155,23 @@ public class TestCommon extends CDSTestUtils {
         return out;
     }
 
+    public static OutputAnalyzer dumpBaseArchive(String baseArchiveName, String classList[], String ... cmdLineSuffix)
+        throws Exception
+    {
+        CDSOptions opts = new CDSOptions();
+        opts.setArchiveName(baseArchiveName);
+        opts.setClassList(classList);
+        opts.addSuffix(cmdLineSuffix);
+        opts.addSuffix("-Djava.class.path=");
+        OutputAnalyzer out = CDSTestUtils.createArchive(opts);
+        CDSTestUtils.checkBaseDump(out);
+        return out;
+    }
+
     // Create AppCDS archive using most common args - convenience method
     public static OutputAnalyzer createArchive(String appJar, String classList[],
                                                String... suffix) throws Exception {
-        AppCDSOptions opts = (new AppCDSOptions()).setAppJar(appJar);
+        CDSOptions opts = (new CDSOptions()).setAppJar(appJar);
         opts.setClassList(classList);
         opts.addSuffix(suffix);
         return createArchive(opts);
@@ -164,7 +179,7 @@ public class TestCommon extends CDSTestUtils {
 
     public static OutputAnalyzer createArchive(String appJarDir, String appJar, String classList[],
                                                String... suffix) throws Exception {
-        AppCDSOptions opts = (new AppCDSOptions()).setAppJar(appJar);
+        CDSOptions opts = (new CDSOptions()).setAppJar(appJar);
         opts.setAppJarDir(appJarDir);
         opts.setClassList(classList);
         opts.addSuffix(suffix);
@@ -177,10 +192,27 @@ public class TestCommon extends CDSTestUtils {
     // name of the base archive to be used for dynamic dump
     private static String tempBaseArchive = null;
 
+    private static void captureVerifyOpts(ArrayList<String> opts, ArrayList<String> verifyOpts) {
+        boolean addedDiagnosticOpt = false;
+        for (String s : opts) {
+            if (s.startsWith("-XX:-BytecodeVerification")) {
+                if (!addedDiagnosticOpt) {
+                    verifyOpts.add("-XX:+UnlockDiagnosticVMOptions");
+                    addedDiagnosticOpt = true;
+                }
+                verifyOpts.add(s);
+            }
+            if (s.startsWith("-Xverify")) {
+                verifyOpts.add(s);
+            }
+        }
+    }
+
     // Create AppCDS archive using appcds options
-    public static OutputAnalyzer createArchive(AppCDSOptions opts)
+    public static OutputAnalyzer createArchive(CDSOptions opts)
         throws Exception {
         ArrayList<String> cmd = new ArrayList<String>();
+        ArrayList<String> verifyOpts = new ArrayList<String>();
         startNewArchiveName();
 
         for (String p : opts.prefix) cmd.add(p);
@@ -202,9 +234,15 @@ public class TestCommon extends CDSTestUtils {
 
         if (DYNAMIC_DUMP) {
             File baseArchive = null;
-            if (tempBaseArchive == null || !(new File(tempBaseArchive)).isFile()) {
+            captureVerifyOpts(opts.suffix, verifyOpts);
+            int size = verifyOpts.size();
+            if (tempBaseArchive == null || !(new File(tempBaseArchive)).isFile() || size > 0) {
                 tempBaseArchive = getNewArchiveName("tempBaseArchive");
-                dumpBaseArchive(tempBaseArchive);
+                if (size == 0) {
+                    dumpBaseArchive(tempBaseArchive);
+                } else {
+                    dumpBaseArchive(tempBaseArchive, verifyOpts.toArray(new String[size]));
+                }
             }
             cmd.add("-Xshare:on");
             cmd.add("-XX:SharedArchiveFile=" + tempBaseArchive);
@@ -262,7 +300,7 @@ public class TestCommon extends CDSTestUtils {
             }
         }
 
-        ProcessBuilder pb = ProcessTools.createTestJvm(cmd);
+        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(cmd);
         if (opts.appJarDir != null) {
             pb.directory(new File(opts.appJarDir));
         }
@@ -320,13 +358,14 @@ public class TestCommon extends CDSTestUtils {
         if (n > 0) {
             firstJar = firstJar.substring(0, n);
         }
+        // get the real path in case the firstJar is specified as a relative path
+        firstJar = Paths.get(firstJar).toRealPath().toString();
         String classDir = System.getProperty("test.classes");
-        String expected1 = classDir + File.separator;
-        String expected2 = System.getProperty("user.dir") + File.separator;
+        String expected = getOutputDir() + File.separator;
 
-        if (!firstJar.startsWith(expected1) && !firstJar.startsWith(expected2)) {
+        if (!firstJar.startsWith(expected)) {
             throw new RuntimeException("FIXME: jar file not at a supported location ('"
-                                       + expected1 + "', or '" + expected2 + "'): " + firstJar);
+                                       + expected + "'): " + firstJar);
         }
 
         String replaceJar = firstJar + ".tmp";
@@ -372,14 +411,12 @@ public class TestCommon extends CDSTestUtils {
         }
     }
 
-    // Execute JVM using AppCDS archive with specified AppCDSOptions
-    public static OutputAnalyzer runWithArchive(AppCDSOptions opts)
+    // Execute JVM using AppCDS archive with specified CDSOptions
+    public static OutputAnalyzer runWithArchive(CDSOptions opts)
         throws Exception {
 
         ArrayList<String> cmd = new ArrayList<String>();
-
-        for (String p : opts.prefix) cmd.add(p);
-
+        cmd.addAll(opts.prefix);
         cmd.add("-Xshare:" + opts.xShareMode);
         cmd.add("-showversion");
         cmd.add("-XX:SharedArchiveFile=" + getCurrentArchiveName());
@@ -390,12 +427,14 @@ public class TestCommon extends CDSTestUtils {
             cmd.add(opts.appJar);
         }
 
+        CDSTestUtils.addVerifyArchivedFields(cmd);
+
         for (String s : opts.suffix) cmd.add(s);
 
         if (RUN_WITH_JFR) {
             boolean usesJFR = false;
             for (String s : cmd) {
-                if (s.startsWith("-XX:StartFlightRecording=") || s.startsWith("-XX:FlightRecorderOptions")) {
+                if (s.startsWith("-XX:StartFlightRecording") || s.startsWith("-XX:FlightRecorderOptions")) {
                     System.out.println("JFR option might have been specified. Don't interfere: " + s);
                     usesJFR = true;
                     break;
@@ -403,12 +442,12 @@ public class TestCommon extends CDSTestUtils {
             }
             if (!usesJFR) {
                 System.out.println("JFR option not specified. Enabling JFR ...");
-                cmd.add(0, "-XX:StartFlightRecording=dumponexit=true");
+                cmd.add(0, "-XX:StartFlightRecording:dumponexit=true");
                 System.out.println(cmd);
             }
         }
 
-        ProcessBuilder pb = ProcessTools.createTestJvm(cmd);
+        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(cmd);
         if (opts.appJarDir != null) {
             pb.directory(new File(opts.appJarDir));
         }
@@ -417,7 +456,7 @@ public class TestCommon extends CDSTestUtils {
 
 
     public static OutputAnalyzer execCommon(String... suffix) throws Exception {
-        AppCDSOptions opts = (new AppCDSOptions());
+        CDSOptions opts = (new CDSOptions());
         opts.addSuffix(suffix);
         return runWithArchive(opts);
     }
@@ -425,47 +464,53 @@ public class TestCommon extends CDSTestUtils {
     // This is the new API for running a Java process with CDS enabled.
     // See comments in the CDSTestUtils.Result class for how to use this method.
     public static Result run(String... suffix) throws Exception {
-        AppCDSOptions opts = (new AppCDSOptions());
+        CDSOptions opts = (new CDSOptions());
         opts.addSuffix(suffix);
         return new Result(opts, runWithArchive(opts));
     }
 
+    public static Result runWithoutCDS(String... suffix) throws Exception {
+        CDSOptions opts = (new CDSOptions());
+        opts.addSuffix(suffix).setXShareMode("off");
+        return new Result(opts, runWithArchive(opts));
+    }
+
     public static Result runWithRelativePath(String jarDir, String... suffix) throws Exception {
-        AppCDSOptions opts = (new AppCDSOptions());
+        CDSOptions opts = (new CDSOptions());
         opts.setAppJarDir(jarDir);
         opts.addSuffix(suffix);
         return new Result(opts, runWithArchive(opts));
     }
 
     public static OutputAnalyzer exec(String appJar, String... suffix) throws Exception {
-        AppCDSOptions opts = (new AppCDSOptions()).setAppJar(appJar);
+        CDSOptions opts = (new CDSOptions()).setAppJar(appJar);
         opts.addSuffix(suffix);
         return runWithArchive(opts);
     }
 
     public static Result runWithModules(String prefix[], String upgrademodulepath, String modulepath,
                                             String mid, String... testClassArgs) throws Exception {
-        AppCDSOptions opts = makeModuleOptions(prefix, upgrademodulepath, modulepath,
+        CDSOptions opts = makeModuleOptions(prefix, upgrademodulepath, modulepath,
                                                mid, testClassArgs);
         return new Result(opts, runWithArchive(opts));
     }
 
     public static OutputAnalyzer execAuto(String... suffix) throws Exception {
-        AppCDSOptions opts = (new AppCDSOptions());
+        CDSOptions opts = (new CDSOptions());
         opts.addSuffix(suffix).setXShareMode("auto");
         return runWithArchive(opts);
     }
 
     public static OutputAnalyzer execOff(String... suffix) throws Exception {
-        AppCDSOptions opts = (new AppCDSOptions());
+        CDSOptions opts = (new CDSOptions());
         opts.addSuffix(suffix).setXShareMode("off");
         return runWithArchive(opts);
     }
 
 
-    private static AppCDSOptions makeModuleOptions(String prefix[], String upgrademodulepath, String modulepath,
+    private static CDSOptions makeModuleOptions(String prefix[], String upgrademodulepath, String modulepath,
                                             String mid, String testClassArgs[]) {
-        AppCDSOptions opts = (new AppCDSOptions());
+        CDSOptions opts = (new CDSOptions());
 
         opts.addPrefix(prefix);
         if (upgrademodulepath == null) {
@@ -481,7 +526,7 @@ public class TestCommon extends CDSTestUtils {
     public static OutputAnalyzer execModule(String prefix[], String upgrademodulepath, String modulepath,
                                             String mid, String... testClassArgs)
         throws Exception {
-        AppCDSOptions opts = makeModuleOptions(prefix, upgrademodulepath, modulepath,
+        CDSOptions opts = makeModuleOptions(prefix, upgrademodulepath, modulepath,
                                                mid, testClassArgs);
         return runWithArchive(opts);
     }
@@ -633,27 +678,26 @@ public class TestCommon extends CDSTestUtils {
         return true;
     }
 
-    static Pattern pattern;
-
     static void findAllClasses(ArrayList<String> list) throws Exception {
         // Find all the classes in the jrt file system
-        pattern = Pattern.compile("/modules/[a-z.]*[a-z]+/([^-]*)[.]class");
+        Pattern pattern = Pattern.compile("/modules/[a-z.]*[a-z]+/([^-]*)[.]class");
         FileSystem fs = FileSystems.getFileSystem(URI.create("jrt:/"));
         Path base = fs.getPath("/modules/");
-        findAllClassesAtPath(base, list);
+        findAllClassesAtPath(base, pattern, list);
     }
 
-    private static void findAllClassesAtPath(Path p, ArrayList<String> list) throws Exception {
+    private static void findAllClassesAtPath(Path p, Pattern pattern, ArrayList<String> list) throws Exception {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(p)) {
             for (Path entry: stream) {
-                Matcher matcher = pattern.matcher(entry.toString());
-                if (matcher.find()) {
-                    String className = matcher.group(1);
-                    list.add(className);
+                if (Files.isDirectory(entry)) {
+                    findAllClassesAtPath(entry, pattern, list);
+                } else {
+                    Matcher matcher = pattern.matcher(entry.toString());
+                    if (matcher.find()) {
+                        String className = matcher.group(1);
+                        list.add(className);
+                    }
                 }
-                try {
-                    findAllClassesAtPath(entry, list);
-                } catch (Exception ex) {}
             }
         }
     }
@@ -704,5 +748,38 @@ public class TestCommon extends CDSTestUtils {
             sb.append("\n");
         }
         return sb.toString();
+    }
+
+    public static void filesMustMatch(Path a, Path b) throws IOException {
+        linesMustMatch(Files.readString(a).split("\n"),
+                       Files.readString(b).split("\n"));
+    }
+
+    public static void linesMustMatch(String a[], String b[]) {
+        int limit = Math.min(a.length, b.length);
+
+        // Check the lines that are in both a[] and b[]
+        for (int i = 0; i < limit; i++) {
+            if (!a[i].equals(b[i])) {
+                System.out.println("a:" + i + " " + a[i]);
+                System.out.println("b:" + i + " " + b[i]);
+                throw new RuntimeException("Output mismatch on line " + i
+                                           + ": a=" + a[i]
+                                           + ", b=" + b[i]);
+            }
+        }
+
+        // Report the first line that is in one array but not in the other
+        if (a.length > b.length) {
+            throw new RuntimeException("Output mismatch on line " + limit
+                                       + ": a=" + a[limit]
+                                       + ", b=<none>");
+
+        }
+        if (a.length < b.length) {
+            throw new RuntimeException("Output mismatch on line " + limit
+                                       + ": a=<none>"
+                                       + ", b=" + b[limit]);
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -70,11 +70,12 @@ public class GZIPInputStream extends InflaterInputStream {
      *
      * @throws    ZipException if a GZIP format error has occurred or the
      *                         compression method used is unsupported
+     * @throws    NullPointerException if {@code in} is null
      * @throws    IOException if an I/O error has occurred
      * @throws    IllegalArgumentException if {@code size <= 0}
      */
     public GZIPInputStream(InputStream in, int size) throws IOException {
-        super(in, new Inflater(true), size);
+        super(in, in != null ? new Inflater(true) : null, size);
         usesDefaultInflater = true;
         readHeader(in);
     }
@@ -85,6 +86,7 @@ public class GZIPInputStream extends InflaterInputStream {
      *
      * @throws    ZipException if a GZIP format error has occurred or the
      *                         compression method used is unsupported
+     * @throws    NullPointerException if {@code in} is null
      * @throws    IOException if an I/O error has occurred
      */
     public GZIPInputStream(InputStream in) throws IOException {
@@ -92,13 +94,24 @@ public class GZIPInputStream extends InflaterInputStream {
     }
 
     /**
-     * Reads uncompressed data into an array of bytes. If {@code len} is not
-     * zero, the method will block until some input can be decompressed; otherwise,
-     * no bytes are read and {@code 0} is returned.
+     * Reads uncompressed data into an array of bytes, returning the number of inflated
+     * bytes. If {@code len} is not zero, the method will block until some input can be
+     * decompressed; otherwise, no bytes are read and {@code 0} is returned.
+     * <p>
+     * If this method returns a nonzero integer <i>n</i> then {@code buf[off]}
+     * through {@code buf[off+}<i>n</i>{@code -1]} contain the uncompressed
+     * data.  The content of elements {@code buf[off+}<i>n</i>{@code ]} through
+     * {@code buf[off+}<i>len</i>{@code -1]} is undefined, contrary to the
+     * specification of the {@link java.io.InputStream InputStream} superclass,
+     * so an implementation is free to modify these elements during the inflate
+     * operation. If this method returns {@code -1} or throws an exception then
+     * the content of {@code buf[off]} through {@code buf[off+}<i>len</i>{@code
+     * -1]} is undefined.
+     *
      * @param buf the buffer into which the data is read
-     * @param off the start offset in the destination array {@code b}
+     * @param off the start offset in the destination array {@code buf}
      * @param len the maximum number of bytes read
-     * @return  the actual number of bytes read, or -1 if the end of the
+     * @return  the actual number of bytes inflated, or -1 if the end of the
      *          compressed input stream is reached
      *
      * @throws     NullPointerException If {@code buf} is {@code null}.
@@ -224,23 +237,17 @@ public class GZIPInputStream extends InflaterInputStream {
             (readUInt(in) != (inf.getBytesWritten() & 0xffffffffL)))
             throw new ZipException("Corrupt GZIP trailer");
 
-        // If there are more bytes available in "in" or
-        // the leftover in the "inf" is > 26 bytes:
-        // this.trailer(8) + next.header.min(10) + next.trailer(8)
         // try concatenated case
-        if (this.in.available() > 0 || n > 26) {
-            int m = 8;                  // this.trailer
-            try {
-                m += readHeader(in);    // next.header
-            } catch (IOException ze) {
-                return true;  // ignore any malformed, do nothing
-            }
-            inf.reset();
-            if (n > m)
-                inf.setInput(buf, len - n + m, n - m);
-            return false;
+        int m = 8;                  // this.trailer
+        try {
+            m += readHeader(in);    // next.header
+        } catch (IOException ze) {
+            return true;  // ignore any malformed, do nothing
         }
-        return true;
+        inf.reset();
+        if (n > m)
+            inf.setInput(buf, len - n + m, n - m);
+        return false;
     }
 
     /*

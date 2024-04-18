@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,12 +24,14 @@
 #ifndef SHARE_GC_Z_ZVALUE_INLINE_HPP
 #define SHARE_GC_Z_ZVALUE_INLINE_HPP
 
+#include "gc/z/zValue.hpp"
+
+#include "gc/shared/gc_globals.hpp"
+#include "gc/shared/workerThread.hpp"
 #include "gc/z/zCPU.inline.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zNUMA.hpp"
-#include "gc/z/zThread.inline.hpp"
 #include "gc/z/zUtils.hpp"
-#include "gc/z/zValue.hpp"
 #include "runtime/globals.hpp"
 #include "utilities/align.hpp"
 
@@ -104,11 +106,11 @@ inline size_t ZPerWorkerStorage::alignment() {
 }
 
 inline uint32_t ZPerWorkerStorage::count() {
-  return MAX2(ParallelGCThreads, ConcGCThreads);
+  return ConcGCThreads;
 }
 
 inline uint32_t ZPerWorkerStorage::id() {
-  return ZThread::worker_id();
+  return WorkerThread::worker_id();
 }
 
 //
@@ -121,8 +123,8 @@ inline uintptr_t ZValue<S, T>::value_addr(uint32_t value_id) const {
 }
 
 template <typename S, typename T>
-inline ZValue<S, T>::ZValue() :
-    _addr(S::alloc(sizeof(T))) {
+inline ZValue<S, T>::ZValue()
+  : _addr(S::alloc(sizeof(T))) {
   // Initialize all instances
   ZValueIterator<S, T> iter(this);
   for (T* addr; iter.next(&addr);) {
@@ -131,8 +133,8 @@ inline ZValue<S, T>::ZValue() :
 }
 
 template <typename S, typename T>
-inline ZValue<S, T>::ZValue(const T& value) :
-    _addr(S::alloc(sizeof(T))) {
+inline ZValue<S, T>::ZValue(const T& value)
+  : _addr(S::alloc(sizeof(T))) {
   // Initialize all instances
   ZValueIterator<S, T> iter(this);
   for (T* addr; iter.next(&addr);) {
@@ -173,45 +175,13 @@ inline void ZValue<S, T>::set_all(const T& value) {
   }
 }
 
-template <typename T>
-inline ZContended<T>::ZContended() :
-    ZValue<ZContendedStorage, T>() {}
-
-template <typename T>
-inline ZContended<T>::ZContended(const T& value) :
-    ZValue<ZContendedStorage, T>(value) {}
-
-template <typename T>
-inline ZPerCPU<T>::ZPerCPU() :
-    ZValue<ZPerCPUStorage, T>() {}
-
-template <typename T>
-inline ZPerCPU<T>::ZPerCPU(const T& value) :
-    ZValue<ZPerCPUStorage, T>(value) {}
-
-template <typename T>
-inline ZPerNUMA<T>::ZPerNUMA() :
-    ZValue<ZPerNUMAStorage, T>() {}
-
-template <typename T>
-inline ZPerNUMA<T>::ZPerNUMA(const T& value) :
-    ZValue<ZPerNUMAStorage, T>(value) {}
-
-template <typename T>
-inline ZPerWorker<T>::ZPerWorker() :
-    ZValue<ZPerWorkerStorage, T>() {}
-
-template <typename T>
-inline ZPerWorker<T>::ZPerWorker(const T& value) :
-    ZValue<ZPerWorkerStorage, T>(value) {}
-
 //
 // Iterator
 //
 
 template <typename S, typename T>
-inline ZValueIterator<S, T>::ZValueIterator(ZValue<S, T>* value) :
-    _value(value),
+inline ZValueIterator<S, T>::ZValueIterator(ZValue<S, T>* value)
+  : _value(value),
     _value_id(0) {}
 
 template <typename S, typename T>
@@ -223,21 +193,9 @@ inline bool ZValueIterator<S, T>::next(T** value) {
   return false;
 }
 
-template <typename T>
-inline ZPerCPUIterator<T>::ZPerCPUIterator(ZPerCPU<T>* value) :
-    ZValueIterator<ZPerCPUStorage, T>(value) {}
-
-template <typename T>
-inline ZPerNUMAIterator<T>::ZPerNUMAIterator(ZPerNUMA<T>* value) :
-    ZValueIterator<ZPerNUMAStorage, T>(value) {}
-
-template <typename T>
-inline ZPerWorkerIterator<T>::ZPerWorkerIterator(ZPerWorker<T>* value) :
-    ZValueIterator<ZPerWorkerStorage, T>(value) {}
-
 template <typename S, typename T>
-inline ZValueConstIterator<S, T>::ZValueConstIterator(const ZValue<S, T>* value) :
-    _value(value),
+inline ZValueConstIterator<S, T>::ZValueConstIterator(const ZValue<S, T>* value)
+  : _value(value),
     _value_id(0) {}
 
 template <typename S, typename T>
@@ -249,16 +207,5 @@ inline bool ZValueConstIterator<S, T>::next(const T** value) {
   return false;
 }
 
-template <typename T>
-inline ZPerCPUConstIterator<T>::ZPerCPUConstIterator(const ZPerCPU<T>* value) :
-    ZValueConstIterator<ZPerCPUStorage, T>(value) {}
-
-template <typename T>
-inline ZPerNUMAConstIterator<T>::ZPerNUMAConstIterator(const ZPerNUMA<T>* value) :
-    ZValueConstIterator<ZPerNUMAStorage, T>(value) {}
-
-template <typename T>
-inline ZPerWorkerConstIterator<T>::ZPerWorkerConstIterator(const ZPerWorker<T>* value) :
-    ZValueConstIterator<ZPerWorkerStorage, T>(value) {}
 
 #endif // SHARE_GC_Z_ZVALUE_INLINE_HPP

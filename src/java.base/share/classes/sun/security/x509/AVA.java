@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,9 +27,7 @@ package sun.security.x509;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.Reader;
-import java.security.AccessController;
 import java.text.Normalizer;
 import java.util.*;
 
@@ -108,12 +106,6 @@ public class AVA implements DerEncoder {
     private static final String specialCharsDefault = ",=\n+<>#;\\\" ";
     private static final String escapedDefault = ",+<>;\"";
 
-    /*
-     * Values that aren't printable strings are emitted as BER-encoded
-     * hex data.
-     */
-    private static final String hexDigits = "0123456789ABCDEF";
-
     public AVA(ObjectIdentifier type, DerValue val) {
         if ((type == null) || (val == null)) {
             throw new NullPointerException();
@@ -125,7 +117,7 @@ public class AVA implements DerEncoder {
     /**
      * Parse an RFC 1779, 2253 or 4514 style AVA string:  CN=fee fie foe fum
      * or perhaps with quotes.  Not all defined AVA tags are supported;
-     * of current note are X.400 related ones (PRMD, ADMD, etc).
+     * of current note are X.400 related ones (PRMD, ADMD, etc.).
      *
      * This terminates at unescaped AVA separators ("+") or RDN
      * separators (",", ";"), and removes cosmetic whitespace at the end of
@@ -152,7 +144,7 @@ public class AVA implements DerEncoder {
      * Parse an AVA string formatted according to format.
      */
     AVA(Reader in, int format) throws IOException {
-        this(in, format, Collections.<String, String>emptyMap());
+        this(in, format, Collections.emptyMap());
     }
 
     /**
@@ -162,7 +154,7 @@ public class AVA implements DerEncoder {
      * @param format parsing format
      * @param keywordMap a Map where a keyword String maps to a corresponding
      *   OID String. Each AVA keyword will be mapped to the corresponding OID.
-     *   If an entry does not exist, it will fallback to the builtin
+     *   If an entry does not exist, it will fall back to the builtin
      *   keyword/OID mapping.
      * @throws IOException if the AVA String is not valid in the specified
      *   format or an OID String from the keywordMap is improperly formatted
@@ -257,7 +249,6 @@ public class AVA implements DerEncoder {
 
     private static DerValue parseHexString
         (Reader in, int format) throws IOException {
-
         int c;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte b = 0;
@@ -268,21 +259,18 @@ public class AVA implements DerEncoder {
             if (isTerminator(c, format)) {
                 break;
             }
-
-            int cVal = hexDigits.indexOf(Character.toUpperCase((char)c));
-
-            if (cVal == -1) {
-                throw new IOException("AVA parse, invalid hex " +
-                                              "digit: "+ (char)c);
+            try {
+                int cVal = HexFormat.fromHexDigit(c);     // throws on invalid character
+                if ((cNdx % 2) == 1) {
+                    b = (byte)((b * 16) + (byte)(cVal));
+                    baos.write(b);
+                } else {
+                    b = (byte)(cVal);
+                }
+                cNdx++;
+            } catch (NumberFormatException nfe) {
+                throw new IOException("AVA parse, invalid hex digit: "+ (char)c);
             }
-
-            if ((cNdx % 2) == 1) {
-                b = (byte)((b * 16) + (byte)(cVal));
-                baos.write(b);
-            } else {
-                b = (byte)(cVal);
-            }
-            cNdx++;
         }
 
         // throw exception if no hex digits
@@ -315,7 +303,7 @@ public class AVA implements DerEncoder {
                 c = readChar(in, "Quoted string did not end in quote");
 
                 // check for embedded hex pairs
-                Byte hexByte = null;
+                Byte hexByte;
                 if ((hexByte = getEmbeddedHexPair(c, in)) != null) {
 
                     // always encode AVAs with embedded hex as UTF8
@@ -367,7 +355,7 @@ public class AVA implements DerEncoder {
         // non-PrintableString chars
         if (this.oid.equals(PKCS9Attribute.EMAIL_ADDRESS_OID) ||
             (this.oid.equals(X500Name.DOMAIN_COMPONENT_OID) &&
-                PRESERVE_OLD_DC_ENCODING == false)) {
+                    !PRESERVE_OLD_DC_ENCODING)) {
             // EmailAddress and DomainComponent must be IA5String
             return new DerValue(DerValue.tag_IA5String,
                                         temp.toString().trim());
@@ -384,7 +372,7 @@ public class AVA implements DerEncoder {
 
         List<Byte> embeddedHex = new ArrayList<>();
         boolean isPrintableString = true;
-        boolean escape = false;
+        boolean escape;
         boolean leadingChar = true;
         int spaceCount = 0;
         do {
@@ -394,7 +382,7 @@ public class AVA implements DerEncoder {
                 c = readChar(in, "Invalid trailing backslash");
 
                 // check for embedded hex pairs
-                Byte hexByte = null;
+                Byte hexByte;
                 if ((hexByte = getEmbeddedHexPair(c, in)) != null) {
 
                     // always encode AVAs with embedded hex as UTF8
@@ -454,9 +442,7 @@ public class AVA implements DerEncoder {
             // add embedded hex bytes before next char
             if (embeddedHex.size() > 0) {
                 // add space(s) before embedded hex bytes
-                for (int i = 0; i < spaceCount; i++) {
-                    temp.append(' ');
-                }
+                temp.append(" ".repeat(spaceCount));
                 spaceCount = 0;
 
                 String hexString = getEmbeddedHexString(embeddedHex);
@@ -466,21 +452,19 @@ public class AVA implements DerEncoder {
 
             // check for non-PrintableString chars
             isPrintableString &= DerValue.isPrintableStringChar((char)c);
-            if (c == ' ' && escape == false) {
+            if (c == ' ' && !escape) {
                 // do not add non-escaped spaces yet
                 // (non-escaped trailing spaces are ignored)
                 spaceCount++;
             } else {
                 // add space(s)
-                for (int i = 0; i < spaceCount; i++) {
-                    temp.append(' ');
-                }
+                temp.append(" ".repeat(spaceCount));
                 spaceCount = 0;
                 temp.append((char)c);
             }
             c = in.read();
             leadingChar = false;
-        } while (isTerminator(c, format) == false);
+        } while (!isTerminator(c, format));
 
         if (format == RFC2253 && spaceCount > 0) {
             throw new IOException("Incorrect AVA RFC2253 format - " +
@@ -498,7 +482,7 @@ public class AVA implements DerEncoder {
         // non-PrintableString chars
         if (this.oid.equals(PKCS9Attribute.EMAIL_ADDRESS_OID) ||
             (this.oid.equals(X500Name.DOMAIN_COMPONENT_OID) &&
-                PRESERVE_OLD_DC_ENCODING == false)) {
+                    !PRESERVE_OLD_DC_ENCODING)) {
             // EmailAddress and DomainComponent must be IA5String
             return new DerValue(DerValue.tag_IA5String, temp.toString());
         } else if (isPrintableString) {
@@ -511,13 +495,13 @@ public class AVA implements DerEncoder {
     private static Byte getEmbeddedHexPair(int c1, Reader in)
         throws IOException {
 
-        if (hexDigits.indexOf(Character.toUpperCase((char)c1)) >= 0) {
+        if (HexFormat.isHexDigit(c1)) {
             int c2 = readChar(in, "unexpected EOF - " +
                         "escaped hex value must include two valid digits");
 
-            if (hexDigits.indexOf(Character.toUpperCase((char)c2)) >= 0) {
-                int hi = Character.digit((char)c1, 16);
-                int lo = Character.digit((char)c2, 16);
+            if (HexFormat.isHexDigit(c2)) {
+                int hi = HexFormat.fromHexDigit(c1);
+                int lo = HexFormat.fromHexDigit(c2);
                 return (byte)((hi<<4) + lo);
             } else {
                 throw new IOException
@@ -559,7 +543,7 @@ public class AVA implements DerEncoder {
 
     private static boolean trailingSpace(Reader in) throws IOException {
 
-        boolean trailing = false;
+        boolean trailing;
 
         if (!in.markSupported()) {
             // oh well
@@ -567,7 +551,7 @@ public class AVA implements DerEncoder {
         } else {
             // make readAheadLimit huge -
             // in practice, AVA was passed a StringReader from X500Name,
-            // and StringReader ignores readAheadLimit anyways
+            // and StringReader ignores readAheadLimit anyway
             in.mark(9999);
             while (true) {
                 int nextChar = in.read();
@@ -612,51 +596,39 @@ public class AVA implements DerEncoder {
         this(in.getDerValue());
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
-        if (obj instanceof AVA == false) {
+        if (!(obj instanceof AVA other)) {
             return false;
         }
-        AVA other = (AVA)obj;
         return this.toRFC2253CanonicalString().equals
                                 (other.toRFC2253CanonicalString());
     }
 
     /**
-     * Returns a hashcode for this AVA.
-     *
-     * @return a hashcode for this AVA.
+     * {@return a hashcode for this AVA}
      */
+    @Override
     public int hashCode() {
         return toRFC2253CanonicalString().hashCode();
-    }
-
-    /*
-     * AVAs are encoded as a SEQUENCE of two elements.
-     */
-    public void encode(DerOutputStream out) throws IOException {
-        derEncode(out);
     }
 
     /**
      * DER encode this object onto an output stream.
      * Implements the <code>DerEncoder</code> interface.
      *
-     * @param out
-     * the output stream on which to write the DER encoding.
-     *
-     * @exception IOException on encoding error.
+     * @param out the output stream on which to write the DER encoding.
      */
-    public void derEncode(OutputStream out) throws IOException {
-        DerOutputStream         tmp = new DerOutputStream();
-        DerOutputStream         tmp2 = new DerOutputStream();
+    @Override
+    public void encode(DerOutputStream out) {
+        DerOutputStream tmp = new DerOutputStream();
 
         tmp.putOID(oid);
         value.encode(tmp);
-        tmp2.write(DerValue.tag_Sequence, tmp);
-        out.write(tmp2.toByteArray());
+        out.write(DerValue.tag_Sequence, tmp);
     }
 
     private String toKeyword(int format, Map<String, String> oidMap) {
@@ -669,7 +641,7 @@ public class AVA implements DerEncoder {
      */
     public String toString() {
         return toKeywordValueString
-            (toKeyword(DEFAULT, Collections.<String, String>emptyMap()));
+            (toKeyword(DEFAULT, Collections.emptyMap()));
     }
 
     /**
@@ -678,7 +650,7 @@ public class AVA implements DerEncoder {
      * emits standardised keywords.
      */
     public String toRFC1779String() {
-        return toRFC1779String(Collections.<String, String>emptyMap());
+        return toRFC1779String(Collections.emptyMap());
     }
 
     /**
@@ -697,7 +669,7 @@ public class AVA implements DerEncoder {
      * emits standardised keywords.
      */
     public String toRFC2253String() {
-        return toRFC2253String(Collections.<String, String>emptyMap());
+        return toRFC2253String(Collections.emptyMap());
     }
 
     /**
@@ -730,18 +702,9 @@ public class AVA implements DerEncoder {
         if ((typeAndValue.charAt(0) >= '0' && typeAndValue.charAt(0) <= '9') ||
             !isDerString(value, false))
         {
-            byte[] data = null;
-            try {
-                data = value.toByteArray();
-            } catch (IOException ie) {
-                throw new IllegalArgumentException("DER Value conversion");
-            }
+            byte[] data = value.toByteArray();
             typeAndValue.append('#');
-            for (int j = 0; j < data.length; j++) {
-                byte b = data[j];
-                typeAndValue.append(Character.forDigit(0xF & (b >>> 4), 16));
-                typeAndValue.append(Character.forDigit(0xF & b, 16));
-            }
+            HexFormat.of().formatHex(typeAndValue, data);
         } else {
             /*
              * 2.4 (cont): Otherwise, if the AttributeValue is of a type which
@@ -751,12 +714,7 @@ public class AVA implements DerEncoder {
              * NOTE: this implementation only emits DirectoryStrings of the
              * types returned by isDerString().
              */
-            String valStr = null;
-            try {
-                valStr = new String(value.getDataBytes(), UTF_8);
-            } catch (IOException ie) {
-                throw new IllegalArgumentException("DER Value conversion");
-            }
+            String valStr = new String(value.getDataBytes(), UTF_8);
 
             /*
              * 2.4 (cont): If the UTF-8 string does not have any of the
@@ -806,15 +764,7 @@ public class AVA implements DerEncoder {
                     // embed non-printable/non-escaped char
                     // as escaped hex pairs for debugging
                     byte[] valueBytes = Character.toString(c).getBytes(UTF_8);
-                    for (int j = 0; j < valueBytes.length; j++) {
-                        sbuffer.append('\\');
-                        char hexChar = Character.forDigit
-                                (0xF & (valueBytes[j] >>> 4), 16);
-                        sbuffer.append(Character.toUpperCase(hexChar));
-                        hexChar = Character.forDigit
-                                (0xF & (valueBytes[j]), 16);
-                        sbuffer.append(Character.toUpperCase(hexChar));
-                    }
+                    HexFormat.of().withPrefix("\\").withUpperCase().formatHex(sbuffer, valueBytes);
                 } else {
 
                     // append non-printable/non-escaped char
@@ -862,7 +812,7 @@ public class AVA implements DerEncoder {
          */
         StringBuilder typeAndValue = new StringBuilder(40);
         typeAndValue.append
-            (toKeyword(RFC2253, Collections.<String, String>emptyMap()));
+            (toKeyword(RFC2253, Collections.emptyMap()));
         typeAndValue.append('=');
 
         /*
@@ -877,18 +827,9 @@ public class AVA implements DerEncoder {
         if ((typeAndValue.charAt(0) >= '0' && typeAndValue.charAt(0) <= '9') ||
             !isDerString(value, true))
         {
-            byte[] data = null;
-            try {
-                data = value.toByteArray();
-            } catch (IOException ie) {
-                throw new IllegalArgumentException("DER Value conversion");
-            }
+            byte[] data = value.toByteArray();
             typeAndValue.append('#');
-            for (int j = 0; j < data.length; j++) {
-                byte b = data[j];
-                typeAndValue.append(Character.forDigit(0xF & (b >>> 4), 16));
-                typeAndValue.append(Character.forDigit(0xF & b, 16));
-            }
+            HexFormat.of().formatHex(typeAndValue, data);
         } else {
             /*
              * 2.4 (cont): Otherwise, if the AttributeValue is of a type which
@@ -898,12 +839,7 @@ public class AVA implements DerEncoder {
              * NOTE: this implementation only emits DirectoryStrings of the
              * types returned by isDerString().
              */
-            String valStr = null;
-            try {
-                valStr = new String(value.getDataBytes(), UTF_8);
-            } catch (IOException ie) {
-                throw new IllegalArgumentException("DER Value conversion");
-            }
+            String valStr = new String(value.getDataBytes(), UTF_8);
 
             /*
              * 2.4 (cont): If the UTF-8 string does not have any of the
@@ -944,13 +880,12 @@ public class AVA implements DerEncoder {
                         previousWhite = false;
                         sbuffer.append(c);
                     } else {
-                        if (previousWhite == false) {
+                        if (!previousWhite) {
                             // add single whitespace
                             previousWhite = true;
                             sbuffer.append(c);
                         } else {
                             // ignore subsequent consecutive whitespace
-                            continue;
                         }
                     }
 
@@ -960,15 +895,8 @@ public class AVA implements DerEncoder {
                     // as escaped hex pairs for debugging
 
                     previousWhite = false;
-
                     byte[] valueBytes = Character.toString(c).getBytes(UTF_8);
-                    for (int j = 0; j < valueBytes.length; j++) {
-                        sbuffer.append('\\');
-                        sbuffer.append(Character.forDigit
-                                        (0xF & (valueBytes[j] >>> 4), 16));
-                        sbuffer.append(Character.forDigit
-                                        (0xF & (valueBytes[j]), 16));
-                    }
+                    HexFormat.of().withPrefix("\\").withUpperCase().formatHex(sbuffer, valueBytes);
                 } else {
 
                     // append non-printable/non-escaped char
@@ -1042,11 +970,7 @@ public class AVA implements DerEncoder {
                 byte[] data = value.toByteArray();
 
                 retval.append('#');
-                for (int i = 0; i < data.length; i++) {
-                    retval.append(hexDigits.charAt((data [i] >> 4) & 0x0f));
-                    retval.append(hexDigits.charAt(data [i] & 0x0f));
-                }
-
+                HexFormat.of().formatHex(retval, data);
             } else {
 
                 boolean quoteNeeded = false;
@@ -1106,15 +1030,7 @@ public class AVA implements DerEncoder {
                         // embed escaped hex pairs
                         byte[] valueBytes =
                                 Character.toString(c).getBytes(UTF_8);
-                        for (int j = 0; j < valueBytes.length; j++) {
-                            sbuffer.append('\\');
-                            char hexChar = Character.forDigit
-                                        (0xF & (valueBytes[j] >>> 4), 16);
-                            sbuffer.append(Character.toUpperCase(hexChar));
-                            hexChar = Character.forDigit
-                                        (0xF & (valueBytes[j]), 16);
-                            sbuffer.append(Character.toUpperCase(hexChar));
-                        }
+                        HexFormat.of().withPrefix("\\").withUpperCase().formatHex(sbuffer, valueBytes);
                     } else {
 
                         // append non-printable/non-escaped char
@@ -1161,9 +1077,10 @@ class AVAKeyword {
     private static final Map<ObjectIdentifier,AVAKeyword> oidMap;
     private static final Map<String,AVAKeyword> keywordMap;
 
-    private String keyword;
-    private ObjectIdentifier oid;
-    private boolean rfc1779Compliant, rfc2253Compliant;
+    private final String keyword;
+    private final ObjectIdentifier oid;
+    private final boolean rfc1779Compliant;
+    private final boolean rfc2253Compliant;
 
     private AVAKeyword(String keyword, ObjectIdentifier oid,
                boolean rfc1779Compliant, boolean rfc2253Compliant) {
@@ -1197,7 +1114,7 @@ class AVAKeyword {
      *
      * @param keywordMap a Map where a keyword String maps to a corresponding
      *   OID String. Each AVA keyword will be mapped to the corresponding OID.
-     *   If an entry does not exist, it will fallback to the builtin
+     *   If an entry does not exist, it will fall back to the builtin
      *   keyword/OID mapping.
      * @throws IOException If the keyword is not valid in the specified standard
      *   or the OID String to which a keyword maps to is improperly formatted.
@@ -1240,7 +1157,7 @@ class AVAKeyword {
                 number = true;
             }
         }
-        if (number == false) {
+        if (!number) {
             throw new IOException("Invalid keyword \"" + keyword + "\"");
         }
         return ObjectIdentifier.of(keyword);
@@ -1253,7 +1170,7 @@ class AVAKeyword {
      */
     static String getKeyword(ObjectIdentifier oid, int standard) {
         return getKeyword
-            (oid, standard, Collections.<String, String>emptyMap());
+            (oid, standard, Collections.emptyMap());
     }
 
     /**
@@ -1313,8 +1230,8 @@ class AVAKeyword {
     }
 
     static {
-        oidMap = new HashMap<ObjectIdentifier,AVAKeyword>();
-        keywordMap = new HashMap<String,AVAKeyword>();
+        oidMap = new HashMap<>();
+        keywordMap = new HashMap<>();
 
         // NOTE if multiple keywords are available for one OID, order
         // is significant!! Preferred *LAST*.

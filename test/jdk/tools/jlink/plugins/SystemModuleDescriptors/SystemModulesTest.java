@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,7 +44,6 @@ import static org.testng.Assert.*;
  * @bug 8142968 8173381
  * @modules java.base/jdk.internal.access
  * @modules java.base/jdk.internal.module
- * @modules java.base/jdk.internal.org.objectweb.asm
  * @build ModuleTargetHelper
  * @run testng SystemModulesTest
  * @summary Verify the properties of ModuleDescriptor created
@@ -79,8 +78,6 @@ public class SystemModulesTest {
         switch (OS_NAME) {
             case "Linux":
                 return name.equals("linux");
-            case "SunOS":
-                return name.equals("solaris");
             case "Mac OS X":
                 return name.equals("macos");
             default:

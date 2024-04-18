@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -26,43 +26,29 @@
 AC_DEFUN([BPERF_CHECK_CORES],
 [
   AC_MSG_CHECKING([for number of cores])
-  NUM_CORES=1
-  FOUND_CORES=no
 
   if test -f /proc/cpuinfo; then
     # Looks like a Linux (or cygwin) system
-    NUM_CORES=`cat /proc/cpuinfo  | grep -c processor`
+    NUM_CORES=`cat /proc/cpuinfo  | grep -cw processor`
     if test "$NUM_CORES" -eq "0"; then
       NUM_CORES=`cat /proc/cpuinfo  | grep -c ^CPU`
     fi
-    if test "$NUM_CORES" -ne "0"; then
-      FOUND_CORES=yes
-    fi
-  elif test -x /usr/sbin/psrinfo; then
-    # Looks like a Solaris system
-    NUM_CORES=`/usr/sbin/psrinfo -v | grep -c on-line`
-    FOUND_CORES=yes
   elif test -x /usr/sbin/sysctl; then
     # Looks like a MacOSX system
     NUM_CORES=`/usr/sbin/sysctl -n hw.ncpu`
-    FOUND_CORES=yes
   elif test "x$OPENJDK_BUILD_OS" = xaix ; then
-    NUM_LCPU=`lparstat -m 2> /dev/null | $GREP -o "lcpu=[[0-9]]*" | $CUT -d "=" -f 2`
-    if test -n "$NUM_LCPU"; then
-      NUM_CORES=$NUM_LCPU
-      FOUND_CORES=yes
-    fi
+    NUM_CORES=`lparstat -m 2> /dev/null | $GREP -o "lcpu=[[0-9]]*" | $CUT -d "=" -f 2`
   elif test -n "$NUMBER_OF_PROCESSORS"; then
     # On windows, look in the env
     NUM_CORES=$NUMBER_OF_PROCESSORS
-    FOUND_CORES=yes
   fi
 
-  if test "x$FOUND_CORES" = xyes; then
-    AC_MSG_RESULT([$NUM_CORES])
-  else
+  if test "$NUM_CORES" -eq "0"; then
+    NUM_CORES=1
     AC_MSG_RESULT([could not detect number of cores, defaulting to 1])
     AC_MSG_WARN([This will disable all parallelism from build!])
+  else
+    AC_MSG_RESULT([$NUM_CORES])
   fi
 ])
 
@@ -79,7 +65,7 @@ AC_DEFUN([BPERF_CHECK_MEMORY_SIZE],
     MEMORY_SIZE=`expr $MEMORY_SIZE / 1024`
     FOUND_MEM=yes
   elif test -x /usr/sbin/prtconf; then
-    # Looks like a Solaris or AIX system
+    # Looks like an AIX system
     MEMORY_SIZE=`/usr/sbin/prtconf 2> /dev/null | grep "^Memory [[Ss]]ize" | awk '{ print [$]3 }'`
     FOUND_MEM=yes
   elif test -x /usr/sbin/sysctl; then
@@ -179,7 +165,7 @@ AC_DEFUN([BPERF_SETUP_CCACHE],
   if test "x$TOOLCHAIN_PATH" != x; then
     PATH=$TOOLCHAIN_PATH:$PATH
   fi
-  UTIL_PATH_PROGS(CCACHE, ccache)
+  UTIL_LOOKUP_PROGS(CCACHE, ccache)
   PATH="$OLD_PATH"
 
   AC_MSG_CHECKING([if ccache is available])
@@ -257,8 +243,11 @@ AC_DEFUN([BPERF_SETUP_CCACHE_USAGE],
       fi
     fi
 
+    # The CCACHE_BASEDIR needs to end with '/' as ccache will otherwise think
+    # directories next to it, that have the base dir name as a prefix, are sub
+    # directories of CCACHE_BASEDIR.
     CCACHE="CCACHE_COMPRESS=1 $SET_CCACHE_DIR \
-        CCACHE_SLOPPINESS=$CCACHE_SLOPPINESS CCACHE_BASEDIR=$TOPDIR $CCACHE"
+        CCACHE_SLOPPINESS=$CCACHE_SLOPPINESS CCACHE_BASEDIR=$WORKSPACE_ROOT/ $CCACHE"
 
     if test "x$SET_CCACHE_DIR" != x; then
       mkdir -p $CCACHE_DIR > /dev/null 2>&1
@@ -369,12 +358,6 @@ AC_DEFUN_ONCE([BPERF_SETUP_PRECOMPILED_HEADERS],
   AC_MSG_CHECKING([if precompiled headers are available])
   if test "x$ICECC" != "x"; then
     AC_MSG_RESULT([no, does not work effectively with icecc])
-    PRECOMPILED_HEADERS_AVAILABLE=false
-  elif test "x$TOOLCHAIN_TYPE" = xsolstudio; then
-    AC_MSG_RESULT([no, does not work with Solaris Studio])
-    PRECOMPILED_HEADERS_AVAILABLE=false
-  elif test "x$TOOLCHAIN_TYPE" = xxlc; then
-    AC_MSG_RESULT([no, does not work with xlc])
     PRECOMPILED_HEADERS_AVAILABLE=false
   elif test "x$TOOLCHAIN_TYPE" = xgcc; then
     # Check that the compiler actually supports precomp headers.

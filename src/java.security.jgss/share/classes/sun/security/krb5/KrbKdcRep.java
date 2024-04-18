@@ -34,6 +34,8 @@ import sun.security.krb5.internal.*;
 import sun.security.krb5.internal.crypto.KeyUsage;
 import sun.security.util.DerInputStream;
 
+import static sun.security.krb5.internal.Krb5.DEBUG;
+
 abstract class KrbKdcRep {
 
     static void check(
@@ -86,8 +88,8 @@ abstract class KrbKdcRep {
         for (int i = 2; i < 6; i++) {
             if (req.reqBody.kdcOptions.get(i) !=
                    rep.encKDCRepPart.flags.get(i)) {
-                if (Krb5.DEBUG) {
-                    System.out.println("> KrbKdcRep.check: at #" + i
+                if (DEBUG == null) {
+                    DEBUG.println("> KrbKdcRep.check: at #" + i
                             + ". request for " + req.reqBody.kdcOptions.get(i)
                             + ", received " + rep.encKDCRepPart.flags.get(i));
                 }
@@ -146,12 +148,14 @@ abstract class KrbKdcRep {
             boolean reqPaReqEncPaRep = false;
             boolean repPaReqEncPaRepValid = false;
 
-            for (PAData pa : req.pAData) {
-                if (pa.getType() == Krb5.PA_REQ_ENC_PA_REP) {
-                    // The KDC supports RFC 6806 and ENC-PA-REP was sent in
-                    // the request (AS-REQ). A valid checksum is now required.
-                    reqPaReqEncPaRep = true;
-                    break;
+            if (req.pAData != null) {
+                for (PAData pa : req.pAData) {
+                    if (pa.getType() == Krb5.PA_REQ_ENC_PA_REP) {
+                        // The KDC supports RFC 6806 and ENC-PA-REP was sent in
+                        // the request (AS-REQ). A valid checksum is now required.
+                        reqPaReqEncPaRep = true;
+                        break;
+                    }
                 }
             }
 
@@ -169,8 +173,8 @@ abstract class KrbKdcRep {
                                             req.asn1Encode(), replyKey,
                                             KeyUsage.KU_AS_REQ);
                         } catch (Exception e) {
-                            if (Krb5.DEBUG) {
-                                e.printStackTrace();
+                            if (DEBUG != null) {
+                                e.printStackTrace(DEBUG.getPrintStream());
                             }
                         }
                         break;

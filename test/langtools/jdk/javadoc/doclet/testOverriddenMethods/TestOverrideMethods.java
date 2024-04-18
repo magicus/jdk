@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug 8157000 8192850 8182765
+ * @bug 8157000 8192850 8182765 8223607 8261976 8281376 8313204
  * @summary  test the behavior of --override-methods option
  * @library  ../../lib
  * @modules jdk.javadoc/jdk.javadoc.internal.tool
@@ -35,7 +35,7 @@ import javadoc.tester.JavadocTester;
 
 public class TestOverrideMethods  extends JavadocTester {
     public static void main(String... args) throws Exception {
-        TestOverrideMethods tester = new TestOverrideMethods();
+        var tester = new TestOverrideMethods();
         tester.runTests();
     }
 
@@ -69,6 +69,7 @@ public class TestOverrideMethods  extends JavadocTester {
     public void testSummary() {
         javadoc("-d", "out-summary",
                 "-sourcepath", testSrc,
+                "--no-platform-links",
                 "-javafx",
                 "--disable-javafx-strict-checks",
                 "--override-methods=summary",
@@ -77,13 +78,6 @@ public class TestOverrideMethods  extends JavadocTester {
         checkExit(Exit.OK);
 
         checkOrder("pkg5/Classes.C.html",
-                // Check properties
-                """
-                    Properties declared in class&nbsp;pkg5.<a href="Classes.P.html""",
-                "Classes.P",
-                """
-                    Classes.P.html#rateProperty">rate""",
-
                 // Check nested classes
                 "Nested classes/interfaces declared in class&nbsp;pkg5.",
                 "Classes.P",
@@ -94,6 +88,13 @@ public class TestOverrideMethods  extends JavadocTester {
                 "type parameter in Classes.P.PN",
                 "V",
 
+                // Check properties
+                """
+                    Properties declared in class&nbsp;pkg5.<a href="Classes.P.html""",
+                "Classes.P",
+                """
+                    Classes.P.html#rateProperty">rate""",
+
                 // Check fields
                 """
                     Fields declared in class&nbsp;pkg5.<a href="Classes.P.html""",
@@ -103,12 +104,12 @@ public class TestOverrideMethods  extends JavadocTester {
                 // Check method summary
                 "Method Summary",
                 "void",
-                "#m1()\">m1",
+                "#m1()\" class=\"member-name-link\">m1",
                 "A modified method",
 
                 "void",
                 """
-                    #m4(java.lang.String,java.lang.String)">m4""",
+                    #m4(java.lang.String,java.lang.String)" class="member-name-link">m4""",
                 "java.lang.String&nbsp;k,",
                 "java.lang.String",
                 "&nbsp;v)",
@@ -219,15 +220,15 @@ public class TestOverrideMethods  extends JavadocTester {
                 """
                     Interfaces.C.html#o()"><code>Interfaces.C.o()""",
 
-                // Check properties
-                """
-                    Properties declared in interface&nbsp;pkg5.<a href="Interfaces.A.html" title="interface in pkg5">Interfaces.A</a>""",
-
                 // Check nested classes
                 "Nested classes/interfaces declared in interface&nbsp;pkg5.",
                 "Interfaces.A",
                 "Interfaces.A.AA.html",
                 "Interfaces.A.AA",
+
+                // Check properties
+                """
+                    Properties declared in interface&nbsp;pkg5.<a href="Interfaces.A.html" title="interface in pkg5">Interfaces.A</a>""",
 
                 // Check Fields
                 """
@@ -238,8 +239,8 @@ public class TestOverrideMethods  extends JavadocTester {
 
                 // Check Method Summary
                 "Method Summary",
-                "#m()\">m",
-                "#n()\">n",
+                "#m()\" class=\"member-name-link\">m",
+                "#n()\" class=\"member-name-link\">n",
 
                 // Check footnotes
                 """
@@ -264,79 +265,397 @@ public class TestOverrideMethods  extends JavadocTester {
                 """
                     <h2 class="title" id="I:M">M</h2>""",
                 """
-                    <a href="pkg5/Interfaces.C.html#m()">m()""",
+                    <a href="pkg5/Interfaces.C.html#m()" class="member-name-link">m()""",
                 """
-                    <a href="pkg5/Interfaces.D.html#m()">m()</a>""",
+                    <a href="pkg5/Interfaces.D.html#m()" class="member-name-link">m()</a>""",
                 """
-                    <a href="pkg5/Classes.GP.html#m0()">m0()""",
+                    <a href="pkg5/Classes.GP.html#m0()" class="member-name-link">m0()""",
                 """
-                    <a href="pkg5/Interfaces.A.html#m0()">m0()</a>""",
+                    <a href="pkg5/Interfaces.A.html#m0()" class="member-name-link">m0()</a>""",
                 """
-                    <a href="pkg5/Classes.C.html#m1()">m1()</a>""",
+                    <a href="pkg5/Classes.C.html#m1()" class="member-name-link">m1()</a>""",
                 """
-                    <a href="pkg5/Classes.P.html#m1()">m1()</a>""",
+                    <a href="pkg5/Classes.P.html#m1()" class="member-name-link">m1()</a>""",
                 """
-                    <a href="pkg5/Interfaces.A.html#m1()">m1()</a>""",
+                    <a href="pkg5/Interfaces.A.html#m1()" class="member-name-link">m1()</a>""",
                 """
-                    <a href="pkg5/Interfaces.B.html#m1()">m1()</a>""",
+                    <a href="pkg5/Interfaces.B.html#m1()" class="member-name-link">m1()</a>""",
                 """
-                    <a href="pkg5/Classes.P.html#m2()">m2()</a>""",
+                    <a href="pkg5/Classes.P.html#m2()" class="member-name-link">m2()</a>""",
                 """
-                    <a href="pkg5/Interfaces.A.html#m2()">m2()</a>""",
+                    <a href="pkg5/Interfaces.A.html#m2()" class="member-name-link">m2()</a>""",
                 """
-                    <a href="pkg5/Classes.P.html#m3()">m3()</a>""",
+                    <a href="pkg5/Classes.P.html#m3()" class="member-name-link">m3()</a>""",
                 """
-                    <a href="pkg5/Interfaces.A.html#m3()">m3()</a>""",
+                    <a href="pkg5/Interfaces.A.html#m3()" class="member-name-link">m3()</a>""",
                 """
-                    <a href="pkg5/Interfaces.B.html#m3()">m3()</a>""",
+                    <a href="pkg5/Interfaces.B.html#m3()" class="member-name-link">m3()</a>""",
                 """
-                    <a href="pkg5/Classes.C.html#m4(java.lang.String,java.lang.String)">m4(String, String)</a>""",
+                    <a href="pkg5/Classes.C.html#m4(java.lang.String,java.lang.String)" class="membe\
+                    r-name-link">m4(String, String)</a>""",
                 """
-                    <a href="pkg5/Classes.P.html#m4(K,V)">m4(K, V)</a>""",
+                    <a href="pkg5/Classes.P.html#m4(K,V)" class="member-name-link">m4(K, V)</a>""",
                 """
-                    <a href="pkg5/Classes.P.html#m5()">m5()</a>""",
+                    <a href="pkg5/Classes.P.html#m5()" class="member-name-link">m5()</a>""",
                 """
-                    <a href="pkg5/Classes.C.html#m6()">m6()</a>""",
+                    <a href="pkg5/Classes.C.html#m6()" class="member-name-link">m6()</a>""",
                 """
-                    <a href="pkg5/Classes.P.html#m6()">m6()</a>""",
+                    <a href="pkg5/Classes.P.html#m6()" class="member-name-link">m6()</a>""",
                 """
-                    <a href="pkg5/Classes.C.html#m7()">m7()</a>""",
+                    <a href="pkg5/Classes.C.html#m7()" class="member-name-link">m7()</a>""",
                 """
-                    <a href="pkg5/Classes.GP.html#m7()">m7()</a>""",
-                "Returns the enum constant of this type with the specified name.",
+                    <a href="pkg5/Classes.GP.html#m7()" class="member-name-link">m7()</a>""",
+                "Returns the enum constant of this class with the specified name.",
                 """
-                    Returns an array containing the constants of this enum type, in
+                    Returns an array containing the constants of this enum class, in
                     the order they are declared."""
         );
 
-        // Check methods with covariant return types
-        // Only m2 should be shown in summary; m1 and m3 should listed as declared in Base
+        // Check methods with covariant return types, changes in modifiers or thrown exceptions.
+        // Only those should be shown in summary; m1, m3, m9 should listed as declared in Base
         checkOutput("pkg6/Sub.html", true,
                 """
-                    <table class="summary-table" aria-labelledby="t0">
-                    <thead>
-                    <tr>
-                    <th class="col-first" scope="col">Modifier and Type</th>
-                    <th class="col-second" scope="col">Method</th>
-                    <th class="col-last" scope="col">Description</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr class="alt-color" id="i0">
-                    <td class="col-first"><code>java.lang.String</code></td>
-                    <th class="col-second" scope="row"><code><span class="member-name-link"><a href="#m2()">m2</a></span>()</code></th>
-                    <td class="col-last">
+                    <div class="summary-table three-column-summary">
+                    <div class="table-header col-first">Modifier and Type</div>
+                    <div class="table-header col-second">Method</div>
+                    <div class="table-header col-last">Description</div>
+                    <div class="col-first even-row-color method-summary-table method-summary-table-t\
+                    ab2 method-summary-table-tab4"><code>java.lang.String</code></div>
+                    <div class="col-second even-row-color method-summary-table method-summary-table-\
+                    tab2 method-summary-table-tab4"><code><a href="#m2()" class="member-name-link">\
+                    m2</a>()</code></div>
+                    <div class="col-last even-row-color method-summary-table method-summary-table-ta\
+                    b2 method-summary-table-tab4">
                     <div class="block">This is Base::m2.</div>
-                    </td>
-                    </tr>
-                    </tbody>
-                    </table>
+                    </div>
+                    <div class="col-first odd-row-color method-summary-table method-summary-table-ta\
+                    b2 method-summary-table-tab4"><code>void</code></div>
+                    <div class="col-second odd-row-color method-summary-table method-summary-table-t\
+                    ab2 method-summary-table-tab4"><code><a href="#m4()" class="member-name-link">m4\
+                    </a>()</code></div>
+                    <div class="col-last odd-row-color method-summary-table method-summary-table-tab\
+                    2 method-summary-table-tab4">
+                    <div class="block">This is Base::m4.</div>
+                    </div>
+                    <div class="col-first even-row-color method-summary-table method-summary-table-t\
+                    ab2 method-summary-table-tab4"><code>java.lang.Object</code></div>
+                    <div class="col-second even-row-color method-summary-table method-summary-table-\
+                    tab2 method-summary-table-tab4"><code><a href="#m5()" class="member-name-link">m\
+                    5</a>()</code></div>
+                    <div class="col-last even-row-color method-summary-table method-summary-table-ta\
+                    b2 method-summary-table-tab4">
+                    <div class="block">This is Base::m5.</div>
+                    </div>
+                    <div class="col-first odd-row-color method-summary-table method-summary-table-ta\
+                    b2 method-summary-table-tab4"><code>final java.lang.Object</code></div>
+                    <div class="col-second odd-row-color method-summary-table method-summary-table-t\
+                    ab2 method-summary-table-tab4"><code><a href="#m6()" class="member-name-link">m6\
+                    </a>()</code></div>
+                    <div class="col-last odd-row-color method-summary-table method-summary-table-tab\
+                    2 method-summary-table-tab4">
+                    <div class="block">This is Base::m6.</div>
+                    </div>
+                    <div class="col-first even-row-color method-summary-table method-summary-table-t\
+                    ab2 method-summary-table-tab4"><code>java.lang.Object</code></div>
+                    <div class="col-second even-row-color method-summary-table method-summary-table-\
+                    tab2 method-summary-table-tab4"><code><a href="#m7()" class="member-name-link">m\
+                    7</a>()</code></div>
+                    <div class="col-last even-row-color method-summary-table method-summary-table-ta\
+                    b2 method-summary-table-tab4">
+                    <div class="block">This is Base::m7.</div>
+                    </div>
+                    <div class="col-first odd-row-color method-summary-table method-summary-table-ta\
+                    b2 method-summary-table-tab3"><code>abstract java.lang.Object</code></div>
+                    <div class="col-second odd-row-color method-summary-table method-summary-table-t\
+                    ab2 method-summary-table-tab3"><code><a href="#m8()" class="member-name-link">m8\
+                    </a>()</code></div>
+                    <div class="col-last odd-row-color method-summary-table method-summary-table-tab\
+                    2 method-summary-table-tab3">
+                    <div class="block">This is Base::m8.</div>
+                    </div>
                     """,
                 """
                     <div class="inherited-list">
-                    <h3 id="methods.inherited.from.class.pkg6.Base">Methods declared in class&nbsp;p\
+                    <h3 id="methods-inherited-from-class-pkg6.Base">Methods declared in class&nbsp;p\
                     kg6.<a href="Base.html" title="class in pkg6">Base</a></h3>
-                    <code><a href="Base.html#m1()">m1</a>, <a href="Base.html#m3()">m3</a></code></div>
+                    <code><a href="Base.html#m1()">m1</a>, <a href="Base.html#m3()">m3</a>, <a href="Base.html#m9()">m9</a></code></div>
                     """);
+    }
+
+    @Test
+    public void testSummaryAnnotations() {
+        javadoc("-d", "out-summary-annotations",
+                "-sourcepath", testSrc,
+                "--no-platform-links",
+                "-javafx",
+                "--disable-javafx-strict-checks",
+                "--override-methods=summary",
+                "-private",
+                "pkg7");
+
+        checkExit(Exit.OK);
+
+        checkOutput("pkg7/AnnotatedSub1.html", true,
+                """
+                    <div class="inherited-list">
+                    <h3 id="methods-inherited-from-class-pkg7.AnnotatedBase">Methods declared in int\
+                    erface&nbsp;pkg7.<a href="AnnotatedBase.html" title="interface in pkg7">Annotate\
+                    dBase</a></h3>
+                    <code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">m1</a></code></div>""");
+
+        checkOutput("pkg7/AnnotatedSub2.html", true,
+                """
+                    <div class="member-signature"><span class="annotations"><a href="A.html" title="\
+                    annotation interface in pkg7">@A</a>
+                    </span><span class="return-type"><a href="A.html" title="annotation interface in\
+                     pkg7">@A</a> java.lang.Iterable&lt;java.lang.String&gt;</span>&nbsp;<span class\
+                    ="element-name">m1</span><wbr><span class="parameters">(java.lang.Class&lt;? ext\
+                    ends java.lang.CharSequence&gt;&nbsp;p1,
+                     int[]&nbsp;p2)</span></div>
+                    <div class="block"><span class="description-from-type-label">Description copied from inte\
+                    rface:&nbsp;<code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">Ann\
+                    otatedBase</a></code></span></div>
+                    <div class="block">This is AnnotatedBase::m1.</div>
+                    <dl class="notes">
+                    <dt>Specified by:</dt>
+                    <dd><code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">m1</a></cod\
+                    e>&nbsp;in interface&nbsp;<code><a href="AnnotatedBase.html" title="interface in\
+                     pkg7">AnnotatedBase</a></code></dd>
+                    <dt>Parameters:</dt>
+                    <dd><code>p1</code> - first parameter</dd>
+                    <dd><code>p2</code> - second parameter</dd>
+                    <dt>Returns:</dt>
+                    <dd>something</dd>
+                    </dl>""");
+
+        checkOutput("pkg7/AnnotatedSub3.html", true,
+                """
+                    <div class="member-signature"><span class="annotations"><a href="A.html" title="\
+                    annotation interface in pkg7">@A</a>
+                    </span><span class="return-type"><a href="A.html" title="annotation interface in\
+                     pkg7">@A</a> java.lang.Iterable&lt;java.lang.String&gt;</span>&nbsp;<span class\
+                    ="element-name">m1</span><wbr><span class="parameters">(java.lang.Class&lt;? ext\
+                    ends java.lang.CharSequence&gt;&nbsp;p1,
+                     int[]&nbsp;p2)</span></div>
+                    <div class="block"><span class="description-from-type-label">Description copied from inte\
+                    rface:&nbsp;<code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">Ann\
+                    otatedBase</a></code></span></div>
+                    <div class="block">This is AnnotatedBase::m1.</div>
+                    <dl class="notes">
+                    <dt>Specified by:</dt>
+                    <dd><code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">m1</a></cod\
+                    e>&nbsp;in interface&nbsp;<code><a href="AnnotatedBase.html" title="interface in\
+                     pkg7">AnnotatedBase</a></code></dd>
+                    <dt>Parameters:</dt>
+                    <dd><code>p1</code> - first parameter</dd>
+                    <dd><code>p2</code> - second parameter</dd>
+                    <dt>Returns:</dt>
+                    <dd>something</dd>
+                    </dl>""");
+
+        checkOutput("pkg7/AnnotatedSub4.html", true,
+                """
+                    <div class="member-signature"><span class="return-type">java.lang.Iterable&lt;<a\
+                     href="A.html" title="annotation interface in pkg7">@A</a> java.lang.String&gt;<\
+                    /span>&nbsp;<span class="element-name">m1</span><wbr><span class="parameters">(j\
+                    ava.lang.Class&lt;? extends java.lang.CharSequence&gt;&nbsp;p1,
+                     int[]&nbsp;p2)</span></div>
+                    <div class="block"><span class="description-from-type-label">Description copied from inte\
+                    rface:&nbsp;<code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">Ann\
+                    otatedBase</a></code></span></div>
+                    <div class="block">This is AnnotatedBase::m1.</div>
+                    <dl class="notes">
+                    <dt>Specified by:</dt>
+                    <dd><code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">m1</a></cod\
+                    e>&nbsp;in interface&nbsp;<code><a href="AnnotatedBase.html" title="interface in\
+                     pkg7">AnnotatedBase</a></code></dd>
+                    <dt>Parameters:</dt>
+                    <dd><code>p1</code> - first parameter</dd>
+                    <dd><code>p2</code> - second parameter</dd>
+                    <dt>Returns:</dt>
+                    <dd>something</dd>
+                    </dl>""");
+
+        checkOutput("pkg7/AnnotatedSub5.html", true,
+                """
+                    <div class="member-signature"><span class="return-type">java.lang.Iterable&lt;ja\
+                    va.lang.String&gt;</span>&nbsp;<span class="element-name">m1</span><wbr><span cl\
+                    ass="parameters">(<a href="A.html" title="annotation interface in pkg7">@A</a>
+                     <a href="A.html" title="annotation interface in pkg7">@A</a> java.lang.Class&lt\
+                    ;? extends java.lang.CharSequence&gt;&nbsp;p1,
+                     int[]&nbsp;p2)</span></div>
+                    <div class="block"><span class="description-from-type-label">Description copied from inte\
+                    rface:&nbsp;<code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">Ann\
+                    otatedBase</a></code></span></div>
+                    <div class="block">This is AnnotatedBase::m1.</div>
+                    <dl class="notes">
+                    <dt>Specified by:</dt>
+                    <dd><code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">m1</a></cod\
+                    e>&nbsp;in interface&nbsp;<code><a href="AnnotatedBase.html" title="interface in\
+                     pkg7">AnnotatedBase</a></code></dd>
+                    <dt>Parameters:</dt>
+                    <dd><code>p1</code> - first parameter</dd>
+                    <dd><code>p2</code> - second parameter</dd>
+                    <dt>Returns:</dt>
+                    <dd>something</dd>
+                    </dl>""");
+
+        checkOutput("pkg7/AnnotatedSub6.html", true,
+                """
+                    <div class="member-signature"><span class="return-type">java.lang.Iterable&lt;ja\
+                    va.lang.String&gt;</span>&nbsp;<span class="element-name">m1</span><wbr><span cl\
+                    ass="parameters">(java.lang.Class&lt;<a href="A.html" title="annotation interfac\
+                    e in pkg7">@A</a> ? extends java.lang.CharSequence&gt;&nbsp;p1,
+                     int[]&nbsp;p2)</span></div>
+                    <div class="block"><span class="description-from-type-label">Description copied from inte\
+                    rface:&nbsp;<code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">Ann\
+                    otatedBase</a></code></span></div>
+                    <div class="block">This is AnnotatedBase::m1.</div>
+                    <dl class="notes">
+                    <dt>Specified by:</dt>
+                    <dd><code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">m1</a></cod\
+                    e>&nbsp;in interface&nbsp;<code><a href="AnnotatedBase.html" title="interface in\
+                     pkg7">AnnotatedBase</a></code></dd>
+                    <dt>Parameters:</dt>
+                    <dd><code>p1</code> - first parameter</dd>
+                    <dd><code>p2</code> - second parameter</dd>
+                    <dt>Returns:</dt>
+                    <dd>something</dd>
+                    </dl>""");
+
+        checkOutput("pkg7/AnnotatedSub7.html", true,
+                """
+                    <div class="member-signature"><span class="return-type">java.lang.Iterable&lt;ja\
+                    va.lang.String&gt;</span>&nbsp;<span class="element-name">m1</span><wbr><span cl\
+                    ass="parameters">(java.lang.Class&lt;? extends <a href="A.html" title="annotatio\
+                    n interface in pkg7">@A</a> java.lang.CharSequence&gt;&nbsp;p1,
+                     int[]&nbsp;p2)</span></div>
+                    <div class="block"><span class="description-from-type-label">Description copied from inte\
+                    rface:&nbsp;<code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">Ann\
+                    otatedBase</a></code></span></div>
+                    <div class="block">This is AnnotatedBase::m1.</div>
+                    <dl class="notes">
+                    <dt>Specified by:</dt>
+                    <dd><code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">m1</a></cod\
+                    e>&nbsp;in interface&nbsp;<code><a href="AnnotatedBase.html" title="interface in\
+                     pkg7">AnnotatedBase</a></code></dd>
+                    <dt>Parameters:</dt>
+                    <dd><code>p1</code> - first parameter</dd>
+                    <dd><code>p2</code> - second parameter</dd>
+                    <dt>Returns:</dt>
+                    <dd>something</dd>
+                    </dl>""");
+
+        checkOutput("pkg7/AnnotatedSub8.html", true,
+                """
+                    <div class="member-signature"><span class="return-type">java.lang.Iterable&lt;ja\
+                    va.lang.String&gt;</span>&nbsp;<span class="element-name">m1</span><wbr><span cl\
+                    ass="parameters">(java.lang.Class&lt;? extends java.lang.CharSequence&gt;&nbsp;p1,
+                     int <a href="A.html" title="annotation interface in pkg7">@A</a> []&nbsp;p2)</s\
+                    pan></div>
+                    <div class="block"><span class="description-from-type-label">Description copied from inte\
+                    rface:&nbsp;<code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">Ann\
+                    otatedBase</a></code></span></div>
+                    <div class="block">This is AnnotatedBase::m1.</div>
+                    <dl class="notes">
+                    <dt>Specified by:</dt>
+                    <dd><code><a href="AnnotatedBase.html#m1(java.lang.Class,int%5B%5D)">m1</a></cod\
+                    e>&nbsp;in interface&nbsp;<code><a href="AnnotatedBase.html" title="interface in\
+                     pkg7">AnnotatedBase</a></code></dd>
+                    <dt>Parameters:</dt>
+                    <dd><code>p1</code> - first parameter</dd>
+                    <dd><code>p2</code> - second parameter</dd>
+                    <dt>Returns:</dt>
+                    <dd>something</dd>
+                    </dl>""");
+    }
+
+    @Test
+    public void testPolymorphicDetail() {
+        javadoc("-d", "out-polymorphic-detail",
+                "-sourcepath", testSrc,
+                "--override-methods=detail",
+                "pkg8");
+
+        checkExit(Exit.OK);
+
+        checkOutput("pkg8/C.html", true,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="P.html#m1()">m1</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="P.html" title="class in pkg8">P</a></code></dd>""");
+
+        checkOutput("pkg8/C.html", true,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="P.html#m2()">m2</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="P.html" title="class in pkg8">P</a></code></dd>""");
+
+        checkOutput("pkg8/C.html", true,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="P.html#m3()">m3</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="P.html" title="class in pkg8">P</a></code></dd>""");
+    }
+
+    @Test // results should be the same as that of "detail"
+    public void testPolymorphicDefault() {
+        javadoc("-d", "out-polymorphic-default",
+                "-sourcepath", testSrc,
+                "pkg8");
+
+        checkExit(Exit.OK);
+
+        checkOutput("pkg8/C.html", true,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="P.html#m1()">m1</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="P.html" title="class in pkg8">P</a></code></dd>""");
+
+        checkOutput("pkg8/C.html", true,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="P.html#m2()">m2</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="P.html" title="class in pkg8">P</a></code></dd>""");
+
+        checkOutput("pkg8/C.html", true,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="P.html#m3()">m3</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="P.html" title="class in pkg8">P</a></code></dd>""");
+    }
+
+    @Test
+    public void testPolymorphicSummary() {
+        javadoc("-d", "out-polymorphic-summary",
+                "-sourcepath", testSrc,
+                "--override-methods=summary",
+                "pkg8");
+
+        checkExit(Exit.OK);
+
+        checkOutput("pkg8/C.html", true,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="GP.html#m1()">m1</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="GP.html" title="class in pkg8">GP</a></code></dd>""");
+
+        checkOutput("pkg8/C.html", true,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="GP.html#m2()">m2</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="GP.html" title="class in pkg8">GP</a></code></dd>""");
+
+        checkOutput("pkg8/C.html", true,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="GP.html#m3()">m3</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="GP.html" title="class in pkg8">GP</a></code></dd>""");
+
+        checkOutput("pkg8/C.html", false,
+                """
+                    <dt>Overrides:</dt>
+                    <dd><code><a href="GP.html#m1()">m1</a></code>&nbsp;in class&nbsp;\
+                    <code><a href="P.html" title="class in pkg8">P</a></code></dd>""");
     }
 }

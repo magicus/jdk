@@ -23,10 +23,9 @@
  */
 
 /*
- * @test TestThreadCounts
+ * @test
  * @summary Test that Shenandoah GC thread counts are handled well
- * @key gc
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -46,13 +45,14 @@ public class TestThreadCounts {
     }
 
     private static void testWith(int conc, int par) throws Exception {
-        ProcessBuilder pb = ProcessTools.createJavaProcessBuilder("-XX:+UnlockDiagnosticVMOptions",
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                "-Xmx128m",
+                "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:+UnlockExperimentalVMOptions",
                 "-XX:+UseShenandoahGC",
                 "-XX:ConcGCThreads=" + conc,
                 "-XX:ParallelGCThreads=" + par,
                 "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
 
         if (conc == 0) {
             output.shouldContain("Shenandoah expects ConcGCThreads > 0");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,11 @@ package jdk.jpackage.test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -36,31 +40,62 @@ public class WindowsHelper {
 
     static String getBundleName(JPackageCommand cmd) {
         cmd.verifyIsOfType(PackageType.WINDOWS);
-        return String.format("%s-%s%s", cmd.name(), cmd.version(),
+        return String.format("%s-%s%s", cmd.installerName(), cmd.version(),
                 cmd.packageType().getSuffix());
     }
 
     static Path getInstallationDirectory(JPackageCommand cmd) {
-        Path installSubDir = getInstallationSubDirectory(cmd);
-        if (isUserLocalInstall(cmd)) {
-            return USER_LOCAL.resolve(installSubDir);
-        }
-        return PROGRAM_FILES.resolve(installSubDir);
+        return getInstallationRootDirectory(cmd).resolve(
+                getInstallationSubDirectory(cmd));
     }
 
-    static Path getInstallationSubDirectory(JPackageCommand cmd) {
+    private static Path getInstallationRootDirectory(JPackageCommand cmd) {
+        if (isUserLocalInstall(cmd)) {
+            return USER_LOCAL;
+        }
+        return PROGRAM_FILES;
+    }
+
+    private static Path getInstallationSubDirectory(JPackageCommand cmd) {
         cmd.verifyIsOfType(PackageType.WINDOWS);
-        return Path.of(cmd.getArgumentValue("--install-dir", () -> cmd.name()));
+        return Path.of(cmd.getArgumentValue("--install-dir", cmd::name));
+    }
+
+    // Tests have problems on windows where path in the temp dir are too long
+    // for the wix tools.  We can't use a tempDir outside the TKit's WorkDir, so
+    // we minimize both the tempRoot directory name (above) and the tempDir name
+    // (below) to the extension part (which is necessary to differenciate between
+    // the multiple PackageTypes that will be run for one JPackageCommand).
+    // It might be beter if the whole work dir name was shortened from:
+    // jtreg_open_test_jdk_tools_jpackage_share_jdk_jpackage_tests_BasicTest_java.
+    public static Path getTempDirectory(JPackageCommand cmd, Path tempRoot) {
+        String ext = cmd.outputBundle().getFileName().toString();
+        int i = ext.lastIndexOf(".");
+        if (i > 0 && i < (ext.length() - 1)) {
+            ext = ext.substring(i+1);
+        }
+        return tempRoot.resolve(ext);
     }
 
     private static void runMsiexecWithRetries(Executor misexec) {
         Executor.Result result = null;
-        for (int attempt = 0; attempt != 3; ++attempt) {
+        for (int attempt = 0; attempt < 8; ++attempt) {
             result = misexec.executeWithoutExitCodeCheck();
-            if (result.exitCode == 1618) {
+
+            if (result.exitCode == 1605) {
+                // ERROR_UNKNOWN_PRODUCT, attempt to uninstall not installed
+                // package
+                return;
+            }
+
+            // The given Executor may either be of an msiexec command or an
+            // unpack.bat script containing the msiexec command. In the later
+            // case, when misexec returns 1618, the unpack.bat may return 1603
+            if ((result.exitCode == 1618) || (result.exitCode == 1603)) {
                 // Another installation is already in progress.
                 // Wait a little and try again.
-                ThrowingRunnable.toRunnable(() -> Thread.sleep(3000)).run();
+                Long timeout = 1000L * (attempt + 3); // from 3 to 10 seconds
+                ThrowingRunnable.toRunnable(() -> Thread.sleep(timeout)).run();
                 continue;
             }
             break;
@@ -73,31 +108,67 @@ public class WindowsHelper {
         BiConsumer<JPackageCommand, Boolean> installMsi = (cmd, install) -> {
             cmd.verifyIsOfType(PackageType.WIN_MSI);
             runMsiexecWithRetries(Executor.of("msiexec", "/qn", "/norestart",
-                    install ? "/i" : "/x").addArgument(cmd.outputBundle()));
+                    install ? "/i" : "/x").addArgument(cmd.outputBundle().normalize()));
         };
 
         PackageHandlers msi = new PackageHandlers();
         msi.installHandler = cmd -> installMsi.accept(cmd, true);
-        msi.uninstallHandler = cmd -> installMsi.accept(cmd, false);
+        msi.uninstallHandler = cmd -> {
+            if (Files.exists(cmd.outputBundle())) {
+                installMsi.accept(cmd, false);
+            }
+        };
         msi.unpackHandler = (cmd, destinationDir) -> {
             cmd.verifyIsOfType(PackageType.WIN_MSI);
-            runMsiexecWithRetries(Executor.of("msiexec", "/a")
-                    .addArgument(cmd.outputBundle().normalize())
-                    .addArguments("/qn", String.format("TARGETDIR=%s",
-                            destinationDir.toAbsolutePath().normalize())));
-            return destinationDir.resolve(getInstallationSubDirectory(cmd));
+            final Path unpackBat = destinationDir.resolve("unpack.bat");
+            final Path unpackDir = destinationDir.resolve(
+                    TKit.removeRootFromAbsolutePath(
+                            getInstallationRootDirectory(cmd)));
+
+            // Put msiexec in .bat file because can't pass value of TARGETDIR
+            // property containing spaces through ProcessBuilder properly.
+            // Set folder permissions to allow msiexec unpack msi bundle.
+            TKit.createTextFile(unpackBat, List.of(
+                    String.format("icacls \"%s\" /inheritance:e /grant Users:M",
+                            destinationDir),
+                    String.join(" ", List.of(
+                    "msiexec",
+                    "/a",
+                    String.format("\"%s\"", cmd.outputBundle().normalize()),
+                    "/qn",
+                    String.format("TARGETDIR=\"%s\"",
+                            unpackDir.toAbsolutePath().normalize())))));
+            runMsiexecWithRetries(Executor.of("cmd", "/c", unpackBat.toString()));
+            return destinationDir;
         };
         return msi;
     }
 
     static PackageHandlers createExePackageHandlers() {
-        PackageHandlers exe = new PackageHandlers();
-        exe.installHandler = cmd -> {
+        BiConsumer<JPackageCommand, Boolean> installExe = (cmd, install) -> {
             cmd.verifyIsOfType(PackageType.WIN_EXE);
-            new Executor().setExecutable(cmd.outputBundle()).execute();
+            Executor exec = new Executor().setExecutable(cmd.outputBundle());
+            if (install) {
+                exec.addArgument("/qn").addArgument("/norestart");
+            } else {
+                exec.addArgument("uninstall");
+            }
+            runMsiexecWithRetries(exec);
         };
 
+        PackageHandlers exe = new PackageHandlers();
+        exe.installHandler = cmd -> installExe.accept(cmd, true);
+        exe.uninstallHandler = cmd -> {
+            if (Files.exists(cmd.outputBundle())) {
+                installExe.accept(cmd, false);
+            }
+        };
         return exe;
+    }
+
+    static void verifyDesktopIntegration(JPackageCommand cmd,
+            String launcherName) {
+        new DesktopIntegrationVerifier(cmd, launcherName);
     }
 
     public static String getMsiProperty(JPackageCommand cmd, String propertyName) {
@@ -110,24 +181,72 @@ public class WindowsHelper {
         .executeAndGetOutput().stream().collect(Collectors.joining("\n"));
     }
 
+    public static String getExecutableDesciption(Path pathToExeFile) {
+        Executor exec = Executor.of("powershell",
+                "-NoLogo",
+                "-NoProfile",
+                "-Command",
+                "(Get-Item \\\""
+                + pathToExeFile.toAbsolutePath()
+                + "\\\").VersionInfo | select FileDescription");
+
+        var lineIt = exec.dumpOutput().executeAndGetOutput().iterator();
+        while (lineIt.hasNext()) {
+            var line = lineIt.next();
+            if (line.trim().equals("FileDescription")) {
+                // Skip "---------------" and move to the description value
+                lineIt.next();
+                return lineIt.next().trim();
+            }
+        }
+
+        throw new RuntimeException(String.format(
+                "Failed to get file description of [%s]", pathToExeFile));
+    }
+
     private static boolean isUserLocalInstall(JPackageCommand cmd) {
         return cmd.hasArgument("--win-per-user-install");
     }
 
-    static class DesktopIntegrationVerifier {
+    private static class DesktopIntegrationVerifier {
 
-        DesktopIntegrationVerifier(JPackageCommand cmd) {
+        DesktopIntegrationVerifier(JPackageCommand cmd, String launcherName) {
             cmd.verifyIsOfType(PackageType.WINDOWS);
-            this.cmd = cmd;
+
+            name = Optional.ofNullable(launcherName).orElseGet(cmd::name);
+
+            isUserLocalInstall = isUserLocalInstall(cmd);
+
+            appInstalled = cmd.appLauncherPath(launcherName).toFile().exists();
+
+            desktopShortcutPath = Path.of(name + ".lnk");
+
+            startMenuShortcutPath = Path.of(cmd.getArgumentValue(
+                    "--win-menu-group", () -> "Unknown"), name + ".lnk");
+
+            if (name.equals(cmd.name())) {
+                isWinMenu = cmd.hasArgument("--win-menu");
+                isDesktop = cmd.hasArgument("--win-shortcut");
+            } else {
+                var props = AdditionalLauncher.getAdditionalLauncherProperties(cmd,
+                        launcherName);
+                isWinMenu = props.getPropertyBooleanValue("win-menu").orElseGet(
+                        () -> cmd.hasArgument("--win-menu"));
+                isDesktop = props.getPropertyBooleanValue("win-shortcut").orElseGet(
+                        () -> cmd.hasArgument("--win-shortcut"));
+            }
+
             verifyStartMenuShortcut();
+
             verifyDesktopShortcut();
-            verifyFileAssociationsRegistry();
+
+            Stream.of(cmd.getAllArgumentValues("--file-associations")).map(
+                    Path::of).forEach(this::verifyFileAssociationsRegistry);
         }
 
         private void verifyDesktopShortcut() {
-            boolean appInstalled = cmd.appLauncherPath().toFile().exists();
-            if (cmd.hasArgument("--win-shortcut")) {
-                if (isUserLocalInstall(cmd)) {
+            if (isDesktop) {
+                if (isUserLocalInstall) {
                     verifyUserLocalDesktopShortcut(appInstalled);
                     verifySystemDesktopShortcut(false);
                 } else {
@@ -138,10 +257,6 @@ public class WindowsHelper {
                 verifySystemDesktopShortcut(false);
                 verifyUserLocalDesktopShortcut(false);
             }
-        }
-
-        private Path desktopShortcutPath() {
-            return Path.of(cmd.name() + ".lnk");
         }
 
         private void verifyShortcut(Path path, boolean exists) {
@@ -155,19 +270,18 @@ public class WindowsHelper {
         private void verifySystemDesktopShortcut(boolean exists) {
             Path dir = Path.of(queryRegistryValueCache(
                     SYSTEM_SHELL_FOLDERS_REGKEY, "Common Desktop"));
-            verifyShortcut(dir.resolve(desktopShortcutPath()), exists);
+            verifyShortcut(dir.resolve(desktopShortcutPath), exists);
         }
 
         private void verifyUserLocalDesktopShortcut(boolean exists) {
             Path dir = Path.of(
                     queryRegistryValueCache(USER_SHELL_FOLDERS_REGKEY, "Desktop"));
-            verifyShortcut(dir.resolve(desktopShortcutPath()), exists);
+            verifyShortcut(dir.resolve(desktopShortcutPath), exists);
         }
 
         private void verifyStartMenuShortcut() {
-            boolean appInstalled = cmd.appLauncherPath().toFile().exists();
-            if (cmd.hasArgument("--win-menu")) {
-                if (isUserLocalInstall(cmd)) {
+            if (isWinMenu) {
+                if (isUserLocalInstall) {
                     verifyUserLocalStartMenuShortcut(appInstalled);
                     verifySystemStartMenuShortcut(false);
                 } else {
@@ -180,16 +294,11 @@ public class WindowsHelper {
             }
         }
 
-        private Path startMenuShortcutPath() {
-            return Path.of(cmd.getArgumentValue("--win-menu-group",
-                    () -> "Unknown"), cmd.name() + ".lnk");
-        }
-
         private void verifyStartMenuShortcut(Path shortcutsRoot, boolean exists) {
-            Path shortcutPath = shortcutsRoot.resolve(startMenuShortcutPath());
+            Path shortcutPath = shortcutsRoot.resolve(startMenuShortcutPath);
             verifyShortcut(shortcutPath, exists);
             if (!exists) {
-                TKit.assertPathExists(shortcutPath.getParent(), false);
+                TKit.assertPathNotEmptyDirectory(shortcutPath.getParent());
             }
         }
 
@@ -204,13 +313,7 @@ public class WindowsHelper {
                     USER_SHELL_FOLDERS_REGKEY, "Programs")), exists);
         }
 
-        private void verifyFileAssociationsRegistry() {
-            Stream.of(cmd.getAllArgumentValues("--file-associations")).map(
-                    Path::of).forEach(this::verifyFileAssociationsRegistry);
-        }
-
         private void verifyFileAssociationsRegistry(Path faFile) {
-            boolean appInstalled = cmd.appLauncherPath().toFile().exists();
             try {
                 TKit.trace(String.format(
                         "Get file association properties from [%s] file",
@@ -260,10 +363,16 @@ public class WindowsHelper {
             }
         }
 
-        private final JPackageCommand cmd;
+        private final Path desktopShortcutPath;
+        private final Path startMenuShortcutPath;
+        private final boolean isUserLocalInstall;
+        private final boolean appInstalled;
+        private final boolean isWinMenu;
+        private final boolean isDesktop;
+        private final String name;
     }
 
-    private static String queryRegistryValue(String keyPath, String valueName) {
+    static String queryRegistryValue(String keyPath, String valueName) {
         var status = Executor.of("reg", "query", keyPath, "/v", valueName)
                 .saveOutput()
                 .executeWithoutExitCodeCheck();
@@ -282,9 +391,26 @@ public class WindowsHelper {
         }
 
         String value = status.assertExitCodeIsZero().getOutput().stream().skip(2).findFirst().orElseThrow();
-        // Extract the last field from the following line:
-        //     Common Desktop    REG_SZ    C:\Users\Public\Desktop
-        value = value.split("    REG_SZ    ")[1];
+        // Extract the last field from the following lines:
+        //    (Default)    REG_SZ    test1
+        //    string_val    REG_SZ    test2
+        //    string_val_empty    REG_SZ
+        //    bin_val    REG_BINARY    4242
+        //    bin_val_empty    REG_BINARY
+        //    dword_val    REG_DWORD    0x2a
+        //    qword_val    REG_QWORD    0x2a
+        //    multi_string_val    REG_MULTI_SZ    test3\0test4
+        //    multi_string_val_empty    REG_MULTI_SZ
+        //    expand_string_val    REG_EXPAND_SZ    test5
+        //    expand_string_val_empty    REG_EXPAND_SZ
+        String[] parts = value.split(" {4}REG_[A-Z_]+ {4}");
+        if (parts.length == 1) {
+            value = "";
+        } else if (parts.length == 2) {
+            value = parts[1];
+        } else {
+            throw new RuntimeException(String.format("Failed to extract registry value from string [%s]", value));
+        }
 
         TKit.trace(String.format("Registry value [%s] at [%s] path is [%s]",
                 valueName, keyPath, value));

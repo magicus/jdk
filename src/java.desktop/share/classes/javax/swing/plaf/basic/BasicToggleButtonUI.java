@@ -53,6 +53,11 @@ public class BasicToggleButtonUI extends BasicButtonUI {
     // ********************************
 
     /**
+     * Constructs a {@code BasicToggleButtonUI}.
+     */
+    public BasicToggleButtonUI() {}
+
+    /**
      * Returns an instance of {@code BasicToggleButtonUI}.
      *
      * @param b a component
@@ -178,7 +183,7 @@ public class BasicToggleButtonUI extends BasicButtonUI {
     }
 
     /**
-     * Overriden so that the text will not be rendered as shifted for
+     * Overridden so that the text will not be rendered as shifted for
      * Toggle buttons and subclasses.
      */
     protected int getTextShiftOffset() {

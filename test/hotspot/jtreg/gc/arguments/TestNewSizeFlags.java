@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package gc.arguments;
 
 /*
  * @test TestNewSizeFlags
- * @key gc
  * @bug 8025166
  * @summary Verify that young gen size conforms values specified by NewSize, MaxNewSize and Xmn options
  * @requires vm.gc != "Z" & vm.gc != "Shenandoah"
@@ -33,8 +32,8 @@ package gc.arguments;
  * @library /
  * @modules java.base/jdk.internal.misc
  *          java.management
- * @build sun.hotspot.WhiteBox
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @build jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run driver/timeout=240  gc.arguments.TestNewSizeFlags
  */
 
@@ -44,9 +43,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import jdk.test.lib.process.OutputAnalyzer;
-import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.Utils;
-import sun.hotspot.WhiteBox;
+import jdk.test.whitebox.WhiteBox;
 
 public class TestNewSizeFlags {
 
@@ -135,7 +133,7 @@ public class TestNewSizeFlags {
             long heapSize, long maxHeapSize,
             long expectedNewSize, long expectedMaxNewSize,
             LinkedList<String> options, boolean failureExpected) throws Exception {
-        OutputAnalyzer analyzer = startVM(options, newSize, maxNewSize, heapSize, maxHeapSize, expectedNewSize, expectedMaxNewSize);
+        OutputAnalyzer analyzer = executeLimitedTestJava(options, newSize, maxNewSize, heapSize, maxHeapSize, expectedNewSize, expectedMaxNewSize);
 
         if (failureExpected) {
             analyzer.shouldHaveExitValue(1);
@@ -146,7 +144,7 @@ public class TestNewSizeFlags {
         }
     }
 
-    private static OutputAnalyzer startVM(LinkedList<String> options,
+    private static OutputAnalyzer executeLimitedTestJava(LinkedList<String> options,
             long newSize, long maxNewSize,
             long heapSize, long maxHeapSize,
             long expectedNewSize, long expectedMaxNewSize) throws Exception, IOException {
@@ -159,7 +157,6 @@ public class TestNewSizeFlags {
                 (maxNewSize >= 0 ? "-XX:MaxNewSize=" + maxNewSize : ""),
                 "-Xmx" + maxHeapSize,
                 "-Xms" + heapSize,
-                "-XX:GCLockerEdenExpansionPercent=0",
                 "-XX:-UseLargePages",
                 NewSizeVerifier.class.getName(),
                 Long.toString(expectedNewSize),
@@ -168,9 +165,7 @@ public class TestNewSizeFlags {
                 Long.toString(maxHeapSize)
         );
         vmOptions.removeIf(String::isEmpty);
-        ProcessBuilder procBuilder = GCArguments.createJavaProcessBuilder(vmOptions);
-        OutputAnalyzer analyzer = new OutputAnalyzer(procBuilder.start());
-        return analyzer;
+        return GCArguments.executeLimitedTestJava(vmOptions);
     }
 
     /**

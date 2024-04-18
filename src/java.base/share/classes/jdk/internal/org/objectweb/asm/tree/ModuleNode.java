@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.tree;
 
 import java.util.ArrayList;
@@ -83,10 +84,16 @@ public class ModuleNode extends ModuleVisitor {
     /** The version of this module. May be {@literal null}. */
     public String version;
 
-    /** The internal name of the main class of this module. May be {@literal null}. */
+    /**
+      * The internal name of the main class of this module (see {@link
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}). May be {@literal null}.
+      */
     public String mainClass;
 
-    /** The internal name of the packages declared by this module. May be {@literal null}. */
+    /**
+      * The internal name of the packages declared by this module (see {@link
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}). May be {@literal null}.
+      */
     public List<String> packages;
 
     /** The dependencies of this module. May be {@literal null}. */
@@ -98,7 +105,10 @@ public class ModuleNode extends ModuleVisitor {
     /** The packages opened by this module. May be {@literal null}. */
     public List<ModuleOpenNode> opens;
 
-    /** The internal names of the services used by this module. May be {@literal null}. */
+    /**
+      * The internal names of the services used by this module (see {@link
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}). May be {@literal null}.
+      */
     public List<String> uses;
 
     /** The services provided by this module. May be {@literal null}. */
@@ -115,7 +125,7 @@ public class ModuleNode extends ModuleVisitor {
       * @throws IllegalStateException If a subclass calls this constructor.
       */
     public ModuleNode(final String name, final int access, final String version) {
-        super(/* latest api = */ Opcodes.ASM8);
+        super(/* latest api = */ Opcodes.ASM9);
         if (getClass() != ModuleNode.class) {
             throw new IllegalStateException();
         }
@@ -129,7 +139,7 @@ public class ModuleNode extends ModuleVisitor {
       * Constructs a {@link ModuleNode}.
       *
       * @param api the ASM API version implemented by this visitor. Must be one of {@link
-      *     Opcodes#ASM6}, {@link Opcodes#ASM7} or {@link Opcodes#ASM8}.
+      *     Opcodes#ASM6}, {@link Opcodes#ASM7}, {@link Opcodes#ASM8} or {@link Opcodes#ASM9}.
       * @param name the fully qualified name (using dots) of the module.
       * @param access the module access flags, among {@code ACC_OPEN}, {@code ACC_SYNTHETIC} and {@code
       *     ACC_MANDATED}.
@@ -137,7 +147,8 @@ public class ModuleNode extends ModuleVisitor {
       * @param requires The dependencies of this module. May be {@literal null}.
       * @param exports The packages exported by this module. May be {@literal null}.
       * @param opens The packages opened by this module. May be {@literal null}.
-      * @param uses The internal names of the services used by this module. May be {@literal null}.
+      * @param uses The internal names of the services used by this module (see {@link
+      *     jdk.internal.org.objectweb.asm.Type#getInternalName()}). May be {@literal null}.
       * @param provides The services provided by this module. May be {@literal null}.
       */
     public ModuleNode(

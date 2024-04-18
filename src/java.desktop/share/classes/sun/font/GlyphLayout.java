@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -346,9 +346,9 @@ public final class GlyphLayout {
      * @param text the text, including optional context before start and after start + count
      * @param offset the start of the text to lay out
      * @param count the length of the text to lay out
-     * @param flags bidi and context flags {@see #java.awt.Font}
+     * @param flags bidi and context flags {@link java.awt.Font}
      * @param result a StandardGlyphVector to modify, can be null
-     * @return the layed out glyphvector, if result was passed in, it is returned
+     * @return the laid out glyphvector, if result was passed in, it is returned
      */
     public StandardGlyphVector layout(Font font, FontRenderContext frc,
                                       char[] text, int offset, int count,
@@ -478,8 +478,7 @@ public final class GlyphLayout {
         if (_gvdata._count < 0) {
             gv = new StandardGlyphVector(font, text, offset, count, frc);
             if (FontUtilities.debugFonts()) {
-               FontUtilities.getLogger().warning("OpenType layout failed on font: " +
-                                                 font);
+               FontUtilities.logWarning("OpenType layout failed on font: " + font);
             }
         } else {
             gv = _gvdata.createGlyphVector(font, frc, result);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,16 +23,19 @@
  */
 
 #include "precompiled.hpp"
-#include "jvm.h"
+#include "cds/archiveBuilder.hpp"
+#include "cds/cds_globals.hpp"
+#include "cds/cdsConfig.hpp"
 #include "classfile/compactHashtable.hpp"
 #include "classfile/javaClasses.hpp"
+#include "jvm.h"
 #include "logging/logMessage.hpp"
-#include "memory/dynamicArchive.hpp"
-#include "memory/heapShared.inline.hpp"
 #include "memory/metadataFactory.hpp"
-#include "memory/metaspaceShared.hpp"
+#include "runtime/globals.hpp"
+#include "runtime/java.hpp"
 #include "runtime/vmThread.hpp"
 #include "utilities/numberSeq.hpp"
+
 #include <sys/stat.h>
 
 #if INCLUDE_CDS
@@ -42,7 +45,7 @@
 //
 CompactHashtableWriter::CompactHashtableWriter(int num_entries,
                                                CompactHashtableStats* stats) {
-  Arguments::assert_is_dumping_archive();
+  assert(CDSConfig::is_dumping_archive(), "sanity");
   assert(num_entries >= 0, "sanity");
   _num_buckets = calculate_num_buckets(num_entries);
   assert(_num_buckets > 0, "no buckets");
@@ -50,12 +53,12 @@ CompactHashtableWriter::CompactHashtableWriter(int num_entries,
   _num_entries_written = 0;
   _buckets = NEW_C_HEAP_ARRAY(GrowableArray<Entry>*, _num_buckets, mtSymbol);
   for (int i=0; i<_num_buckets; i++) {
-    _buckets[i] = new (ResourceObj::C_HEAP, mtSymbol) GrowableArray<Entry>(0, true, mtSymbol);
+    _buckets[i] = new (mtSymbol) GrowableArray<Entry>(0, mtSymbol);
   }
 
   _stats = stats;
-  _compact_buckets = NULL;
-  _compact_entries = NULL;
+  _compact_buckets = nullptr;
+  _compact_entries = nullptr;
   _num_empty_buckets = 0;
   _num_value_only_buckets = 0;
   _num_other_buckets = 0;
@@ -72,11 +75,11 @@ CompactHashtableWriter::~CompactHashtableWriter() {
 
 size_t CompactHashtableWriter::estimate_size(int num_entries) {
   int num_buckets = calculate_num_buckets(num_entries);
-  size_t bucket_bytes = MetaspaceShared::ro_array_bytesize<u4>(num_buckets + 1);
+  size_t bucket_bytes = ArchiveBuilder::ro_array_bytesize<u4>(num_buckets + 1);
 
   // In worst case, we have no VALUE_ONLY_BUCKET_TYPE, so each entry takes 2 slots
   int entries_space = 2 * num_entries;
-  size_t entry_bytes = MetaspaceShared::ro_array_bytesize<u4>(entries_space);
+  size_t entry_bytes = ArchiveBuilder::ro_array_bytesize<u4>(entries_space);
 
   return bucket_bytes
        + entry_bytes
@@ -107,13 +110,15 @@ void CompactHashtableWriter::allocate_table() {
                                   "Too many entries.");
   }
 
-  _compact_buckets = MetaspaceShared::new_ro_array<u4>(_num_buckets + 1);
-  _compact_entries = MetaspaceShared::new_ro_array<u4>(entries_space);
+  _compact_buckets = ArchiveBuilder::new_ro_array<u4>(_num_buckets + 1);
+  _compact_entries = ArchiveBuilder::new_ro_array<u4>(entries_space);
 
   _stats->bucket_count    = _num_buckets;
-  _stats->bucket_bytes    = _compact_buckets->size() * BytesPerWord;
+  _stats->bucket_bytes    = align_up(_compact_buckets->size() * BytesPerWord,
+                                     SharedSpaceObjectAlignment);
   _stats->hashentry_count = _num_entries_written;
-  _stats->hashentry_bytes = _compact_entries->size() * BytesPerWord;
+  _stats->hashentry_bytes = align_up(_compact_entries->size() * BytesPerWord,
+                                     SharedSpaceObjectAlignment);
 }
 
 // Write the compact table's buckets
@@ -194,13 +199,8 @@ void SimpleCompactHashtable::init(address base_address, u4 entry_count, u4 bucke
   _bucket_count = bucket_count;
   _entry_count = entry_count;
   _base_address = base_address;
-  if (DynamicDumpSharedSpaces) {
-    _buckets = DynamicArchive::buffer_to_target(buckets);
-    _entries = DynamicArchive::buffer_to_target(entries);
-  } else {
-    _buckets = buckets;
-    _entries = entries;
-  }
+  _buckets = buckets;
+  _entries = entries;
 }
 
 size_t SimpleCompactHashtable::calculate_header_size() {
@@ -212,11 +212,13 @@ size_t SimpleCompactHashtable::calculate_header_size() {
 void SimpleCompactHashtable::serialize_header(SerializeClosure* soc) {
   // NOTE: if you change this function, you MUST change the number 5 in
   // calculate_header_size() accordingly.
-  soc->do_ptr((void**)&_base_address);
   soc->do_u4(&_entry_count);
   soc->do_u4(&_bucket_count);
-  soc->do_ptr((void**)&_buckets);
-  soc->do_ptr((void**)&_entries);
+  soc->do_ptr(&_buckets);
+  soc->do_ptr(&_entries);
+  if (soc->reading()) {
+    _base_address = (address)SharedBaseAddress;
+  }
 }
 #endif // INCLUDE_CDS
 
@@ -238,8 +240,8 @@ HashtableTextDump::HashtableTextDump(const char* filename) : _fd(-1) {
   if (_fd < 0) {
     quit("Unable to open hashtable dump file", filename);
   }
-  _base = os::map_memory(_fd, filename, 0, NULL, _size, true, false);
-  if (_base == NULL) {
+  _base = os::map_memory(_fd, filename, 0, nullptr, _size, true, false);
+  if (_base == nullptr) {
     quit("Unable to map hashtable dump file", filename);
   }
   _p = _base;
@@ -252,7 +254,7 @@ HashtableTextDump::HashtableTextDump(const char* filename) : _fd(-1) {
 HashtableTextDump::~HashtableTextDump() {
   os::unmap_memory((char*)_base, _size);
   if (_fd >= 0) {
-    close(_fd);
+    ::close(_fd);
   }
 }
 
@@ -364,8 +366,8 @@ int HashtableTextDump::scan_symbol_prefix() {
   return utf8_length;
 }
 
-jchar HashtableTextDump::unescape(const char* from, const char* end, int count) {
-  jchar value = 0;
+int HashtableTextDump::unescape(const char* from, const char* end, int count) {
+  int value = 0;
 
   corrupted_if(from + count > end, "Truncated");
 
@@ -408,7 +410,7 @@ void HashtableTextDump::get_utf8(char* utf8_buffer, int utf8_length) {
       switch (c) {
       case 'x':
         {
-          jchar value = unescape(from, end, 2);
+          int value = unescape(from, end, 2);
           from += 2;
           assert(value <= 0xff, "sanity");
           *to++ = (char)(value & 0xff);

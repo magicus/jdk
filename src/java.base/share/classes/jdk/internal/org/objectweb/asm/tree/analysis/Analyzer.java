@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.tree.analysis;
 
 import java.util.ArrayList;
@@ -79,7 +80,7 @@ import jdk.internal.org.objectweb.asm.tree.VarInsnNode;
  * A semantic bytecode analyzer. <i>This class does not fully check that JSR and RET instructions
  * are valid.</i>
  *
- * @param <V> type of the Value used for the analysis.
+ * @param <V> type of the {@link Value} used for the analysis.
  * @author Eric Bruneton
  */
 public class Analyzer<V extends Value> implements Opcodes {
@@ -123,8 +124,10 @@ public class Analyzer<V extends Value> implements Opcodes {
     /**
       * Analyzes the given method.
       *
-      * @param owner the internal name of the class to which 'method' belongs.
-      * @param method the method to be analyzed.
+      * @param owner the internal name of the class to which 'method' belongs (see {@link
+      *     Type#getInternalName()}).
+      * @param method the method to be analyzed. The maxStack and maxLocals fields must have correct
+      *     values.
       * @return the symbolic state of the execution stack frame at each bytecode instruction of the
       *     method. The size of the returned array is equal to the number of instructions (and labels)
       *     of the method. A given frame is {@literal null} if and only if the corresponding
@@ -152,7 +155,7 @@ public class Analyzer<V extends Value> implements Opcodes {
             TryCatchBlockNode tryCatchBlock = method.tryCatchBlocks.get(i);
             int startIndex = insnList.indexOf(tryCatchBlock.start);
             int endIndex = insnList.indexOf(tryCatchBlock.end);
-            for (int j = startIndex; j < endIndex; ++j) {
+            for (int j = startIndex; j <= endIndex; ++j) {
                 List<TryCatchBlockNode> insnHandlers = handlers[j];
                 if (insnHandlers == null) {
                     insnHandlers = new ArrayList<>();
@@ -162,37 +165,19 @@ public class Analyzer<V extends Value> implements Opcodes {
             }
         }
 
-        // For each instruction, compute the subroutine to which it belongs.
-        // Follow the main 'subroutine', and collect the jsr instructions to nested subroutines.
-        Subroutine main = new Subroutine(null, method.maxLocals, null);
-        List<AbstractInsnNode> jsrInsns = new ArrayList<>();
-        findSubroutine(0, main, jsrInsns);
-        // Follow the nested subroutines, and collect their own nested subroutines, until all
-        // subroutines are found.
-        Map<LabelNode, Subroutine> jsrSubroutines = new HashMap<>();
-        while (!jsrInsns.isEmpty()) {
-            JumpInsnNode jsrInsn = (JumpInsnNode) jsrInsns.remove(0);
-            Subroutine subroutine = jsrSubroutines.get(jsrInsn.label);
-            if (subroutine == null) {
-                subroutine = new Subroutine(jsrInsn.label, method.maxLocals, jsrInsn);
-                jsrSubroutines.put(jsrInsn.label, subroutine);
-                findSubroutine(insnList.indexOf(jsrInsn.label), subroutine, jsrInsns);
-            } else {
-                subroutine.callers.add(jsrInsn);
-            }
-        }
-        // Clear the main 'subroutine', which is not a real subroutine (and was used only as an
-        // intermediate step above to find the real ones).
-        for (int i = 0; i < insnListSize; ++i) {
-            if (subroutines[i] != null && subroutines[i].start == null) {
-                subroutines[i] = null;
-            }
-        }
+        // Finds the method's subroutines.
+        findSubroutines(method.maxLocals);
 
         // Initializes the data structures for the control flow analysis.
-        Frame<V> currentFrame = computeInitialFrame(owner, method);
-        merge(0, currentFrame, null);
-        init(owner, method);
+        Frame<V> currentFrame;
+        try {
+            currentFrame = computeInitialFrame(owner, method);
+            merge(0, currentFrame, null);
+            init(owner, method);
+        } catch (RuntimeException e) {
+            // DontCheck(IllegalCatch): can't be fixed, for backward compatibility.
+            throw new AnalyzerException(insnList.get(0), "Error at instruction 0: " + e.getMessage(), e);
+        }
 
         // Control flow analysis.
         while (numInstructionsToProcess > 0) {
@@ -282,17 +267,17 @@ public class Analyzer<V extends Value> implements Opcodes {
                     } else if (insnOpcode != ATHROW && (insnOpcode < IRETURN || insnOpcode > RETURN)) {
                         if (subroutine != null) {
                             if (insnNode instanceof VarInsnNode) {
-                                int var = ((VarInsnNode) insnNode).var;
-                                subroutine.localsUsed[var] = true;
+                                int varIndex = ((VarInsnNode) insnNode).var;
+                                subroutine.localsUsed[varIndex] = true;
                                 if (insnOpcode == LLOAD
                                         || insnOpcode == DLOAD
                                         || insnOpcode == LSTORE
                                         || insnOpcode == DSTORE) {
-                                    subroutine.localsUsed[var + 1] = true;
+                                    subroutine.localsUsed[varIndex + 1] = true;
                                 }
                             } else if (insnNode instanceof IincInsnNode) {
-                                int var = ((IincInsnNode) insnNode).var;
-                                subroutine.localsUsed[var] = true;
+                                int varIndex = ((IincInsnNode) insnNode).var;
+                                subroutine.localsUsed[varIndex] = true;
                             }
                         }
                         merge(insnIndex + 1, currentFrame, subroutine);
@@ -328,6 +313,114 @@ public class Analyzer<V extends Value> implements Opcodes {
         }
 
         return frames;
+    }
+
+    /**
+      * Analyzes the given method and computes and sets its maximum stack size and maximum number of
+      * local variables.
+      *
+      * @param owner the internal name of the class to which 'method' belongs (see {@link
+      *     Type#getInternalName()}).
+      * @param method the method to be analyzed.
+      * @return the symbolic state of the execution stack frame at each bytecode instruction of the
+      *     method. The size of the returned array is equal to the number of instructions (and labels)
+      *     of the method. A given frame is {@literal null} if and only if the corresponding
+      *     instruction cannot be reached (dead code).
+      * @throws AnalyzerException if a problem occurs during the analysis.
+      */
+    public Frame<V>[] analyzeAndComputeMaxs(final String owner, final MethodNode method)
+            throws AnalyzerException {
+        method.maxLocals = computeMaxLocals(method);
+        method.maxStack = -1;
+        analyze(owner, method);
+        method.maxStack = computeMaxStack(frames);
+        return frames;
+    }
+
+    /**
+      * Computes and returns the maximum number of local variables used in the given method.
+      *
+      * @param method a method.
+      * @return the maximum number of local variables used in the given method.
+      */
+    private static int computeMaxLocals(final MethodNode method) {
+        int maxLocals = Type.getArgumentsAndReturnSizes(method.desc) >> 2;
+        if ((method.access & Opcodes.ACC_STATIC) != 0) {
+            maxLocals -= 1;
+        }
+        for (AbstractInsnNode insnNode : method.instructions) {
+            if (insnNode instanceof VarInsnNode) {
+                int local = ((VarInsnNode) insnNode).var;
+                int size =
+                        (insnNode.getOpcode() == Opcodes.LLOAD
+                                        || insnNode.getOpcode() == Opcodes.DLOAD
+                                        || insnNode.getOpcode() == Opcodes.LSTORE
+                                        || insnNode.getOpcode() == Opcodes.DSTORE)
+                                ? 2
+                                : 1;
+                maxLocals = Math.max(maxLocals, local + size);
+            } else if (insnNode instanceof IincInsnNode) {
+                int local = ((IincInsnNode) insnNode).var;
+                maxLocals = Math.max(maxLocals, local + 1);
+            }
+        }
+        return maxLocals;
+    }
+
+    /**
+      * Computes and returns the maximum stack size of a method, given its stack map frames.
+      *
+      * @param frames the stack map frames of a method.
+      * @return the maximum stack size of the given method.
+      */
+    private static int computeMaxStack(final Frame<?>[] frames) {
+        int maxStack = 0;
+        for (Frame<?> frame : frames) {
+            if (frame != null) {
+                int stackSize = 0;
+                for (int i = 0; i < frame.getStackSize(); ++i) {
+                    stackSize += frame.getStack(i).getSize();
+                }
+                maxStack = Math.max(maxStack, stackSize);
+            }
+        }
+        return maxStack;
+    }
+
+    /**
+      * Finds the subroutines of the currently analyzed method and stores them in {@link #subroutines}.
+      *
+      * @param maxLocals the maximum number of local variables of the currently analyzed method (long
+      *     and double values count for two variables).
+      * @throws AnalyzerException if the control flow graph can fall off the end of the code.
+      */
+    private void findSubroutines(final int maxLocals) throws AnalyzerException {
+        // For each instruction, compute the subroutine to which it belongs.
+        // Follow the main 'subroutine', and collect the jsr instructions to nested subroutines.
+        Subroutine main = new Subroutine(null, maxLocals, null);
+        List<AbstractInsnNode> jsrInsns = new ArrayList<>();
+        findSubroutine(0, main, jsrInsns);
+        // Follow the nested subroutines, and collect their own nested subroutines, until all
+        // subroutines are found.
+        Map<LabelNode, Subroutine> jsrSubroutines = new HashMap<>();
+        while (!jsrInsns.isEmpty()) {
+            JumpInsnNode jsrInsn = (JumpInsnNode) jsrInsns.remove(0);
+            Subroutine subroutine = jsrSubroutines.get(jsrInsn.label);
+            if (subroutine == null) {
+                subroutine = new Subroutine(jsrInsn.label, maxLocals, jsrInsn);
+                jsrSubroutines.put(jsrInsn.label, subroutine);
+                findSubroutine(insnList.indexOf(jsrInsn.label), subroutine, jsrInsns);
+            } else {
+                subroutine.callers.add(jsrInsn);
+            }
+        }
+        // Clear the main 'subroutine', which is not a real subroutine (and was used only as an
+        // intermediate step above to find the real ones).
+        for (int i = 0; i < insnListSize; ++i) {
+            if (subroutines[i] != null && subroutines[i].start == null) {
+                subroutines[i] = null;
+            }
+        }
     }
 
     /**
@@ -415,7 +508,8 @@ public class Analyzer<V extends Value> implements Opcodes {
     /**
       * Computes the initial execution stack frame of the given method.
       *
-      * @param owner the internal name of the class to which 'method' belongs.
+      * @param owner the internal name of the class to which 'method' belongs (see {@link
+      *     Type#getInternalName()}).
       * @param method the method to be analyzed.
       * @return the initial execution stack frame of the 'method'.
       */
@@ -472,9 +566,10 @@ public class Analyzer<V extends Value> implements Opcodes {
 
     /**
       * Initializes this analyzer. This method is called just before the execution of control flow
-      * analysis loop in #analyze. The default implementation of this method does nothing.
+      * analysis loop in {@link #analyze}. The default implementation of this method does nothing.
       *
-      * @param owner the internal name of the class to which the method belongs.
+      * @param owner the internal name of the class to which the method belongs (see {@link
+      *     Type#getInternalName()}).
       * @param method the method to be analyzed.
       * @throws AnalyzerException if a problem occurs.
       */

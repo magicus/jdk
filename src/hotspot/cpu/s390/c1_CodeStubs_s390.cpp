@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2016, 2018 SAP SE. All rights reserved.
+ * Copyright (c) 2016, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2024 SAP SE. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,7 @@
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
 #include "c1/c1_Runtime1.hpp"
+#include "classfile/javaClasses.hpp"
 #include "nativeInst_s390.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/align.hpp"
@@ -40,16 +41,8 @@
 #undef  CHECK_BAILOUT
 #define CHECK_BAILOUT() { if (ce->compilation()->bailed_out()) return; }
 
-RangeCheckStub::RangeCheckStub(CodeEmitInfo* info, LIR_Opr index, LIR_Opr array)
-  : _index(index), _array(array), _throw_index_out_of_bounds_exception(false) {
-  assert(info != NULL, "must have info");
-  _info = new CodeEmitInfo(info);
-}
-
-RangeCheckStub::RangeCheckStub(CodeEmitInfo* info, LIR_Opr index)
-  : _index(index), _array(NULL), _throw_index_out_of_bounds_exception(true) {
-  assert(info != NULL, "must have info");
-  _info = new CodeEmitInfo(info);
+void C1SafepointPollStub::emit_code(LIR_Assembler* ce) {
+  ShouldNotReachHere();
 }
 
 void RangeCheckStub::emit_code(LIR_Assembler* ce) {
@@ -222,11 +215,6 @@ void NewObjectArrayStub::emit_code(LIR_Assembler* ce) {
   __ z_brul(_continuation);
 }
 
-MonitorEnterStub::MonitorEnterStub(LIR_Opr obj_reg, LIR_Opr lock_reg, CodeEmitInfo* info)
-  : MonitorAccessStub(obj_reg, lock_reg) {
-  _info = new CodeEmitInfo(info);
-}
-
 void MonitorEnterStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
   Runtime1::StubID enter_id;
@@ -353,7 +341,7 @@ void PatchingStub::emit_code(LIR_Assembler* ce) {
     // thread.
     assert(_obj != noreg, "must be a valid register");
     assert(_index >= 0, "must have oop index");
-    __ z_lg(Z_R1_scratch, java_lang_Class::klass_offset_in_bytes(), _obj);
+    __ z_lg(Z_R1_scratch, java_lang_Class::klass_offset(), _obj);
     __ z_cg(Z_thread, Address(Z_R1_scratch, InstanceKlass::init_thread_offset()));
     __ branch_optimized(Assembler::bcondNotEqual, call_patch);
 
@@ -368,7 +356,7 @@ void PatchingStub::emit_code(LIR_Assembler* ce) {
 
   // Now emit the patch record telling the runtime how to find the
   // pieces of the patch. We only need 3 bytes but to help the disassembler
-  // we make the data look like a the following add instruction:
+  // we make the data look like the following add instruction:
   //   A R1, D2(X2, B2)
   // which requires 4 bytes.
   int sizeof_patch_record = 4;
@@ -387,7 +375,7 @@ void PatchingStub::emit_code(LIR_Assembler* ce) {
 
   address entry = __ pc();
   NativeGeneralJump::insert_unconditional((address)_pc_start, entry);
-  address target = NULL;
+  address target = nullptr;
   relocInfo::relocType reloc_type = relocInfo::none;
   switch (_id) {
     case access_field_id:  target = Runtime1::entry_for (Runtime1::access_field_patching_id); break;
@@ -440,6 +428,7 @@ void ArrayCopyStub::emit_code(LIR_Assembler* ce) {
          "must be aligned");
 
   ce->emit_static_call_stub();
+  CHECK_BAILOUT();
 
   // Prepend each BRASL with a nop.
   __ relocate(relocInfo::static_call_type);
@@ -449,8 +438,10 @@ void ArrayCopyStub::emit_code(LIR_Assembler* ce) {
   ce->verify_oop_map(info());
 
 #ifndef PRODUCT
-  __ load_const_optimized(Z_R1_scratch, (address)&Runtime1::_arraycopy_slowcase_cnt);
-  __ add2mem_32(Address(Z_R1_scratch), 1, Z_R0_scratch);
+  if (PrintC1Statistics) {
+    __ load_const_optimized(Z_R1_scratch, (address)&Runtime1::_arraycopy_slowcase_cnt);
+    __ add2mem_32(Address(Z_R1_scratch), 1, Z_R0_scratch);
+  }
 #endif
 
   __ branch_optimized(Assembler::bcondAlways, _continuation);

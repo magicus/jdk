@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,7 +34,7 @@
 // element currently in them.
 
 //------------------------------VectorSet--------------------------------------
-class VectorSet : public ResourceObj {
+class VectorSet : public AnyObj {
 private:
 
   static const uint word_bits = 5;
@@ -47,11 +47,18 @@ private:
   uint       _data_size;
   Arena*     _set_arena;
 
+  void init(Arena* arena);
   // Grow vector to required word capacity
   void grow(uint new_word_capacity);
 public:
-  VectorSet(Arena *arena);
+  VectorSet();
+  VectorSet(Arena* arena);
   ~VectorSet() {}
+
+  NONCOPYABLE(VectorSet);
+  VectorSet& operator=(VectorSet&&) = delete;
+  // Allow move constructor for && (eg. capture return of function)
+  VectorSet(VectorSet&&) = default;
 
   void insert(uint elem);
   bool is_empty() const;

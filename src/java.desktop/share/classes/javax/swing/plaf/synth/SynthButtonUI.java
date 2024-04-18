@@ -46,7 +46,10 @@ public class SynthButtonUI extends BasicButtonUI implements
                                  PropertyChangeListener, SynthUI {
     private SynthStyle style;
 
-    private static final Object SYNTH_BUTTON_UI_KEY = new Object();
+    /**
+     * Constructs a {@code SynthButtonUI}.
+     */
+    public SynthButtonUI() {}
 
     /**
      * Creates a new UI object for the given component.

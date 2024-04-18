@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ package java.lang.reflect;
 import java.lang.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
 import sun.reflect.annotation.AnnotationSupport;
 
@@ -77,12 +78,9 @@ public final class Parameter implements AnnotatedElement {
      */
     @Override
     public boolean equals(Object obj) {
-        if(obj instanceof Parameter) {
-            Parameter other = (Parameter)obj;
-            return (other.executable.equals(executable) &&
-                    other.index == index);
-        }
-        return false;
+        return (obj instanceof Parameter other)
+                && other.executable.equals(executable)
+                && other.index == index;
     }
 
     /**
@@ -112,7 +110,7 @@ public final class Parameter implements AnnotatedElement {
     /**
      * Returns a string describing this parameter.  The format is the
      * modifiers for the parameter, if any, in canonical order as
-     * recommended by <cite>The Java&trade; Language
+     * recommended by <cite>The Java Language
      * Specification</cite>, followed by the fully-qualified type of
      * the parameter (excluding the last [] if the parameter is
      * variable arity), followed by "..." if the parameter is variable
@@ -145,22 +143,37 @@ public final class Parameter implements AnnotatedElement {
     }
 
     /**
-     * Return the {@code Executable} which declares this parameter.
-     *
-     * @return The {@code Executable} declaring this parameter.
+     * {@return the {@code Executable} declaring this parameter}
      */
     public Executable getDeclaringExecutable() {
         return executable;
     }
 
     /**
-     * Get the modifier flags for this the parameter represented by
-     * this {@code Parameter} object.
+     * {@return the Java language {@linkplain Modifier modifiers} for
+     * the parameter represented by this object}
      *
-     * @return The modifier flags for this parameter.
+     * @jls 8.4.1 Formal Parameters
+     * @see <a
+     * href="{@docRoot}/java.base/java/lang/reflect/package-summary.html#LanguageJvmModel">Java
+     * programming language and JVM modeling in core reflection</a>
      */
     public int getModifiers() {
         return modifiers;
+    }
+
+    /**
+     * {@return an unmodifiable set of the {@linkplain AccessFlag
+     * access flags} for the parameter represented by this object,
+     * possibly empty}
+     *
+     * @see #getModifiers()
+     * @jvms 4.7.24 The MethodParameters Attribute
+     * @since 20
+     */
+    public Set<AccessFlag> accessFlags() {
+        return AccessFlag.maskToAccessFlags(getModifiers(),
+                                            AccessFlag.Location.METHOD_PARAMETER);
     }
 
     /**
@@ -221,7 +234,7 @@ public final class Parameter implements AnnotatedElement {
     public Class<?> getType() {
         Class<?> tmp = parameterClassCache;
         if (null == tmp) {
-            tmp = executable.getParameterTypes()[index];
+            tmp = executable.getSharedParameterTypes()[index];
             parameterClassCache = tmp;
         }
         return tmp;
@@ -247,7 +260,7 @@ public final class Parameter implements AnnotatedElement {
      * in source code; returns {@code false} otherwise.
      *
      * @return true if and only if this parameter is implicitly
-     * declared as defined by <cite>The Java&trade; Language
+     * declared as defined by <cite>The Java Language
      * Specification</cite>.
      */
     public boolean isImplicit() {
@@ -259,10 +272,13 @@ public final class Parameter implements AnnotatedElement {
      * nor explicitly declared in source code; returns {@code false}
      * otherwise.
      *
-     * @jls 13.1 The Form of a Binary
      * @return true if and only if this parameter is a synthetic
      * construct as defined by
-     * <cite>The Java&trade; Language Specification</cite>.
+     * <cite>The Java Language Specification</cite>.
+     * @jls 13.1 The Form of a Binary
+     * @see <a
+     * href="{@docRoot}/java.base/java/lang/reflect/package-summary.html#LanguageJvmModel">Java
+     * programming language and JVM modeling in core reflection</a>
      */
     public boolean isSynthetic() {
         return Modifier.isSynthetic(getModifiers());

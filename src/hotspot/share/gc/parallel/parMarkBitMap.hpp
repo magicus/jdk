@@ -46,7 +46,7 @@ public:
 
   // Atomically mark an object as live.
   bool mark_obj(HeapWord* addr, size_t size);
-  inline bool mark_obj(oop obj, int size);
+  inline bool mark_obj(oop obj, size_t size);
 
   // Return whether the specified begin or end bit is set.
   inline bool is_obj_beg(idx_t bit) const;
@@ -80,10 +80,6 @@ public:
   // Apply live_closure to each live object that lies completely within the
   // range [live_range_beg, live_range_end).  This is used to iterate over the
   // compacted region of the heap.  Return values:
-  //
-  // incomplete         The iteration is not complete.  The last object that
-  //                    begins in the range does not end in the range;
-  //                    closure->source() is set to the start of that object.
   //
   // complete           The iteration is complete.  All objects in the range
   //                    were processed and the closure is not full;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "jvmti.h"
-#include "agent_common.h"
-#include "JVMTITools.h"
+#include "agent_common.hpp"
+#include "JVMTITools.hpp"
 
 extern "C" {
 
@@ -46,7 +46,7 @@ typedef struct {
     int length;
 } opcode_info;
 
-static jvmtiEnv *jvmti = NULL;
+static jvmtiEnv *jvmti = nullptr;
 static jvmtiCapabilities caps;
 static jvmtiEventCallbacks callbacks;
 static jint result = PASSED;
@@ -324,18 +324,20 @@ void JNICALL ClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *env,
     unsigned char *bytecodes;
     jint i;
 
-    sig = NULL;
-    err = jvmti_env->GetClassSignature(cls, &sig, NULL);
+    sig = nullptr;
+    err = jvmti_env->GetClassSignature(cls, &sig, nullptr);
     if (err != JVMTI_ERROR_NONE) {
         printf("(GetClassSignature#%d) unexpected error: %s (%d)\n",
                eventsCount, TranslateError(err), err);
         result = STATUS_FAILED;
+        return;
     }
     err = jvmti_env->GetClassMethods(cls, &mcount, &methods);
     if (err != JVMTI_ERROR_NONE) {
         printf("(GetClassMethods#%d) unexpected error: %s (%d)\n",
                eventsCount, TranslateError(err), err);
         result = STATUS_FAILED;
+        return;
     }
 
     if (printdump == JNI_TRUE) {
@@ -345,20 +347,21 @@ void JNICALL ClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *env,
     }
 
     for (i = 0; i < mcount; i++) {
-        if (methods[i] == NULL) {
+        if (methods[i] == nullptr) {
             if (printdump == JNI_TRUE) {
                 printf(" null");
             }
         } else {
-            name = NULL;
-            msig = NULL;
-            bytecodes = NULL;
-            err = jvmti_env->GetMethodName(methods[i], &name, &msig, NULL);
+            name = nullptr;
+            msig = nullptr;
+            bytecodes = nullptr;
+            err = jvmti_env->GetMethodName(methods[i], &name, &msig, nullptr);
             if (err != JVMTI_ERROR_NONE) {
                 printf("(GetMethodName) unexpected error: %s (%d)\n",
                        TranslateError(err), err);
                 printf("  class: \"%s\"\n", sig);
                 result = STATUS_FAILED;
+                return;
             }
             isNative = JNI_TRUE;
             err = jvmti_env->IsMethodNative(methods[i], &isNative);
@@ -368,6 +371,7 @@ void JNICALL ClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *env,
                 printf("  class: \"%s\"\n", sig);
                 printf("  method = \"%s%s\"\n", name, msig);
                 result = STATUS_FAILED;
+                return;
             }
             if (isNative == JNI_TRUE) {
                 if (printdump == JNI_TRUE) {
@@ -380,6 +384,7 @@ void JNICALL ClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *env,
                     printf("(GetBytecodes#%d:%d) unexpected error: %s (%d)\n",
                            eventsCount, i, TranslateError(err), err);
                     result = STATUS_FAILED;
+                    return;
                 } else {
                     if (printdump == JNI_TRUE) {
                         printf(">>>     \"%s%s\", %d bytes\n",
@@ -392,22 +397,22 @@ void JNICALL ClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *env,
                     }
                 }
             }
-            if (name != NULL) {
+            if (name != nullptr) {
                 jvmti_env->Deallocate((unsigned char *)name);
             }
-            if (msig != NULL) {
+            if (msig != nullptr) {
                 jvmti_env->Deallocate((unsigned char *)msig);
             }
-            if (bytecodes != NULL) {
+            if (bytecodes != nullptr) {
                 jvmti_env->Deallocate(bytecodes);
             }
         }
     }
 
-    if (methods != NULL) {
+    if (methods != nullptr) {
         jvmti_env->Deallocate((unsigned char *)methods);
     }
-    if (sig != NULL) {
+    if (sig != nullptr) {
         jvmti_env->Deallocate((unsigned char *)sig);
     }
     eventsCount++;
@@ -428,12 +433,12 @@ jint Agent_Initialize(JavaVM *jvm, char *options, void *reserved) {
     jvmtiError err;
     jint res;
 
-    if (options != NULL && strcmp(options, "printdump") == 0) {
+    if (options != nullptr && strcmp(options, "printdump") == 0) {
         printdump = JNI_TRUE;
     }
 
     res = jvm->GetEnv((void **) &jvmti, JVMTI_VERSION_1_1);
-    if (res != JNI_OK || jvmti == NULL) {
+    if (res != JNI_OK || jvmti == nullptr) {
         printf("Wrong result of a valid call to GetEnv!\n");
         return JNI_ERR;
     }
@@ -483,7 +488,7 @@ jint Agent_Initialize(JavaVM *jvm, char *options, void *reserved) {
         }
 
         err = jvmti->SetEventNotificationMode(JVMTI_ENABLE,
-                JVMTI_EVENT_CLASS_PREPARE, NULL);
+                JVMTI_EVENT_CLASS_PREPARE, nullptr);
         if (err != JVMTI_ERROR_NONE) {
             printf("Failed to enable ClassPrepare: %s (%d)\n",
                    TranslateError(err), err);
@@ -500,14 +505,14 @@ JNIEXPORT jint JNICALL
 Java_nsk_jvmti_GetBytecodes_bytecodes003_check(JNIEnv *env, jclass cls) {
     jvmtiError err;
 
-    if (jvmti == NULL) {
+    if (jvmti == nullptr) {
         printf("JVMTI client was not properly loaded!\n");
         return STATUS_FAILED;
     }
 
     if (caps.can_get_bytecodes) {
         err = jvmti->SetEventNotificationMode(JVMTI_DISABLE,
-                JVMTI_EVENT_CLASS_PREPARE, NULL);
+                JVMTI_EVENT_CLASS_PREPARE, nullptr);
         if (err != JVMTI_ERROR_NONE) {
             printf("Failed to disable JVMTI_EVENT_CLASS_PREPARE: %s (%d)\n",
                    TranslateError(err), err);

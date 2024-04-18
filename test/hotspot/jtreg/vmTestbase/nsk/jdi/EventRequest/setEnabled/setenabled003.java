@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -84,7 +84,9 @@ public class setenabled003 extends JDIBase {
 
         int result = run(argv, System.out);
 
-        System.exit(result + PASS_BASE);
+        if (result != 0) {
+            throw new RuntimeException("TEST FAILED with result " + result);
+        }
     }
 
     public static int run (String argv[], PrintStream out) {
@@ -94,7 +96,7 @@ public class setenabled003 extends JDIBase {
         if (exitCode != PASSED) {
             System.out.println("TEST FAILED");
         }
-        return testExitCode;
+        return exitCode;
     }
 
     //  ************************************************    test parameters
@@ -282,7 +284,7 @@ public class setenabled003 extends JDIBase {
 
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ variable part
 
-
+            vm.suspend();
             switch (i) {
 
               case 0:
@@ -292,7 +294,6 @@ public class setenabled003 extends JDIBase {
                      log2("......setting up StepRequest");
                      eventRequest1 = eventRManager.createStepRequest
                                      (thread1, StepRequest.STEP_MIN, StepRequest.STEP_INTO);
-
                      try {
                          log2("......eventRequest1.setEnabled(true);  IllegalThreadStateException is expected");
                          eventRequest1.setEnabled(true);
@@ -359,6 +360,7 @@ public class setenabled003 extends JDIBase {
               default:
                       throw new JDITestRuntimeException("** default case 2 **");
             }
+            vm.resume();
 
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         }

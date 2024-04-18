@@ -25,11 +25,11 @@
 #ifndef SHARE_GC_SHENANDOAH_SHENANDOAHHEAPREGION_HPP
 #define SHARE_GC_SHENANDOAH_SHENANDOAHHEAPREGION_HPP
 
+#include "gc/shared/gc_globals.hpp"
 #include "gc/shared/spaceDecorator.hpp"
 #include "gc/shenandoah/shenandoahAllocRequest.hpp"
 #include "gc/shenandoah/shenandoahAsserts.hpp"
 #include "gc/shenandoah/shenandoahHeap.hpp"
-#include "gc/shenandoah/shenandoahPacer.hpp"
 #include "gc/shenandoah/shenandoahPadding.hpp"
 #include "utilities/sizes.hpp"
 
@@ -162,7 +162,7 @@ private:
   void report_illegal_transition(const char* method);
 
 public:
-  static const int region_states_num() {
+  static int region_states_num() {
     return _REGION_STATES_NUM;
   }
 
@@ -250,7 +250,8 @@ public:
 
   static const size_t MIN_NUM_REGIONS = 10;
 
-  static void setup_sizes(size_t max_heap_size);
+  // Return adjusted max heap size
+  static size_t setup_sizes(size_t max_heap_size);
 
   double empty_time() {
     return _empty_time;
@@ -332,7 +333,7 @@ public:
     return _index;
   }
 
-  // Allocation (return NULL if full)
+  // Allocation (return null if full)
   inline HeapWord* allocate(size_t word_size, ShenandoahAllocRequest::Type type);
 
   inline void clear_live_data();

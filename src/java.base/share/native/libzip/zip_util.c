@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,11 +45,6 @@
 #include "io_util_md.h"
 #include "zip_util.h"
 #include <zlib.h>
-
-#ifdef _ALLBSD_SOURCE
-#define off64_t off_t
-#define mmap64 mmap
-#endif
 
 /* USE_MMAP means mmap the CEN & ENDHDR part of the zip file. */
 #ifdef USE_MMAP
@@ -529,7 +524,7 @@ addMetaName(jzfile *zip, const char *name, int length)
 static void
 freeMetaNames(jzfile *zip)
 {
-    if (zip->metanames) {
+    if (zip->metanames != NULL) {
         jint i;
         for (i = 0; i < zip->metacount; i++)
             free(zip->metanames[i]);
@@ -635,7 +630,7 @@ readCEN(jzfile *zip, jint knownTotal)
        * file while calling 'read' to read the rest of jar file. Here are a list of
        * reasons apart from above of why we are doing so:
        * 1. Greatly reduces mmap overhead after startup complete;
-       * 2. Avoids dual path code maintainance;
+       * 2. Avoids dual path code maintenance;
        * 3. Greatly reduces risk of address space (not virtual memory) exhaustion.
        */
         if (pagesize == 0) {
@@ -656,7 +651,7 @@ readCEN(jzfile *zip, jint knownTotal)
             */
             zip->mlen = cenpos - offset + cenlen + endhdrlen;
             zip->offset = offset;
-            mappedAddr = mmap64(0, zip->mlen, PROT_READ, MAP_SHARED, zip->zfd, (off64_t) offset);
+            mappedAddr = mmap(0, zip->mlen, PROT_READ, MAP_SHARED, zip->zfd, (off_t) offset);
             zip->maddr = (mappedAddr == (void*) MAP_FAILED) ? NULL :
                 (unsigned char*)mappedAddr;
 
@@ -764,7 +759,8 @@ readCEN(jzfile *zip, jint knownTotal)
  * Opens a zip file with the specified mode. Returns the jzfile object
  * or NULL if an error occurred. If a zip error occurred then *pmsg will
  * be set to the error message text if pmsg != 0. Otherwise, *pmsg will be
- * set to NULL. Caller is responsible to free the error message.
+ * set to NULL. Caller doesn't need to free the error message.
+ * The error message, if set, points to a static thread-safe buffer.
  */
 jzfile *
 ZIP_Open_Generic(const char *name, char **pmsg, int mode, jlong lastModified)
@@ -790,7 +786,7 @@ ZIP_Open_Generic(const char *name, char **pmsg, int mode, jlong lastModified)
  * zip files, or NULL if the file is not in the cache.  If the name is longer
  * than PATH_MAX or a zip error occurred then *pmsg will be set to the error
  * message text if pmsg != 0. Otherwise, *pmsg will be set to NULL. Caller
- * is responsible to free the error message.
+ * doesn't need to free the error message.
  */
 jzfile *
 ZIP_Get_From_Cache(const char *name, char **pmsg, jlong lastModified)
@@ -803,13 +799,13 @@ ZIP_Get_From_Cache(const char *name, char **pmsg, jlong lastModified)
     }
 
     /* Clear zip error message */
-    if (pmsg != 0) {
+    if (pmsg != NULL) {
         *pmsg = NULL;
     }
 
     if (strlen(name) >= PATH_MAX) {
-        if (pmsg) {
-            *pmsg = strdup("zip file name too long");
+        if (pmsg != NULL) {
+            *pmsg = "zip file name too long";
         }
         return NULL;
     }
@@ -834,7 +830,7 @@ ZIP_Get_From_Cache(const char *name, char **pmsg, jlong lastModified)
  * Reads data from the given file descriptor to create a jzfile, puts the
  * jzfile in a cache, and returns that jzfile.  Returns NULL in case of error.
  * If a zip error occurs, then *pmsg will be set to the error message text if
- * pmsg != 0. Otherwise, *pmsg will be set to NULL. Caller is responsible to
+ * pmsg != 0. Otherwise, *pmsg will be set to NULL. Caller doesn't need to
  * free the error message.
  */
 
@@ -863,8 +859,8 @@ ZIP_Put_In_Cache0(const char *name, ZFILE zfd, char **pmsg, jlong lastModified,
     zip->lastModified = lastModified;
 
     if (zfd == -1) {
-        if (pmsg && getLastErrorString(errbuf, sizeof(errbuf)) > 0)
-            *pmsg = strdup(errbuf);
+        if (pmsg != NULL)
+            *pmsg = "ZFILE_Open failed";
         freeZip(zip);
         return NULL;
     }
@@ -877,12 +873,12 @@ ZIP_Put_In_Cache0(const char *name, ZFILE zfd, char **pmsg, jlong lastModified,
     len = zip->len = IO_Lseek(zfd, 0, SEEK_END);
     if (len <= 0) {
         if (len == 0) { /* zip file is empty */
-            if (pmsg) {
-                *pmsg = strdup("zip file is empty");
+            if (pmsg != NULL) {
+                *pmsg = "zip file is empty";
             }
         } else { /* error */
-            if (pmsg && getLastErrorString(errbuf, sizeof(errbuf)) > 0)
-                *pmsg = strdup(errbuf);
+            if (pmsg != NULL)
+                *pmsg = "IO_Lseek failed";
         }
         ZFILE_Close(zfd);
         freeZip(zip);
@@ -892,10 +888,9 @@ ZIP_Put_In_Cache0(const char *name, ZFILE zfd, char **pmsg, jlong lastModified,
     zip->zfd = zfd;
     if (readCEN(zip, -1) < 0) {
         /* An error occurred while trying to read the zip file */
-        if (pmsg != 0) {
+        if (pmsg != NULL) {
             /* Set the zip error message */
-            if (zip->msg != NULL)
-                *pmsg = strdup(zip->msg);
+            *pmsg = zip->msg;
         }
         freeZip(zip);
         return NULL;
@@ -918,10 +913,6 @@ JNIEXPORT jzfile *
 ZIP_Open(const char *name, char **pmsg)
 {
     jzfile *file = ZIP_Open_Generic(name, pmsg, O_RDONLY, 0);
-    if (file == NULL && pmsg != NULL && *pmsg != NULL) {
-        free(*pmsg);
-        *pmsg = "Zip file open error";
-    }
     return file;
 }
 
@@ -1138,8 +1129,8 @@ ZIP_FreeEntry(jzfile *jz, jzentry *ze)
     if (last != NULL) {
         /* Free the previously cached jzentry */
         free(last->name);
-        if (last->extra)   free(last->extra);
-        if (last->comment) free(last->comment);
+        free(last->extra);
+        free(last->comment);
         free(last);
     }
 }
@@ -1517,7 +1508,7 @@ ZIP_ReadEntry(jzfile *zip, jzentry *entry, unsigned char *buf, char *entryname)
             msg = zip->msg;
             ZIP_Unlock(zip);
             if (n == -1) {
-                if (msg == 0) {
+                if (msg == NULL) {
                     getErrorString(errno, tmpbuf, sizeof(tmpbuf));
                     msg = tmpbuf;
                 }
@@ -1534,7 +1525,7 @@ ZIP_ReadEntry(jzfile *zip, jzentry *entry, unsigned char *buf, char *entryname)
             if ((msg == NULL) || (*msg == 0)) {
                 msg = zip->msg;
             }
-            if (msg == 0) {
+            if (msg == NULL) {
                 getErrorString(errno, tmpbuf, sizeof(tmpbuf));
                 msg = tmpbuf;
             }
@@ -1552,10 +1543,9 @@ JNIEXPORT jboolean
 ZIP_InflateFully(void *inBuf, jlong inLen, void *outBuf, jlong outLen, char **pmsg)
 {
     z_stream strm;
-    int i = 0;
     memset(&strm, 0, sizeof(z_stream));
 
-    *pmsg = 0; /* Reset error message */
+    *pmsg = NULL; /* Reset error message */
 
     if (inflateInit2(&strm, MAX_WBITS) != Z_OK) {
         *pmsg = strm.msg;
@@ -1595,4 +1585,110 @@ ZIP_InflateFully(void *inBuf, jlong inLen, void *outBuf, jlong outLen, char **pm
 
     inflateEnd(&strm);
     return JNI_TRUE;
+}
+
+static voidpf tracking_zlib_alloc(voidpf opaque, uInt items, uInt size) {
+  size_t* needed = (size_t*) opaque;
+  *needed += (size_t) items * (size_t) size;
+  return (voidpf) calloc((size_t) items, (size_t) size);
+}
+
+static void tracking_zlib_free(voidpf opaque, voidpf address) {
+  free((void*) address);
+}
+
+static voidpf zlib_block_alloc(voidpf opaque, uInt items, uInt size) {
+  char** range = (char**) opaque;
+  voidpf result = NULL;
+  size_t needed = (size_t) items * (size_t) size;
+
+  if (range[1] - range[0] >= (ptrdiff_t) needed) {
+    result = (voidpf) range[0];
+    range[0] += needed;
+  }
+
+  return result;
+}
+
+static void zlib_block_free(voidpf opaque, voidpf address) {
+  /* Nothing to do. */
+}
+
+static char const* deflateInit2Wrapper(z_stream* strm, int level) {
+  int err = deflateInit2(strm, level >= 0 && level <= 9 ? level : Z_DEFAULT_COMPRESSION,
+                         Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY);
+  if (err == Z_MEM_ERROR) {
+    return "Out of memory in deflateInit2";
+  }
+
+  if (err != Z_OK) {
+    return "Internal error in deflateInit2";
+  }
+
+  return NULL;
+}
+
+JNIEXPORT char const*
+ZIP_GZip_InitParams(size_t inLen, size_t* outLen, size_t* tmpLen, int level) {
+  z_stream strm;
+  *tmpLen = 0;
+  char const* errorMsg;
+
+  memset(&strm, 0, sizeof(z_stream));
+  strm.zalloc = tracking_zlib_alloc;
+  strm.zfree = tracking_zlib_free;
+  strm.opaque = (voidpf) tmpLen;
+
+  errorMsg = deflateInit2Wrapper(&strm, level);
+
+  if (errorMsg == NULL) {
+    *outLen = (size_t) deflateBound(&strm, (uLong) inLen);
+    deflateEnd(&strm);
+  }
+
+  return errorMsg;
+}
+
+JNIEXPORT size_t
+ZIP_GZip_Fully(char* inBuf, size_t inLen, char* outBuf, size_t outLen, char* tmp, size_t tmpLen,
+               int level, char* comment, char const** pmsg) {
+  z_stream strm;
+  gz_header hdr;
+  int err;
+  char* block[] = {tmp, tmpLen + tmp};
+  size_t result = 0;
+
+  memset(&strm, 0, sizeof(z_stream));
+  strm.zalloc = zlib_block_alloc;
+  strm.zfree = zlib_block_free;
+  strm.opaque = (voidpf) block;
+
+  *pmsg = deflateInit2Wrapper(&strm, level);
+
+  if (*pmsg == NULL) {
+    strm.next_out = (Bytef *) outBuf;
+    strm.avail_out = (uInt) outLen;
+    strm.next_in = (Bytef *) inBuf;
+    strm.avail_in = (uInt) inLen;
+
+    if (comment != NULL) {
+      memset(&hdr, 0, sizeof(hdr));
+      hdr.comment = (Bytef*) comment;
+      deflateSetHeader(&strm, &hdr);
+    }
+
+    err = deflate(&strm, Z_FINISH);
+
+    if (err == Z_OK || err == Z_BUF_ERROR) {
+      *pmsg = "Buffer too small";
+    } else if (err != Z_STREAM_END) {
+      *pmsg = "Intern deflate error";
+    } else {
+      result = (size_t) strm.total_out;
+    }
+
+    deflateEnd(&strm);
+  }
+
+  return result;
 }

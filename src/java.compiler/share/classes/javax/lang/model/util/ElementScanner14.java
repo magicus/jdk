@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,29 +30,24 @@ import java.util.ArrayList;
 import javax.lang.model.element.*;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.ElementVisitor;
 import static javax.lang.model.SourceVersion.*;
 
 /**
- * {@preview Associated with records, a preview feature of the Java language.
- *
- *           This class is associated with <i>records</i>, a preview
- *           feature of the Java language. Preview features
- *           may be removed in a future release, or upgraded to permanent
- *           features of the Java language.}
- *
  * A scanning visitor of program elements with default behavior
  * appropriate for the {@link SourceVersion#RELEASE_14 RELEASE_14}
  * source version.
  *
- * The <code>visit<i>Xyz</i></code> methods in this
- * class scan their component elements by calling {@code scan} on
- * their {@linkplain Element#getEnclosedElements enclosed elements},
- * {@linkplain ExecutableElement#getParameters parameters}, etc., as
- * indicated in the individual method specifications.  A subclass can
- * control the order elements are visited by overriding the
- * <code>visit<i>Xyz</i></code> methods.  Note that clients of a scanner
- * may get the desired behavior be invoking {@code v.scan(e, p)} rather
- * than {@code v.visit(e, p)} on the root objects of interest.
+ * The <code>visit<i>Xyz</i></code> methods in this class scan their
+ * component elements by calling {@link ElementScanner6#scan(Element,
+ * Object) scan} on their {@linkplain Element#getEnclosedElements
+ * enclosed elements}, {@linkplain ExecutableElement#getParameters
+ * parameters}, etc., as indicated in the individual method
+ * specifications.  A subclass can control the order elements are
+ * visited by overriding the <code>visit<i>Xyz</i></code> methods.
+ * Note that clients of a scanner may get the desired behavior by
+ * invoking {@code v.scan(e, p)} rather than {@code v.visit(e, p)} on
+ * the root objects of interest.
  *
  * <p>When a subclass overrides a <code>visit<i>Xyz</i></code> method, the
  * new method can cause the enclosed elements to be scanned in the
@@ -81,11 +76,9 @@ import static javax.lang.model.SourceVersion.*;
  * @see ElementScanner7
  * @see ElementScanner8
  * @see ElementScanner9
- * @since 14
+ * @since 16
  */
-@jdk.internal.PreviewFeature(feature=jdk.internal.PreviewFeature.Feature.RECORDS,
-                             essentialAPI=false)
-@SupportedSourceVersion(RELEASE_15)
+@SupportedSourceVersion(RELEASE_23)
 public class ElementScanner14<R, P> extends ElementScanner9<R, P> {
     /**
      * Constructor for concrete subclasses; uses {@code null} for the
@@ -106,15 +99,15 @@ public class ElementScanner14<R, P> extends ElementScanner9<R, P> {
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritDoc ElementVisitor}
      *
      * @implSpec This implementation scans the type parameters, if
      * any, and then the enclosed elements.
      *
      *
-     * @param e  {@inheritDoc}
-     * @param p  {@inheritDoc}
-     * @return the result of scanning
+     * @param e  {@inheritDoc ElementVisitor}
+     * @param p  {@inheritDoc ElementVisitor}
+     * @return   {@inheritDoc ElementScanner6}
      */
     @Override
     public R visitType(TypeElement e, P p) {
@@ -122,15 +115,16 @@ public class ElementScanner14<R, P> extends ElementScanner9<R, P> {
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritDoc ElementVisitor}
      *
      * @implSpec This implementation first scans the type parameters, if any, and then
      * the parameters.
      *
-     * @param e  {@inheritDoc}
-     * @param p  {@inheritDoc}
-     * @return the result of scanning
+     * @param e  {@inheritDoc ElementVisitor}
+     * @param p  {@inheritDoc ElementVisitor}
+     * @return   {@inheritDoc ElementScanner6}
      */
+    @Override
     public R visitExecutable(ExecutableElement e, P p) {
         return scan(createScanningList(e, e.getParameters()), p);
     }
@@ -148,15 +142,14 @@ public class ElementScanner14<R, P> extends ElementScanner9<R, P> {
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritDoc ElementVisitor}
      *
      * @implSpec This implementation scans the enclosed elements.
      *
-     * @param e the element to visit
-     * @param p a visitor-specified parameter
-     * @return  the result of the scan
+     * @param e {@inheritDoc ElementVisitor}
+     * @param p {@inheritDoc ElementVisitor}
+     * @return  {@inheritDoc ElementScanner6}
      */
-    @SuppressWarnings("preview")
     @Override
     public R visitRecordComponent(RecordComponentElement e, P p) {
         return scan(e.getEnclosedElements(), p);

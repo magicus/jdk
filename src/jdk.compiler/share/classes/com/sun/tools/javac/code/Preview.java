@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,13 +38,17 @@ import com.sun.tools.javac.util.JCDiagnostic.SimpleDiagnosticPosition;
 import com.sun.tools.javac.util.JCDiagnostic.Warning;
 import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.MandatoryWarningHandler;
+import com.sun.tools.javac.util.Names;
 import com.sun.tools.javac.util.Options;
 
 import javax.tools.JavaFileObject;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static com.sun.tools.javac.main.Option.PREVIEW;
+import com.sun.tools.javac.util.JCDiagnostic;
 
 /**
  * Helper class to handle preview language features. This class maps certain language features
@@ -70,11 +74,14 @@ public class Preview {
     /** a mapping from classfile numbers to Java SE versions */
     private final Map<Integer, Source> majorVersionToSource;
 
+    private final Set<JavaFileObject> sourcesWithPreviewFeatures = new HashSet<>();
 
+    private final Names names;
     private final Lint lint;
     private final Log log;
+    private final Source source;
 
-    private static final Context.Key<Preview> previewKey = new Context.Key<>();
+    protected static final Context.Key<Preview> previewKey = new Context.Key<>();
 
     public static Preview instance(Context context) {
         Preview instance = context.get(previewKey);
@@ -84,14 +91,17 @@ public class Preview {
         return instance;
     }
 
-    Preview(Context context) {
+    @SuppressWarnings("this-escape")
+    protected Preview(Context context) {
         context.put(previewKey, this);
         Options options = Options.instance(context);
+        names = Names.instance(context);
         enabled = options.isSet(PREVIEW);
         log = Log.instance(context);
         lint = Lint.instance(context);
+        source = Source.instance(context);
         this.previewHandler =
-                new MandatoryWarningHandler(log, lint.isEnabled(LintCategory.PREVIEW), true, "preview", LintCategory.PREVIEW);
+                new MandatoryWarningHandler(log, source, lint.isEnabled(LintCategory.PREVIEW), true, "preview", LintCategory.PREVIEW);
         forcePreview = options.isSet("forcePreview");
         majorVersionToSource = initMajorVersionToSourceMap();
     }
@@ -106,7 +116,29 @@ public class Preview {
             }
         }
         return majorVersionToSource;
-   }
+    }
+
+    /**
+     * Returns true if {@code s} is deemed to participate in the preview of {@code previewSymbol}, and
+     * therefore no warnings or errors will be produced.
+     *
+     * @param syms the symbol table
+     * @param s the symbol depending on the preview symbol
+     * @param previewSymbol the preview symbol marked with @Preview
+     * @return true if {@code s} is participating in the preview of {@code previewSymbol}
+     */
+    public boolean participatesInPreview(Symtab syms, Symbol s, Symbol previewSymbol) {
+        // All symbols in the same module as the preview symbol participate in the preview API
+        if (previewSymbol.packge().modle == s.packge().modle) {
+            return true;
+        }
+
+        // If java.base's jdk.internal.javac package is exported to s's module then
+        // s participates in the preview API
+        return syms.java_base.exports.stream()
+                .filter(ed -> ed.packge.fullname == names.jdk_internal_javac)
+                .anyMatch(ed -> ed.modules.contains(s.packge().modle));
+    }
 
     /**
      * Report usage of a preview feature. Usages reported through this method will affect the
@@ -128,6 +160,7 @@ public class Preview {
         Assert.check(isEnabled());
         Assert.check(isPreview(feature));
         if (!lint.isSuppressed(LintCategory.PREVIEW)) {
+            sourcesWithPreviewFeatures.add(log.currentSourceFile());
             previewHandler.report(pos, feature.isPlural() ?
                     Warnings.PreviewFeatureUsePlural(feature.nameFragment()) :
                     Warnings.PreviewFeatureUse(feature.nameFragment()));
@@ -141,14 +174,22 @@ public class Preview {
      */
     public void warnPreview(JavaFileObject classfile, int majorVersion) {
         Assert.check(isEnabled());
-        if (!lint.isSuppressed(LintCategory.PREVIEW)) {
-            previewHandler.report(null,
+        if (lint.isEnabled(LintCategory.PREVIEW)) {
+            log.mandatoryWarning(LintCategory.PREVIEW, null,
                     Warnings.PreviewFeatureUseClassfile(classfile, majorVersionToSource.get(majorVersion).name));
         }
     }
 
+    public void markUsesPreview(DiagnosticPosition pos) {
+        sourcesWithPreviewFeatures.add(log.currentSourceFile());
+    }
+
     public void reportPreviewWarning(DiagnosticPosition pos, Warning warnKey) {
         previewHandler.report(pos, warnKey);
+    }
+
+    public boolean usesPreview(JavaFileObject file) {
+        return sourcesWithPreviewFeatures.contains(file);
     }
 
     /**
@@ -165,14 +206,15 @@ public class Preview {
      * @return true, if given feature is a preview feature.
      */
     public boolean isPreview(Feature feature) {
-        if (feature == Feature.PATTERN_MATCHING_IN_INSTANCEOF ||
-            feature == Feature.REIFIABLE_TYPES_INSTANCEOF ||
-            feature == Feature.RECORDS)
-            return true;
-        //Note: this is a backdoor which allows to optionally treat all features as 'preview' (for testing).
-        //When real preview features will be added, this method can be implemented to return 'true'
-        //for those selected features, and 'false' for all the others.
-        return forcePreview;
+        return switch (feature) {
+            case IMPLICIT_CLASSES -> true;
+            case SUPER_INIT -> true;
+            case PRIMITIVE_PATTERNS -> true;
+            //Note: this is a backdoor which allows to optionally treat all features as 'preview' (for testing).
+            //When real preview features will be added, this method can be implemented to return 'true'
+            //for those selected features, and 'false' for all the others.
+            default -> forcePreview;
+        };
     }
 
     /**
@@ -200,6 +242,17 @@ public class Preview {
     }
 
     /**
+     * Check whether the given symbol has been declared using
+     * a preview language feature.
+     *
+     * @param sym Symbol to check
+     * @return true iff sym has been declared using a preview language feature
+     */
+    public boolean declaredUsingPreviewFeature(Symbol sym) {
+        return false;
+    }
+
+    /**
      * Report any deferred diagnostics.
      */
     public void reportDeferredDiagnostics() {
@@ -208,6 +261,21 @@ public class Preview {
 
     public void clear() {
         previewHandler.clear();
+    }
+
+    public void checkSourceLevel(DiagnosticPosition pos, Feature feature) {
+        if (isPreview(feature) && !isEnabled()) {
+            //preview feature without --preview flag, error
+            log.error(JCDiagnostic.DiagnosticFlag.SOURCE_LEVEL, pos, disabledError(feature));
+        } else {
+            if (!feature.allowedInSource(source)) {
+                log.error(JCDiagnostic.DiagnosticFlag.SOURCE_LEVEL, pos,
+                          feature.error(source.name));
+            }
+            if (isEnabled() && isPreview(feature)) {
+                warnPreview(pos, feature);
+            }
+        }
     }
 
 }

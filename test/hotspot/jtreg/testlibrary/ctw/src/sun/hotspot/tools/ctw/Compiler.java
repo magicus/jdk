@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,7 @@ package sun.hotspot.tools.ctw;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.misc.Unsafe;
 import jdk.internal.reflect.ConstantPool;
-import sun.hotspot.WhiteBox;
+import jdk.test.whitebox.WhiteBox;
 
 import java.lang.reflect.Executable;
 import java.util.Arrays;
@@ -41,9 +41,15 @@ import java.util.stream.Collectors;
  */
 public class Compiler {
 
+    // Call GC after compiling as many methods. This would remove the stale methods.
+    // This threshold should balance the GC overhead and the cost of keeping lots
+    // of stale methods around.
+    private static final long GC_METHOD_THRESHOLD = Long.getLong("gcMethodThreshold", 100);
+
     private static final Unsafe UNSAFE = Unsafe.getUnsafe();
     private static final WhiteBox WHITE_BOX = WhiteBox.getWhiteBox();
-    private static final AtomicLong METHOD_COUNT = new AtomicLong(0L);
+    private static final AtomicLong METHOD_COUNT = new AtomicLong();
+    private static final AtomicLong METHODS_SINCE_LAST_GC = new AtomicLong();
 
     private Compiler() { }
 
@@ -84,9 +90,19 @@ public class Compiler {
         }
         METHOD_COUNT.addAndGet(methodCount);
 
-        if (Utils.DEOPTIMIZE_ALL_CLASSES_RATE > 0
-                && (id % Utils.DEOPTIMIZE_ALL_CLASSES_RATE == 0)) {
-            WHITE_BOX.deoptimizeAll();
+        // See if we need to schedule a GC
+        while (true) {
+            long current = METHODS_SINCE_LAST_GC.get();
+            long update = current + methodCount;
+            if (update >= GC_METHOD_THRESHOLD) {
+                update = 0;
+            }
+            if (METHODS_SINCE_LAST_GC.compareAndSet(current, update)) {
+                if (update == 0) {
+                    executor.execute(() -> System.gc());
+                }
+                break;
+            }
         }
     }
 

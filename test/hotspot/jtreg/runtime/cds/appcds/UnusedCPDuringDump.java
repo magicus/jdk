@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,24 +35,25 @@
  */
 
 import java.io.File;
+import jdk.test.lib.cds.CDSTestUtils;
 import jdk.test.lib.process.OutputAnalyzer;
 
 public class UnusedCPDuringDump {
 
     public static void main(String[] args) throws Exception {
-        File dir = new File(System.getProperty("user.dir"));
+        File dir = CDSTestUtils.getOutputDirAsFile();
         File emptydir = new File(dir, "emptydir");
         emptydir.mkdir();
         String appJar = JarBuilder.getOrCreateHelloJar();
 
         OutputAnalyzer output = TestCommon.dump(dir.getPath(),
             TestCommon.list("sun/util/resources/cldr/provider/CLDRLocaleDataMetaInfo",
-                            "com/sun/tools/sjavac/client/ClientMain"),
+                            "com/sun/tools/javac/main/Main"),
                             "-Xlog:class+path=info,class+load=debug");
         TestCommon.checkDump(output,
                              "[class,load] sun.util.resources.cldr.provider.CLDRLocaleDataMetaInfo",
                              "for instance a 'jdk/internal/loader/ClassLoaders$PlatformClassLoader'",
-                             "[class,load] com.sun.tools.sjavac.client.ClientMain",
+                             "[class,load] com.sun.tools.javac.main.Main",
                              "for instance a 'jdk/internal/loader/ClassLoaders$AppClassLoader'");
 
         String jsaOpt = "-XX:SharedArchiveFile=" + TestCommon.getCurrentArchiveName();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,11 +38,10 @@ class C1_MacroAssembler: public MacroAssembler {
   //----------------------------------------------------
   void explicit_null_check(Register base);
 
-  void inline_cache_check(Register receiver, Register iCache);
   void build_frame(int frame_size_in_bytes, int bang_size_in_bytes);
   void remove_frame(int frame_size_in_bytes);
 
-  void verified_entry();
+  void verified_entry(bool breakAtEntry);
   void verify_stack_oop(int offset) PRODUCT_RETURN;
   void verify_not_null_oop(Register r)  PRODUCT_RETURN;
 

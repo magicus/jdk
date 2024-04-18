@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2023, Oracle and/or its affiliates. All rights reserved.
  * Copyright 2007, 2008, 2009, 2010, 2011 Red Hat, Inc.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -24,18 +24,14 @@
  */
 
 #include "precompiled.hpp"
-#include "asm/assembler.hpp"
-#include "assembler_zero.inline.hpp"
+#include "asm/assembler.inline.hpp"
 #include "code/debugInfoRec.hpp"
-#include "code/icBuffer.hpp"
 #include "code/vtableStubs.hpp"
 #include "interpreter/interpreter.hpp"
-#include "oops/compiledICHolder.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/vframeArray.hpp"
 #include "vmreg_zero.inline.hpp"
-
 #ifdef COMPILER1
 #include "c1/c1_Runtime1.hpp"
 #endif
@@ -51,8 +47,7 @@ static address zero_null_code_stub() {
 
 int SharedRuntime::java_calling_convention(const BasicType *sig_bt,
                                            VMRegPair *regs,
-                                           int total_args_passed,
-                                           int is_outgoing) {
+                                           int total_args_passed) {
   return 0;
 }
 
@@ -75,10 +70,9 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
                                                 int compile_id,
                                                 BasicType *sig_bt,
                                                 VMRegPair *regs,
-                                                BasicType ret_type,
-                                                address critical_entry) {
+                                                BasicType ret_type) {
   ShouldNotCallThis();
-  return NULL;
+  return nullptr;
 }
 
 int Deoptimization::last_frame_adjust(int callee_parameters,
@@ -120,20 +114,16 @@ RuntimeStub* SharedRuntime::generate_resolve_blob(address destination, const cha
   return generate_empty_runtime_stub("resolve_blob");
 }
 
-size_t SharedRuntime::trampoline_size() {
+int SharedRuntime::c_calling_convention(const BasicType *sig_bt,
+                                         VMRegPair *regs,
+                                         int total_args_passed) {
   ShouldNotCallThis();
   return 0;
 }
 
-void SharedRuntime::generate_trampoline(MacroAssembler *masm, address destination) {
-  ShouldNotCallThis();
-  return;
-}
-
-int SharedRuntime::c_calling_convention(const BasicType *sig_bt,
-                                         VMRegPair *regs,
-                                         VMRegPair *regs2,
-                                         int total_args_passed) {
+int SharedRuntime::vector_calling_convention(VMRegPair *regs,
+                                             uint num_bits,
+                                             uint total_args_passed) {
   ShouldNotCallThis();
   return 0;
 }

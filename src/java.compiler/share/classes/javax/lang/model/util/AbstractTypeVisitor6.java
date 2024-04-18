@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,7 +39,7 @@ import static javax.lang.model.SourceVersion.*;
  * <p id=note_for_subclasses><strong>WARNING:</strong> The {@code
  * TypeVisitor} interface implemented by this class may have methods
  * added to it in the future to accommodate new, currently unknown,
- * language structures added to future versions of the Java&trade;
+ * language structures added to future versions of the Java
  * programming language.  Therefore, methods whose names begin with
  * {@code "visit"} may be added to this class in the future; to avoid
  * incompatibilities, classes and subclasses which extend this class
@@ -60,10 +60,6 @@ import static javax.lang.model.SourceVersion.*;
  * @param <P> the type of the additional parameter to this visitor's
  *            methods.  Use {@code Void} for visitors that do not need an
  *            additional parameter.
- *
- * @author Joseph D. Darcy
- * @author Scott Seligman
- * @author Peter von der Ah&eacute;
  *
  * @see AbstractTypeVisitor7
  * @see AbstractTypeVisitor8
@@ -109,29 +105,30 @@ public abstract class AbstractTypeVisitor6<R, P> implements TypeVisitor<R, P> {
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritDoc TypeVisitor}
      *
      * @implSpec Visits a {@code UnionType} element by calling {@code
      * visitUnknown}.
      *
-     * @param t  {@inheritDoc}
-     * @param p  {@inheritDoc}
+     * @param t  {@inheritDoc TypeVisitor}
+     * @param p  {@inheritDoc TypeVisitor}
      * @return the result of {@code visitUnknown}
      *
      * @since 1.7
      */
+    @Override
     public R visitUnion(UnionType t, P p) {
         return visitUnknown(t, p);
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritDoc TypeVisitor}
      *
      * @implSpec Visits an {@code IntersectionType} element by calling {@code
      * visitUnknown}.
      *
-     * @param t  {@inheritDoc}
-     * @param p  {@inheritDoc}
+     * @param t  {@inheritDoc TypeVisitor}
+     * @param p  {@inheritDoc TypeVisitor}
      * @return the result of {@code visitUnknown}
      *
      * @since 1.8
@@ -142,18 +139,17 @@ public abstract class AbstractTypeVisitor6<R, P> implements TypeVisitor<R, P> {
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritDoc TypeVisitor}
      *
      * @implSpec The default implementation of this method in {@code
      * AbstractTypeVisitor6} will always throw {@code
      * new UnknownTypeException(t, p)}.  This behavior is not required of a
      * subclass.
      *
-     * @param t  {@inheritDoc}
-     * @param p  {@inheritDoc}
+     * @param t  {@inheritDoc TypeVisitor}
+     * @param p  {@inheritDoc TypeVisitor}
      * @return a visitor-specified result
-     * @throws UnknownTypeException
-     *  a visitor implementation may optionally throw this exception
+     * @throws UnknownTypeException {@inheritDoc TypeVisitor}
      */
     @Override
     public R visitUnknown(TypeMirror t, P p) {

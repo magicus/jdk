@@ -23,8 +23,9 @@
 
 #include "precompiled.hpp"
 #include "gc/z/zNUMA.hpp"
+#include "utilities/globalDefinitions.hpp"
 
-void ZNUMA::initialize_platform() {
+void ZNUMA::pd_initialize() {
   _enabled = false;
 }
 

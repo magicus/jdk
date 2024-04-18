@@ -27,23 +27,26 @@
 
 #include "gc/shenandoah/heuristics/shenandoahHeuristics.hpp"
 
+/*
+ * The static heuristic will trigger cycles if the available memory falls
+ * below ShenandoahMinFreeThreshold percentage of total capacity. This
+ * heuristic will attempt to evacuation any region with any garbage.
+ */
 class ShenandoahStaticHeuristics : public ShenandoahHeuristics {
 public:
-  ShenandoahStaticHeuristics();
+  ShenandoahStaticHeuristics(ShenandoahSpaceInfo* space_info);
 
   virtual ~ShenandoahStaticHeuristics();
 
-  virtual bool should_start_gc() const;
+  virtual bool should_start_gc();
 
   virtual void choose_collection_set_from_regiondata(ShenandoahCollectionSet* cset,
                                                      RegionData* data, size_t size,
                                                      size_t free);
 
-  virtual const char* name();
-
-  virtual bool is_diagnostic();
-
-  virtual bool is_experimental();
+  virtual const char* name()     { return "Static"; }
+  virtual bool is_diagnostic()   { return false; }
+  virtual bool is_experimental() { return false; }
 };
 
 #endif // SHARE_GC_SHENANDOAH_HEURISTICS_SHENANDOAHSTATICHEURISTICS_HPP

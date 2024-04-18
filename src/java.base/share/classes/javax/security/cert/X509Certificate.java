@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,17 +27,13 @@
 package javax.security.cert;
 
 import java.io.InputStream;
-import java.lang.Class;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.security.Security;
-
 import java.math.BigInteger;
 import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedAction;
-import java.security.PublicKey;
-import java.util.BitSet;
+import java.security.Security;
 import java.util.Date;
 
 /**
@@ -129,6 +125,11 @@ import java.util.Date;
 @SuppressWarnings("removal")
 @Deprecated(since="9", forRemoval=true)
 public abstract class X509Certificate extends Certificate {
+
+    /**
+     * Constructor for subclasses to call.
+     */
+    public X509Certificate() {}
 
     /**
      * Constant to lookup in the Security properties file.

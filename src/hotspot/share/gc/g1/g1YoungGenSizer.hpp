@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,7 +36,7 @@
 // internally work with a number of regions instead. So, some rounding
 // will occur.
 //
-// If nothing related to the the young gen size is set on the command
+// If nothing related to the young gen size is set on the command
 // line we should allow the young gen to be between G1NewSizePercent
 // and G1MaxNewSizePercent of the heap size. This means that every time
 // the heap size changes, the limits for the young gen size will be
@@ -63,7 +63,7 @@
 //
 // NewSize and MaxNewSize override NewRatio. So, NewRatio is ignored if it is
 // combined with either NewSize or MaxNewSize. (A warning message is printed.)
-class G1YoungGenSizer : public CHeapObj<mtGC> {
+class G1YoungGenSizer {
 private:
   enum SizerKind {
     SizerDefaults,
@@ -78,16 +78,15 @@ private:
   // true otherwise.
   bool _use_adaptive_sizing;
 
+  uint _min_desired_young_length;
+  uint _max_desired_young_length;
+
   uint calculate_default_min_length(uint new_number_of_heap_regions);
   uint calculate_default_max_length(uint new_number_of_heap_regions);
 
   // Update the given values for minimum and maximum young gen length in regions
   // given the number of heap regions depending on the kind of sizing algorithm.
   void recalculate_min_max_young_length(uint number_of_heap_regions, uint* min_young_length, uint* max_young_length);
-
-protected:
-  uint _min_desired_young_length;
-  uint _max_desired_young_length;
 
 public:
   G1YoungGenSizer();
@@ -106,8 +105,6 @@ public:
   bool use_adaptive_young_list_length() const {
     return _use_adaptive_sizing;
   }
-
-  static G1YoungGenSizer* create_gen_sizer();
 };
 
 #endif // SHARE_GC_G1_G1YOUNGGENSIZER_HPP

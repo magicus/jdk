@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,17 +22,20 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/shared/tlab_globals.hpp"
 #include "gc/z/zAddress.inline.hpp"
+#include "gc/z/zStackWatermark.hpp"
 #include "gc/z/zThreadLocalAllocBuffer.hpp"
 #include "gc/z/zValue.inline.hpp"
 #include "runtime/globals.hpp"
-#include "runtime/thread.hpp"
+#include "runtime/javaThread.hpp"
+#include "runtime/stackWatermarkSet.inline.hpp"
 
-ZPerWorker<ThreadLocalAllocStats>* ZThreadLocalAllocBuffer::_stats = NULL;
+ZPerWorker<ThreadLocalAllocStats>* ZThreadLocalAllocBuffer::_stats = nullptr;
 
 void ZThreadLocalAllocBuffer::initialize() {
   if (UseTLAB) {
-    assert(_stats == NULL, "Already initialized");
+    assert(_stats == nullptr, "Already initialized");
     _stats = new ZPerWorker<ThreadLocalAllocStats>();
     reset_statistics();
   }
@@ -60,14 +63,9 @@ void ZThreadLocalAllocBuffer::publish_statistics() {
   }
 }
 
-static void fixup_address(HeapWord** p) {
-  *p = (HeapWord*)ZAddress::good_or_null((uintptr_t)*p);
-}
-
-void ZThreadLocalAllocBuffer::retire(Thread* thread) {
-  if (UseTLAB && thread->is_Java_thread()) {
-    ThreadLocalAllocStats* const stats = _stats->addr();
-    thread->tlab().addresses_do(fixup_address);
+void ZThreadLocalAllocBuffer::retire(JavaThread* thread, ThreadLocalAllocStats* stats) {
+  if (UseTLAB) {
+    stats->reset();
     thread->tlab().retire(stats);
     if (ResizeTLAB) {
       thread->tlab().resize();
@@ -75,8 +73,9 @@ void ZThreadLocalAllocBuffer::retire(Thread* thread) {
   }
 }
 
-void ZThreadLocalAllocBuffer::remap(Thread* thread) {
-  if (UseTLAB && thread->is_Java_thread()) {
-    thread->tlab().addresses_do(fixup_address);
+void ZThreadLocalAllocBuffer::update_stats(JavaThread* thread) {
+  if (UseTLAB) {
+    ZStackWatermark* const watermark = StackWatermarkSet::get<ZStackWatermark>(thread, StackWatermarkKind::gc);
+    _stats->addr()->update(watermark->stats());
   }
 }

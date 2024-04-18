@@ -23,12 +23,13 @@
 
 /**
  * @test
- * @bug 8241950
+ * @bug 8241950 8247932
  * @summary Check the UI behavior of indentation
  * @library /tools/lib
  * @modules
  *     jdk.compiler/com.sun.tools.javac.api
  *     jdk.compiler/com.sun.tools.javac.main
+ *     jdk.jshell/jdk.internal.jshell.tool:open
  *     jdk.jshell/jdk.internal.jshell.tool.resources:open
  *     jdk.jshell/jdk.jshell:open
  * @build toolbox.ToolBox toolbox.JarTask toolbox.JavacTask
@@ -70,6 +71,11 @@ public class IndentUITest extends UITesting {
             waitOutput(out, "^void test2\\(\\) \\{\n" +
                             CONTINUATION_PROMPT + "  System.err.println\\(1\\);\n" +
                             CONTINUATION_PROMPT + "\\}");
+            inputSink.write(INTERRUPT);
+            waitOutput(out, "\u001B\\[\\?2004h" + PROMPT);
+            inputSink.write("\"\"\"\n");
+            waitOutput(out, "^\"\"\"\n" +
+                            CONTINUATION_PROMPT);
         });
     }
 

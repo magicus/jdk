@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -27,7 +25,6 @@ package jdk.jfr.api.consumer.streaming;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -36,7 +33,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import jdk.jfr.Event;
 import jdk.jfr.Name;
-import jdk.jfr.Recording;
 import jdk.jfr.consumer.EventStream;
 import jdk.test.lib.Asserts;
 import jdk.test.lib.jfr.StreamingUtils;
@@ -99,7 +95,7 @@ public class TestCrossProcessStreaming {
         // Consume events until 'exit' signal.
         AtomicInteger total = new AtomicInteger();
         AtomicInteger produced = new AtomicInteger(-1);
-        AtomicReference<Exception> exception = new AtomicReference();
+        AtomicReference<Exception> exception = new AtomicReference<>();
         try (EventStream es = EventStream.openRepository(repo)) {
             es.onEvent("Batch2", e -> {
                     try {
@@ -131,7 +127,7 @@ public class TestCrossProcessStreaming {
 
         static Process start() throws Exception {
             String[] args = {"-XX:StartFlightRecording", EventProducer.class.getName()};
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(args);
+            ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(args);
             return ProcessTools.startProcess("Event-Producer", pb,
                                              line -> line.contains(MAIN_STARTED),
                                              0, TimeUnit.SECONDS);

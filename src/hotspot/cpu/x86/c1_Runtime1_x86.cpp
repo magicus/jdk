@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,20 +25,25 @@
 #include "precompiled.hpp"
 #include "asm/assembler.hpp"
 #include "c1/c1_Defs.hpp"
+#include "c1/c1_FrameMap.hpp"
 #include "c1/c1_MacroAssembler.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "ci/ciUtilities.hpp"
+#include "compiler/compilerDefinitions.inline.hpp"
+#include "compiler/oopMap.hpp"
 #include "gc/shared/cardTable.hpp"
 #include "gc/shared/cardTableBarrierSet.hpp"
+#include "gc/shared/collectedHeap.hpp"
+#include "gc/shared/tlab_globals.hpp"
 #include "interpreter/interpreter.hpp"
 #include "memory/universe.hpp"
 #include "nativeInst_x86.hpp"
-#include "oops/compiledICHolder.hpp"
 #include "oops/oop.inline.hpp"
 #include "prims/jvmtiExport.hpp"
 #include "register_x86.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/signature.hpp"
+#include "runtime/stubRoutines.hpp"
 #include "runtime/vframeArray.hpp"
 #include "utilities/macros.hpp"
 #include "vmreg_x86.inline.hpp"
@@ -69,13 +74,13 @@ int StubAssembler::call_RT(Register oop_result1, Register metadata_result, addre
   push(thread);
 #endif // _LP64
 
-  int call_offset;
+  int call_offset = -1;
   if (!align_stack) {
-    set_last_Java_frame(thread, noreg, rbp, NULL);
+    set_last_Java_frame(thread, noreg, rbp, nullptr, rscratch1);
   } else {
     address the_pc = pc();
     call_offset = offset();
-    set_last_Java_frame(thread, noreg, rbp, the_pc);
+    set_last_Java_frame(thread, noreg, rbp, the_pc, rscratch1);
     andptr(rsp, -(StackAlignmentInBytes));    // Align stack
   }
 
@@ -105,7 +110,7 @@ int StubAssembler::call_RT(Register oop_result1, Register metadata_result, addre
 
   // check for pending exceptions
   { Label L;
-    cmpptr(Address(thread, Thread::pending_exception_offset()), (int32_t)NULL_WORD);
+    cmpptr(Address(thread, Thread::pending_exception_offset()), NULL_WORD);
     jcc(Assembler::equal, L);
     // exception pending => remove activation and forward to exception handler
     movptr(rax, Address(thread, Thread::pending_exception_offset()));
@@ -133,6 +138,8 @@ int StubAssembler::call_RT(Register oop_result1, Register metadata_result, addre
   if (metadata_result->is_valid()) {
     get_vm_result_2(metadata_result, thread);
   }
+
+  assert(call_offset >= 0, "Should be set");
   return call_offset;
 }
 
@@ -172,8 +179,8 @@ int StubAssembler::call_RT(Register oop_result1, Register metadata_result, addre
 #ifdef _LP64
   // if there is any conflict use the stack
   if (arg1 == c_rarg2 || arg1 == c_rarg3 ||
-      arg2 == c_rarg1 || arg1 == c_rarg3 ||
-      arg3 == c_rarg1 || arg1 == c_rarg2) {
+      arg2 == c_rarg1 || arg2 == c_rarg3 ||
+      arg3 == c_rarg1 || arg3 == c_rarg2) {
     push(arg3);
     push(arg2);
     push(arg1);
@@ -312,7 +319,7 @@ enum reg_save_layout {
 // expensive.  The deopt blob is the only thing which needs to
 // describe FPU registers.  In all other cases it should be sufficient
 // to simply save their current value.
-
+//
 static OopMap* generate_oop_map(StubAssembler* sasm, int num_rt_args,
                                 bool save_fpu_registers = true) {
 
@@ -359,12 +366,7 @@ static OopMap* generate_oop_map(StubAssembler* sasm, int num_rt_args,
   map->set_callee_saved(VMRegImpl::stack2reg(r15H_off + num_rt_args), r15->as_VMReg()->next());
 #endif // _LP64
 
-  int xmm_bypass_limit = FrameMap::nof_xmm_regs;
-#ifdef _LP64
-  if (UseAVX < 3) {
-    xmm_bypass_limit = xmm_bypass_limit / 2;
-  }
-#endif
+  int xmm_bypass_limit = FrameMap::get_num_caller_save_xmms();
 
   if (save_fpu_registers) {
 #ifndef _LP64
@@ -438,7 +440,7 @@ void C1_MacroAssembler::save_live_registers_no_oop_map(bool save_fpu_registers) 
 
 #ifdef ASSERT
       Label ok;
-      __ cmpw(Address(rsp, fpu_state_off * VMRegImpl::stack_slot_size), StubRoutines::fpu_cntrl_wrd_std());
+      __ cmpw(Address(rsp, fpu_state_off * VMRegImpl::stack_slot_size), StubRoutines::x86::fpu_cntrl_wrd_std());
       __ jccb(Assembler::equal, ok);
       __ stop("corrupted control word detected");
       __ bind(ok);
@@ -448,7 +450,7 @@ void C1_MacroAssembler::save_live_registers_no_oop_map(bool save_fpu_registers) 
       // since fstp_d can cause FPU stack underflow exceptions.  Write it
       // into the on stack copy and then reload that to make sure that the
       // current and future values are correct.
-      __ movw(Address(rsp, fpu_state_off * VMRegImpl::stack_slot_size), StubRoutines::fpu_cntrl_wrd_std());
+      __ movw(Address(rsp, fpu_state_off * VMRegImpl::stack_slot_size), StubRoutines::x86::fpu_cntrl_wrd_std());
       __ frstor(Address(rsp, fpu_state_off * VMRegImpl::stack_slot_size));
 
       // Save the FPU registers in de-opt-able form
@@ -476,13 +478,8 @@ void C1_MacroAssembler::save_live_registers_no_oop_map(bool save_fpu_registers) 
       // so always save them as doubles.
       // note that float values are _not_ converted automatically, so for float values
       // the second word contains only garbage data.
-      int xmm_bypass_limit = FrameMap::nof_xmm_regs;
+      int xmm_bypass_limit = FrameMap::get_num_caller_save_xmms();
       int offset = 0;
-#ifdef _LP64
-      if (UseAVX < 3) {
-        xmm_bypass_limit = xmm_bypass_limit / 2;
-      }
-#endif
       for (int n = 0; n < xmm_bypass_limit; n++) {
         XMMRegister xmm_name = as_XMMRegister(n);
         __ movdbl(Address(rsp, xmm_regs_as_doubles_off * VMRegImpl::stack_slot_size + offset), xmm_name);
@@ -502,10 +499,7 @@ static void restore_fpu(C1_MacroAssembler* sasm, bool restore_fpu_registers) {
 #ifdef _LP64
   if (restore_fpu_registers) {
     // restore XMM registers
-    int xmm_bypass_limit = FrameMap::nof_xmm_regs;
-    if (UseAVX < 3) {
-      xmm_bypass_limit = xmm_bypass_limit / 2;
-    }
+    int xmm_bypass_limit = FrameMap::get_num_caller_save_xmms();
     int offset = 0;
     for (int n = 0; n < xmm_bypass_limit; n++) {
       XMMRegister xmm_name = as_XMMRegister(n);
@@ -678,7 +672,7 @@ OopMapSet* Runtime1::generate_handle_exception(StubID id, StubAssembler *sasm) {
 
   // Save registers, if required.
   OopMapSet* oop_maps = new OopMapSet();
-  OopMap* oop_map = NULL;
+  OopMap* oop_map = nullptr;
   switch (id) {
   case forward_exception_id:
     // We're handling an exception in the context of a compiled frame.
@@ -716,12 +710,12 @@ OopMapSet* Runtime1::generate_handle_exception(StubID id, StubAssembler *sasm) {
   default:  ShouldNotReachHere();
   }
 
-#if !defined(_LP64) && defined(TIERED)
-  if (UseSSE < 2) {
+#if !defined(_LP64) && defined(COMPILER2)
+  if (UseSSE < 2 && !CompilerConfig::is_c1_only_no_jvmci()) {
     // C2 can leave the fpu stack dirty
     __ empty_FPU_stack();
   }
-#endif // !_LP64 && TIERED
+#endif // !_LP64 && COMPILER2
 
   // verify that only rax, and rdx is valid at this time
   __ invalidate_registers(false, true, true, false, true, true);
@@ -735,7 +729,7 @@ OopMapSet* Runtime1::generate_handle_exception(StubID id, StubAssembler *sasm) {
   // check that fields in JavaThread for exception oop and issuing pc are
   // empty before writing to them
   Label oop_empty;
-  __ cmpptr(Address(thread, JavaThread::exception_oop_offset()), (int32_t) NULL_WORD);
+  __ cmpptr(Address(thread, JavaThread::exception_oop_offset()), NULL_WORD);
   __ jcc(Assembler::equal, oop_empty);
   __ stop("exception oop already set");
   __ bind(oop_empty);
@@ -802,6 +796,14 @@ void Runtime1::generate_unwind_exception(StubAssembler *sasm) {
   const Register exception_pc = rdx;
   const Register handler_addr = rbx;
   const Register thread = NOT_LP64(rdi) LP64_ONLY(r15_thread);
+
+  if (AbortVMOnException) {
+    __ enter();
+    save_live_registers(sasm, 2);
+    __ call_VM_leaf(CAST_FROM_FN_PTR(address, check_abort_on_vm_exception), rax);
+    restore_live_registers(sasm);
+    __ leave();
+  }
 
   // verify that only rax, is valid at this time
   __ invalidate_registers(false, true, true, true, true, true);
@@ -875,7 +877,7 @@ OopMapSet* Runtime1::generate_patching(StubAssembler* sasm, address target) {
   const int num_rt_args = 2;  // thread + dummy
 
   DeoptimizationBlob* deopt_blob = SharedRuntime::deopt_blob();
-  assert(deopt_blob != NULL, "deoptimization blob must have been created");
+  assert(deopt_blob != nullptr, "deoptimization blob must have been created");
 
   OopMap* oop_map = save_live_registers(sasm, num_rt_args);
 
@@ -891,7 +893,7 @@ OopMapSet* Runtime1::generate_patching(StubAssembler* sasm, address target) {
   __ get_thread(thread);
   __ push(thread);
 #endif // _LP64
-  __ set_last_Java_frame(thread, noreg, rbp, NULL);
+  __ set_last_Java_frame(thread, noreg, rbp, nullptr, rscratch1);
   // do the call
   __ call(RuntimeAddress(target));
   OopMapSet* oop_maps = new OopMapSet();
@@ -917,7 +919,7 @@ OopMapSet* Runtime1::generate_patching(StubAssembler* sasm, address target) {
 
   // check for pending exceptions
   { Label L;
-    __ cmpptr(Address(thread, Thread::pending_exception_offset()), (int32_t)NULL_WORD);
+    __ cmpptr(Address(thread, Thread::pending_exception_offset()), NULL_WORD);
     __ jcc(Assembler::equal, L);
     // exception pending => remove activation and forward to exception handler
 
@@ -941,13 +943,13 @@ OopMapSet* Runtime1::generate_patching(StubAssembler* sasm, address target) {
 #ifdef ASSERT
     // check that fields in JavaThread for exception oop and issuing pc are empty
     Label oop_empty;
-    __ cmpptr(Address(thread, JavaThread::exception_oop_offset()), (int32_t)NULL_WORD);
+    __ cmpptr(Address(thread, JavaThread::exception_oop_offset()), NULL_WORD);
     __ jcc(Assembler::equal, oop_empty);
     __ stop("exception oop must be empty");
     __ bind(oop_empty);
 
     Label pc_empty;
-    __ cmpptr(Address(thread, JavaThread::exception_pc_offset()), (int32_t)NULL_WORD);
+    __ cmpptr(Address(thread, JavaThread::exception_pc_offset()), NULL_WORD);
     __ jcc(Assembler::equal, pc_empty);
     __ stop("exception pc must be empty");
     __ bind(pc_empty);
@@ -1005,7 +1007,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
   bool save_fpu_registers = true;
 
   // stub code & info for the different stubs
-  OopMapSet* oop_maps = NULL;
+  OopMapSet* oop_maps = nullptr;
   switch (id) {
     case forward_exception_id:
       {
@@ -1029,61 +1031,6 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         } else {
           assert(id == fast_new_instance_init_check_id, "bad StubID");
           __ set_info("fast new_instance init check", dont_gc_arguments);
-        }
-
-        // If TLAB is disabled, see if there is support for inlining contiguous
-        // allocations.
-        // Otherwise, just go to the slow path.
-        if ((id == fast_new_instance_id || id == fast_new_instance_init_check_id) && !UseTLAB
-            && Universe::heap()->supports_inline_contig_alloc()) {
-          Label slow_path;
-          Register obj_size = rcx;
-          Register t1       = rbx;
-          Register t2       = rsi;
-          assert_different_registers(klass, obj, obj_size, t1, t2);
-
-          __ push(rdi);
-          __ push(rbx);
-
-          if (id == fast_new_instance_init_check_id) {
-            // make sure the klass is initialized
-            __ cmpb(Address(klass, InstanceKlass::init_state_offset()), InstanceKlass::fully_initialized);
-            __ jcc(Assembler::notEqual, slow_path);
-          }
-
-#ifdef ASSERT
-          // assert object can be fast path allocated
-          {
-            Label ok, not_ok;
-            __ movl(obj_size, Address(klass, Klass::layout_helper_offset()));
-            __ cmpl(obj_size, 0);  // make sure it's an instance (LH > 0)
-            __ jcc(Assembler::lessEqual, not_ok);
-            __ testl(obj_size, Klass::_lh_instance_slow_path_bit);
-            __ jcc(Assembler::zero, ok);
-            __ bind(not_ok);
-            __ stop("assert(can be fast path allocated)");
-            __ should_not_reach_here();
-            __ bind(ok);
-          }
-#endif // ASSERT
-
-          const Register thread = NOT_LP64(rdi) LP64_ONLY(r15_thread);
-          NOT_LP64(__ get_thread(thread));
-
-          // get the instance size (size is postive so movl is fine for 64bit)
-          __ movl(obj_size, Address(klass, Klass::layout_helper_offset()));
-
-          __ eden_allocate(thread, obj, obj_size, 0, t1, slow_path);
-
-          __ initialize_object(obj, klass, obj_size, 0, t1, t2, /* is_tlab_allocated */ false);
-          __ verify_oop(obj);
-          __ pop(rbx);
-          __ pop(rdi);
-          __ ret(0);
-
-          __ bind(slow_path);
-          __ pop(rbx);
-          __ pop(rdi);
         }
 
         __ enter();
@@ -1150,47 +1097,6 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         }
 #endif // ASSERT
 
-        // If TLAB is disabled, see if there is support for inlining contiguous
-        // allocations.
-        // Otherwise, just go to the slow path.
-        if (!UseTLAB && Universe::heap()->supports_inline_contig_alloc()) {
-          Register arr_size = rsi;
-          Register t1       = rcx;  // must be rcx for use as shift count
-          Register t2       = rdi;
-          Label slow_path;
-
-          // get the allocation size: round_up(hdr + length << (layout_helper & 0x1F))
-          // since size is positive movl does right thing on 64bit
-          __ movl(t1, Address(klass, Klass::layout_helper_offset()));
-          // since size is postive movl does right thing on 64bit
-          __ movl(arr_size, length);
-          assert(t1 == rcx, "fixed register usage");
-          __ shlptr(arr_size /* by t1=rcx, mod 32 */);
-          __ shrptr(t1, Klass::_lh_header_size_shift);
-          __ andptr(t1, Klass::_lh_header_size_mask);
-          __ addptr(arr_size, t1);
-          __ addptr(arr_size, MinObjAlignmentInBytesMask); // align up
-          __ andptr(arr_size, ~MinObjAlignmentInBytesMask);
-
-          // Using t2 for non 64-bit.
-          const Register thread = NOT_LP64(t2) LP64_ONLY(r15_thread);
-          NOT_LP64(__ get_thread(thread));
-          __ eden_allocate(thread, obj, arr_size, 0, t1, slow_path);  // preserves arr_size
-
-          __ initialize_header(obj, klass, length, t1, t2);
-          __ movb(t1, Address(klass, in_bytes(Klass::layout_helper_offset()) + (Klass::_lh_header_size_shift / BitsPerByte)));
-          assert(Klass::_lh_header_size_shift % BitsPerByte == 0, "bytewise");
-          assert(Klass::_lh_header_size_mask <= 0xFF, "bytewise");
-          __ andptr(t1, Klass::_lh_header_size_mask);
-          __ subptr(arr_size, t1);  // body length
-          __ addptr(t1, obj);       // body start
-          __ initialize_body(t1, arr_size, 0, t2);
-          __ verify_oop(obj);
-          __ ret(0);
-
-          __ bind(slow_path);
-        }
-
         __ enter();
         OopMap* map = save_live_registers(sasm, 3);
         int call_offset;
@@ -1248,9 +1154,8 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
         // load the klass and check the has finalizer flag
         Label register_finalizer;
-        Register tmp_load_klass = LP64_ONLY(rscratch1) NOT_LP64(noreg);
         Register t = rsi;
-        __ load_klass(t, rax, tmp_load_klass);
+        __ load_klass(t, rax, rscratch1);
         __ movl(t, Address(t, Klass::access_flags_offset()));
         __ testl(t, JVM_ACC_HAS_FINALIZER);
         __ jcc(Assembler::notZero, register_finalizer);
@@ -1369,7 +1274,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         __ movptr(rax, Address(rsp, (sup_k_off) * VMRegImpl::stack_slot_size)); // superclass
 
         Label miss;
-        __ check_klass_subtype_slow_path(rsi, rax, rcx, rdi, NULL, &miss);
+        __ check_klass_subtype_slow_path(rsi, rax, rcx, rdi, nullptr, &miss);
 
         // fallthrough on success:
         __ movptr(Address(rsp, (result_off) * VMRegImpl::stack_slot_size), 1); // result
@@ -1444,7 +1349,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         oop_maps->add_gc_map(call_offset, oop_map);
         restore_live_registers(sasm);
         DeoptimizationBlob* deopt_blob = SharedRuntime::deopt_blob();
-        assert(deopt_blob != NULL, "deoptimization blob must have been created");
+        assert(deopt_blob != nullptr, "deoptimization blob must have been created");
         __ leave();
         __ jump(RuntimeAddress(deopt_blob->unpack_with_reexecution()));
       }
@@ -1486,7 +1391,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         save_live_registers(sasm, 1);
 
         __ NOT_LP64(push(rax)) LP64_ONLY(mov(c_rarg0, rax));
-        __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, SharedRuntime::dtrace_object_alloc)));
+        __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, static_cast<int (*)(oopDesc*)>(SharedRuntime::dtrace_object_alloc))));
         NOT_LP64(__ pop(rax));
 
         restore_live_registers(sasm);
@@ -1594,7 +1499,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         restore_live_registers(sasm);
         __ leave();
         DeoptimizationBlob* deopt_blob = SharedRuntime::deopt_blob();
-        assert(deopt_blob != NULL, "deoptimization blob must have been created");
+        assert(deopt_blob != nullptr, "deoptimization blob must have been created");
 
         __ jump(RuntimeAddress(deopt_blob->unpack_with_reexecution()));
       }

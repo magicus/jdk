@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -82,7 +82,9 @@ public class enable001 extends JDIBase {
 
         int result = run(argv, System.out);
 
-        System.exit(result + PASS_BASE);
+        if (result != 0) {
+            throw new RuntimeException("TEST FAILED with result " + result);
+        }
     }
 
     public static int run (String argv[], PrintStream out) {
@@ -92,7 +94,7 @@ public class enable001 extends JDIBase {
         if (exitCode != PASSED) {
             System.out.println("TEST FAILED");
         }
-        return testExitCode;
+        return exitCode;
     }
 
     //  ************************************************    test parameters
@@ -363,6 +365,7 @@ public class enable001 extends JDIBase {
                       throw new JDITestRuntimeException("** default case 2 **");
             }
 
+            vm.suspend();
             log2("......eventRequest1.enable();");
             eventRequest1.enable();
             log2("      checking up on eventRequest1");
@@ -371,6 +374,7 @@ public class enable001 extends JDIBase {
                 log3("ERROR: EventRequest is not enabled");
             }
             eventRequest1.disable();
+            vm.resume();
 
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         }

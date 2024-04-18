@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,13 +23,20 @@
 
 /*
  * @test
- * @bug 8235332
+ * @key stress randomness
+ * @bug 8235332 8248226
  * @summary Test cloning with more than 8 (=ArrayCopyLoadStoreMaxElem) fields with StressGCM
  * @library /
+ * @requires vm.compiler2.enabled | vm.graal.enabled
  *
  * @run main/othervm -Xbatch
  *                   -XX:CompileCommand=dontinline,compiler.arraycopy.TestCloneAccessStressGCM::test
  *                   -XX:+UnlockDiagnosticVMOptions -XX:+StressGCM -XX:-ReduceInitialCardMarks
+ *                   compiler.arraycopy.TestCloneAccessStressGCM
+ * @run main/othervm -Xbatch
+ *                   -XX:CompileCommand=dontinline,compiler.arraycopy.TestCloneAccessStressGCM::test
+ *                   -XX:+UnlockDiagnosticVMOptions -XX:+StressGCM -XX:-ReduceInitialCardMarks
+ *                   -XX:-ReduceBulkZeroing
  *                   compiler.arraycopy.TestCloneAccessStressGCM
  */
 

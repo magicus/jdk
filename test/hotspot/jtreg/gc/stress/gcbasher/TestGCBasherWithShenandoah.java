@@ -27,12 +27,11 @@ package gc.stress.gcbasher;
 import java.io.IOException;
 
 /*
- * @test TestGCBasherWithShenandoah
- * @key gc
+ * @test id=passive
  * @key stress
  * @library /
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
+ * @requires vm.flavor == "server" & !vm.emulatedClient
  * @summary Stress the Shenandoah GC by trying to make old objects more likely to be garbage than young objects.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
@@ -47,12 +46,11 @@ import java.io.IOException;
  */
 
 /*
- * @test TestGCBasherWithShenandoah
- * @key gc
+ * @test id=aggressive
  * @key stress
  * @library /
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
+ * @requires vm.flavor == "server" & !vm.emulatedClient
  * @summary Stress the Shenandoah GC by trying to make old objects more likely to be garbage than young objects.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
@@ -71,12 +69,11 @@ import java.io.IOException;
  */
 
 /*
- * @test TestGCBasherWithShenandoah
- * @key gc
+ * @test id=adaptive
  * @key stress
  * @library /
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
+ * @requires vm.flavor == "server" & !vm.emulatedClient
  * @summary Stress the Shenandoah GC by trying to make old objects more likely to be garbage than young objects.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
@@ -87,6 +84,15 @@ import java.io.IOException;
  * @run main/othervm/timeout=200 -Xlog:gc*=info -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
  *      -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=adaptive
  *      gc.stress.gcbasher.TestGCBasherWithShenandoah 120000
+ */
+
+/*
+ * @test id=compact
+ * @key stress
+ * @library /
+ * @requires vm.gc.Shenandoah
+ * @requires vm.flavor == "server" & !vm.emulatedClient & vm.opt.ClassUnloading != false
+ * @summary Stress Shenandoah GC with nmethod barrier forced deoptimization enabled.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
  *      -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact
@@ -94,12 +100,11 @@ import java.io.IOException;
  */
 
 /*
- * @test TestGCBasherWithShenandoah
- * @key gc
+ * @test id=iu-aggressive
  * @key stress
  * @library /
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
+ * @requires vm.flavor == "server" & !vm.emulatedClient
  * @summary Stress the Shenandoah GC by trying to make old objects more likely to be garbage than young objects.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
@@ -118,12 +123,11 @@ import java.io.IOException;
  */
 
 /*
- * @test TestGCBasherWithShenandoah
- * @key gc
+ * @test id=iu
  * @key stress
  * @library /
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
+ * @requires vm.flavor == "server" & !vm.emulatedClient
  * @summary Stress the Shenandoah GC by trying to make old objects more likely to be garbage than young objects.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
@@ -137,12 +141,11 @@ import java.io.IOException;
  */
 
 /*
- * @test TestGCBasherDeoptWithShenandoah
- * @key gc
+ * @test id=passive-deopt-nmethod
  * @key stress
  * @library /
  * @requires vm.gc.Shenandoah
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled & vm.opt.ClassUnloading != false
+ * @requires vm.flavor == "server" & !vm.emulatedClient & vm.opt.ClassUnloading != false
  * @summary Stress Shenandoah GC with nmethod barrier forced deoptimization enabled.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info,nmethod+barrier=trace -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
@@ -159,12 +162,11 @@ import java.io.IOException;
  */
 
 /*
- * @test TestGCBasherDeoptWithShenandoah
- * @key gc
+ * @test id=aggressive-deopt-nmethod
  * @key stress
  * @library /
  * @requires vm.gc.Shenandoah
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled & vm.opt.ClassUnloading != false
+ * @requires vm.flavor == "server" & !vm.emulatedClient & vm.opt.ClassUnloading != false
  * @summary Stress Shenandoah GC with nmethod barrier forced deoptimization enabled.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info,nmethod+barrier=trace -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
@@ -186,12 +188,11 @@ import java.io.IOException;
  */
 
 /*
- * @test TestGCBasherDeoptWithShenandoah
- * @key gc
+ * @test id=adaptive-deopt-nmethod
  * @key stress
  * @library /
  * @requires vm.gc.Shenandoah
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled & vm.opt.ClassUnloading != false
+ * @requires vm.flavor == "server" & !vm.emulatedClient & vm.opt.ClassUnloading != false
  * @summary Stress Shenandoah GC with nmethod barrier forced deoptimization enabled.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info,nmethod+barrier=trace -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
@@ -204,6 +205,15 @@ import java.io.IOException;
  *      -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=adaptive
  *      -XX:+DeoptimizeNMethodBarriersALot -XX:-Inline
  *      gc.stress.gcbasher.TestGCBasherWithShenandoah 120000
+ */
+
+/*
+ * @test id=compact-deopt-nmethod
+ * @key stress
+ * @library /
+ * @requires vm.gc.Shenandoah
+ * @requires vm.flavor == "server" & !vm.emulatedClient & vm.opt.ClassUnloading != false
+ * @summary Stress Shenandoah GC with nmethod barrier forced deoptimization enabled.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info,nmethod+barrier=trace -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
  *      -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact
@@ -212,12 +222,11 @@ import java.io.IOException;
  */
 
 /*
- * @test TestGCBasherDeoptWithShenandoah
- * @key gc
+ * @test id=iu-aggressive-deopt-nmethod
  * @key stress
  * @library /
  * @requires vm.gc.Shenandoah
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled & vm.opt.ClassUnloading != false
+ * @requires vm.flavor == "server" & !vm.emulatedClient & vm.opt.ClassUnloading != false
  * @summary Stress Shenandoah GC with nmethod barrier forced deoptimization enabled.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info,nmethod+barrier=trace -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions
@@ -239,12 +248,11 @@ import java.io.IOException;
  */
 
 /*
- * @test TestGCBasherDeoptWithShenandoah
- * @key gc
+ * @test id=iu-deopt-nmethod
  * @key stress
  * @library /
  * @requires vm.gc.Shenandoah
- * @requires vm.flavor == "server" & !vm.emulatedClient & !vm.graal.enabled & vm.opt.ClassUnloading != false
+ * @requires vm.flavor == "server" & !vm.emulatedClient & vm.opt.ClassUnloading != false
  * @summary Stress Shenandoah GC with nmethod barrier forced deoptimization enabled.
  *
  * @run main/othervm/timeout=200 -Xlog:gc*=info,nmethod+barrier=trace -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions

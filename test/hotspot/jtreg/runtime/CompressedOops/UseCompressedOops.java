@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,11 +25,12 @@
  * @test
  * @bug 8022865
  * @summary Tests for different combination of UseCompressedOops options
+ * @requires vm.flagless
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
- * @build sun.hotspot.WhiteBox
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @build jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run main/othervm/timeout=480 -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -Xbootclasspath/a:. UseCompressedOops
  */
 import java.util.ArrayList;
@@ -37,9 +38,9 @@ import java.util.Collections;
 import jdk.test.lib.Platform;
 import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
-import sun.hotspot.gc.GC;
+import jdk.test.whitebox.gc.GC;
 
-import sun.hotspot.code.Compiler;
+import jdk.test.whitebox.code.Compiler;
 
 public class UseCompressedOops {
 
@@ -86,12 +87,11 @@ public class UseCompressedOops {
                 .shouldContain("Compressed Oops mode")
                 .shouldHaveExitValue(0);
 
-            // Skip the following seven test cases if we're on OSX, Windows, or Solaris.
+            // Skip the following seven test cases if we're on OSX or Windows.
             //
             // OSX doesn't seem to care about HeapBaseMinAddress.  Windows memory
-            // locations are affected by ASLR.  Solaris puts the heap way up,
-            // forcing different behaviour.
-            if (!Platform.isOSX() && !Platform.isWindows() && !Platform.isSolaris()) {
+            // locations are affected by ASLR.
+            if (!Platform.isOSX() && !Platform.isWindows()) {
 
                 // Larger than 4gb heap should result in zero based with shift 3
                 testCompressedOops(args, "-XX:+UseCompressedOops", "-Xmx5g")
@@ -189,7 +189,7 @@ public class UseCompressedOops {
 
         args.add("-version");
 
-        ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(args);
+        ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(args);
         return new OutputAnalyzer(pb.start());
     }
 }

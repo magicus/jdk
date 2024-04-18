@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,9 +26,12 @@
 package java.util.zip;
 
 import java.nio.ByteBuffer;
+
+import jdk.internal.util.Preconditions;
+import jdk.internal.vm.annotation.IntrinsicCandidate;
 import sun.nio.ch.DirectBuffer;
 
-import jdk.internal.HotSpotIntrinsicCandidate;
+import static java.util.zip.ZipUtils.NIO_ACCESS;
 
 /**
  * A class that can be used to compute the Adler-32 checksum of a data
@@ -73,9 +76,7 @@ public class Adler32 implements Checksum {
         if (b == null) {
             throw new NullPointerException();
         }
-        if (off < 0 || len < 0 || off > b.length - len) {
-            throw new ArrayIndexOutOfBoundsException();
-        }
+        Preconditions.checkFromIndexSize(off, len, b.length, Preconditions.AIOOBE_FORMATTER);
         adler = updateBytes(adler, b, off, len);
     }
 
@@ -96,8 +97,13 @@ public class Adler32 implements Checksum {
         int rem = limit - pos;
         if (rem <= 0)
             return;
-        if (buffer instanceof DirectBuffer) {
-            adler = updateByteBuffer(adler, ((DirectBuffer)buffer).address(), pos, rem);
+        if (buffer.isDirect()) {
+            NIO_ACCESS.acquireSession(buffer);
+            try {
+                adler = updateByteBuffer(adler, ((DirectBuffer)buffer).address(), pos, rem);
+            } finally {
+                NIO_ACCESS.releaseSession(buffer);
+            }
         } else if (buffer.hasArray()) {
             adler = updateBytes(adler, buffer.array(), pos + buffer.arrayOffset(), rem);
         } else {
@@ -129,10 +135,10 @@ public class Adler32 implements Checksum {
 
     private static native int update(int adler, int b);
 
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     private static native int updateBytes(int adler, byte[] b, int off,
                                           int len);
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     private static native int updateByteBuffer(int adler, long addr,
                                                int off, int len);
 

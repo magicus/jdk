@@ -23,10 +23,9 @@
  */
 
 /**
- * @test TestThreadFailure
+ * @test
  * @summary Test OOME in separate thread is recoverable
- * @key gc
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  * @run driver TestThreadFailure
  */
@@ -63,14 +62,13 @@ public class TestThreadFailure {
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                     "-Xmx32m",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     TestThreadFailure.class.getName(),
                     "test");
 
-            OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
             analyzer.shouldHaveExitValue(0);
             analyzer.shouldContain("java.lang.OutOfMemoryError");
             analyzer.shouldContain("All good");

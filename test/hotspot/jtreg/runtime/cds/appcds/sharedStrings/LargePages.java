@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,8 @@
 /*
  * @test
  * @summary Basic shared string test with large pages
- * @requires vm.cds.archived.java.heap
+ * @requires vm.cds.write.archived.java.heap
+ * @requires vm.gc == null
  * @library /test/lib /test/hotspot/jtreg/runtime/cds/appcds
  * @build HelloString
  * @run driver LargePages
@@ -43,11 +44,5 @@ public class LargePages {
         SharedStringsUtils.dump(TestCommon.list("HelloString"),
             "SharedStringsBasic.txt", "-XX:+UseLargePages", CDS_LOGGING);
         SharedStringsUtils.runWithArchive("HelloString", "-XX:+UseLargePages");
-
-        SharedStringsUtils.dump(TestCommon.list("HelloString"),
-            "SharedStringsBasic.txt", CDS_LOGGING,
-            "-XX:+UseLargePages", "-XX:+UseLargePagesInMetaspace");
-        SharedStringsUtils.runWithArchive("HelloString",
-            "-XX:+UseLargePages", "-XX:+UseLargePagesInMetaspace");
     }
 }

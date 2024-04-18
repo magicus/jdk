@@ -45,10 +45,9 @@
  *
  * @library /vmTestbase
  *          /test/lib
- * @run driver jdk.test.lib.FileInstaller . .
  * @comment generate and compile LoadableClassXXX classes
  * @run driver nsk.monitoring.stress.classload.GenClassesBuilder
- * @run main/othervm
+ * @run main/othervm/timeout=180
  *      -XX:-UseGCOverheadLimit
  *      nsk.monitoring.stress.classload.unload001
  *      classes

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2018, Cavium. All rights reserved. (By BELLSOFT)
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -25,7 +25,6 @@
 #include "precompiled.hpp"
 #include "asm/assembler.hpp"
 #include "asm/assembler.inline.hpp"
-#include "runtime/stubRoutines.hpp"
 #include "macroAssembler_aarch64.hpp"
 
 // The following code is a optimized version of fdlibm sin/cos implementation
@@ -201,9 +200,9 @@
 // NOTE: fpu registers are actively reused. See comments in code about their usage
 void MacroAssembler::generate__ieee754_rem_pio2(address npio2_hw,
     address two_over_pi, address pio2) {
-  const long PIO2_1t = 0x3DD0B4611A626331UL;
-  const long PIO2_2  = 0x3DD0B4611A600000UL;
-  const long PIO2_2t = 0x3BA3198A2E037073UL;
+  const int64_t PIO2_1t = 0x3DD0B4611A626331ULL;
+  const int64_t PIO2_2  = 0x3DD0B4611A600000ULL;
+  const int64_t PIO2_2t = 0x3BA3198A2E037073ULL;
   Label X_IS_NEGATIVE, X_IS_MEDIUM_OR_LARGE, X_IS_POSITIVE_LONG_PI, LARGE_ELSE,
       REDUCTION_DONE, X_IS_MEDIUM_BRANCH_DONE, X_IS_LARGE, NX_SET,
       X_IS_NEGATIVE_LONG_PI;
@@ -360,7 +359,7 @@ void MacroAssembler::generate__ieee754_rem_pio2(address npio2_hw,
       lsr(rscratch1, ix, 20);                      // ix >> 20
       movz(tmp5, 0x4170, 48);
       subw(rscratch1, rscratch1, 1046);            // e0
-      fmovd(v10, tmp5);                            // init two24A value
+      fmovd(v24, tmp5);                            // init two24A value
       subw(jv, ix, rscratch1, LSL, 20);            // ix - (e0<<20)
       lsl(jv, jv, 32);
       subw(rscratch2, rscratch1, 3);
@@ -374,7 +373,7 @@ void MacroAssembler::generate__ieee754_rem_pio2(address npio2_hw,
         sdivw(jv, rscratch2, i);                   // jv = (e0 - 3)/24
         fsubd(v26, v26, v6);
         sub(sp, sp, 560);
-        fmuld(v26, v26, v10);
+        fmuld(v26, v26, v24);
         frintzd(v7, v26);                          // v7 = (double)((int)v26)
         movw(jx, 2); // calculate jx as nx - 1, which is initially 2. Not a part of unrolled loop
         fsubd(v26, v26, v7);
@@ -383,7 +382,7 @@ void MacroAssembler::generate__ieee754_rem_pio2(address npio2_hw,
       block_comment("nx calculation with unrolled while(tx[nx-1]==zeroA) nx--;"); {
         fcmpd(v26, 0.0);                           // if NE then jx == 2. else it's 1 or 0
         add(iqBase, sp, 480);                      // base of iq[]
-        fmuld(v3, v26, v10);
+        fmuld(v3, v26, v24);
         br(NE, NX_SET);
         fcmpd(v7, 0.0);                            // v7 == 0 => jx = 0. Else jx = 1
         csetw(jx, NE);
@@ -432,7 +431,7 @@ void MacroAssembler::generate__ieee754_rem_pio2(address npio2_hw,
 // *                      z    = (z-x[i])*2**24
 // *
 // *
-// *      y[]     ouput result in an array of double precision numbers.
+// *      y[]     output result in an array of double precision numbers.
 // *              The dimension of y[] is:
 // *                      24-bit  precision       1
 // *                      53-bit  precision       2
@@ -451,7 +450,7 @@ void MacroAssembler::generate__ieee754_rem_pio2(address npio2_hw,
 // *
 // *      nx      dimension of x[]
 // *
-// *      prec    an interger indicating the precision:
+// *      prec    an integer indicating the precision:
 // *                      0       24  bits (single)
 // *                      1       53  bits (double)
 // *                      2       64  bits (extended)
@@ -668,7 +667,7 @@ void MacroAssembler::generate__ieee754_rem_pio2(address npio2_hw,
 // Changes between fdlibm and intrinsic:
 //     1. One loop is unrolled and vectorized (see comments in code)
 //     2. One loop is split into 2 loops (see comments in code)
-//     3. Non-double code is removed(last switch). Sevaral variables became
+//     3. Non-double code is removed(last switch). Several variables became
 //         constants because of that (see comments in code)
 //     4. Use of jx, which is nx-1 instead of nx
 // Assumptions:
@@ -689,7 +688,7 @@ void MacroAssembler::generate__kernel_rem_pio2(address two_over_pi, address pio2
       RECOMP_FOR1_CHECK;
   Register tmp2 = r1, n = r2, jv = r4, tmp5 = r5, jx = r6,
       tmp3 = r7, iqBase = r10, ih = r11, tmp4 = r12, tmp1 = r13,
-      jz = r14, j = r15, twoOverPiBase = r16, i = r17, qBase = r18;
+      jz = r14, j = r15, twoOverPiBase = r16, i = r17, qBase = r19;
     // jp = jk == init_jk[prec] = init_jk[2] == {2,3,4,6}[2] == 4
     // jx = nx - 1
     lea(twoOverPiBase, ExternalAddress(two_over_pi));
@@ -839,7 +838,7 @@ void MacroAssembler::generate__kernel_rem_pio2(address two_over_pi, address pio2
           ldrd(v27, post(tmp2, -8));
           fmuld(v29, v17, v18);                            // twon24*z
           frintzd(v29, v29);                               // (double)(int)
-          fmsubd(v28, v10, v29, v18);                      // v28 = z-two24A*fw
+          fmsubd(v28, v24, v29, v18);                      // v28 = z-two24A*fw
           fcvtzdw(tmp1, v28);                              // (int)(z-two24A*fw)
           strw(tmp1, Address(iqBase, i, Address::lsl(2)));
           faddd(v18, v27, v29);
@@ -1000,11 +999,11 @@ void MacroAssembler::generate__kernel_rem_pio2(address two_over_pi, address pio2
       block_comment("else block of if(z==0.0) {"); {
         bind(RECOMP_CHECK_DONE_NOT_ZERO);
           fmuld(v18, v18, v22);
-          fcmpd(v18, v10);                                   // v10 is stil two24A
+          fcmpd(v18, v24);                                   // v24 is still two24A
           br(LT, Z_IS_LESS_THAN_TWO24B);
           fmuld(v1, v18, v17);                               // twon24*z
           frintzd(v1, v1);                                   // v1 = (double)(int)(v1)
-          fmsubd(v2, v10, v1, v18);
+          fmsubd(v2, v24, v1, v18);
           fcvtzdw(tmp3, v1);                                 // (int)fw
           fcvtzdw(tmp2, v2);                                 // double to int
           strw(tmp2, Address(iqBase, jz, Address::lsl(2)));
@@ -1181,7 +1180,7 @@ void MacroAssembler::generate__kernel_rem_pio2(address two_over_pi, address pio2
 //     3. C code parameter "int iy" was modified to "bool iyIsOne", because
 //         iy is always 0 or 1. Also, iyIsOne branch was moved into
 //         generation phase instead of taking it during code execution
-// Input ans output:
+// Input and output:
 //     1. Input for generated function: X argument = x
 //     2. Input for generator: x = register to read argument from, iyIsOne
 //         = flag to use low argument low part or not, dsin_coef = coefficients
@@ -1406,7 +1405,7 @@ void MacroAssembler::generate_kernel_cos(FloatRegister x, address dcos_coef) {
 // Changes between fdlibm and intrinsic:
 //     1. Moved ix < 2**27 from kernel_sin/kernel_cos into dsin/dcos
 //     2. Final switch use equivalent bit checks(tbz/tbnz)
-// Input ans output:
+// Input and output:
 //     1. Input for generated function: X = r0
 //     2. Input for generator: isCos = generate sin or cos, npio2_hw = address
 //         of npio2_hw table, two_over_pi = address of two_over_pi table,
@@ -1421,6 +1420,12 @@ void MacroAssembler::generate_dsin_dcos(bool isCos, address npio2_hw,
   Label DONE, ARG_REDUCTION, TINY_X, RETURN_SIN, EARLY_CASE;
   Register X = r0, absX = r1, n = r2, ix = r3;
   FloatRegister y0 = v4, y1 = v5;
+
+  enter();
+  // r19 is used in TemplateInterpreterGenerator::generate_math_entry
+  RegSet saved_regs = RegSet::of(r19);
+  push (saved_regs, sp);
+
     block_comment("check |x| ~< pi/4, NaN, Inf and |x| < 2**-27 cases"); {
       fmovd(X, v0);
       mov(rscratch2, 0x3e400000);
@@ -1438,14 +1443,14 @@ void MacroAssembler::generate_dsin_dcos(bool isCos, address npio2_hw,
       // Set last bit unconditionally to make it NaN
       orr(r10, r10, 1);
       fmovd(v0, r10);
-      ret(lr);
+      b(DONE);
     }
   block_comment("kernel_sin/kernel_cos: if(ix<0x3e400000) {<fast return>}"); {
     bind(TINY_X);
       if (isCos) {
         fmovd(v0, 1.0);
       }
-      ret(lr);
+      b(DONE);
   }
   bind(ARG_REDUCTION); /* argument reduction needed */
     block_comment("n = __ieee754_rem_pio2(x,y);"); {
@@ -1465,7 +1470,7 @@ void MacroAssembler::generate_dsin_dcos(bool isCos, address npio2_hw,
         tbz(n, 1, DONE);
       }
       fnegd(v0, v0);
-      ret(lr);
+      b(DONE);
     bind(RETURN_SIN);
       generate_kernel_sin(y0, true, dsin_coef);
       if (isCos) {
@@ -1474,7 +1479,7 @@ void MacroAssembler::generate_dsin_dcos(bool isCos, address npio2_hw,
         tbz(n, 1, DONE);
       }
       fnegd(v0, v0);
-      ret(lr);
+      b(DONE);
     }
   bind(EARLY_CASE);
     eor(y1, T8B, y1, y1);
@@ -1484,5 +1489,7 @@ void MacroAssembler::generate_dsin_dcos(bool isCos, address npio2_hw,
       generate_kernel_sin(v0, false, dsin_coef);
     }
   bind(DONE);
+    pop(saved_regs, sp);
+    leave();
     ret(lr);
 }

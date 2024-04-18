@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,8 @@
 #define SHARE_VM_JFR_UTILITIES_JFRTHREADITERATOR_HPP
 
 #include "memory/allocation.hpp"
-#include "runtime/thread.hpp"
+#include "runtime/javaThread.hpp"
+#include "runtime/nonJavaThread.hpp"
 #include "runtime/threadSMR.hpp"
 
 template <typename Adapter, typename AP = StackObj>
@@ -34,7 +35,7 @@ class JfrThreadIterator : public AP {
  private:
   Adapter _adapter;
  public:
-  JfrThreadIterator() : _adapter() {}
+  JfrThreadIterator(bool live_only = true) : _adapter(live_only) {}
   typename Adapter::Type* next() {
     assert(has_next(), "invariant");
     return _adapter.next();
@@ -46,14 +47,17 @@ class JfrThreadIterator : public AP {
 
 class JfrJavaThreadIteratorAdapter {
  private:
-  JavaThreadIteratorWithHandle _iter;
-  JavaThread* _next;
+  ThreadsListHandle _tlist;
+  ThreadsListHandle::Iterator _it;
+  ThreadsListHandle::Iterator _end;
+  bool _live_only;
+
+  void skip_excluded();
+
  public:
   typedef JavaThread Type;
-  JfrJavaThreadIteratorAdapter();
-  bool has_next() const {
-    return _next != NULL;
-  }
+  JfrJavaThreadIteratorAdapter(bool live_only = true);
+  bool has_next() const;
   Type* next();
 };
 
@@ -63,7 +67,7 @@ class JfrNonJavaThreadIteratorAdapter {
   NonJavaThread* _next;
  public:
   typedef NonJavaThread Type;
-  JfrNonJavaThreadIteratorAdapter();
+  JfrNonJavaThreadIteratorAdapter(bool live_only = true);
   bool has_next() const;
   Type* next();
 };

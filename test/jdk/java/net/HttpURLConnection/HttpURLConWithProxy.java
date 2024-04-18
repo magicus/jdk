@@ -48,17 +48,22 @@ import java.util.logging.LogRecord;
 
 public class HttpURLConWithProxy {
 
+    private static Logger logger =
+        Logger.getLogger("sun.net.www.protocol.http.HttpURLConnection");
+
     public static void main(String... arg) throws Exception {
         // Remove the default nonProxyHosts to use localhost for testing
         System.setProperty("http.nonProxyHosts", "");
 
-        System.setProperty("http.proxyHost", "1.1.1.1");
+        // 240.0.0.0/4 is unallocated and "reserved for future use" (RFC 1112, Section 4)
+        System.setProperty("http.proxyHost", "240.0.0.1");
         System.setProperty("http.proxyPort", "1111");
-        String HTTPLOG = "sun.net.www.protocol.http.HttpURLConnection";
-        Logger.getLogger(HTTPLOG).setLevel(Level.ALL);
+
+        // Use the logger to help verify the Proxy was used
+        logger.setLevel(Level.ALL);
         Handler h = new ProxyHandler();
         h.setLevel(Level.ALL);
-        Logger.getLogger(HTTPLOG).addHandler(h);
+        logger.addHandler(h);
 
         ServerSocket ss;
         URL url;
@@ -127,8 +132,9 @@ class MyProxySelector extends ProxySelector {
     List<Proxy> proxies = new ArrayList<>();
 
     MyProxySelector() {
-        Proxy p1 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("2.2.2.2", 2222));
-        Proxy p2 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("3.3.3.3", 3333));
+        // 240.0.0.0/4 is unallocated and "reserved for future use" (RFC 1112, Section 4)
+        Proxy p1 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("240.0.0.2", 2222));
+        Proxy p2 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("240.0.0.3", 3333));
         proxies.add(p1);
         proxies.add(p2);
     }

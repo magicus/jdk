@@ -23,10 +23,9 @@
  */
 
 /**
- * @test TestAllocSmallObj
+ * @test
  * @summary Test allocation of small object to result OOM, but not to crash JVM
- * @key gc
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  * @run driver TestAllocSmallObj
  */
@@ -55,27 +54,25 @@ public class TestAllocSmallObj {
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                     "-Xmx16m",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     TestAllocSmallObj.class.getName(),
                     "test");
 
-            OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
             analyzer.shouldHaveExitValue(1);
             analyzer.shouldContain("java.lang.OutOfMemoryError: Java heap space");
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                     "-Xmx1g",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     TestAllocSmallObj.class.getName(),
                     "test");
 
-            OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
             analyzer.shouldHaveExitValue(0);
             analyzer.shouldNotContain("java.lang.OutOfMemoryError: Java heap space");
         }

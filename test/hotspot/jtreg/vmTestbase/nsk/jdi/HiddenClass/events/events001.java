@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,20 +28,19 @@
  * @library /vmTestbase
  *          /test/lib
  * @modules java.base/jdk.internal.misc:+open
- * @build sun.hotspot.WhiteBox
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @build jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  *
- * @run driver jdk.test.lib.FileInstaller . .
  * @build nsk.jdi.HiddenClass.events.*
  *
- * @run main/othervm PropertyResolvingWrapper
+ * @run driver
  *      nsk.jdi.HiddenClass.events.events001
  *      -verbose
  *      -arch=${os.family}-${os.simpleArch}
  *      -waittime=5
  *      -debugee.vmkind=java
  *      -transport.address=dynamic
- *      "-debugee.vmkeys=-Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions
+ *      -debugee.vmkeys="-Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions
  *                       -XX:+WhiteBoxAPI ${test.vm.opts} ${test.java.opts}"
  */
 
@@ -74,7 +73,10 @@ public class events001 extends DebuggerBase {
         ArgumentHandler argHandler = new ArgumentHandler(args);
 
         events001 debugger = new events001(argHandler);
-        System.exit(debugger.run(argHandler) + JCK_STATUS_BASE);
+        int result = debugger.run(argHandler);
+        if (result != 0) {
+            throw new RuntimeException("TEST FAILED with result " + result);
+        }
     }
 
     public int run(ArgumentHandler argHandler) {

@@ -86,7 +86,6 @@ jfieldID graphicsConfigID;
 extern jobject currentX11InputMethodInstance;
 extern Boolean awt_x11inputmethod_lookupString(XKeyPressedEvent *, KeySym *);
 Boolean awt_UseType4Patch = False;
-/* how about HEADLESS */
 Boolean awt_ServerDetected = False;
 Boolean awt_XKBDetected = False;
 Boolean awt_IsXsun = False;
@@ -1128,7 +1127,7 @@ extern struct X11GraphicsConfigIDs x11GraphicsConfigIDs;
  * fact moved us to our final position relative to the reParented WM window.
  * We have noted a timing window which our shell has not been moved so we
  * screw up the insets thinking they are 0,0.  Wait (for a limited period of
- * time to let the WM hava a chance to move us
+ * time to let the WM have a chance to move us
  */
 void syncTopLevelPos( Display *d, Window w, XWindowAttributes *winAttr ) {
     int32_t i = 0;

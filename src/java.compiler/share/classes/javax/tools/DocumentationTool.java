@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,7 @@ import java.util.Locale;
 import java.util.concurrent.Callable;
 
 /**
- * Interface to invoke Java&trade; programming language documentation tools from
+ * Interface to invoke Java programming language documentation tools from
  * programs.
  *
  * @since 1.8
@@ -184,10 +184,17 @@ public interface DocumentationTool extends Tool, OptionChecker {
         /**
          * Location to search for taglets.
          */
-        TAGLET_PATH;
+        TAGLET_PATH,
 
+        /**
+         * Location to search for snippets.
+         */
+        SNIPPET_PATH;
+
+        @Override
         public String getName() { return name(); }
 
+        @Override
         public boolean isOutputLocation() {
             switch (this) {
                 case DOCUMENTATION_OUTPUT:

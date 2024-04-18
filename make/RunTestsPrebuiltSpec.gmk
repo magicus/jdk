@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2017, 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -82,7 +82,6 @@ SHELL := $(BASH) $(BASH_ARGS)
 # Set some reasonable defaults for features
 DEBUG_LEVEL := release
 HOTSPOT_DEBUG_LEVEL := release
-BUILD_GTEST := true
 BUILD_FAILURE_HANDLER := true
 
 ################################################################################
@@ -117,16 +116,15 @@ JAVAC_CMD := $(BOOT_JDK)/bin/javac
 JAR_CMD := $(BOOT_JDK)/bin/jar
 JLINK_CMD := $(JDK_OUTPUTDIR)/bin/jlink
 JMOD_CMD := $(JDK_OUTPUTDIR)/bin/jmod
-JARSIGNER_CMD := $(BOOT_JDK)/bin/jarsigner
 
 JAVA := $(FIXPATH) $(JAVA_CMD) $(JAVA_FLAGS_BIG) $(JAVA_FLAGS)
 JAVA_SMALL := $(FIXPATH) $(JAVA_CMD) $(JAVA_FLAGS_SMALL) $(JAVA_FLAGS)
-JAVA_DETACH := $(FIXPATH) $(FIXPATH_DETACH_FLAG) $(JAVA_CMD) $(JAVA_FLAGS_BIG) $(JAVA_FLAGS)
 JAVAC := $(FIXPATH) $(JAVAC_CMD)
 JAR := $(FIXPATH) $(JAR_CMD)
 JLINK := $(FIXPATH) $(JLINK_CMD)
 JMOD := $(FIXPATH) $(JMOD_CMD)
-JARSIGNER := $(FIXPATH) $(JARSIGNER_CMD)
+
+JTREG_JAVA := $(FIXPATH) $(JTREG_JDK)/bin/java $(JAVA_FLAGS_BIG) $(JAVA_FLAGS)
 
 BUILD_JAVA := $(JDK_IMAGE_DIR)/bin/JAVA
 ################################################################################
@@ -154,7 +152,6 @@ LN := ln
 MIG := mig
 MKDIR := mkdir
 MV := mv
-NAWK := nawk
 NICE := nice
 PATCH := patch
 PRINTF := printf
@@ -168,30 +165,14 @@ TAIL := tail
 TEE := tee
 TR := tr
 TOUCH := touch
-UNIQ := uniq
 WC := wc
 XARGS := xargs
 ZIPEXE := zip
 UNZIP := unzip
 EXPR := expr
 FILE := file
-HG := hg
 ULIMIT := ulimit
 
-# On Solaris gnu versions of some tools are required.
-ifeq ($(OPENJDK_BUILD_OS), solaris)
-  AWK := gawk
-  GREP := ggrep
-  EGREP := ggrep -E
-  FGREP := grep -F
-  SED := gsed
-  TAR := gtar
-endif
-
 ifeq ($(OPENJDK_BUILD_OS), windows)
-  CYGPATH := cygpath
+  PATHTOOL := cygpath
 endif
-
-################################################################################
-# Simple macros from spec.gmk.in
-SHARED_LIBRARY=$(LIBRARY_PREFIX)$1$(SHARED_LIBRARY_SUFFIX)

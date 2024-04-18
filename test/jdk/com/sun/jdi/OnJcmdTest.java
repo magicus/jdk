@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2018, SAP SE. All rights reserved.
+ * Copyright (c) 2018 SAP SE. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -51,12 +51,12 @@ public class OnJcmdTest {
 
     public static void main(String[] args) throws Throwable {
         // First check if we get the expected errors.
-        OutputAnalyzer output = ProcessTools.executeTestJvm(
+        OutputAnalyzer output = ProcessTools.executeTestJava(
                 "-agentlib:jdwp=transport=dt_socket,address=any,onjcmd=y");
         output.shouldContain("Can only use onjcmd with server=y");
         output.shouldHaveExitValue(1);
 
-        output = ProcessTools.executeTestJvm(
+        output = ProcessTools.executeTestJava(
                 "-agentlib:jdwp=transport=dt_socket,address=any,onjcmd=y,onthrow=a,launch=a");
         output.shouldContain("Cannot combine onjcmd and launch suboptions");
         output.shouldHaveExitValue(1);

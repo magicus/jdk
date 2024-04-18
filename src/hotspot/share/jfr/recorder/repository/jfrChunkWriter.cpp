@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,8 +26,9 @@
 #include "jfr/recorder/repository/jfrChunk.hpp"
 #include "jfr/recorder/repository/jfrChunkWriter.hpp"
 #include "jfr/utilities/jfrTime.hpp"
+#include "jfr/utilities/jfrTypes.hpp"
 #include "runtime/mutexLocker.hpp"
-#include "runtime/os.inline.hpp"
+#include "runtime/os.hpp"
 
 static const int64_t MAGIC_OFFSET = 0;
 static const int64_t MAGIC_LEN = 4;
@@ -45,12 +46,12 @@ static const int64_t FLAG_OFFSET = GENERATION_OFFSET + 2;
 static const int64_t HEADER_SIZE = FLAG_OFFSET + 2;
 
 static fio_fd open_chunk(const char* path) {
-  return path != NULL ? os::open(path, O_CREAT | O_RDWR, S_IREAD | S_IWRITE) : invalid_fd;
+  return path != nullptr ? os::open(path, O_CREAT | O_RDWR, S_IREAD | S_IWRITE) : invalid_fd;
 }
 
 #ifdef ASSERT
 static void assert_writer_position(JfrChunkWriter* writer, int64_t offset) {
-  assert(writer != NULL, "invariant");
+  assert(writer != nullptr, "invariant");
   assert(offset == writer->current_offset(), "invariant");
 }
 #endif
@@ -61,7 +62,7 @@ class JfrChunkHeadWriter : public StackObj {
   JfrChunk* _chunk;
  public:
   void write_magic() {
-    _writer->bytes(_chunk->magic(), MAGIC_LEN);
+    _writer->write_bytes(_chunk->magic(), MAGIC_LEN);
   }
 
   void write_version() {
@@ -102,8 +103,8 @@ class JfrChunkHeadWriter : public StackObj {
     _writer->be_write(PAD);
   }
 
-  void write_next_generation() {
-    _writer->be_write(_chunk->next_generation());
+  void write_next_generation(bool finalize) {
+    _writer->be_write(finalize ? COMPLETE : _chunk->next_generation());
     _writer->be_write(PAD);
   }
 
@@ -132,7 +133,7 @@ class JfrChunkHeadWriter : public StackObj {
 
   void flush(int64_t size, bool finalize) {
     assert(_writer->is_valid(), "invariant");
-    assert(_chunk != NULL, "invariant");
+    assert(_chunk != nullptr, "invariant");
     DEBUG_ONLY(assert_writer_position(_writer, SIZE_OFFSET);)
     write_size_to_generation(size, finalize);
     write_flags();
@@ -141,7 +142,7 @@ class JfrChunkHeadWriter : public StackObj {
 
   void initialize() {
     assert(_writer->is_valid(), "invariant");
-    assert(_chunk != NULL, "invariant");
+    assert(_chunk != nullptr, "invariant");
     DEBUG_ONLY(assert_writer_position(_writer, 0);)
     write_magic();
     write_version();
@@ -152,9 +153,9 @@ class JfrChunkHeadWriter : public StackObj {
   }
 
   JfrChunkHeadWriter(JfrChunkWriter* writer, int64_t offset, bool guard = true) : _writer(writer), _chunk(writer->_chunk) {
-    assert(_writer != NULL, "invariant");
+    assert(_writer != nullptr, "invariant");
     assert(_writer->is_valid(), "invariant");
-    assert(_chunk != NULL, "invariant");
+    assert(_chunk != nullptr, "invariant");
     if (0 == _writer->current_offset()) {
       assert(HEADER_SIZE == offset, "invariant");
       initialize();
@@ -198,26 +199,26 @@ int64_t JfrChunkWriter::write_chunk_header_checkpoint(bool flushpoint) {
   const int64_t chunk_size_offset = reserve(sizeof(int64_t)); // size to be decided when we are done
   be_write(event_size_offset); // last checkpoint offset will be this checkpoint
   head.write_metadata();
-  head.write_time(false);
+  head.write_time(!flushpoint);
   head.write_cpu_frequency();
-  head.write_next_generation();
+  head.write_next_generation(!flushpoint);
   head.write_flags();
   assert(current_offset() - header_content_pos == HEADER_SIZE, "invariant");
-  const u4 checkpoint_size = current_offset() - event_size_offset;
+  const u4 checkpoint_size = static_cast<u4>(current_offset() - event_size_offset);
   write_padded_at_offset<u4>(checkpoint_size, event_size_offset);
   set_last_checkpoint_offset(event_size_offset);
-  const size_t sz_written = size_written();
+  const int64_t sz_written = size_written();
   write_be_at_offset(sz_written, chunk_size_offset);
   return sz_written;
 }
 
 void JfrChunkWriter::mark_chunk_final() {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   _chunk->mark_final();
 }
 
 int64_t JfrChunkWriter::flush_chunk(bool flushpoint) {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   const int64_t sz_written = write_chunk_header_checkpoint(flushpoint);
   assert(size_written() == sz_written, "invariant");
   JfrChunkHeadWriter head(this, SIZE_OFFSET);
@@ -225,20 +226,20 @@ int64_t JfrChunkWriter::flush_chunk(bool flushpoint) {
   return sz_written;
 }
 
-JfrChunkWriter::JfrChunkWriter() : JfrChunkWriterBase(NULL), _chunk(new JfrChunk()) {}
+JfrChunkWriter::JfrChunkWriter() : JfrChunkWriterBase(nullptr), _chunk(new JfrChunk()) {}
 
 JfrChunkWriter::~JfrChunkWriter() {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   delete _chunk;
 }
 
 void JfrChunkWriter::set_path(const char* path) {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   _chunk->set_path(path);
 }
 
 void JfrChunkWriter::set_time_stamp() {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   _chunk->set_time_stamp();
 }
 
@@ -247,32 +248,32 @@ int64_t JfrChunkWriter::size_written() const {
 }
 
 int64_t JfrChunkWriter::last_checkpoint_offset() const {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   return _chunk->last_checkpoint_offset();
 }
 
 int64_t JfrChunkWriter::current_chunk_start_nanos() const {
-  assert(_chunk != NULL, "invariant");
-  return this->is_valid() ? _chunk->start_nanos() : invalid_time;
+  assert(_chunk != nullptr, "invariant");
+  return _chunk->start_nanos();
 }
 
 void JfrChunkWriter::set_last_checkpoint_offset(int64_t offset) {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   _chunk->set_last_checkpoint_offset(offset);
 }
 
 void JfrChunkWriter::set_last_metadata_offset(int64_t offset) {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   _chunk->set_last_metadata_offset(offset);
 }
 
 bool JfrChunkWriter::has_metadata() const {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   return _chunk->has_metadata();
 }
 
 bool JfrChunkWriter::open() {
-  assert(_chunk != NULL, "invariant");
+  assert(_chunk != nullptr, "invariant");
   JfrChunkWriterBase::reset(open_chunk(_chunk->path()));
   const bool is_open = this->has_valid_fd();
   if (is_open) {

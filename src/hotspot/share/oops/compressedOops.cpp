@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,17 +23,19 @@
  */
 
 #include "precompiled.hpp"
-#include "aot/aotLoader.hpp"
 #include "logging/log.hpp"
 #include "logging/logStream.hpp"
 #include "memory/memRegion.hpp"
+#include "memory/resourceArea.hpp"
 #include "memory/universe.hpp"
+#include "memory/virtualspace.hpp"
 #include "oops/compressedOops.hpp"
 #include "gc/shared/collectedHeap.hpp"
+#include "runtime/arguments.hpp"
 #include "runtime/globals.hpp"
 
 // For UseCompressedOops.
-NarrowPtrStruct CompressedOops::_narrow_oop = { NULL, 0, true };
+NarrowPtrStruct CompressedOops::_narrow_oop = { nullptr, 0, true };
 MemRegion       CompressedOops::_heap_address_range;
 
 // Choose the heap base address and oop encoding mode
@@ -62,11 +64,9 @@ void CompressedOops::initialize(const ReservedHeapSpace& heap_space) {
     set_base((address)heap_space.compressed_oop_base());
   }
 
-  AOTLoader::set_narrow_oop_shift();
-
   _heap_address_range = heap_space.region();
 
-  LogTarget(Info, gc, heap, coops) lt;
+  LogTarget(Debug, gc, heap, coops) lt;
   if (lt.is_enabled()) {
     ResourceMark rm;
     LogStream ls(lt);
@@ -79,8 +79,8 @@ void CompressedOops::initialize(const ReservedHeapSpace& heap_space) {
                                                  false));
 
   // base() is one page below the heap.
-  assert((intptr_t)base() <= ((intptr_t)_heap_address_range.start() - os::vm_page_size()) ||
-         base() == NULL, "invalid value");
+  assert((intptr_t)base() <= ((intptr_t)_heap_address_range.start() - (intptr_t)os::vm_page_size()) ||
+         base() == nullptr, "invalid value");
   assert(shift() == LogMinObjAlignmentInBytes ||
          shift() == 0, "invalid value");
 #endif
@@ -148,14 +148,14 @@ bool CompressedOops::is_disjoint_heap_base_address(address addr) {
 
 // Check for disjoint base compressed oops.
 bool CompressedOops::base_disjoint() {
-  return _narrow_oop._base != NULL && is_disjoint_heap_base_address(_narrow_oop._base);
+  return _narrow_oop._base != nullptr && is_disjoint_heap_base_address(_narrow_oop._base);
 }
 
 // Check for real heapbased compressed oops.
 // We must subtract the base as the bits overlap.
 // If we negate above function, we also get unscaled and zerobased.
 bool CompressedOops::base_overlaps() {
-  return _narrow_oop._base != NULL && !is_disjoint_heap_base_address(_narrow_oop._base);
+  return _narrow_oop._base != nullptr && !is_disjoint_heap_base_address(_narrow_oop._base);
 }
 
 void CompressedOops::print_mode(outputStream* st) {
@@ -176,25 +176,4 @@ void CompressedOops::print_mode(outputStream* st) {
     st->print(", no protected page in front of the heap");
   }
   st->cr();
-}
-
-// For UseCompressedClassPointers.
-NarrowPtrStruct CompressedKlassPointers::_narrow_klass = { NULL, 0, true };
-
-// CompressedClassSpaceSize set to 1GB, but appear 3GB away from _narrow_ptrs_base during CDS dump.
-uint64_t CompressedKlassPointers::_narrow_klass_range = (uint64_t(max_juint)+1);;
-
-void CompressedKlassPointers::set_base(address base) {
-  assert(UseCompressedClassPointers, "no compressed klass ptrs?");
-  _narrow_klass._base   = base;
-}
-
-void CompressedKlassPointers::set_shift(int shift)       {
-  assert(shift == 0 || shift == LogKlassAlignmentInBytes, "invalid shift for klass ptrs");
-  _narrow_klass._shift   = shift;
-}
-
-void CompressedKlassPointers::set_range(uint64_t range) {
-  assert(UseCompressedClassPointers, "no compressed klass ptrs?");
-  _narrow_klass_range = range;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -207,9 +207,15 @@ public interface MemoryMXBean extends PlatformManagedObject {
      * Returns the approximate number of objects for which
      * finalization is pending.
      *
+     * @deprecated Finalization has been deprecated for removal.  See
+     * {@link java.lang.Object#finalize} for details.
+     *
      * @return the approximate number objects for which finalization
-     * is pending.
+     * is pending. If this MemoryMXBean contains information about a JVM in
+     * which finalization has been disabled or removed, this method always
+     * returns zero.
      */
+    @Deprecated(since="18")
     public int getObjectPendingFinalizationCount();
 
     /**
@@ -283,9 +289,9 @@ public interface MemoryMXBean extends PlatformManagedObject {
      * @param value {@code true} to enable verbose output;
      *              {@code false} to disable.
      *
-     * @exception  java.lang.SecurityException if a security manager
-     *             exists and the caller does not have
-     *             ManagementPermission("control").
+     * @throws java.lang.SecurityException if a security manager
+     *         exists and the caller does not have
+     *         ManagementPermission("control").
      */
     public void setVerbose(boolean value);
 

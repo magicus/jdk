@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,11 +25,14 @@
 #ifndef SHARE_OPTO_OUTPUT_HPP
 #define SHARE_OPTO_OUTPUT_HPP
 
-#include "opto/ad.hpp"
-#include "opto/constantTable.hpp"
-#include "opto/phase.hpp"
 #include "code/debugInfo.hpp"
 #include "code/exceptionHandlerTable.hpp"
+#include "metaprogramming/enableIf.hpp"
+#include "opto/ad.hpp"
+#include "opto/c2_CodeStubs.hpp"
+#include "opto/constantTable.hpp"
+#include "opto/phase.hpp"
+#include "runtime/vm_version.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/macros.hpp"
 
@@ -38,6 +41,7 @@ class Arena;
 class Bundle;
 class Block;
 class Block_Array;
+class C2_MacroAssembler;
 class ciMethod;
 class Compile;
 class MachNode;
@@ -78,6 +82,7 @@ private:
   int                    _first_block_size;      // Size of unvalidated entry point code / OSR poison code
   ExceptionHandlerTable  _handler_table;         // Table of native-code exception handlers
   ImplicitExceptionTable _inc_table;             // Table of implicit null checks in native code
+  C2CodeStubList          _stub_list;            // List of code stubs
   OopMapSet*             _oop_map_set;           // Table of oop maps (one for each safepoint location)
   BufferBlob*            _scratch_buffer_blob;   // For temporary code buffers.
   relocInfo*             _scratch_locs_memory;   // For temporary code buffers.
@@ -120,11 +125,13 @@ public:
                     bool              has_wide_vectors,
                     RTMState          rtm_state);
 
-  void install_stub(const char* stub_name,
-                    bool        caller_must_gc_arguments);
+  void install_stub(const char* stub_name);
 
   // Constant table
   ConstantTable& constant_table() { return _constant_table; }
+
+  // Code stubs list
+  void add_stub(C2CodeStub* stub) { _stub_list.add_stub(stub); }
 
   // Code emission iterator
   Block* block()   { return _block; }
@@ -133,8 +140,9 @@ public:
   // The architecture description provides short branch variants for some long
   // branch instructions. Replace eligible long branches with short branches.
   void shorten_branches(uint* blk_starts);
-  ObjectValue* sv_for_node_id(GrowableArray<ScopeValue*> *objs, int id);
-  void set_sv_for_object_node(GrowableArray<ScopeValue*> *objs, ObjectValue* sv);
+  // If "objs" contains an ObjectValue whose id is "id", returns it, else null.
+  static ObjectValue* sv_for_node_id(GrowableArray<ScopeValue*> *objs, int id);
+  static void set_sv_for_object_node(GrowableArray<ScopeValue*> *objs, ObjectValue* sv);
   void FillLocArray( int idx, MachSafePointNode* sfpt, Node *local,
                      GrowableArray<ScopeValue*> *array,
                      GrowableArray<ScopeValue*> *objs );
@@ -146,7 +154,7 @@ public:
   CodeBuffer* init_buffer();
 
   // Write out basic block data to code buffer
-  void fill_buffer(CodeBuffer* cb, uint* blk_starts);
+  void fill_buffer(C2_MacroAssembler* masm, uint* blk_starts);
 
   // Compute the information for the exception tables
   void FillExceptionTables(uint cnt, uint *call_returns, uint *inct_starts, Label *blk_labels);
@@ -173,11 +181,14 @@ public:
   void          set_scratch_buffer_blob(BufferBlob* b) { _scratch_buffer_blob = b; }
   relocInfo*        scratch_locs_memory()       { return _scratch_locs_memory; }
   void          set_scratch_locs_memory(relocInfo* b)  { _scratch_locs_memory = b; }
+  int               scratch_buffer_code_size()  { return (address)scratch_locs_memory() - _scratch_buffer_blob->content_begin(); }
 
   // emit to scratch blob, report resulting size
   uint              scratch_emit_size(const Node* n);
   void       set_in_scratch_emit_size(bool x)   {        _in_scratch_emit_size = x; }
   bool           in_scratch_emit_size() const   { return _in_scratch_emit_size;     }
+
+  BufferSizingData* buffer_sizing_data()        { return &_buf_sizes; }
 
   enum ScratchBufferBlob {
     MAX_inst_size       = 2048,
@@ -192,8 +203,6 @@ public:
 
   int               bang_size_in_bytes() const;
 
-  uint              node_bundling_limit();
-  Bundle*           node_bundling_base();
   void          set_node_bundling_limit(uint n) { _node_bundling_limit = n; }
   void          set_node_bundling_base(Bundle* b) { _node_bundling_base = b; }
 
@@ -201,20 +210,21 @@ public:
   bool valid_bundle_info(const Node *n);
 
   bool starts_bundle(const Node *n) const;
+  bool contains_as_owner(GrowableArray<MonitorValue*> *monarray, ObjectValue *ov) const;
 
   // Dump formatted assembly
 #if defined(SUPPORT_OPTO_ASSEMBLY)
   void dump_asm_on(outputStream* ost, int* pcs, uint pc_limit);
-  void dump_asm(int* pcs = NULL, uint pc_limit = 0) { dump_asm_on(tty, pcs, pc_limit); }
 #else
   void dump_asm_on(outputStream* ost, int* pcs, uint pc_limit) { return; }
-  void dump_asm(int* pcs = NULL, uint pc_limit = 0) { return; }
 #endif
 
   // Build OopMaps for each GC point
   void BuildOopMaps();
 
 #ifndef PRODUCT
+  void print_scheduling(outputStream* output_stream);
+  void print_scheduling(); // to tty for debugging
   static void print_statistics();
 #endif
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,11 +25,11 @@
 #define SHARE_GC_Z_ZLOCK_HPP
 
 #include "memory/allocation.hpp"
-#include "runtime/os.hpp"
+#include "runtime/mutex.hpp"
 
-class ZLock {
+class ZLock : public CHeapObj<mtGC> {
 private:
-  os::PlatformMutex _lock;
+  PlatformMutex _lock;
 
 public:
   void lock();
@@ -50,6 +50,20 @@ public:
   void unlock();
 
   bool is_owned() const;
+};
+
+class ZConditionLock : public CHeapObj<mtGC> {
+private:
+  PlatformMonitor _lock;
+
+public:
+  void lock();
+  bool try_lock();
+  void unlock();
+
+  bool wait(uint64_t millis = 0);
+  void notify();
+  void notify_all();
 };
 
 template <typename T>

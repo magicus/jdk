@@ -54,7 +54,6 @@ public:
     /* sun.awt.windows.WEmbeddedFrame fields and method IDs */
     static jfieldID handleID;
 
-    static jmethodID setExtendedStateMID;
     static jmethodID getExtendedStateMID;
 
     /* method id for WEmbeddedFrame.requestActivate() method */
@@ -87,8 +86,6 @@ public:
     /* Returns whether this window is in zoomed state. */
     INLINE BOOL isZoomed() { return m_zoomed; }
     INLINE void setZoomed(BOOL b) { m_zoomed = b; }
-
-    void SendWindowStateEvent(int oldState, int newState);
 
     void Show();
 
@@ -185,7 +182,7 @@ private:
     /* The frame is a LightweightFrame */
     BOOL m_isLightweight;
 
-    /* used so that calls to ::MoveWindow in SetMenuBar don't propogate
+    /* used so that calls to ::MoveWindow in SetMenuBar don't propagate
        because they are immediately followed by calls to Component.resize */
     BOOL m_ignoreWmSize;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@
 #include "memory/allocation.hpp"
 #include "memory/iterator.hpp"
 #include "oops/oop.hpp"
+#include "oops/oopHandle.hpp"
 #include "oops/oopsHierarchy.hpp"
 #include "runtime/frame.hpp"
 #include "runtime/handles.hpp"
@@ -41,10 +42,13 @@
 
 // Forward declarations
 
+struct JvmtiCachedClassFileData;
 class JvmtiEventControllerPrivate;
 class JvmtiManageCapabilities;
 class JvmtiEnv;
 class JvmtiThreadState;
+class OopStorage;
+class ThreadsList;
 
 #define JVMTI_SUPPORT_FLAG(key)                                           \
   private:                                                                \
@@ -87,8 +91,10 @@ class JvmtiExport : public AllStatic {
   JVMTI_SUPPORT_FLAG(can_post_field_modification)
   JVMTI_SUPPORT_FLAG(can_post_method_entry)
   JVMTI_SUPPORT_FLAG(can_post_method_exit)
+  JVMTI_SUPPORT_FLAG(can_post_frame_pop)
   JVMTI_SUPPORT_FLAG(can_pop_frame)
   JVMTI_SUPPORT_FLAG(can_force_early_return)
+  JVMTI_SUPPORT_FLAG(can_support_virtual_threads)
 
   JVMTI_SUPPORT_FLAG(early_vmstart_recorded)
   JVMTI_SUPPORT_FLAG(can_get_owned_monitor_info) // includes can_get_owned_monitor_stack_depth_info
@@ -126,6 +132,11 @@ class JvmtiExport : public AllStatic {
   JVMTI_SUPPORT_FLAG(should_post_vm_object_alloc)
   JVMTI_SUPPORT_FLAG(should_post_sampled_object_alloc)
 
+  JVMTI_SUPPORT_FLAG(should_post_vthread_start)
+  JVMTI_SUPPORT_FLAG(should_post_vthread_end)
+  JVMTI_SUPPORT_FLAG(should_post_vthread_mount)
+  JVMTI_SUPPORT_FLAG(should_post_vthread_unmount)
+
   // If flag cannot be implemented, give an error if on=true
   static void report_unsupported(bool on);
 
@@ -138,7 +149,15 @@ class JvmtiExport : public AllStatic {
     JVMTI_ONLY(_can_access_local_variables = (on != 0);)
   }
   inline static void set_can_hotswap_or_post_breakpoint(bool on) {
-    JVMTI_ONLY(_can_hotswap_or_post_breakpoint = (on != 0);)
+#if INCLUDE_JVMTI
+    // Check that _can_hotswap_or_post_breakpoint is not reset once it
+    // was set to true. When _can_hotswap_or_post_breakpoint is set to true
+    // _all_dependencies_are_recorded is also set to true and never
+    // reset so we have to ensure that evol dependencies are always
+    // recorded from that point on.
+    assert(!_can_hotswap_or_post_breakpoint || on, "sanity check");
+    _can_hotswap_or_post_breakpoint = (on != 0);
+#endif
   }
   inline static void set_can_walk_any_space(bool on) {
     JVMTI_ONLY(_can_walk_any_space = (on != 0);)
@@ -161,6 +180,10 @@ class JvmtiExport : public AllStatic {
   static void post_dynamic_code_generated_internal(const char *name, const void *code_begin, const void *code_end) NOT_JVMTI_RETURN;
 
   static void post_class_unload_internal(const char *name) NOT_JVMTI_RETURN;
+
+  static void initialize_oop_storage() NOT_JVMTI_RETURN;
+  static OopStorage* jvmti_oop_storage();
+  static OopStorage* weak_tag_storage();
  private:
 
   // GenerateEvents support to allow posting of CompiledMethodLoad and
@@ -186,6 +209,13 @@ class JvmtiExport : public AllStatic {
   // are incomplete. This flag is used by RedefineClasses to know if the
   // dependency information is complete or not.
   static bool _all_dependencies_are_recorded;
+
+  static void post_method_exit_inner(JavaThread* thread,
+                                     methodHandle& mh,
+                                     JvmtiThreadState *state,
+                                     bool exception_exit,
+                                     frame current_frame,
+                                     jvalue& value);
 
  public:
   inline static bool has_redefined_a_class() {
@@ -276,6 +306,11 @@ class JvmtiExport : public AllStatic {
   static void decode_version_values(jint version, int * major, int * minor,
                                     int * micro) NOT_JVMTI_RETURN;
 
+  // If the jvmti_thread_state is absent and any thread filtered event
+  // is enabled globally then it is created.
+  // Otherwise, the thread->jvmti_thread_state() is returned.
+  static JvmtiThreadState* get_jvmti_thread_state(JavaThread *thread);
+
   // single stepping management methods
   static void at_single_stepping_point(JavaThread *thread, Method* method, address location) NOT_JVMTI_RETURN;
   static void expose_single_stepping(JavaThread *thread) NOT_JVMTI_RETURN;
@@ -295,20 +330,14 @@ class JvmtiExport : public AllStatic {
 
   static oop jni_GetField_probe          (JavaThread *thread, jobject jobj,
     oop obj, Klass* klass, jfieldID fieldID, bool is_static)
-    NOT_JVMTI_RETURN_(NULL);
-  static oop jni_GetField_probe_nh       (JavaThread *thread, jobject jobj,
-    oop obj, Klass* klass, jfieldID fieldID, bool is_static)
-    NOT_JVMTI_RETURN_(NULL);
+    NOT_JVMTI_RETURN_(nullptr);
   static void post_field_access_by_jni   (JavaThread *thread, oop obj,
     Klass* klass, jfieldID fieldID, bool is_static) NOT_JVMTI_RETURN;
   static void post_field_access          (JavaThread *thread, Method* method,
     address location, Klass* field_klass, Handle object, jfieldID field) NOT_JVMTI_RETURN;
   static oop jni_SetField_probe          (JavaThread *thread, jobject jobj,
     oop obj, Klass* klass, jfieldID fieldID, bool is_static, char sig_type,
-    jvalue *value) NOT_JVMTI_RETURN_(NULL);
-  static oop jni_SetField_probe_nh       (JavaThread *thread, jobject jobj,
-    oop obj, Klass* klass, jfieldID fieldID, bool is_static, char sig_type,
-    jvalue *value) NOT_JVMTI_RETURN_(NULL);
+    jvalue *value) NOT_JVMTI_RETURN_(nullptr);
   static void post_field_modification_by_jni(JavaThread *thread, oop obj,
     Klass* klass, jfieldID fieldID, bool is_static, char sig_type,
     jvalue *value);
@@ -325,6 +354,13 @@ class JvmtiExport : public AllStatic {
 
   static void post_thread_start          (JavaThread *thread) NOT_JVMTI_RETURN;
   static void post_thread_end            (JavaThread *thread) NOT_JVMTI_RETURN;
+
+  static void post_vthread_start         (jthread vthread) NOT_JVMTI_RETURN;
+  static void post_vthread_end           (jthread vthread) NOT_JVMTI_RETURN;
+  static void post_vthread_mount         (jthread vthread) NOT_JVMTI_RETURN;
+  static void post_vthread_unmount       (jthread vthread) NOT_JVMTI_RETURN;
+
+  static void continuation_yield_cleanup (JavaThread* thread, jint continuation_frame_count) NOT_JVMTI_RETURN;
 
   // Support for java.lang.instrument agent loading.
   static bool _should_post_class_file_load_hook;
@@ -348,7 +384,7 @@ class JvmtiExport : public AllStatic {
   // used to post a CompiledMethodUnload event
   static void post_compiled_method_unload(jmethodID mid, const void *code_begin) NOT_JVMTI_RETURN;
 
-  // similiar to post_dynamic_code_generated except that it can be used to
+  // similar to post_dynamic_code_generated except that it can be used to
   // post a DynamicCodeGenerated event while holding locks in the VM. Any event
   // posted using this function is recorded by the enclosing event collector
   // -- JvmtiDynamicCodeEventCollector.
@@ -361,7 +397,7 @@ class JvmtiExport : public AllStatic {
   static void post_monitor_contended_entered(JavaThread *thread, ObjectMonitor *obj_mntr) NOT_JVMTI_RETURN;
   static void post_monitor_wait(JavaThread *thread, oop obj, jlong timeout) NOT_JVMTI_RETURN;
   static void post_monitor_waited(JavaThread *thread, ObjectMonitor *obj_mntr, jboolean timed_out) NOT_JVMTI_RETURN;
-  static void post_object_free(JvmtiEnv* env, jlong tag) NOT_JVMTI_RETURN;
+  static void post_object_free(JvmtiEnv* env, GrowableArray<jlong>* objects) NOT_JVMTI_RETURN;
   static void post_resource_exhausted(jint resource_exhausted_flags, const char* detail) NOT_JVMTI_RETURN;
   static void record_vm_internal_object_allocation(oop object) NOT_JVMTI_RETURN;
   // Post objects collected by vm_object_alloc_event_collector.
@@ -372,6 +408,9 @@ class JvmtiExport : public AllStatic {
       record_vm_internal_object_allocation(object);
     }
   }
+
+  // Used by C2 to deoptimize allocation intrinsics and post vm_object_alloc
+  static int _should_notify_object_alloc;
 
   static void record_sampled_internal_object_allocation(oop object) NOT_JVMTI_RETURN;
   // Post objects collected by sampled_object_alloc_event_collector.
@@ -394,9 +433,6 @@ class JvmtiExport : public AllStatic {
   static void cleanup_thread             (JavaThread* thread) NOT_JVMTI_RETURN;
   static void clear_detected_exception   (JavaThread* thread) NOT_JVMTI_RETURN;
 
-  static void oops_do(OopClosure* f) NOT_JVMTI_RETURN;
-  static void weak_oops_do(BoolObjectClosure* b, OopClosure* f) NOT_JVMTI_RETURN;
-
   static void transition_pending_onload_raw_monitors() NOT_JVMTI_RETURN;
 
 #if INCLUDE_SERVICES
@@ -405,7 +441,7 @@ class JvmtiExport : public AllStatic {
 #endif
 
   // SetNativeMethodPrefix support
-  static char** get_all_native_method_prefixes(int* count_ptr) NOT_JVMTI_RETURN_(NULL);
+  static char** get_all_native_method_prefixes(int* count_ptr) NOT_JVMTI_RETURN_(nullptr);
 
   // JavaThread lifecycle support:
   static jvmtiError cv_external_thread_to_JavaThread(ThreadsList * t_list,
@@ -426,7 +462,7 @@ class JvmtiCodeBlobDesc : public CHeapObj<mtInternal> {
 
  public:
   JvmtiCodeBlobDesc(const char *name, address code_begin, address code_end) {
-    assert(name != NULL, "all code blobs must be named");
+    assert(name != nullptr, "all code blobs must be named");
     strncpy(_name, name, sizeof(_name) - 1);
     _name[sizeof(_name)-1] = '\0';
     _code_begin = code_begin;
@@ -445,7 +481,7 @@ class JvmtiEventCollector : public StackObj {
   bool _unset_jvmti_thread_state;
 
  public:
-  JvmtiEventCollector() : _prev(NULL), _unset_jvmti_thread_state(false) {}
+  JvmtiEventCollector() : _prev(nullptr), _unset_jvmti_thread_state(false) {}
 
   void setup_jvmti_thread_state(); // Set this collector in current thread, returns if success.
   void unset_jvmti_thread_state(); // Reset previous collector in current thread.
@@ -491,23 +527,17 @@ class JvmtiDynamicCodeEventCollector : public JvmtiEventCollector {
 //
 class JvmtiObjectAllocEventCollector : public JvmtiEventCollector {
  protected:
-  GrowableArray<oop>* _allocated;      // field to record collected allocated object oop.
+  GrowableArray<OopHandle>* _allocated;      // field to record collected allocated object oop.
   bool _enable;                   // This flag is enabled in constructor if set up in the thread state
                                   // and disabled in destructor before posting event. To avoid
                                   // collection of objects allocated while running java code inside
                                   // agent post_X_object_alloc() event handler.
   void (*_post_callback)(JavaThread*, oop); // what callback to use when destroying the collector.
 
-  //GC support
-  void oops_do(OopClosure* f);
-
   friend class JvmtiExport;
 
   // Record allocated object oop.
   inline void record_allocation(oop obj);
-
-  //GC support
-  static void oops_do_for_all_threads(OopClosure* f);
 
  public:
   JvmtiObjectAllocEventCollector()  NOT_JVMTI_RETURN;
@@ -542,9 +572,12 @@ class JvmtiVMObjectAllocEventCollector : public JvmtiObjectAllocEventCollector {
 //
 class JvmtiSampledObjectAllocEventCollector : public JvmtiObjectAllocEventCollector {
  public:
-  JvmtiSampledObjectAllocEventCollector()  NOT_JVMTI_RETURN;
+  JvmtiSampledObjectAllocEventCollector(bool should_start = true) {
+    JVMTI_ONLY(if (should_start) start();)
+  }
   ~JvmtiSampledObjectAllocEventCollector()  NOT_JVMTI_RETURN;
   bool is_sampled_object_alloc_event()    { return true; }
+  void start() NOT_JVMTI_RETURN;
   static bool object_alloc_is_safe_to_sample() NOT_JVMTI_RETURN_(false);
 };
 
@@ -563,10 +596,10 @@ class JvmtiSampledObjectAllocEventCollector : public JvmtiObjectAllocEventCollec
 
 class NoJvmtiVMObjectAllocMark : public StackObj {
  private:
-  // enclosing collector if enabled, NULL otherwise
+  // enclosing collector if enabled, null otherwise
   JvmtiVMObjectAllocEventCollector *_collector;
 
-  bool was_enabled()    { return _collector != NULL; }
+  bool was_enabled()    { return _collector != nullptr; }
 
  public:
   NoJvmtiVMObjectAllocMark() NOT_JVMTI_RETURN;
@@ -590,7 +623,7 @@ class JvmtiHideSingleStepping : public StackObj {
 
  public:
   JvmtiHideSingleStepping(JavaThread * thread) {
-    assert(thread != NULL, "sanity check");
+    assert(thread != nullptr, "sanity check");
 
     _single_step_hidden = false;
     _thread = thread;

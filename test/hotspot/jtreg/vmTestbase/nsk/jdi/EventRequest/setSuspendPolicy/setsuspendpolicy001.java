@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -86,7 +86,9 @@ public class setsuspendpolicy001 extends JDIBase {
 
         int result = run(argv, System.out);
 
-        System.exit(result + PASS_BASE);
+        if (result != 0) {
+            throw new RuntimeException("TEST FAILED with result " + result);
+        }
     }
 
     public static int run (String argv[], PrintStream out) {
@@ -96,7 +98,7 @@ public class setsuspendpolicy001 extends JDIBase {
         if (exitCode != PASSED) {
             System.out.println("TEST FAILED");
         }
-        return testExitCode;
+        return exitCode;
     }
 
     //  ************************************************    test parameters
@@ -401,6 +403,7 @@ public class setsuspendpolicy001 extends JDIBase {
                 log3("ERROR: suspendPolicy() != EventRequest.SUSPEND_NONE");
             }
 
+            vm.suspend();
             log2("......eventRequest1.setEnabled(true);");
             eventRequest1.setEnabled(true);
             try {
@@ -421,6 +424,7 @@ public class setsuspendpolicy001 extends JDIBase {
             } catch ( InvalidRequestStateException e ) {
                 log2("        InvalidRequestStateException");
             }
+            vm.resume();
 
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         }

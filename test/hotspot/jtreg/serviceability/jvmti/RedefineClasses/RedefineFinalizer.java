@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
  * @test
  * @bug 6904403 8010319
  * @summary Don't assert if we redefine finalize method
+ * @requires vm.jvmti
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  * @modules java.compiler
@@ -46,6 +47,7 @@
 // package access top-level class to avoid problem with RedefineClassHelper
 // and nested types.
 class RedefineFinalizer_B {
+    @SuppressWarnings("removal")
     protected void finalize() {
         // should be empty
     }
@@ -53,12 +55,13 @@ class RedefineFinalizer_B {
 
 public class RedefineFinalizer {
 
-    public static String newB =
-                "class RedefineFinalizer_B {" +
-                "   protected void finalize() { " +
-                "       System.out.println(\"Finalizer called\");" +
-                "   }" +
-                "}";
+    public static String newB = """
+                class RedefineFinalizer_B {
+                    protected void finalize() {
+                        System.out.println("Finalizer called");
+                    }
+                }
+                """;
 
     public static void main(String[] args) throws Exception {
         RedefineClassHelper.redefineClass(RedefineFinalizer_B.class, newB);

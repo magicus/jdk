@@ -27,15 +27,14 @@
  * @summary Verify proper scope of binding related to loops and breaks.
  * @library /tools/lib /tools/javac/lib
  * @modules
- *      java.base/jdk.internal
  *      jdk.compiler/com.sun.tools.javac.api
  *      jdk.compiler/com.sun.tools.javac.file
  *      jdk.compiler/com.sun.tools.javac.main
  *      jdk.compiler/com.sun.tools.javac.util
  * @build toolbox.ToolBox toolbox.JavacTask
  * @build combo.ComboTestHelper
- * @compile --enable-preview -source ${jdk.version} BreakAndLoops.java
- * @run main/othervm --enable-preview BreakAndLoops
+ * @compile BreakAndLoops.java
+ * @run main BreakAndLoops
  */
 
 import combo.ComboInstance;
@@ -95,10 +94,7 @@ public class BreakAndLoops extends ComboInstance<BreakAndLoops> {
                         case "NESTED" -> brk;
                         case "BODY" -> innerLabel;
                         default -> throw new UnsupportedOperationException(pname);
-                    })
-                .withOption("--enable-preview")
-                .withOption("-source")
-                .withOption(String.valueOf(Runtime.version().feature()));
+                    });
 
         task.generate(result -> {
             boolean shouldPass;
@@ -108,6 +104,17 @@ public class BreakAndLoops extends ComboInstance<BreakAndLoops> {
                 shouldPass = true;
             } else if (innerLoop.supportsAnonymousBreak && brk == Break.BREAK) {
                 shouldPass = true;
+             } else if (outterLabel == OutterLabel.LABEL && brk == Break.BREAK_LABEL && outterLoop != OutterLoop.NONE) {
+                 shouldPass = switch(mainLoop) {
+                     case WHILE, FOR -> true;
+                     case DO_WHILE -> switch (innerLoop) {
+                         case WHILE, FOR, FOR_EACH -> true;
+                         //the statement following the do-while is unreachable:
+                         case BLOCK, DO_WHILE, NONE -> {
+                             yield false;
+                         }
+                     };
+                 };
             } else {
                 shouldPass = false;
             }

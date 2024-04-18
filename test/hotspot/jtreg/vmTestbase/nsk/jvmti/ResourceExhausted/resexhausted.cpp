@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,16 +24,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "jvmti_tools.h"
-#include "agent_common.h"
+#include "jvmti_tools.hpp"
+#include "agent_common.hpp"
 
 #define PASSED 0
 #define STATUS_FAILED 2
 
 extern "C" {
 
-static jvmtiEnv* gJvmti = NULL;
-static volatile jboolean gGotEvent = JNI_FALSE;
+static jvmtiEnv* gJvmti = nullptr;
+static volatile jint gEventFlags = 0;
 
 void JNICALL
 resourceExhausted(jvmtiEnv *jvmti_env,
@@ -46,19 +46,19 @@ resourceExhausted(jvmtiEnv *jvmti_env,
     if (flags & JVMTI_RESOURCE_EXHAUSTED_OOM_ERROR) NSK_DISPLAY0("Agent:    JVMTI_RESOURCE_EXHAUSTED_OOM_ERROR\n");
     if (flags & JVMTI_RESOURCE_EXHAUSTED_JAVA_HEAP) NSK_DISPLAY0("Agent:    JVMTI_RESOURCE_EXHAUSTED_JAVA_HEAP\n");
     if (flags & JVMTI_RESOURCE_EXHAUSTED_THREADS)   NSK_DISPLAY0("Agent:    JVMTI_RESOURCE_EXHAUSTED_THREADS\n");
-    gGotEvent = JNI_TRUE;
+    gEventFlags = flags;
 }
 
-JNIEXPORT jboolean JNICALL
-Java_nsk_jvmti_ResourceExhausted_Helper_gotExhaustedEvent(JNIEnv* env, jclass cls)
+JNIEXPORT jint JNICALL
+Java_nsk_jvmti_ResourceExhausted_Helper_getExhaustedEventFlags(JNIEnv* env, jclass cls)
 {
-    return gGotEvent;
+    return gEventFlags;
 }
 
 JNIEXPORT void JNICALL
 Java_nsk_jvmti_ResourceExhausted_Helper_resetExhaustedEvent(JNIEnv* env, jclass cls)
 {
-    gGotEvent = JNI_FALSE;
+    gEventFlags = 0;
 }
 
 #ifdef STATIC_BUILD
@@ -80,7 +80,7 @@ jint Agent_Initialize(JavaVM *vm, char *options, void *reserved)
     if (!NSK_VERIFY(nsk_jvmti_parseOptions(options)))
         return JNI_ERR;
 
-    if (!NSK_VERIFY((gJvmti = nsk_jvmti_createJVMTIEnv(vm, reserved)) != NULL))
+    if (!NSK_VERIFY((gJvmti = nsk_jvmti_createJVMTIEnv(vm, reserved)) != nullptr))
         return JNI_ERR;
 
     memset(&capabilities, 0, sizeof(jvmtiCapabilities));
@@ -96,7 +96,7 @@ jint Agent_Initialize(JavaVM *vm, char *options, void *reserved)
 
     if (!NSK_JVMTI_VERIFY(gJvmti->SetEventNotificationMode(JVMTI_ENABLE,
                                                            JVMTI_EVENT_RESOURCE_EXHAUSTED,
-                                                           NULL)))
+                                                           nullptr)))
         return JNI_ERR;
 
     return JNI_OK;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "jvmti.h"
-#include "agent_common.h"
-#include "JVMTITools.h"
+#include "agent_common.hpp"
+#include "JVMTITools.hpp"
 
 extern "C" {
 
@@ -44,7 +44,7 @@ typedef struct {
     meth_info *meths;
 } class_info;
 
-static jvmtiEnv *jvmti = NULL;
+static jvmtiEnv *jvmti = nullptr;
 static jint result = PASSED;
 static jboolean printdump = JNI_FALSE;
 
@@ -54,7 +54,8 @@ static meth_info m0[] = {
 };
 
 static meth_info m1[] = {
-    { "meth_n1", "()V" }
+    { "meth_n1", "()V" },
+    { "meth_def1", "()V" }
 };
 
 static meth_info m2[] = {
@@ -98,7 +99,7 @@ static meth_info m9[] = {
 
 static class_info classes[] = {
     { "InnerClass1", 2, m0 },
-    { "InnerInterface", 1, m1 },
+    { "InnerInterface", 2, m1 },
     { "InnerClass2", 4, m2 },
     { "OuterClass1", 1, m3 },
     { "OuterClass2", 2, m4 },
@@ -123,12 +124,12 @@ JNIEXPORT jint JNI_OnLoad_getclmthd007(JavaVM *jvm, char *options, void *reserve
 jint Agent_Initialize(JavaVM *jvm, char *options, void *reserved) {
     jint res;
 
-    if (options != NULL && strcmp(options, "printdump") == 0) {
+    if (options != nullptr && strcmp(options, "printdump") == 0) {
         printdump = JNI_TRUE;
     }
 
     res = jvm->GetEnv((void **) &jvmti, JVMTI_VERSION_1_1);
-    if (res != JNI_OK || jvmti == NULL) {
+    if (res != JNI_OK || jvmti == nullptr) {
         printf("Wrong result of a valid call to GetEnv!\n");
         return JNI_ERR;
     }
@@ -145,7 +146,8 @@ Java_nsk_jvmti_GetClassMethods_getclmthd007_check(JNIEnv *env,
     char *name, *sig, *generic;
     int j, k;
 
-    if (jvmti == NULL) {
+    int failed = JNI_FALSE; // enable debugging on failure
+    if (jvmti == nullptr) {
         printf("JVMTI client was not properly loaded!\n");
         result = STATUS_FAILED;
         return;
@@ -167,12 +169,14 @@ Java_nsk_jvmti_GetClassMethods_getclmthd007_check(JNIEnv *env,
         printf("(%d) wrong number of methods: %d, expected: %d\n",
                i, mcount, classes[i].mcount);
         result = STATUS_FAILED;
+        failed = JNI_TRUE; // show the methods found
+        printf(">>> %s:\n", classes[i].name);
     }
     for (k = 0; k < mcount; k++) {
-        if (methods[k] == NULL) {
+        if (methods[k] == nullptr) {
             printf("(%d:%d) methodID = null\n", i, k);
             result = STATUS_FAILED;
-        } else if (printdump == JNI_TRUE) {
+        } else if (printdump == JNI_TRUE || failed == JNI_TRUE) {
             err = jvmti->GetMethodName(methods[k],
                 &name, &sig, &generic);
             if (err == JVMTI_ERROR_NONE) {
@@ -183,7 +187,7 @@ Java_nsk_jvmti_GetClassMethods_getclmthd007_check(JNIEnv *env,
     for (j = 0; j < classes[i].mcount; j++) {
         /* search the returned table for each expected entry */
         for (k = 0; k < mcount; k++) {
-            if (methods[k] != NULL) {
+            if (methods[k] != nullptr) {
                 err = jvmti->GetMethodName(methods[k],
                     &name, &sig, &generic);
                 if (err != JVMTI_ERROR_NONE) {
@@ -191,7 +195,7 @@ Java_nsk_jvmti_GetClassMethods_getclmthd007_check(JNIEnv *env,
                            i, k, TranslateError(err), err);
                     result = STATUS_FAILED;
                 } else {
-                    if (name != NULL && sig != NULL &&
+                    if (name != nullptr && sig != nullptr &&
                         strcmp(name, classes[i].meths[j].name) == 0 &&
                         strcmp(sig, classes[i].meths[j].sig) == 0) break;
                 }

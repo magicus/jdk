@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.tree;
 
 import java.util.Map;
@@ -71,7 +72,7 @@ public class FieldInsnNode extends AbstractInsnNode {
 
     /**
       * The internal name of the field's owner class (see {@link
-      * jdk.internal.org.objectweb.asm.Type#getInternalName}).
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}).
       */
     public String owner;
 
@@ -87,7 +88,7 @@ public class FieldInsnNode extends AbstractInsnNode {
       * @param opcode the opcode of the type instruction to be constructed. This opcode must be
       *     GETSTATIC, PUTSTATIC, GETFIELD or PUTFIELD.
       * @param owner the internal name of the field's owner class (see {@link
-      *     jdk.internal.org.objectweb.asm.Type#getInternalName}).
+      *     jdk.internal.org.objectweb.asm.Type#getInternalName()}).
       * @param name the field's name.
       * @param descriptor the field's descriptor (see {@link jdk.internal.org.objectweb.asm.Type}).
       */

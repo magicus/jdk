@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,93 +33,70 @@ import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 
-import jdk.javadoc.internal.doclets.formats.html.SearchIndexItem;
+import com.sun.source.doctree.DocTree;
 import jdk.javadoc.internal.doclets.toolkit.BaseConfiguration;
-import jdk.javadoc.internal.doclets.toolkit.Messages;
 
 import static jdk.javadoc.internal.doclets.toolkit.util.VisibleMemberTable.Kind.*;
 
 /**
- *  An alphabetical index of {@link Element elements}.
- *
- *  <p><b>This is NOT part of any supported API.
- *  If you write code that depends on this, you do so at your own risk.
- *  This code and its internal interfaces are subject to change or
- *  deletion without notice.</b>
+ * An alphabetical index of elements, search tags, and other items.
+ * Two tables are maintained:
+ * one is indexed by the first character of each item's name;
+ * the other is indexed by the item's category, indicating the JavaScript
+ * file in which the item should be written.
  */
-public class IndexBuilder {
+public abstract class IndexBuilder {
 
     /**
-     * Sets of elements keyed by the first character of the names of the
-     * elements in those sets.
+     * Sets of items keyed by the first character of the names (labels)
+     * of the items in those sets.
      */
-    private final Map<Character, SortedSet<IndexItem>> indexMap;
+    private final Map<Character, SortedSet<IndexItem>> itemsByFirstChar;
+
+    /**
+     * Sets of items keyed by the {@link IndexItem.Category category}
+     * of the items in those sets.
+     */
+    private final Map<IndexItem.Category, SortedSet<IndexItem>> itemsByCategory;
 
     /**
      * Don't generate deprecated information if true.
      */
     private final boolean noDeprecated;
 
-    /**
-     * Build this index only for classes?
-     */
-    private final boolean classesOnly;
-
-    private final BaseConfiguration configuration;
-    private final Utils utils;
-    private final Comparator<IndexItem> comparator;
+    protected final BaseConfiguration configuration;
+    protected final Utils utils;
 
     /**
-     * Creates a new {@code IndexBuilder}.
-     *
-     * @param configuration the current configuration of the doclet
-     * @param noDeprecated  true if -nodeprecated option is used,
-     *                      false otherwise
+     * The comparator used for the sets in {@code itemsByFirstChar}.
      */
-    public IndexBuilder(BaseConfiguration configuration,
-                        boolean noDeprecated)
-    {
-        this(configuration, noDeprecated, false);
-    }
+    private final Comparator<IndexItem> mainComparator;
+
 
     /**
      * Creates a new {@code IndexBuilder}.
      *
      * @param configuration the current configuration of the doclet
-     * @param noDeprecated  true if -nodeprecated option is used,
-     *                      false otherwise
-     * @param classesOnly   include only classes in index
      */
-    public IndexBuilder(BaseConfiguration configuration,
-                        boolean noDeprecated,
-                        boolean classesOnly)
-    {
+    public IndexBuilder(BaseConfiguration configuration) {
         this.configuration = configuration;
         this.utils = configuration.utils;
 
-        Messages messages = configuration.getMessages();
-        if (classesOnly) {
-            messages.notice("doclet.Building_Index_For_All_Classes");
-        } else {
-            messages.notice("doclet.Building_Index");
-        }
+        configuration.getMessages().notice("doclet.Building_Index");
 
-        this.noDeprecated = noDeprecated;
-        this.classesOnly = classesOnly;
-        this.indexMap = new TreeMap<>();
-        comparator = utils.comparators.makeIndexComparator(classesOnly);
-        buildIndex();
+        noDeprecated = configuration.getOptions().noDeprecated();
+        itemsByFirstChar = new TreeMap<>();
+        itemsByCategory = new EnumMap<>(IndexItem.Category.class);
+        mainComparator = makeComparator();
     }
 
     /**
-     * Indexes all the members in all the packages and all the classes.
+     * Adds all the selected modules, packages, types and their members to the index.
      */
-    private void buildIndex()  {
+    public void addElements() {
         Set<TypeElement> classes = configuration.getIncludedTypeElements();
         indexTypeElements(classes);
-        if (classesOnly) {
-            return;
-        }
+
         Set<PackageElement> packages = configuration.getSpecifiedPackageElements();
         if (packages.isEmpty()) {
             packages = classes
@@ -139,6 +116,71 @@ public class IndexBuilder {
     }
 
     /**
+     * Adds an individual item to the two collections of items.
+     *
+     * @param item the item to add
+     */
+    public void add(IndexItem item) {
+        Objects.requireNonNull(item);
+
+        if (item.isElementItem() || item.isTagItem()) {
+            // don't put summary-page items in the A-Z index:
+            // they are listed separately, at the top of the index page
+            itemsByFirstChar.computeIfAbsent(keyCharacter(item.getLabel()),
+                    c -> new TreeSet<>(mainComparator))
+                    .add(item);
+        }
+
+        itemsByCategory.computeIfAbsent(item.getCategory(),
+                    c -> new TreeSet<>(c == IndexItem.Category.TYPES
+                            ? makeTypeSearchIndexComparator()
+                            : makeGenericSearchIndexComparator()))
+                .add(item);
+    }
+
+    /**
+     * Returns a sorted list of items whose names start with the
+     * provided character.
+     *
+     * @param key index key
+     * @return list of items keyed by the provided character
+     */
+    public SortedSet<IndexItem> getItems(Character key) {
+        return itemsByFirstChar.get(key);
+    }
+
+    /**
+     * Returns a sorted list of the first characters of the labels of index items.
+     */
+    public List<Character> getFirstCharacters() {
+        return new ArrayList<>(itemsByFirstChar.keySet());
+    }
+
+    /**
+     * Returns a sorted list of items in a given category.
+     *
+     * @param cat the category
+     * @return list of items keyed by the provided character
+     */
+    public SortedSet<IndexItem> getItems(IndexItem.Category cat) {
+        Objects.requireNonNull(cat);
+        return itemsByCategory.getOrDefault(cat, Collections.emptySortedSet());
+    }
+
+    /**
+     * Returns a sorted list of items with a given kind of doc tree.
+     *
+     * @param kind the kind
+     * @return list of items keyed by the provided character
+     */
+    public SortedSet<IndexItem> getItems(DocTree.Kind kind) {
+        Objects.requireNonNull(kind);
+        return itemsByCategory.getOrDefault(IndexItem.Category.TAGS, Collections.emptySortedSet()).stream()
+                .filter(i -> i.isKind(kind))
+                .collect(Collectors.toCollection(() -> new TreeSet<>(mainComparator)));
+    }
+
+    /**
      * Indexes all the members (fields, methods, constructors, etc.) of the
      * provided type element.
      *
@@ -146,26 +188,23 @@ public class IndexBuilder {
      */
     private void indexMembers(TypeElement te) {
         VisibleMemberTable vmt = configuration.getVisibleMemberTable(te);
-        indexElements(vmt.getVisibleMembers(FIELDS), te);
-        indexElements(vmt.getVisibleMembers(ANNOTATION_TYPE_MEMBER_OPTIONAL), te);
-        indexElements(vmt.getVisibleMembers(ANNOTATION_TYPE_MEMBER_REQUIRED), te);
-        indexElements(vmt.getVisibleMembers(METHODS), te);
-        indexElements(vmt.getVisibleMembers(CONSTRUCTORS), te);
-        indexElements(vmt.getVisibleMembers(ENUM_CONSTANTS), te);
+        indexMembers(te, vmt.getVisibleMembers(FIELDS));
+        indexMembers(te, vmt.getVisibleMembers(ANNOTATION_TYPE_MEMBER_OPTIONAL));
+        indexMembers(te, vmt.getVisibleMembers(ANNOTATION_TYPE_MEMBER_REQUIRED));
+        indexMembers(te, vmt.getVisibleMembers(METHODS));
+        indexMembers(te, vmt.getVisibleMembers(CONSTRUCTORS));
+        indexMembers(te, vmt.getVisibleMembers(ENUM_CONSTANTS));
     }
 
     /**
      * Indexes the provided elements.
      *
-     * @param elements a collection of elements
+     * @param members a collection of elements
      */
-    private void indexElements(Iterable<? extends Element> elements, TypeElement typeElement) {
-        for (Element element : elements) {
-            if (shouldIndex(element)) {
-                String name = utils.getSimpleName(element);
-                Character ch = keyCharacter(name);
-                SortedSet<IndexItem> set = indexMap.computeIfAbsent(ch, c -> new TreeSet<>(comparator));
-                set.add(new IndexItem(element, typeElement, configuration.utils));
+    private void indexMembers(TypeElement typeElement, Iterable<? extends Element> members) {
+        for (Element member : members) {
+            if (shouldIndex(member)) {
+                add(IndexItem.of(typeElement, member, utils));
             }
         }
     }
@@ -178,16 +217,9 @@ public class IndexBuilder {
     private void indexTypeElements(Iterable<TypeElement> elements) {
         for (TypeElement typeElement : elements) {
             if (shouldIndex(typeElement)) {
-                String name = utils.getSimpleName(typeElement);
-                Character ch = keyCharacter(name);
-                SortedSet<IndexItem> set = indexMap.computeIfAbsent(ch, c -> new TreeSet<>(comparator));
-                set.add(new IndexItem(typeElement, configuration.utils));
+                add(IndexItem.of(typeElement, utils));
             }
         }
-    }
-
-    private static Character keyCharacter(String s) {
-        return s.isEmpty() ? '*' : Character.toUpperCase(s.charAt(0));
     }
 
     /**
@@ -195,9 +227,7 @@ public class IndexBuilder {
      */
     private void indexModules() {
         for (ModuleElement m : configuration.modules) {
-            Character ch = keyCharacter(m.getQualifiedName().toString());
-            SortedSet<IndexItem> set = indexMap.computeIfAbsent(ch, c -> new TreeSet<>(comparator));
-            set.add(new IndexItem(m, configuration.utils));
+            add(IndexItem.of(m, utils));
         }
     }
 
@@ -208,9 +238,7 @@ public class IndexBuilder {
      */
     private void indexPackage(PackageElement packageElement) {
         if (shouldIndex(packageElement)) {
-            Character ch = keyCharacter(utils.getPackageName(packageElement));
-            SortedSet<IndexItem> set = indexMap.computeIfAbsent(ch, c -> new TreeSet<>(comparator));
-            set.add(new IndexItem(packageElement, configuration.utils));
+            add(IndexItem.of(packageElement, utils));
         }
     }
 
@@ -225,59 +253,110 @@ public class IndexBuilder {
         if (utils.isPackage(element)) {
             // Do not add to index map if -nodeprecated option is set and the
             // package is marked as deprecated.
-            return !(noDeprecated && configuration.utils.isDeprecated(element));
+            return !(noDeprecated && utils.isDeprecated(element));
         } else {
             // Do not add to index map if -nodeprecated option is set and if the
             // element is marked as deprecated or the containing package is marked as
             // deprecated.
             return !(noDeprecated &&
-                    (configuration.utils.isDeprecated(element) ||
-                    configuration.utils.isDeprecated(utils.containingPackage(element))));
+                    (utils.isDeprecated(element) ||
+                    utils.isDeprecated(utils.containingPackage(element))));
         }
     }
 
-    /**
-     * Returns a map representation of this index.
-     *
-     * @return map
-     */
-    public Map<Character, SortedSet<IndexItem>> asMap() {
-        return indexMap;
-    }
-
-    /**
-     * Returns a sorted list of elements whose names start with the
-     * provided character.
-     *
-     * @param key index key
-     * @return list of elements keyed by the provided character
-     */
-    public List<IndexItem> getMemberList(Character key) {
-        SortedSet<IndexItem> set = indexMap.get(key);
-        if (set == null) {
-            return null;
+    private static Character keyCharacter(String s) {
+        // Use first valid java identifier start character as key,
+        // or '*' for strings that do not contain one.
+        for (int i = 0; i < s.length(); i++) {
+            if (Character.isJavaIdentifierStart(s.charAt(i))) {
+                return Character.toUpperCase(s.charAt(i));
+            }
         }
-        return new ArrayList<>(set);
+        return '*';
     }
 
     /**
-     * Returns a list of index keys.
-     */
-    public List<Character> keys() {
-        return new ArrayList<>(indexMap.keySet());
-    }
-
-    /**
-     * Add search tags for the key {@code key}.
+     * Returns a comparator for the {@code IndexItem}s in the index page.
+     * This is a composite comparator that must be able to compare all kinds of items:
+     * for element items, tag items, and others.
      *
-     * @param key the index key
-     * @param searchTags the search tags
+     * @return a comparator for index page items
      */
-    public void addSearchTags(char key, List<SearchIndexItem> searchTags) {
-        searchTags.forEach(searchTag -> {
-            SortedSet<IndexItem> set = indexMap.computeIfAbsent(key, c -> new TreeSet<>(comparator));
-            set.add(new IndexItem(searchTag));
-        });
+    private Comparator<IndexItem> makeComparator() {
+        // We create comparators specific to element and search tag items, and a
+        // base comparator used to compare between the two kinds of items.
+        // In order to produce consistent results, it is important that the base comparator
+        // uses the same primary sort keys as both the element and search tag comparators
+        // (see JDK-8311264).
+        Comparator<Element> elementComparator = utils.comparators.indexElementComparator();
+        Comparator<IndexItem> baseComparator =
+                (ii1, ii2) -> utils.compareStrings(getIndexItemKey(ii1), getIndexItemKey(ii2));
+        Comparator<IndexItem> searchTagComparator =
+                baseComparator
+                        .thenComparing(IndexItem::getHolder)
+                        .thenComparing(IndexItem::getDescription)
+                        .thenComparing(IndexItem::getUrl);
+
+        return (ii1, ii2) -> {
+            // If both are element items, compare the elements
+            if (ii1.isElementItem() && ii2.isElementItem()) {
+                int d = elementComparator.compare(ii1.getElement(), ii2.getElement());
+                if (d == 0) {
+                    /*
+                     * Members inherited from classes with package access are
+                     * documented as though they were declared in the inheriting
+                     * subclass (see JDK-4780441).
+                     */
+                    Element subclass1 = ii1.getContainingTypeElement();
+                    Element subclass2 = ii2.getContainingTypeElement();
+                    if (subclass1 != null && subclass2 != null) {
+                        d = elementComparator.compare(subclass1, subclass2);
+                    }
+                }
+                return d;
+            }
+
+            // If one is an element item, compare item keys; if equal, put element item last
+            if (ii1.isElementItem() || ii2.isElementItem()) {
+                int d = baseComparator.compare(ii1, ii2);
+                return d != 0 ? d : ii1.isElementItem() ? 1 : -1;
+            }
+
+            // Otherwise, compare labels and other fields of the items
+            return searchTagComparator.compare(ii1, ii2);
+        };
     }
 
+    private String getIndexItemKey(IndexItem ii) {
+        // For element items return the key used by the element comparator;
+        // for search tag items return the item's label.
+        return ii.isElementItem()
+                ? utils.comparators.indexElementKey(ii.getElement())
+                : ii.getLabel();
+    }
+
+    /**
+     * Returns a Comparator for IndexItems in the types category of the search index.
+     * Items are compared by short name, falling back to the main comparator if names are equal.
+     *
+     * @return a Comparator
+     */
+    public Comparator<IndexItem> makeTypeSearchIndexComparator() {
+        Comparator<IndexItem> simpleNameComparator =
+                (ii1, ii2) -> utils.compareStrings(ii1.getSimpleName(), ii2.getSimpleName());
+        return simpleNameComparator.thenComparing(mainComparator);
+    }
+
+    /**
+     * Returns a Comparator for IndexItems in the modules, packages, members, and search tags
+     * categories of the search index.
+     * Items are compared by label, falling back to the main comparator if names are equal.
+     *
+     * @return a Comparator
+     */
+    public Comparator<IndexItem> makeGenericSearchIndexComparator() {
+        Comparator<IndexItem> labelComparator =
+                (ii1, ii2) -> utils.compareStrings(ii1.getLabel(), ii2.getLabel());
+        return labelComparator.thenComparing(mainComparator);
+    }
 }

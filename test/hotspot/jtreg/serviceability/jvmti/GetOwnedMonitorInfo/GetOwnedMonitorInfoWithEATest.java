@@ -27,6 +27,7 @@
  * @summary Test JVMTI's GetOwnedMonitorInfo with scalar replaced objects and eliminated locks on stack (optimizations based on escape analysis).
  * @comment Without RFE 8227745 escape analysis needs to be switched off to pass the test. For the implementation of RFE 8227745 it serves as a regression test.
  * @requires (vm.compMode != "Xcomp" & vm.compiler2.enabled)
+ * @requires vm.jvmti
  * @library /test/lib
  * @compile GetOwnedMonitorInfoWithEATest.java
  * @run main/othervm/native
@@ -39,7 +40,7 @@
  *                  -XX:-TieredCompilation
  *                  -Xbatch
  *                  -XX:CICompilerCount=1
- *                  -XX:+DoEscapeAnalysis -XX:+EliminateAllocations -XX:+EliminateLocks -XX:+EliminateNestedLocks -XX:+UseBiasedLocking
+ *                  -XX:+DoEscapeAnalysis -XX:+EliminateAllocations -XX:+EliminateLocks -XX:+EliminateNestedLocks
  *                  GetOwnedMonitorInfoWithEATest
  * @run main/othervm/native
  *                  -agentlib:GetOwnedMonitorInfoWithEATest
@@ -51,7 +52,7 @@
  *                  -XX:-TieredCompilation
  *                  -Xbatch
  *                  -XX:CICompilerCount=1
- *                  -XX:+DoEscapeAnalysis -XX:+EliminateAllocations -XX:-EliminateLocks -XX:+EliminateNestedLocks -XX:+UseBiasedLocking -XX:-UseOptoBiasInlining
+ *                  -XX:+DoEscapeAnalysis -XX:+EliminateAllocations -XX:-EliminateLocks -XX:+EliminateNestedLocks
  *                  GetOwnedMonitorInfoWithEATest
  * @run main/othervm/native
  *                  -agentlib:GetOwnedMonitorInfoWithEATest
@@ -63,7 +64,7 @@
  *                  -XX:-TieredCompilation
  *                  -Xbatch
  *                  -XX:CICompilerCount=1
- *                  -XX:+DoEscapeAnalysis -XX:-EliminateAllocations -XX:+EliminateLocks -XX:+EliminateNestedLocks -XX:+UseBiasedLocking
+ *                  -XX:+DoEscapeAnalysis -XX:-EliminateAllocations -XX:+EliminateLocks -XX:+EliminateNestedLocks
  *                  GetOwnedMonitorInfoWithEATest
  * @run main/othervm/native
  *                  -agentlib:GetOwnedMonitorInfoWithEATest
@@ -75,43 +76,7 @@
  *                  -XX:-TieredCompilation
  *                  -Xbatch
  *                  -XX:CICompilerCount=1
- *                  -XX:-DoEscapeAnalysis -XX:-EliminateAllocations -XX:+EliminateLocks -XX:+EliminateNestedLocks -XX:+UseBiasedLocking
- *                  GetOwnedMonitorInfoWithEATest
- * @run main/othervm/native
- *                  -agentlib:GetOwnedMonitorInfoWithEATest
- *                  -XX:+UnlockDiagnosticVMOptions
- *                  -Xms128m -Xmx128m
- *                  -XX:CompileCommand=dontinline,*::dontinline_*
- *                  -XX:+PrintCompilation
- *                  -XX:+PrintInlining
- *                  -XX:-TieredCompilation
- *                  -Xbatch
- *                  -XX:CICompilerCount=1
- *                  -XX:+DoEscapeAnalysis -XX:+EliminateAllocations -XX:+EliminateLocks -XX:+EliminateNestedLocks -XX:-UseBiasedLocking
- *                  GetOwnedMonitorInfoWithEATest
- * @run main/othervm/native
- *                  -agentlib:GetOwnedMonitorInfoWithEATest
- *                  -XX:+UnlockDiagnosticVMOptions
- *                  -Xms128m -Xmx128m
- *                  -XX:CompileCommand=dontinline,*::dontinline_*
- *                  -XX:+PrintCompilation
- *                  -XX:+PrintInlining
- *                  -XX:-TieredCompilation
- *                  -Xbatch
- *                  -XX:CICompilerCount=1
- *                  -XX:+DoEscapeAnalysis -XX:-EliminateAllocations -XX:+EliminateLocks -XX:+EliminateNestedLocks -XX:-UseBiasedLocking
- *                  GetOwnedMonitorInfoWithEATest
- * @run main/othervm/native
- *                  -agentlib:GetOwnedMonitorInfoWithEATest
- *                  -XX:+UnlockDiagnosticVMOptions
- *                  -Xms128m -Xmx128m
- *                  -XX:CompileCommand=dontinline,*::dontinline_*
- *                  -XX:+PrintCompilation
- *                  -XX:+PrintInlining
- *                  -XX:-TieredCompilation
- *                  -Xbatch
- *                  -XX:CICompilerCount=1
- *                  -XX:-DoEscapeAnalysis -XX:-EliminateAllocations -XX:+EliminateLocks -XX:+EliminateNestedLocks -XX:-UseBiasedLocking
+ *                  -XX:-DoEscapeAnalysis -XX:-EliminateAllocations -XX:+EliminateLocks -XX:+EliminateNestedLocks
  *                  GetOwnedMonitorInfoWithEATest
  */
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,18 +34,20 @@ class JfrCheckpointWriter;
 class JfrChunkWriter;
 
 class JfrStackTraceRepository : public JfrCHeapObj {
+  friend class JfrDeprecatedEdge;
   friend class JfrRecorder;
   friend class JfrRecorderService;
   friend class JfrThreadSampleClosure;
   friend class ObjectSampleCheckpoint;
   friend class ObjectSampler;
+  friend class RecordStackTrace;
   friend class StackTraceBlobInstaller;
   friend class StackTraceRepository;
 
  private:
   static const u4 TABLE_SIZE = 2053;
   JfrStackTrace* _table[TABLE_SIZE];
-  traceid _next_id;
+  u4 _last_entries;
   u4 _entries;
 
   JfrStackTraceRepository();
@@ -55,18 +57,23 @@ class JfrStackTraceRepository : public JfrCHeapObj {
   bool initialize();
 
   bool is_modified() const;
+  static size_t clear();
+  static size_t clear(JfrStackTraceRepository& repo);
   size_t write(JfrChunkWriter& cw, bool clear);
-  size_t clear();
 
-  const JfrStackTrace* lookup(unsigned int hash, traceid id) const;
+  static const JfrStackTrace* lookup_for_leak_profiler(traceid hash, traceid id);
+  static void record_for_leak_profiler(JavaThread* thread, int skip = 0);
+  static void clear_leak_profiler();
+
+  static traceid next_id();
 
   traceid add_trace(const JfrStackTrace& stacktrace);
+  static traceid add(JfrStackTraceRepository& repo, const JfrStackTrace& stacktrace);
   static traceid add(const JfrStackTrace& stacktrace);
-  traceid record_for(JavaThread* thread, int skip, JfrStackFrame* frames, u4 max_frames);
+  traceid record(JavaThread* current_thread, int skip, int64_t stack_filter_id, JfrStackFrame* frames, u4 max_frames);
 
  public:
-  static traceid record(Thread* thread, int skip = 0);
-  static void record_and_cache(JavaThread* thread, int skip = 0);
+  static traceid record(Thread* current_thread, int skip = 0, int64_t stack_filter_id = -1);
 };
 
 #endif // SHARE_JFR_RECORDER_STACKTRACE_JFRSTACKTRACEREPOSITORY_HPP

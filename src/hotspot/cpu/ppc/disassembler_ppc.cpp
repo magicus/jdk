@@ -26,10 +26,8 @@
 #include "asm/macroAssembler.inline.hpp"
 #include "code/codeCache.hpp"
 #include "compiler/disassembler.hpp"
-#include "depChecker_ppc.hpp"
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/cardTableBarrierSet.hpp"
-#include "gc/shared/genOopClosures.inline.hpp"
 #include "oops/oop.inline.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/stubCodeGenerator.hpp"
@@ -87,22 +85,6 @@
       } \
     } \
   }
-
-address Disassembler::find_prev_instr(address here, int n_instr) {
-  if (!os::is_readable_pointer(here)) return NULL;    // obviously a bad location to decode
-
-  // Find most distant possible starting point.
-  // Narrow down because we don't want to SEGV while printing.
-  address start = here - n_instr*Assembler::instr_maxlen(); // starting point can't be further away.
-  while ((start < here) && !os::is_readable_range(start, here)) {
-    start = align_down(start, os::min_page_size()) + os::min_page_size();
-  }
-  if (start >= here) {
-    // Strange. Can only happen with here on page boundary.
-    return NULL;
-  }
-  return start;
-}
 
 address Disassembler::decode_instruction0(address here, outputStream * st, address virtual_begin ) {
   if (is_abstract()) {
@@ -164,6 +146,8 @@ void Disassembler::annotate(address here, outputStream* st) {
   const uint pos         = st->position();
   const uint aligned_pos = ((pos+tabspacing-1)/tabspacing)*tabspacing;
 
+  int stop_type = -1;
+
   if (MacroAssembler::is_bcxx(instruction)) {
     st->print(",bo=0b");
     print_instruction_bits(st, instruction, 6, 10);
@@ -180,9 +164,6 @@ void Disassembler::annotate(address here, outputStream* st) {
     print_decoded_bh_bits(st, instruction, 20,
                           !(MacroAssembler::is_bctr(instruction) ||
                             MacroAssembler::is_bctrl(instruction)));
-  } else if (MacroAssembler::is_trap_should_not_reach_here(instruction)) {
-    st->fill_to(aligned_pos + tabspacing);
-    st->print(";trap: should not reach here");
   } else if (MacroAssembler::is_trap_null_check(instruction)) {
     st->fill_to(aligned_pos + tabspacing);
     st->print(";trap: null check");
@@ -192,8 +173,11 @@ void Disassembler::annotate(address here, outputStream* st) {
   } else if (MacroAssembler::is_trap_ic_miss_check(instruction)) {
     st->fill_to(aligned_pos + tabspacing);
     st->print(";trap: ic miss check");
-  } else if (MacroAssembler::is_trap_zombie_not_entrant(instruction)) {
+  } else if ((stop_type = MacroAssembler::tdi_get_si16(instruction, Assembler::traptoUnconditional, 0)) != -1) {
+    bool msg_present = (stop_type & MacroAssembler::stop_msg_present);
+    stop_type = (stop_type &~ MacroAssembler::stop_msg_present);
+    const char **detail_msg_ptr = (const char**)(here + 4);
     st->fill_to(aligned_pos + tabspacing);
-    st->print(";trap: zombie");
+    st->print(";trap: stop type %d: %s", stop_type, msg_present ? *detail_msg_ptr : "no details provided");
   }
 }

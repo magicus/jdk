@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,9 @@ default: all
 
 include $(SPEC)
 include MakeBase.gmk
+
+include CopyFiles.gmk
+include MakeIO.gmk
 
 PRODUCT_TARGETS :=
 LEGACY_TARGETS :=
@@ -101,7 +104,7 @@ define SetupBundleFileBody
           # If no subdir is specified and only one BASE_DIR, tar.gz can be done
           # directly from BASE_DIR.
 	  $(CD) $$($1_BASE_DIRS) \
-	      && ( $(TAR) cf - $(TAR_CREATE_EXTRA_PARAM) \
+	      && ( $(TAR) cf - \
 	          -$(TAR_INCLUDE_PARAM) $$($1_$$($1_BASE_DIRS)_LIST_FILE) \
 	          $(TAR_IGNORE_EXIT_VALUE) ) \
 	      | $(GZIP) > $$@
@@ -110,7 +113,7 @@ define SetupBundleFileBody
           # If only one BASE_DIR, but with a SUBDIR set, tar.gz can use the
           # transform option to create bundle directly from the BASE_DIR.
 	  $(CD) $$($1_BASE_DIRS) \
-	      && ( $(TAR) cf - $(TAR_CREATE_EXTRA_PARAM) \
+	      && ( $(TAR) cf - \
 	          -$(TAR_INCLUDE_PARAM) $$($1_$$($1_BASE_DIRS)_LIST_FILE) \
 	          $$(if $$($1_SUBDIR), --transform 's|^|$$($1_SUBDIR)/|S') \
 	          $(TAR_IGNORE_EXIT_VALUE) ) \
@@ -140,7 +143,7 @@ define SetupBundleFileBody
           endif
           ifeq ($$($1_TYPE), tar.gz)
 	    $(CD) $(SUPPORT_OUTPUTDIR)/bundles/$1 && \
-	    ( $(TAR) cf - $(TAR_CREATE_EXTRA_PARAM) \
+	    ( $(TAR) cf - \
 	        $$(if $$($1_SUBDIR), $$($1_SUBDIR), .) $(TAR_IGNORE_EXIT_VALUE) ) \
 	    | $(GZIP) > $$@
           else ifeq ($$($1_TYPE), zip)
@@ -242,16 +245,6 @@ ifneq ($(filter product-bundles% legacy-bundles, $(MAKECMDGOALS)), )
       )
 
   JDK_SYMBOLS_BUNDLE_FILES := \
-      $(filter \
-          $(JDK_SYMBOLS_EXCLUDE_PATTERN) \
-          $(SYMBOLS_EXCLUDE_PATTERN) \
-          , \
-          $(filter-out \
-              $(JDK_IMAGE_HOMEDIR)/demo/% %.stripped.pdb \
-              , \
-              $(ALL_JDK_SYMBOLS_FILES) \
-          ) \
-      ) \
       $(call FindFiles, $(SYMBOLS_IMAGE_DIR))
 
   TEST_DEMOS_BUNDLE_FILES := $(filter $(JDK_DEMOS_IMAGE_HOMEDIR)/demo/%, \
@@ -288,16 +281,7 @@ ifneq ($(filter product-bundles% legacy-bundles, $(MAKECMDGOALS)), )
       $(SYMBOLS_EXCLUDE_PATTERN), \
       $(ALL_JRE_FILES))
 
-  # On Macosx release builds, when there is a code signing certificate available,
-  # the final bundle layout can be signed.
-  SIGN_BUNDLE := false
-  ifeq ($(call isTargetOs, macosx)+$(DEBUG_LEVEL), true+release)
-    ifneq ($(CODESIGN), )
-      SIGN_BUNDLE := true
-    endif
-  endif
-
-  ifeq ($(SIGN_BUNDLE), true)
+  ifeq ($(MACOSX_CODESIGN_MODE), hardened)
     # Macosx release build and code signing available.
 
     ################################################################################
@@ -383,7 +367,7 @@ ifneq ($(filter product-bundles% legacy-bundles, $(MAKECMDGOALS)), )
     $(eval $(call SetupBundleFile, BUILD_JDK_SYMBOLS_BUNDLE, \
         BUNDLE_NAME := $(JDK_SYMBOLS_BUNDLE_NAME), \
         FILES := $(JDK_SYMBOLS_BUNDLE_FILES), \
-        BASE_DIRS := $(JDK_SYMBOLS_IMAGE_DIR) $(wildcard $(SYMBOLS_IMAGE_DIR)), \
+        BASE_DIRS := $(SYMBOLS_IMAGE_DIR), \
         SUBDIR := $(JDK_BUNDLE_SUBDIR), \
         UNZIP_DEBUGINFO := true, \
     ))
@@ -420,17 +404,43 @@ endif
 
 ################################################################################
 
-ifneq ($(filter docs-bundles, $(MAKECMDGOALS)), )
-  DOCS_BUNDLE_FILES := $(call FindFiles, $(DOCS_IMAGE_DIR))
+ifneq ($(filter docs-jdk-bundles, $(MAKECMDGOALS)), )
+  DOCS_JDK_BUNDLE_FILES := $(call FindFiles, $(DOCS_JDK_IMAGE_DIR))
 
-  $(eval $(call SetupBundleFile, BUILD_DOCS_BUNDLE, \
-      BUNDLE_NAME := $(DOCS_BUNDLE_NAME), \
-      FILES := $(DOCS_BUNDLE_FILES), \
-      BASE_DIRS := $(DOCS_IMAGE_DIR), \
+  $(eval $(call SetupBundleFile, BUILD_DOCS_JDK_BUNDLE, \
+      BUNDLE_NAME := $(DOCS_JDK_BUNDLE_NAME), \
+      FILES := $(DOCS_JDK_BUNDLE_FILES), \
+      BASE_DIRS := $(DOCS_JDK_IMAGE_DIR), \
       SUBDIR := docs, \
   ))
 
-  DOCS_TARGETS += $(BUILD_DOCS_BUNDLE)
+  DOCS_JDK_TARGETS += $(BUILD_DOCS_JDK_BUNDLE)
+endif
+
+ifneq ($(filter docs-javase-bundles, $(MAKECMDGOALS)), )
+  DOCS_JAVASE_BUNDLE_FILES := $(call FindFiles, $(DOCS_JAVASE_IMAGE_DIR))
+
+  $(eval $(call SetupBundleFile, BUILD_DOCS_JAVASE_BUNDLE, \
+      BUNDLE_NAME := $(DOCS_JAVASE_BUNDLE_NAME), \
+      FILES := $(DOCS_JAVASE_BUNDLE_FILES), \
+      BASE_DIRS := $(DOCS_JAVASE_IMAGE_DIR), \
+      SUBDIR := docs-javase, \
+  ))
+
+  DOCS_JAVASE_TARGETS += $(BUILD_DOCS_JAVASE_BUNDLE)
+endif
+
+ifneq ($(filter docs-reference-bundles, $(MAKECMDGOALS)), )
+  DOCS_REFERENCE_BUNDLE_FILES := $(call FindFiles, $(DOCS_REFERENCE_IMAGE_DIR))
+
+  $(eval $(call SetupBundleFile, BUILD_DOCS_REFERENCE_BUNDLE, \
+      BUNDLE_NAME := $(DOCS_REFERENCE_BUNDLE_NAME), \
+      FILES := $(DOCS_REFERENCE_BUNDLE_FILES), \
+      BASE_DIRS := $(DOCS_REFERENCE_IMAGE_DIR), \
+      SUBDIR := docs-reference, \
+  ))
+
+  DOCS_REFERENCE_TARGETS += $(BUILD_DOCS_REFERENCE_BUNDLE)
 endif
 
 ################################################################################
@@ -442,7 +452,7 @@ ifneq ($(filter jcov-bundles, $(MAKECMDGOALS)), )
       BUNDLE_NAME := $(JCOV_BUNDLE_NAME), \
       FILES := $(JCOV_BUNDLE_FILES), \
       BASE_DIRS := $(JCOV_IMAGE_DIR), \
-      SUBDIR := $(JDK_BUNDLE_SUBDIR), \
+      SUBDIR := jdk-$(VERSION_NUMBER), \
   ))
 
   JCOV_TARGETS += $(BUILD_JCOV_BUNDLE)
@@ -471,6 +481,27 @@ endif
 
 ################################################################################
 
+ifneq ($(filter static-libs-graal-bundles, $(MAKECMDGOALS)), )
+  STATIC_LIBS_GRAAL_BUNDLE_FILES := $(call FindFiles, $(STATIC_LIBS_GRAAL_IMAGE_DIR))
+
+  ifeq ($(OPENJDK_TARGET_OS)-$(DEBUG_LEVEL), macosx-release)
+    STATIC_LIBS_GRAAL_BUNDLE_SUBDIR := $(JDK_MACOSX_CONTENTS_SUBDIR)/Home
+  else
+    STATIC_LIBS_GRAAL_BUNDLE_SUBDIR := $(JDK_BUNDLE_SUBDIR)
+  endif
+
+  $(eval $(call SetupBundleFile, BUILD_STATIC_LIBS_GRAAL_BUNDLE, \
+      BUNDLE_NAME := $(STATIC_LIBS_GRAAL_BUNDLE_NAME), \
+      FILES := $(STATIC_LIBS_GRAAL_BUNDLE_FILES), \
+      BASE_DIRS := $(STATIC_LIBS_GRAAL_IMAGE_DIR), \
+      SUBDIR := $(STATIC_LIBS_GRAAL_BUNDLE_SUBDIR), \
+  ))
+
+  STATIC_LIBS_GRAAL_TARGETS += $(BUILD_STATIC_LIBS_GRAAL_BUNDLE)
+endif
+
+################################################################################
+
 # Hook to include the corresponding custom file, if present.
 $(eval $(call IncludeCustomExtension, Bundles.gmk))
 
@@ -479,9 +510,13 @@ $(eval $(call IncludeCustomExtension, Bundles.gmk))
 product-bundles: $(PRODUCT_TARGETS)
 legacy-bundles: $(LEGACY_TARGETS)
 test-bundles: $(TEST_TARGETS)
-docs-bundles: $(DOCS_TARGETS)
+docs-jdk-bundles: $(DOCS_JDK_TARGETS)
+docs-javase-bundles: $(DOCS_JAVASE_TARGETS)
+docs-reference-bundles: $(DOCS_REFERENCE_TARGETS)
 static-libs-bundles: $(STATIC_LIBS_TARGETS)
+static-libs-graal-bundles: $(STATIC_LIBS_GRAAL_TARGETS)
 jcov-bundles: $(JCOV_TARGETS)
 
-.PHONY: all default product-bundles test-bundles docs-bundles \
-    static-libs-bundles jcov-bundles
+.PHONY: all default product-bundles test-bundles \
+    docs-jdk-bundles docs-javase-bundles docs-reference-bundles \
+    static-libs-bundles static-libs-graal-bundles jcov-bundles

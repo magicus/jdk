@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,12 +23,13 @@
 
 /*
  * @test
- * @bug 8164389 8222440
+ * @bug 8164389 8222440 8271079
  * @summary walk entries in a multi-release jar file via jdk.zipfs
- * @library /lib/testlibrary/java/util/jar
  * @modules jdk.jartool
  *          jdk.zipfs
- * @build Compiler JarBuilder
+ * @library /test/lib/
+ * @build jdk.test.lib.util.JarBuilder
+ *        jdk.test.lib.compiler.Compiler
  * @run testng JFSTester
  */
 
@@ -48,6 +49,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import jdk.test.lib.util.JarBuilder;
 
 public class JFSTester {
     private URI jarURI;
@@ -142,5 +145,59 @@ public class JFSTester {
         } catch (IOException x) {
             throw new UncheckedIOException(x);
         }
+    }
+
+    @Test
+    public void testToUri() throws IOException {
+        // treat multi-release jar as unversioned
+        Map<String, String> env = new HashMap<>();
+        Set<String> contents = doTestUri(env);
+        Set<String> expectedContents = Set.of(
+            "!/root/dir1/leaf1.txt",
+            "!/root/dir1/leaf2.txt",
+            "!/root/dir2/leaf3.txt",
+            "!/root/dir2/leaf4.txt"
+        );
+        Assert.assertEquals(contents, expectedContents);
+
+        // open file as multi-release for version 9
+        env.put("multi-release", "9");
+        contents = doTestUri(env);
+        expectedContents = Set.of(
+            "!/root/dir1/leaf1.txt",
+            "!/root/dir1/leaf2.txt",
+            "!/META-INF/versions/9/root/dir2/leaf3.txt",
+            "!/META-INF/versions/9/root/dir2/leaf4.txt",
+            "!/META-INF/versions/9/root/dir3/leaf5.txt",
+            "!/META-INF/versions/9/root/dir3/leaf6.txt"
+        );
+        Assert.assertEquals(contents, expectedContents);
+
+        // open file as multi-release for version 10
+        env.put("multi-release", "10");
+        contents = doTestUri(env);
+        expectedContents = Set.of(
+            "!/root/dir1/leaf1.txt",
+            "!/root/dir1/leaf2.txt",
+            "!/META-INF/versions/9/root/dir2/leaf3.txt",
+            "!/META-INF/versions/9/root/dir2/leaf4.txt",
+            "!/META-INF/versions/10/root/dir3/leaf5.txt",
+            "!/META-INF/versions/10/root/dir3/leaf6.txt"
+        );
+        Assert.assertEquals(contents, expectedContents);
+    }
+
+    private Set<String> doTestUri(Map<String,String> env) throws IOException {
+        Set<String> contents;
+        try (FileSystem fs = FileSystems.newFileSystem(jarURI, env)) {
+            Path root = fs.getPath("root");
+            int prefix = root.toUri().toString().indexOf('!');
+            contents = Files.walk(root)
+                .filter(p -> !Files.isDirectory(p))
+                .map(p ->  p.toUri().toString().substring(prefix))
+                .sorted()
+                .collect(Collectors.toSet());
+        }
+        return contents;
     }
 }

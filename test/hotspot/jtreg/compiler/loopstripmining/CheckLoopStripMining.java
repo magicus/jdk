@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, SAP SE. All rights reserved.
+ * Copyright (c) 2019 SAP SE. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,9 +38,7 @@ import jdk.test.lib.process.ProcessTools;
 
 public class CheckLoopStripMining {
     public static void main(String args[]) throws Exception {
-        ProcessTools.executeTestJvm("-XX:+UnlockDiagnosticVMOptions",
-                                    // to prevent biased locking handshakes from changing the timing of this test
-                                    "-XX:-UseBiasedLocking",
+        ProcessTools.executeTestJava("-XX:+UnlockDiagnosticVMOptions",
                                     "-XX:+SafepointTimeout",
                                     "-XX:+SafepointALot",
                                     "-XX:+AbortVMOnSafepointTimeout",
@@ -56,9 +54,7 @@ public class CheckLoopStripMining {
             .shouldHaveExitValue(0)
             .stdoutShouldContain("sum: 715827882");
 
-        ProcessTools.executeTestJvm("-XX:+UnlockDiagnosticVMOptions",
-                                    // to prevent biased locking handshakes from changing the timing of this test
-                                    "-XX:-UseBiasedLocking",
+        ProcessTools.executeTestJava("-XX:+UnlockDiagnosticVMOptions",
                                     "-XX:+SafepointTimeout",
                                     "-XX:+SafepointALot",
                                     "-XX:+AbortVMOnSafepointTimeout",

@@ -33,7 +33,7 @@ import static java.lang.invoke.MethodHandleStatics.*;
 
 /**
  * A symbolic reference obtained by cracking a direct method handle
- * into its consitutent symbolic parts.
+ * into its constituent symbolic parts.
  * To crack a direct method handle, call {@link Lookup#revealDirect Lookup.revealDirect}.
  * <h2><a id="directmh"></a>Direct Method Handles</h2>
  * A <em>direct method handle</em> represents a method, constructor, or field without
@@ -160,7 +160,8 @@ public interface MethodHandleInfo {
 
     /**
      * Returns the name of the cracked method handle's underlying member.
-     * This is {@code "<init>"} if the underlying member was a constructor,
+     * This is {@value java.lang.constant.ConstantDescs#INIT_NAME}
+     * if the underlying member was a constructor,
      * else it is a simple method name or field name.
      * @return the simple name of the underlying member
      */

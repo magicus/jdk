@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 /**
  * @test
  * @requires vm.cds
+ * @requires vm.flagless
  * @bug 8067187 8200078
  * @summary Testing CDS dumping with the -XX:MaxMetaspaceSize=<size> option
  * @library /test/lib
@@ -46,13 +47,12 @@ public class MaxMetaspaceSize {
     if (Platform.is64bit()) {
       processArgs.add("-XX:MaxMetaspaceSize=3m");
       processArgs.add("-XX:CompressedClassSpaceSize=1m");
-      processArgs.add("-XX:InitialBootClassLoaderMetaspaceSize=1m");
     } else {
       processArgs.add("-XX:MaxMetaspaceSize=1m");
     }
 
-    String msg = "Failed allocating metaspace object";
-    ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(processArgs);
-    CDSTestUtils.executeAndLog(pb, "dump").shouldContain(msg).shouldHaveExitValue(1);
+    String msg = "OutOfMemoryError: ((Metaspace)|(Compressed class space))";
+    ProcessBuilder pb = ProcessTools.createLimitedTestJavaProcessBuilder(processArgs);
+    CDSTestUtils.executeAndLog(pb, "dump").shouldMatch(msg).shouldHaveExitValue(1);
   }
 }

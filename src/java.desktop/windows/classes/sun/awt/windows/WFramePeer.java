@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,7 +38,9 @@ import sun.awt.AWTAccessor;
 import sun.awt.im.InputMethodManager;
 import sun.security.action.GetPropertyAction;
 
-import static sun.java2d.SunGraphicsEnvironment.convertToDeviceSpace;
+import static sun.java2d.SunGraphicsEnvironment.getGCDeviceBounds;
+import static sun.java2d.SunGraphicsEnvironment.toDeviceSpaceAbs;
+import static sun.java2d.SunGraphicsEnvironment.toUserSpace;
 
 class WFramePeer extends WWindowPeer implements FramePeer {
 
@@ -63,11 +65,22 @@ class WFramePeer extends WWindowPeer implements FramePeer {
         return AWTAccessor.getFrameAccessor().getExtendedState((Frame)target);
     }
 
+    @Override
+    public void toFront() {
+        int state = getState();
+        if ((state & Frame.ICONIFIED) != 0) {
+            setState(state & ~Frame.ICONIFIED);
+        }
+
+        super.toFront();
+    }
+
     // Convenience methods to save us from trouble of extracting
     // Rectangle fields in native code.
     private native void setMaximizedBounds(int x, int y, int w, int h);
     private native void clearMaximizedBounds();
 
+    @SuppressWarnings("removal")
     private static final boolean keepOnMinimize = "true".equals(
         AccessController.doPrivileged(
             new GetPropertyAction(
@@ -97,10 +110,9 @@ class WFramePeer extends WWindowPeer implements FramePeer {
      */
     private Rectangle adjustMaximizedBounds(Rectangle bounds) {
         // All calculations should be done in the device space
-        bounds = convertToDeviceSpace(bounds);
-
+        bounds = toDeviceSpaceAbs(bounds);
         GraphicsConfiguration gc = getGraphicsConfiguration();
-        Rectangle currentDevBounds = convertToDeviceSpace(gc, gc.getBounds());
+        Rectangle currentDevBounds = getGCDeviceBounds(gc);
         // Prepare data for WM_GETMINMAXINFO message.
         // ptMaxPosition should be in coordinate system of the current monitor,
         // not the main monitor, or monitor on which we maximize the window.
@@ -148,13 +160,13 @@ class WFramePeer extends WWindowPeer implements FramePeer {
 
     @Override
     public final Dimension getMinimumSize() {
+        GraphicsConfiguration gc = getGraphicsConfiguration();
         Dimension d = new Dimension();
         if (!((Frame)target).isUndecorated()) {
-            d.setSize(scaleDownX(getSysMinWidth()),
-                      scaleDownY(getSysMinHeight()));
+            d.setSize(toUserSpace(gc, getSysMinWidth(), getSysMinHeight()));
         }
-        if (((Frame)target).getMenuBar() != null) {
-            d.height += scaleDownY(getSysMenuHeight());
+        if (((Frame) target).getMenuBar() != null) {
+            d.height += toUserSpace(gc, 0, getSysMenuHeight()).height;
         }
         return d;
     }

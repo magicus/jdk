@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,11 +37,11 @@ class G1CardTableChangedListener : public G1MappingChangedListener {
  private:
   G1CardTable* _card_table;
  public:
-  G1CardTableChangedListener() : _card_table(NULL) { }
+  G1CardTableChangedListener() : _card_table(nullptr) { }
 
   void set_card_table(G1CardTable* card_table) { _card_table = card_table; }
 
-  virtual void on_commit(uint start_idx, size_t num_regions, bool zero_filled);
+  void on_commit(uint start_idx, size_t num_regions, bool zero_filled) override;
 };
 
 class G1CardTable : public CardTable {
@@ -79,11 +79,12 @@ public:
   STATIC_ASSERT(BitsPerByte == 8);
   static const size_t WordAlreadyScanned = (SIZE_MAX / 255) * g1_card_already_scanned;
 
-  G1CardTable(MemRegion whole_heap): CardTable(whole_heap, /* scanned concurrently */ true), _listener() {
+  G1CardTable(MemRegion whole_heap): CardTable(whole_heap), _listener() {
     _listener.set_card_table(this);
   }
 
   static CardValue g1_young_card_val() { return g1_young_gen; }
+  static CardValue g1_scanned_card_val() { return g1_card_already_scanned; }
 
   void verify_g1_young_region(MemRegion mr) PRODUCT_RETURN;
   void g1_mark_as_young(const MemRegion& mr);
@@ -92,36 +93,31 @@ public:
     return pointer_delta(p, _byte_map, sizeof(CardValue));
   }
 
-  // Mark the given card as Dirty if it is Clean. Returns the number of dirtied
-  // cards that were not yet dirty. This result may be inaccurate as it does not
+  // Mark the given card as Dirty if it is Clean. Returns whether the card was
+  // Clean before this operation. This result may be inaccurate as it does not
   // perform the dirtying atomically.
-  inline size_t mark_clean_as_dirty(size_t card_index);
+  inline bool mark_clean_as_dirty(CardValue* card);
 
   // Change Clean cards in a (large) area on the card table as Dirty, preserving
   // already scanned cards. Assumes that most cards in that area are Clean.
-  // Returns the number of dirtied cards that were not yet dirty. This result may
-  // be inaccurate as it does not perform the dirtying atomically.
-  inline size_t mark_region_dirty(size_t start_card_index, size_t num_cards);
+  inline void mark_range_dirty(size_t start_card_index, size_t num_cards);
 
-  // Mark the given range of cards as Scanned. All of these cards must be Dirty.
-  inline void mark_as_scanned(size_t start_card_index, size_t num_cards);
+  // Change the given range of dirty cards to "which". All of these cards must be Dirty.
+  inline void change_dirty_cards_to(CardValue* start_card, CardValue* end_card, CardValue which);
 
   inline uint region_idx_for(CardValue* p);
 
   static size_t compute_size(size_t mem_region_size_in_words) {
-    size_t number_of_slots = (mem_region_size_in_words / card_size_in_words);
+    size_t number_of_slots = (mem_region_size_in_words / _card_size_in_words);
     return ReservedSpace::allocation_align_size_up(number_of_slots);
   }
 
   // Returns how many bytes of the heap a single byte of the Card Table corresponds to.
-  static size_t heap_map_factor() { return card_size; }
+  static size_t heap_map_factor() { return _card_size; }
 
-  void initialize() {}
   void initialize(G1RegionToSpaceMapper* mapper);
 
-  virtual void resize_covered_region(MemRegion new_region) { ShouldNotReachHere(); }
-
-  virtual bool is_in_young(oop obj) const;
+  bool is_in_young(const void* p) const override;
 };
 
 #endif // SHARE_GC_G1_G1CARDTABLE_HPP

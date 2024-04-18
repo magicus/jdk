@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,9 +28,10 @@
 #include "jfr/writers/jfrMemoryWriterHost.hpp"
 
 template <typename Adapter, typename AP, typename AccessAssert>
-inline void MemoryWriterHost<Adapter, AP, AccessAssert>::bytes(void* dest, const void* buf, size_t len) {
-  assert(dest != NULL, "invariant");
-  memcpy(dest, buf, len); // no encoding
+inline void MemoryWriterHost<Adapter, AP, AccessAssert>::write_bytes(void* dest, const void* buf, intptr_t len) {
+  assert(dest != nullptr, "invariant");
+  assert(len >= 0, "invariant");
+  memcpy(dest, buf, (size_t)len); // no encoding
   this->set_current_pos(len);
 }
 

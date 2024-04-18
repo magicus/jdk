@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,17 +27,11 @@ package javax.lang.model.util;
 
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.RecordComponentElement;
 import static javax.lang.model.SourceVersion.*;
 
 /**
- * {@preview Associated with records, a preview feature of the Java language.
- *
- *           This class is associated with <i>records</i>, a preview
- *           feature of the Java language. Preview features
- *           may be removed in a future release, or upgraded to permanent
- *           features of the Java language.}
- *
  * A skeletal visitor of program elements with default behavior
  * appropriate for the {@link SourceVersion#RELEASE_14 RELEASE_14}
  * source version.
@@ -54,11 +48,9 @@ import static javax.lang.model.SourceVersion.*;
  * @see AbstractElementVisitor7
  * @see AbstractElementVisitor8
  * @see AbstractElementVisitor9
- * @since 14
+ * @since 16
  */
-@jdk.internal.PreviewFeature(feature=jdk.internal.PreviewFeature.Feature.RECORDS,
-                             essentialAPI=false)
-@SupportedSourceVersion(RELEASE_15)
+@SupportedSourceVersion(RELEASE_23)
 public abstract class AbstractElementVisitor14<R, P> extends AbstractElementVisitor9<R, P> {
     /**
      * Constructor for concrete subclasses to call.
@@ -68,16 +60,15 @@ public abstract class AbstractElementVisitor14<R, P> extends AbstractElementVisi
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritDoc ElementVisitor}
      *
      * @implSpec Visits a {@code RecordComponentElement} in a manner defined by a
      * subclass.
      *
-     * @param t  {@inheritDoc}
-     * @param p  {@inheritDoc}
-     * @return   {@inheritDoc}
+     * @param e  {@inheritDoc ElementVisitor}
+     * @param p  {@inheritDoc ElementVisitor}
+     * @return   {@inheritDoc ElementVisitor}
      */
-    @SuppressWarnings("preview")
     @Override
-    public abstract R visitRecordComponent(RecordComponentElement t, P p);
+    public abstract R visitRecordComponent(RecordComponentElement e, P p);
 }

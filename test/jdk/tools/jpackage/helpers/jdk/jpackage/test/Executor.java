@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,14 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.spi.ToolProvider;
 import java.util.stream.Collectors;
@@ -46,6 +53,7 @@ public final class Executor extends CommandArguments<Executor> {
 
     public Executor() {
         saveOutputType = new HashSet<>(Set.of(SaveOutputType.NONE));
+        removePath = false;
     }
 
     public Executor setExecutable(String v) {
@@ -75,6 +83,20 @@ public final class Executor extends CommandArguments<Executor> {
 
     public Executor setExecutable(JavaTool v) {
         return setExecutable(v.getPath());
+    }
+
+    public Executor setRemovePath(boolean value) {
+        removePath = value;
+        return this;
+    }
+
+    public Executor setWindowsTmpDir(String tmp) {
+        if (!TKit.isWindows()) {
+            throw new UnsupportedOperationException(
+                    "setWindowsTmpDir is only valid on Windows platform");
+        }
+        winTmpDir = tmp;
+        return this;
     }
 
     /**
@@ -214,6 +236,74 @@ public final class Executor extends CommandArguments<Executor> {
         return saveOutput().execute().getOutput();
     }
 
+    private static class BadResultException extends RuntimeException {
+        BadResultException(Result v) {
+            value = v;
+        }
+
+        Result getValue() {
+            return value;
+        }
+
+        private final Result value;
+    }
+
+    /*
+     * Repeates command "max" times and waits for "wait" seconds between each
+     * execution until command returns expected error code.
+     */
+    public Result executeAndRepeatUntilExitCode(int expectedCode, int max, int wait) {
+        try {
+            return tryRunMultipleTimes(() -> {
+                Result result = executeWithoutExitCodeCheck();
+                if (result.getExitCode() != expectedCode) {
+                    throw new BadResultException(result);
+                }
+                return result;
+            }, max, wait).assertExitCodeIs(expectedCode);
+        } catch (BadResultException ex) {
+            return ex.getValue().assertExitCodeIs(expectedCode);
+        }
+    }
+
+    /*
+     * Repeates a "task" "max" times and waits for "wait" seconds between each
+     * execution until the "task" returns without throwing an exception.
+     */
+    public static <T> T tryRunMultipleTimes(Supplier<T> task, int max, int wait) {
+        RuntimeException lastException = null;
+        int count = 0;
+
+        do {
+            try {
+                return task.get();
+            } catch (RuntimeException ex) {
+                lastException = ex;
+            }
+
+            try {
+                Thread.sleep(wait * 1000);
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+
+            count++;
+        } while (count < max);
+
+        throw lastException;
+    }
+
+    public static void tryRunMultipleTimes(Runnable task, int max, int wait) {
+        tryRunMultipleTimes(() -> {
+            task.run();
+            return null;
+        }, max, wait);
+    }
+
+    public List<String> executeWithoutExitCodeCheckAndGetOutput() {
+        return saveOutput().executeWithoutExitCodeCheck().getOutput();
+    }
+
     private boolean withSavedOutput() {
         return saveOutputType.contains(SaveOutputType.FULL) || saveOutputType.contains(
                 SaveOutputType.FIRST_LINE);
@@ -239,6 +329,9 @@ public final class Executor extends CommandArguments<Executor> {
         command.add(executablePath().toString());
         command.addAll(args);
         ProcessBuilder builder = new ProcessBuilder(command);
+        if (winTmpDir != null) {
+            builder.environment().put("TMP", winTmpDir);
+        }
         StringBuilder sb = new StringBuilder(getPrintableCommandLine());
         if (withSavedOutput()) {
             builder.redirectErrorStream(true);
@@ -254,6 +347,11 @@ public final class Executor extends CommandArguments<Executor> {
         if (directory != null) {
             builder.directory(directory.toFile());
             sb.append(String.format("; in directory [%s]", directory));
+        }
+        if (removePath) {
+            // run this with cleared Path in Environment
+            TKit.trace("Clearing PATH in environment");
+            builder.environment().remove("PATH");
         }
 
         trace("Execute " + sb.toString() + "...");
@@ -380,6 +478,8 @@ public final class Executor extends CommandArguments<Executor> {
     private Path executable;
     private Set<SaveOutputType> saveOutputType;
     private Path directory;
+    private boolean removePath;
+    private String winTmpDir = null;
 
     private static enum SaveOutputType {
         NONE, FULL, FIRST_LINE, DUMP

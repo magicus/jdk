@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -99,7 +99,7 @@ public final class JceKeyStore extends KeyStoreSpi {
      * Private keys and certificates are stored in a hashtable.
      * Hash entries are keyed by alias names.
      */
-    private Hashtable<String, Object> entries = new Hashtable<String, Object>();
+    private final Hashtable<String, Object> entries = new Hashtable<>();
 
     /**
      * Returns the key associated with the given alias, using the given
@@ -293,7 +293,7 @@ public final class JceKeyStore extends KeyStoreSpi {
                 }
 
             } catch (Exception e) {
-                throw new KeyStoreException(e.getMessage());
+                throw new KeyStoreException(e.getMessage(), e);
             }
         }
     }
@@ -551,7 +551,7 @@ public final class JceKeyStore extends KeyStoreSpi {
              *     }
              *
              * ended by a keyed SHA1 hash (bytes only) of
-             *     { password + whitener + preceding body }
+             *     { password + extra data + preceding body }
              */
 
             // password is mandatory when storing
@@ -837,7 +837,8 @@ public final class JceKeyStore extends KeyStoreSpi {
                             ois = new ObjectInputStream(dis);
                             final ObjectInputStream ois2 = ois;
                             // Set a deserialization checker
-                            AccessController.doPrivileged(
+                            @SuppressWarnings("removal")
+                            var dummy = AccessController.doPrivileged(
                                 (PrivilegedAction<Void>)() -> {
                                     ois2.setObjectInputFilter(
                                         new DeserializationChecker(fullLength));
@@ -897,7 +898,7 @@ public final class JceKeyStore extends KeyStoreSpi {
 
     /**
      * To guard against tampering with the keystore, we append a keyed
-     * hash with a bit of whitener.
+     * hash with a bit of extra data.
      */
     private MessageDigest getPreKeyedHash(char[] password)
         throws NoSuchAlgorithmException
@@ -939,8 +940,6 @@ public final class JceKeyStore extends KeyStoreSpi {
      */
     private static class DeserializationChecker implements ObjectInputFilter {
 
-        private static final int MAX_NESTED_DEPTH = 2;
-
         // Full length of keystore, anything inside a SecretKeyEntry should not
         // be bigger. Otherwise, must be illegal.
         private final int fullLength;
@@ -953,15 +952,28 @@ public final class JceKeyStore extends KeyStoreSpi {
         public ObjectInputFilter.Status
             checkInput(ObjectInputFilter.FilterInfo info) {
 
-            // First run a custom filter
-            long nestedDepth = info.depth();
-            if ((nestedDepth == 1 &&
-                        info.serialClass() != SealedObjectForKeyProtector.class) ||
-                    info.arrayLength() > fullLength ||
-                    (nestedDepth > MAX_NESTED_DEPTH &&
-                        info.serialClass() != null &&
-                        info.serialClass() != Object.class)) {
+            if (info.arrayLength() > fullLength) {
                 return Status.REJECTED;
+            }
+            // First run a custom filter
+            Class<?> clazz = info.serialClass();
+            switch((int)info.depth()) {
+                case 1:
+                    if (clazz != SealedObjectForKeyProtector.class) {
+                        return Status.REJECTED;
+                    }
+                    break;
+                case 2:
+                    if (clazz != null && clazz != SealedObject.class
+                            && clazz != byte[].class) {
+                        return Status.REJECTED;
+                    }
+                    break;
+                default:
+                    if (clazz != null && clazz != Object.class) {
+                        return Status.REJECTED;
+                    }
+                    break;
             }
 
             // Next run the default filter, if available

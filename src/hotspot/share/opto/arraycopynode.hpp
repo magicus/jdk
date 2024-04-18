@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -100,20 +100,21 @@ private:
                                bool disjoint_bases, int count,
                                Node*& forward_ctl, Node*& backward_ctl);
   Node* array_copy_forward(PhaseGVN *phase, bool can_reshape, Node*& ctl,
-                           MergeMemNode* mm,
+                           Node* mem,
                            const TypePtr* atp_src, const TypePtr* atp_dest,
                            Node* adr_src, Node* base_src, Node* adr_dest, Node* base_dest,
                            BasicType copy_type, const Type* value_type, int count);
   Node* array_copy_backward(PhaseGVN *phase, bool can_reshape, Node*& ctl,
-                            MergeMemNode* mm,
+                            Node* mem,
                             const TypePtr* atp_src, const TypePtr* atp_dest,
                             Node* adr_src, Node* base_src, Node* adr_dest, Node* base_dest,
                             BasicType copy_type, const Type* value_type, int count);
   bool finish_transform(PhaseGVN *phase, bool can_reshape,
                         Node* ctl, Node *mem);
-  static bool may_modify_helper(const TypeOopPtr *t_oop, Node* n, PhaseTransform *phase, CallNode*& call);
-
+  static bool may_modify_helper(const TypeOopPtr* t_oop, Node* n, PhaseValues* phase, CallNode*& call);
+public:
   static Node* load(BarrierSetC2* bs, PhaseGVN *phase, Node*& ctl, MergeMemNode* mem, Node* addr, const TypePtr* adr_type, const Type *type, BasicType bt);
+private:
   void store(BarrierSetC2* bs, PhaseGVN *phase, Node*& ctl, MergeMemNode* mem, Node* addr, const TypePtr* adr_type, Node* val, const Type *type, BasicType bt);
 
 public:
@@ -141,10 +142,10 @@ public:
                              Node* length,
                              bool alloc_tightly_coupled,
                              bool has_negative_length_guard,
-                             Node* src_klass = NULL, Node* dest_klass = NULL,
-                             Node* src_length = NULL, Node* dest_length = NULL);
+                             Node* src_klass = nullptr, Node* dest_klass = nullptr,
+                             Node* src_length = nullptr, Node* dest_length = nullptr);
 
-  void connect_outputs(GraphKit* kit);
+  void connect_outputs(GraphKit* kit, bool deoptimize_on_exception = false);
 
   bool is_arraycopy()             const  { assert(_kind != None, "should bet set"); return _kind == ArrayCopy; }
   bool is_arraycopy_validated()   const  { assert(_kind != None, "should bet set"); return _kind == ArrayCopy && _arguments_validated; }
@@ -153,7 +154,7 @@ public:
   bool is_clone_array()           const  { assert(_kind != None, "should bet set"); return _kind == CloneArray; }
   // is_clone_oop_array is used when oop arrays need GC barriers
   bool is_clone_oop_array()       const  { assert(_kind != None, "should bet set"); return _kind == CloneOopArray; }
-  // is_clonebasic - is true for any type of clone that doesn't need a barrier.
+  // is_clonebasic - is true for any type of clone that doesn't need a writebarrier.
   bool is_clonebasic()            const  { assert(_kind != None, "should bet set"); return _kind == CloneInst || _kind == CloneArray; }
   bool is_copyof()                const  { assert(_kind != None, "should bet set"); return _kind == CopyOf; }
   bool is_copyof_validated()      const  { assert(_kind != None, "should bet set"); return _kind == CopyOf && _arguments_validated; }
@@ -172,14 +173,17 @@ public:
   virtual bool guaranteed_safepoint()  { return false; }
   virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);
 
-  virtual bool may_modify(const TypeOopPtr *t_oop, PhaseTransform *phase);
+  virtual bool may_modify(const TypeOopPtr* t_oop, PhaseValues* phase);
 
   bool is_alloc_tightly_coupled() const { return _alloc_tightly_coupled; }
 
   bool has_negative_length_guard() const { return _has_negative_length_guard; }
 
-  static bool may_modify(const TypeOopPtr *t_oop, MemBarNode* mb, PhaseTransform *phase, ArrayCopyNode*& ac);
-  bool modifies(intptr_t offset_lo, intptr_t offset_hi, PhaseTransform* phase, bool must_modify) const;
+  static bool may_modify(const TypeOopPtr* t_oop, MemBarNode* mb, PhaseValues* phase, ArrayCopyNode*& ac);
+
+  static int get_partial_inline_vector_lane_count(BasicType type, int const_len);
+
+  bool modifies(intptr_t offset_lo, intptr_t offset_hi, PhaseValues* phase, bool must_modify) const;
 
 #ifndef PRODUCT
   virtual void dump_spec(outputStream *st) const;

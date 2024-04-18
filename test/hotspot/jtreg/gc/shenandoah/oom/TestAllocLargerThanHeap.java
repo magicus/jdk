@@ -23,10 +23,9 @@
  */
 
 /**
- * @test TestAllocLargerThanHeap
+ * @test
  * @summary Test that allocation of the object larger than heap fails predictably
- * @key gc
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  * @run driver TestAllocLargerThanHeap
  */
@@ -51,27 +50,25 @@ public class TestAllocLargerThanHeap {
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                     "-Xmx16m",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     TestAllocLargerThanHeap.class.getName(),
                     "test");
 
-            OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
             analyzer.shouldHaveExitValue(1);
             analyzer.shouldContain("java.lang.OutOfMemoryError: Java heap space");
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer analyzer = ProcessTools.executeLimitedTestJava(
                     "-Xmx1g",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     TestAllocLargerThanHeap.class.getName(),
                     "test");
 
-            OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
             analyzer.shouldHaveExitValue(0);
             analyzer.shouldNotContain("java.lang.OutOfMemoryError: Java heap space");
         }

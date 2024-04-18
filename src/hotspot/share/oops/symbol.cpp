@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,21 +22,27 @@
  *
  */
 
-
 #include "precompiled.hpp"
+#include "cds/archiveBuilder.hpp"
+#include "cds/metaspaceShared.hpp"
 #include "classfile/altHashing.hpp"
 #include "classfile/classLoaderData.hpp"
+#include "classfile/vmSymbols.hpp"
 #include "gc/shared/collectedHeap.hpp"
 #include "logging/log.hpp"
 #include "logging/logStream.hpp"
 #include "memory/allocation.inline.hpp"
-#include "memory/metaspaceShared.hpp"
 #include "memory/resourceArea.hpp"
 #include "memory/universe.hpp"
 #include "oops/symbol.hpp"
 #include "runtime/atomic.hpp"
+#include "runtime/mutexLocker.hpp"
 #include "runtime/os.hpp"
+#include "runtime/signature.hpp"
+#include "utilities/stringUtils.hpp"
 #include "utilities/utf8.hpp"
+
+Symbol* Symbol::_vm_symbols[vmSymbols::number_of_symbols()];
 
 uint32_t Symbol::pack_hash_and_refcount(short hash, int refcount) {
   STATIC_ASSERT(PERM_REFCOUNT == ((1 << 16) - 1));
@@ -49,53 +55,27 @@ uint32_t Symbol::pack_hash_and_refcount(short hash, int refcount) {
 
 Symbol::Symbol(const u1* name, int length, int refcount) {
   _hash_and_refcount =  pack_hash_and_refcount((short)os::random(), refcount);
-  _length = length;
-  _body[0] = 0;  // in case length == 0
-  for (int i = 0; i < length; i++) {
-    byte_at_put(i, name[i]);
-  }
+  _length = (u2)length;
+  // _body[0..1] are allocated in the header just by coincidence in the current
+  // implementation of Symbol. They are read by identity_hash(), so make sure they
+  // are initialized.
+  // No other code should assume that _body[0..1] are always allocated. E.g., do
+  // not unconditionally read base()[0] as that will be invalid for an empty Symbol.
+  _body[0] = _body[1] = 0;
+  memcpy(_body, name, length);
 }
 
-void* Symbol::operator new(size_t sz, int len) throw() {
-#if INCLUDE_CDS
- if (DumpSharedSpaces) {
-    // To get deterministic output from -Xshare:dump, we ensure that Symbols are allocated in
-    // increasing addresses. When the symbols are copied into the archive, we preserve their
-    // relative address order (see SortedSymbolClosure in metaspaceShared.cpp)
-    //
-    // We cannot use arena because arena chunks are allocated by the OS. As a result, for example,
-    // the archived symbol of "java/lang/Object" may sometimes be lower than "java/lang/String", and
-    // sometimes be higher. This would cause non-deterministic contents in the archive.
-   DEBUG_ONLY(static void* last = 0);
-   void* p = (void*)MetaspaceShared::symbol_space_alloc(size(len)*wordSize);
-   assert(p > last, "must increase monotonically");
-   DEBUG_ONLY(last = p);
-   return p;
- }
-#endif
-  int alloc_size = size(len)*wordSize;
-  address res = (address) AllocateHeap(alloc_size, mtSymbol);
-  return res;
-}
-
-void* Symbol::operator new(size_t sz, int len, Arena* arena) throw() {
-  int alloc_size = size(len)*wordSize;
-  address res = (address)arena->Amalloc_4(alloc_size);
-  return res;
-}
-
-void Symbol::operator delete(void *p) {
-  assert(((Symbol*)p)->refcount() == 0, "should not call this");
-  FreeHeap(p);
+// This copies the symbol when it is added to the ConcurrentHashTable.
+Symbol::Symbol(const Symbol& s1) {
+  _hash_and_refcount = s1._hash_and_refcount;
+  _length = s1._length;
+  memcpy(_body, s1._body, _length);
 }
 
 #if INCLUDE_CDS
 void Symbol::update_identity_hash() {
-  // This is called at a safepoint during dumping of a static CDS archive. The caller should have
-  // called os::init_random() with a deterministic seed and then iterate all archived Symbols in
-  // a deterministic order.
   assert(SafepointSynchronize::is_at_safepoint(), "must be at a safepoint");
-  _hash_and_refcount =  pack_hash_and_refcount((short)os::random(), PERM_REFCOUNT);
+  _hash_and_refcount =  pack_hash_and_refcount((short)ArchiveBuilder::current()->entropy(), PERM_REFCOUNT);
 }
 
 void Symbol::set_permanent() {
@@ -108,31 +88,41 @@ void Symbol::set_permanent() {
 // ------------------------------------------------------------------
 // Symbol::index_of
 //
-// Finds if the given string is a substring of this symbol's utf8 bytes.
-// Return -1 on failure.  Otherwise return the first index where str occurs.
-int Symbol::index_of_at(int i, const char* str, int len) const {
+// Test if we have the give substring at or after the i-th char of this
+// symbol's utf8 bytes.
+// Return -1 on failure.  Otherwise return the first index where substr occurs.
+int Symbol::index_of_at(int i, const char* substr, int substr_len) const {
   assert(i >= 0 && i <= utf8_length(), "oob");
-  if (len <= 0)  return 0;
-  char first_char = str[0];
+  if (substr_len <= 0)  return 0;
+  char first_char = substr[0];
   address bytes = (address) ((Symbol*)this)->base();
-  address limit = bytes + utf8_length() - len;  // inclusive limit
+  address limit = bytes + utf8_length() - substr_len;  // inclusive limit
   address scan = bytes + i;
   if (scan > limit)
     return -1;
   for (; scan <= limit; scan++) {
     scan = (address) memchr(scan, first_char, (limit + 1 - scan));
-    if (scan == NULL)
+    if (scan == nullptr)
       return -1;  // not found
     assert(scan >= bytes+i && scan <= limit, "scan oob");
-    if (len <= 2
-        ? (char) scan[len-1] == str[len-1]
-        : memcmp(scan+1, str+1, len-1) == 0) {
+    if (substr_len <= 2
+        ? (char) scan[substr_len-1] == substr[substr_len-1]
+        : memcmp(scan+1, substr+1, substr_len-1) == 0) {
       return (int)(scan - bytes);
     }
   }
   return -1;
 }
 
+bool Symbol::is_star_match(const char* pattern) const {
+  if (strchr(pattern, '*') == nullptr) {
+    return equals(pattern);
+  } else {
+    ResourceMark rm;
+    char* buf = as_C_string();
+    return StringUtils::is_star_match(pattern, buf);
+  }
+}
 
 char* Symbol::as_C_string(char* buf, int size) const {
   if (size > 0) {
@@ -165,7 +155,7 @@ void Symbol::print_symbol_on(outputStream* st) const {
     s = as_quoted_ascii();
     s = os::strdup(s);
   }
-  if (s == NULL) {
+  if (s == nullptr) {
     st->print("(null)");
   } else {
     st->print("%s", s);
@@ -222,7 +212,7 @@ const char* Symbol::as_klass_external_name() const {
 static void print_class(outputStream *os, const SignatureStream& ss) {
   int sb = ss.raw_symbol_begin(), se = ss.raw_symbol_end();
   for (int i = sb; i < se; ++i) {
-    int ch = ss.raw_char_at(i);
+    char ch = ss.raw_char_at(i);
     if (ch == JVM_SIGNATURE_SLASH) {
       os->put(JVM_SIGNATURE_DOT);
     } else {
@@ -274,6 +264,25 @@ void Symbol::print_as_signature_external_parameters(outputStream *os) {
   }
 }
 
+void Symbol::print_as_field_external_type(outputStream *os) {
+  SignatureStream ss(this, false);
+  assert(!ss.is_done(), "must have at least one element in field ref");
+  assert(!ss.at_return_type(), "field ref cannot be a return type");
+  assert(!Signature::is_method(this), "field ref cannot be a method");
+
+  if (ss.is_array()) {
+    print_array(os, ss);
+  } else if (ss.is_reference()) {
+    print_class(os, ss);
+  } else {
+    os->print("%s", type2name(ss.type()));
+  }
+#ifdef ASSERT
+  ss.next();
+  assert(ss.is_done(), "must have at most one element in field ref");
+#endif
+}
+
 // Increment refcount while checking for zero.  If the Symbol's refcount becomes zero
 // a thread could be concurrently removing the Symbol.  This is used during SymbolTable
 // lookup to avoid reviving a dead Symbol.
@@ -301,10 +310,8 @@ bool Symbol::try_increment_refcount() {
 // this caller.
 void Symbol::increment_refcount() {
   if (!try_increment_refcount()) {
-#ifdef ASSERT
     print();
     fatal("refcount has gone to zero");
-#endif
   }
 #ifndef PRODUCT
   if (refcount() != PERM_REFCOUNT) { // not a permanent symbol
@@ -324,10 +331,8 @@ void Symbol::decrement_refcount() {
     if (refc == PERM_REFCOUNT) {
       return;  // refcount is permanent, permanent is sticky
     } else if (refc == 0) {
-#ifdef ASSERT
       print();
       fatal("refcount underflow");
-#endif
       return;
     } else {
       found = Atomic::cmpxchg(&_hash_and_refcount, old_value, old_value - 1);
@@ -347,13 +352,11 @@ void Symbol::make_permanent() {
     if (refc == PERM_REFCOUNT) {
       return;  // refcount is permanent, permanent is sticky
     } else if (refc == 0) {
-#ifdef ASSERT
       print();
       fatal("refcount underflow");
-#endif
       return;
     } else {
-      int hash = extract_hash(old_value);
+      short hash = extract_hash(old_value);
       found = Atomic::cmpxchg(&_hash_and_refcount, old_value, pack_hash_and_refcount(hash, PERM_REFCOUNT));
       if (found == old_value) {
         return;  // successfully updated.
@@ -384,11 +387,9 @@ void Symbol::print() const { print_on(tty); }
 // The print_value functions are present in all builds, to support the
 // disassembler and error reporting.
 void Symbol::print_value_on(outputStream* st) const {
-  st->print("'");
-  for (int i = 0; i < utf8_length(); i++) {
-    st->print("%c", char_at(i));
-  }
-  st->print("'");
+  st->print_raw("'", 1);
+  st->print_raw((const char*)base(), utf8_length());
+  st->print_raw("'", 1);
 }
 
 void Symbol::print_value() const { print_value_on(tty); }
@@ -411,3 +412,9 @@ bool Symbol::is_valid(Symbol* s) {
 
 // SymbolTable prints this in its statistics
 NOT_PRODUCT(size_t Symbol::_total_count = 0;)
+
+#ifndef PRODUCT
+bool Symbol::is_valid_id(vmSymbolID vm_symbol_id) {
+  return vmSymbols::is_valid_id(vm_symbol_id);
+}
+#endif

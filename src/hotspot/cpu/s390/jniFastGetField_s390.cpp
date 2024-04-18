@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2016 SAP SE. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -30,6 +30,7 @@
 #include "memory/resourceArea.hpp"
 #include "prims/jniFastGetField.hpp"
 #include "prims/jvm_misc.hpp"
+#include "prims/jvmtiExport.hpp"
 #include "runtime/safepoint.hpp"
 
 // TSO ensures that loads are blocking and ordered with respect to
@@ -57,7 +58,7 @@ address JNI_FastGetField::generate_fast_get_int_field0(BasicType type) {
     case T_FLOAT:   name = "jni_fast_GetFloatField";   break;
     case T_DOUBLE:  name = "jni_fast_GetDoubleField";  break;
     default:        ShouldNotReachHere();
-      name = NULL;  // unreachable
+      name = nullptr;  // unreachable
   }
   ResourceMark rm;
   BufferBlob* blob = BufferBlob::create(name, BUFFER_SIZE);
@@ -128,7 +129,7 @@ address JNI_FastGetField::generate_fast_get_int_field0(BasicType type) {
     case T_FLOAT:   slow_case_addr = jni_GetFloatField_addr();   break;
     case T_DOUBLE:  slow_case_addr = jni_GetDoubleField_addr();  break;
     default:        ShouldNotReachHere();
-      slow_case_addr = NULL;  // unreachable
+      slow_case_addr = nullptr;  // unreachable
   }
   __ load_const_optimized(Robj, slow_case_addr);
   __ z_br(Robj); // tail call

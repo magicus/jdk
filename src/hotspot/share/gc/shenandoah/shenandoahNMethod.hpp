@@ -55,12 +55,6 @@ public:
   // Update oops when the nmethod is re-registered
   void update();
 
-  bool has_cset_oops(ShenandoahHeap* heap);
-
-  inline int oop_count() const;
-  inline bool has_oops() const;
-
-  inline void mark_unregistered();
   inline bool is_unregistered() const;
 
   static ShenandoahNMethod* for_nmethod(nmethod* nm);
@@ -73,12 +67,10 @@ public:
   static inline ShenandoahNMethod* gc_data(nmethod* nm);
   static inline void attach_gc_data(nmethod* nm, ShenandoahNMethod* gc_data);
 
-  void assert_alive_and_correct() NOT_DEBUG_RETURN;
+  void assert_correct() NOT_DEBUG_RETURN;
   void assert_same_oops(bool allow_dead = false) NOT_DEBUG_RETURN;
-  static void assert_no_oops(nmethod* nm, bool allow_dea = false) NOT_DEBUG_RETURN;
 
 private:
-  bool has_non_immed_oops() const { return _has_non_immed_oops; }
   static void detect_reloc_oops(nmethod* nm, GrowableArray<oop*>& oops, bool& _has_non_immed_oops);
 };
 
@@ -127,9 +119,7 @@ public:
   ShenandoahNMethodTableSnapshot(ShenandoahNMethodTable* table);
   ~ShenandoahNMethodTableSnapshot();
 
-  template<bool CSET_FILTER>
-  void parallel_blobs_do(CodeBlobClosure *f);
-
+  void parallel_nmethods_do(NMethodClosure *f);
   void concurrent_nmethods_do(NMethodClosure* cl);
 };
 
@@ -153,7 +143,6 @@ public:
 
   void register_nmethod(nmethod* nm);
   void unregister_nmethod(nmethod* nm);
-  void flush_nmethod(nmethod* nm);
 
   bool contain(nmethod* nm) const;
   int length() const { return _index; }
@@ -162,7 +151,7 @@ public:
   ShenandoahNMethodTableSnapshot* snapshot_for_iteration();
   void finish_iteration(ShenandoahNMethodTableSnapshot* snapshot);
 
-  void assert_nmethods_alive_and_correct() NOT_DEBUG_RETURN;
+  void assert_nmethods_correct() NOT_DEBUG_RETURN;
 private:
   // Rebuild table and replace current one
   void rebuild(int size);
@@ -183,7 +172,6 @@ private:
   // Logging support
   void log_register_nmethod(nmethod* nm);
   void log_unregister_nmethod(nmethod* nm);
-  void log_flush_nmethod(nmethod* nm);
 };
 
 class ShenandoahConcurrentNMethodIterator {

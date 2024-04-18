@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -43,7 +43,7 @@ import javax.lang.model.util.*;
  * @apiNote
  * <strong>WARNING:</strong> It is possible that methods will be added
  * to this interface to accommodate new, currently unknown, language
- * structures added to future versions of the Java&trade; programming
+ * structures added to future versions of the Java programming
  * language.
  *
  * Such additions have already occurred to support language features
@@ -59,7 +59,8 @@ import javax.lang.model.util.*;
  *
  * <p>Methods to accommodate new language constructs are expected to
  * be added as default methods to provide strong source compatibility,
- * as done for {@link visitModule visitModule}. The implementations of
+ * as done for {@link visitModule visitModule} and {@link
+ * visitRecordComponent visitRecordComponent}. The implementations of
  * the default methods will in turn call {@link visitUnknown
  * visitUnknown}, behavior that will be overridden in concrete
  * visitors supporting the source version with the new language
@@ -116,9 +117,6 @@ import javax.lang.model.util.*;
  *            methods.  Use {@code Void} for visitors that do not need an
  *            additional parameter.
  *
- * @author Joseph D. Darcy
- * @author Scott Seligman
- * @author Peter von der Ah&eacute;
  * @since 1.6
  */
 public interface ElementVisitor<R, P> {
@@ -205,20 +203,12 @@ public interface ElementVisitor<R, P> {
      * @param p  a visitor-specified parameter
      * @return a visitor-specified result
      * @since 9
-     * @spec JPMS
      */
     default R visitModule(ModuleElement e, P p) {
         return visitUnknown(e, p);
     }
 
     /**
-     * {@preview Associated with records, a preview feature of the Java language.
-     *
-     *           This method is associated with <i>records</i>, a preview
-     *           feature of the Java language. Preview features
-     *           may be removed in a future release, or upgraded to permanent
-     *           features of the Java language.}
-     *
      * Visits a record component element.
      *
      * @implSpec The default implementation visits a {@code
@@ -227,11 +217,8 @@ public interface ElementVisitor<R, P> {
      * @param e  the element to visit
      * @param p  a visitor-specified parameter
      * @return a visitor-specified result
-     * @since 14
+     * @since 16
      */
-    @jdk.internal.PreviewFeature(feature=jdk.internal.PreviewFeature.Feature.RECORDS,
-                                 essentialAPI=false)
-    @SuppressWarnings("preview")
     default R visitRecordComponent(RecordComponentElement e, P p) {
         return visitUnknown(e, p);
     }

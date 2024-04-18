@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2018, Google and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -31,23 +31,25 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import jdk.test.lib.Asserts;
+import jdk.test.lib.ByteCodeLoader;
+import jdk.test.lib.compiler.InMemoryJavaCompiler;
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
-import sun.hotspot.WhiteBox;
+import jdk.test.whitebox.WhiteBox;
 
 /*
  * @test TestMetaSpaceLog
  * @bug 8211123
  * @summary Ensure that the Metaspace is updated in the log
- * @key gc
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
  * @requires vm.gc != "Epsilon"
  * @requires vm.gc != "Z"
+ * @requires os.maxMemory >= 2G
  *
  * @compile TestMetaSpaceLog.java
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run driver gc.logging.TestMetaSpaceLog
  */
 
@@ -56,7 +58,15 @@ public class TestMetaSpaceLog {
 
   static {
     // Do this once here.
-    metaSpaceRegexp = Pattern.compile(".*Metaspace: ([0-9]+).*->([0-9]+).*");
+    // Scan for Metaspace update notices as part of the GC log, e.g. in this form:
+    // [gc,metaspace   ] GC(0) Metaspace: 11895K(14208K)->11895K(14208K) NonClass: 10552K(12544K)->10552K(12544K) Class: 1343K(1664K)->1343K(1664K)
+    // This regex has to be up-to-date with the format used in hotspot to print metaspace change.
+    final String NUM_K = "\\d+K";
+    final String GP_NUM_K = "(\\d+)K";
+    final String BR_NUM_K = "\\(" + NUM_K + "\\)";
+    final String SIZE_CHG = NUM_K + BR_NUM_K + "->" + NUM_K + BR_NUM_K;
+    metaSpaceRegexp = Pattern.compile(".* Metaspace: " + GP_NUM_K + BR_NUM_K + "->" + GP_NUM_K + BR_NUM_K
+                                      + "( NonClass: " + SIZE_CHG + " Class: " + SIZE_CHG + ")?$");
   }
 
   public static void main(String[] args) throws Exception {
@@ -73,62 +83,53 @@ public class TestMetaSpaceLog {
 
   private static boolean check(String line) {
     Matcher m = metaSpaceRegexp.matcher(line);
-    Asserts.assertTrue(m.matches(), "Unexpected line for metaspace logging: " + line);
-    long before = Long.parseLong(m.group(1));
-    long after  = Long.parseLong(m.group(2));
-    return before > after;
+    if (m.matches()) {
+      // Numbers for Metaspace occupation should grow.
+      long before = Long.parseLong(m.group(1));
+      long after = Long.parseLong(m.group(2));
+      return before > after;
+    }
+    return false;
   }
 
   private static void testMetaSpaceUpdate() throws Exception {
-    // Propagate test.src for the jar file.
-    String testSrc= "-Dtest.src=" + System.getProperty("test.src", ".");
-
-    ProcessBuilder pb =
-      ProcessTools.createTestJvm(
-          "-Xlog:gc*",
-          "-Xbootclasspath/a:.",
-          "-XX:+UnlockDiagnosticVMOptions",
-          "-XX:+WhiteBoxAPI",
-          "-Xmx1000M",
-          "-Xms1000M",
-          testSrc, StressMetaSpace.class.getName());
-
     OutputAnalyzer output = null;
     try {
-      output = new OutputAnalyzer(pb.start());
+      output = ProcessTools.executeTestJava(
+            "-Xlog:gc*",
+            "-Xbootclasspath/a:.",
+            "-XX:+UnlockDiagnosticVMOptions",
+            "-XX:+WhiteBoxAPI",
+            "-Xmx1000M",
+            "-Xms1000M",
+            StressMetaSpace.class.getName());
+
       verifyContainsMetaSpaceUpdate(output);
     } catch (Exception e) {
       // For error diagnosis: print and throw.
       e.printStackTrace();
-      output.reportDiagnosticSummary();
+      if (output != null) {
+        output.reportDiagnosticSummary();
+      }
       throw e;
     }
   }
 
   static class StressMetaSpace {
-    private static URL[] urls = new URL[1];
-
-    static {
-      try {
-        File jarFile = new File(System.getProperty("test.src") + "/testcases.jar");
-        urls[0] = jarFile.toURI().toURL();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
 
     public static void main(String args[]) {
-      WhiteBox wb = WhiteBox.getWhiteBox();
-      for(int i = 0; i < 10000; i++) {
-        loadClass(wb);
-      }
-      wb.fullGC();
+      loadManyClasses();
+      WhiteBox.getWhiteBox().fullGC();
     }
 
-    public static void loadClass(WhiteBox wb) {
+    public static void loadManyClasses() {
+      String className = "Tmp";
+      String sourceCode = "public class Tmp {}";
+      byte[] byteCode = InMemoryJavaCompiler.compile(className, sourceCode);
       try {
-        URLClassLoader ucl = new URLClassLoader(urls);
-        Class.forName("case00", false, ucl);
+        for (int i = 0; i < 10000; i++) {
+          ByteCodeLoader.load(className, byteCode);
+        }
       } catch (Exception e) {
         e.printStackTrace();
       }

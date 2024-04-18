@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,11 +27,11 @@ package sun.security.ssl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.nio.charset.Charset;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.security.Security;
+import java.util.*;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSocket;
@@ -59,6 +59,21 @@ final class AlpnExtension {
 
     static final SSLStringizer alpnStringizer = new AlpnStringizer();
 
+    // Encoding Charset to convert between String and byte[]
+    static final Charset alpnCharset;
+
+    static {
+        @SuppressWarnings("removal")
+        String alpnCharsetString = AccessController.doPrivileged(
+                (PrivilegedAction<String>) ()
+                        -> Security.getProperty("jdk.tls.alpnCharset"));
+        if ((alpnCharsetString == null)
+                || (alpnCharsetString.length() == 0)) {
+            alpnCharsetString = "ISO_8859_1";
+        }
+        alpnCharset = Charset.forName(alpnCharsetString);
+    }
+
     /**
      * The "application_layer_protocol_negotiation" extension.
      *
@@ -68,8 +83,7 @@ final class AlpnExtension {
         final List<String> applicationProtocols;
 
         private AlpnSpec(String[] applicationProtocols) {
-            this.applicationProtocols = Collections.unmodifiableList(
-                    Arrays.asList(applicationProtocols));
+            this.applicationProtocols = List.of(applicationProtocols);
         }
 
         private AlpnSpec(HandshakeContext hc,
@@ -101,7 +115,7 @@ final class AlpnExtension {
                         "extension: empty application protocol name"));
                 }
 
-                String appProtocol = new String(bytes, StandardCharsets.UTF_8);
+                String appProtocol = new String(bytes, alpnCharset);
                 protocolNames.add(appProtocol);
             }
 
@@ -168,10 +182,10 @@ final class AlpnExtension {
                 return null;
             }
 
-            // Produce the extension.
+            // Produce the extension:  first find the overall length
             int listLength = 0;     // ProtocolNameList length
             for (String ap : laps) {
-                int length = ap.getBytes(StandardCharsets.UTF_8).length;
+                int length = ap.getBytes(alpnCharset).length;
                 if (length == 0) {
                     // log the configuration problem
                     if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
@@ -223,8 +237,10 @@ final class AlpnExtension {
             byte[] extData = new byte[listLength + 2];
             ByteBuffer m = ByteBuffer.wrap(extData);
             Record.putInt16(m, listLength);
+
+            // opaque ProtocolName<1..2^8-1>;
             for (String ap : laps) {
-                Record.putBytes8(m, ap.getBytes(StandardCharsets.UTF_8));
+                Record.putBytes8(m, ap.getBytes(alpnCharset));
             }
 
             // Update the context.
@@ -414,21 +430,21 @@ final class AlpnExtension {
             }
 
             // opaque ProtocolName<1..2^8-1>, RFC 7301.
-            int listLen = shc.applicationProtocol.length() + 1;
-                                                        // 1: length byte
+            byte[] bytes = shc.applicationProtocol.getBytes(alpnCharset);
+            int listLen = bytes.length + 1;             // 1: length byte
+
             // ProtocolName protocol_name_list<2..2^16-1>, RFC 7301.
             byte[] extData = new byte[listLen + 2];     // 2: list length
             ByteBuffer m = ByteBuffer.wrap(extData);
             Record.putInt16(m, listLen);
-            Record.putBytes8(m,
-                    shc.applicationProtocol.getBytes(StandardCharsets.UTF_8));
+            Record.putBytes8(m, bytes);
 
             // Update the context.
             shc.conContext.applicationProtocol = shc.applicationProtocol;
 
             // Clean or register the extension
             //
-            // No further use of the request and respond extension any more.
+            // No further use of the request and respond extension.
             shc.handshakeExtensions.remove(SSLExtension.CH_ALPN);
 
             return extData;
@@ -455,7 +471,6 @@ final class AlpnExtension {
             AlpnSpec requestedAlps =
                     (AlpnSpec)chc.handshakeExtensions.get(SSLExtension.CH_ALPN);
             if (requestedAlps == null ||
-                    requestedAlps.applicationProtocols == null ||
                     requestedAlps.applicationProtocols.isEmpty()) {
                 throw chc.conContext.fatal(Alert.UNEXPECTED_MESSAGE,
                     "Unexpected " + SSLExtension.CH_ALPN.name + " extension");
@@ -487,7 +502,7 @@ final class AlpnExtension {
 
             // Clean or register the extension
             //
-            // No further use of the request and respond extension any more.
+            // No further use of the request and respond extension.
             chc.handshakeExtensions.remove(SSLExtension.CH_ALPN);
         }
     }

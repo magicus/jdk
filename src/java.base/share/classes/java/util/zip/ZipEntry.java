@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,11 +53,13 @@ public class ZipEntry implements ZipConstants, Cloneable {
     long crc = -1;      // crc-32 of entry data
     long size = -1;     // uncompressed size of entry data
     long csize = -1;    // compressed size of entry data
+    boolean csizeSet = false; // Only true if csize was explicitly set by
+                        // a call to setCompressedSize()
     int method = -1;    // compression method
     int flag = 0;       // general purpose flag
     byte[] extra;       // optional extra field data for entry
     String comment;     // optional comment string for entry
-
+    int extraAttributes = -1; // e.g. POSIX permissions, sym links.
     /**
      * Compression method for uncompressed entries.
      */
@@ -91,7 +93,7 @@ public class ZipEntry implements ZipConstants, Cloneable {
             128L * 365 * 24 * 60 * 60 * 1000;
 
     /**
-     * Creates a new zip entry with the specified name.
+     * Creates a new ZIP entry with the specified name.
      *
      * @param  name
      *         The entry name
@@ -109,11 +111,11 @@ public class ZipEntry implements ZipConstants, Cloneable {
     }
 
     /**
-     * Creates a new zip entry with fields taken from the specified
-     * zip entry.
+     * Creates a new ZIP entry with fields taken from the specified
+     * ZIP entry.
      *
      * @param  e
-     *         A zip Entry object
+     *         A ZIP Entry object
      *
      * @throws NullPointerException if the entry object is null
      */
@@ -127,16 +129,13 @@ public class ZipEntry implements ZipConstants, Cloneable {
         crc = e.crc;
         size = e.size;
         csize = e.csize;
+        csizeSet = e.csizeSet;
         method = e.method;
         flag = e.flag;
         extra = e.extra;
         comment = e.comment;
+        extraAttributes = e.extraAttributes;
     }
-
-    /**
-     * Creates a new un-initialized zip entry
-     */
-    ZipEntry() {}
 
     /**
      * Returns the name of the entry.
@@ -151,10 +150,10 @@ public class ZipEntry implements ZipConstants, Cloneable {
      *
      * <p> If the entry is output to a ZIP file or ZIP file formatted
      * output stream the last modification time set by this method will
-     * be stored into the {@code date and time fields} of the zip file
+     * be stored into the {@code date and time fields} of the ZIP file
      * entry and encoded in standard {@code MS-DOS date and time format}.
      * The {@link java.util.TimeZone#getDefault() default TimeZone} is
-     * used to convert the epoch time to the MS-DOS data and time.
+     * used to convert the epoch time to the MS-DOS date and time.
      *
      * @param  time
      *         The last modification time of the entry in milliseconds
@@ -167,10 +166,15 @@ public class ZipEntry implements ZipConstants, Cloneable {
         this.xdostime = javaToExtendedDosTime(time);
         // Avoid setting the mtime field if time is in the valid
         // range for a DOS time
-        if (xdostime != DOSTIME_BEFORE_1980 && time <= UPPER_DOSTIME_BOUND) {
+        if (this.xdostime != DOSTIME_BEFORE_1980 && time <= UPPER_DOSTIME_BOUND) {
             this.mtime = null;
         } else {
-            this.mtime = FileTime.from(time, TimeUnit.MILLISECONDS);
+            int localYear = javaEpochToLocalDateTime(time).getYear();
+            if (localYear >= 1980 && localYear <= 2099) {
+                this.mtime = null;
+            } else {
+                this.mtime = FileTime.from(time, TimeUnit.MILLISECONDS);
+            }
         }
     }
 
@@ -179,7 +183,7 @@ public class ZipEntry implements ZipConstants, Cloneable {
      *
      * <p> If the entry is read from a ZIP file or ZIP file formatted
      * input stream, this is the last modification time from the {@code
-     * date and time fields} of the zip file entry. The
+     * date and time fields} of the ZIP file entry. The
      * {@link java.util.TimeZone#getDefault() default TimeZone} is used
      * to convert the standard MS-DOS formatted date and time to the
      * epoch time.
@@ -202,11 +206,11 @@ public class ZipEntry implements ZipConstants, Cloneable {
      *
      * <p> If the entry is output to a ZIP file or ZIP file formatted
      * output stream the last modification time set by this method will
-     * be stored into the {@code date and time fields} of the zip file
+     * be stored into the {@code date and time fields} of the ZIP file
      * entry and encoded in standard {@code MS-DOS date and time format}.
      * If the date-time set is out of the range of the standard {@code
      * MS-DOS date and time format}, the time will also be stored into
-     * zip file entry's extended timestamp fields in {@code optional
+     * ZIP file entry's extended timestamp fields in {@code optional
      * extra data} in UTC time. The {@link java.time.ZoneId#systemDefault()
      * system default TimeZone} is used to convert the local date-time
      * to UTC time.
@@ -218,7 +222,7 @@ public class ZipEntry implements ZipConstants, Cloneable {
      *
      * @param  time
      *         The last modification time of the entry in local date-time
-     *
+     * @throws NullPointerException if {@code time} is null
      * @see #getTimeLocal()
      * @since 9
      */
@@ -281,13 +285,13 @@ public class ZipEntry implements ZipConstants, Cloneable {
      *
      * <p> When output to a ZIP file or ZIP file formatted output stream
      * the last modification time set by this method will be stored into
-     * zip file entry's {@code date and time fields} in {@code standard
+     * ZIP file entry's {@code date and time fields} in {@code standard
      * MS-DOS date and time format}), and the extended timestamp fields
      * in {@code optional extra data} in UTC time.
      *
      * @param  time
      *         The last modification time of the entry
-     * @return This zip entry
+     * @return This ZIP entry
      *
      * @throws NullPointerException if the {@code time} is null
      *
@@ -333,7 +337,7 @@ public class ZipEntry implements ZipConstants, Cloneable {
      *
      * @param  time
      *         The last access time of the entry
-     * @return This zip entry
+     * @return This ZIP entry
      *
      * @throws NullPointerException if the {@code time} is null
      *
@@ -369,7 +373,7 @@ public class ZipEntry implements ZipConstants, Cloneable {
      *
      * @param  time
      *         The creation time of the entry
-     * @return This zip entry
+     * @return This ZIP entry
      *
      * @throws NullPointerException if the {@code time} is null
      *
@@ -446,6 +450,7 @@ public class ZipEntry implements ZipConstants, Cloneable {
      */
     public void setCompressedSize(long csize) {
         this.csize = csize;
+        this.csizeSet = true;
     }
 
     /**
@@ -557,7 +562,7 @@ public class ZipEntry implements ZipConstants, Cloneable {
                             // and compressed file size fields.
                             // If invalid zip64 extra fields, simply skip. Even
                             // it's rare, it's possible the entry size happens to
-                            // be the magic value and it "accidently" has some
+                            // be the magic value and it "accidentally" has some
                             // bytes in extra match the id.
                             if (sz >= 16) {
                                 size = get64(extra, off);

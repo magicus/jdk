@@ -67,6 +67,11 @@ import javax.swing.*;
  */
 public abstract class FileView {
     /**
+     * Constructor for subclasses to call.
+     */
+    protected FileView() {}
+
+    /**
      * The name of the file. Normally this would be simply
      * <code>f.getName()</code>.
      *
@@ -75,7 +80,7 @@ public abstract class FileView {
      */
     public String getName(File f) {
         return null;
-    };
+    }
 
     /**
      * A human readable description of the file. For example,

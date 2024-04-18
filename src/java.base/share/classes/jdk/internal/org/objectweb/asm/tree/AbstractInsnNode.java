@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.tree;
 
 import java.util.ArrayList;
@@ -119,7 +120,10 @@ public abstract class AbstractInsnNode {
     /** The type of {@link LineNumberNode} "instructions". */
     public static final int LINE = 15;
 
-    /** The opcode of this instruction. */
+    /**
+      * The opcode of this instruction, or -1 if this is not a JVM instruction (e.g. a label or a line
+      * number).
+      */
     protected int opcode;
 
     /**
@@ -162,7 +166,8 @@ public abstract class AbstractInsnNode {
     /**
       * Returns the opcode of this instruction.
       *
-      * @return the opcode of this instruction.
+      * @return the opcode of this instruction, or -1 if this is not a JVM instruction (e.g. a label or
+      *     a line number).
       */
     public int getOpcode() {
         return opcode;

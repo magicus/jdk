@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,21 +34,7 @@
  */
 
 /*
- * This test tests the actual swap size on linux and solaris.
- * The correct value should be checked manually:
- * Solaris:
- *   1. In a shell, enter the command: "swap -l"
- *   2. The value (reported in blocks) is in the "blocks" column.
- * Linux:
- *   1. In a shell, enter the command: "cat /proc/meminfo"
- *   2. The value (reported in bytes) is in "Swap" entry, "total" column.
- * Windows NT/XP/2000:
- *   1. Run Start->Accessories->System Tools->System Information.
- *   2. The value (reported in Kbytes) is in the "Page File Space" entry
- * Windows 98/ME:
- *   Unknown.
- *
- * Usage: GetTotalSwapSpaceSize <expected swap size | "sanity-only"> [trace]
+ * This test tests the actual swap size on Linux and MacOS only.
  */
 
 import com.sun.management.OperatingSystemMXBean;
@@ -71,19 +57,31 @@ public class TestTotalSwap {
     private static final long MAX_SIZE_FOR_PASS = Long.MAX_VALUE;
 
     public static void main(String args[]) throws Throwable {
+
         // yocto might ignore the request to report swap size in bytes
         boolean swapInKB = mbean.getVersion().contains("yocto");
-
-        long expected_swap_size = getSwapSizeFromOs();
 
         long min_size = mbean.getFreeSwapSpaceSize();
         if (min_size > 0) {
             min_size_for_pass = min_size;
         }
 
+        long expected_swap_size = getSwapSizeFromOs();
         long size = mbean.getTotalSwapSpaceSize();
 
-        System.out.println("Total swap space size in bytes: " + size);
+        System.out.println("Total swap space size from OS in bytes: " + expected_swap_size);
+        System.out.println("Total swap space size in MBean bytes: " + size);
+
+        // if swap data from OS chnaged re-read OS and MBean data
+        while (expected_swap_size != getSwapSizeFromOs()) {
+            System.out.println("Total swap space reported by OS changed form " + expected_swap_size
+                               + " current value = " + getSwapSizeFromOs());
+            expected_swap_size = getSwapSizeFromOs();
+            size = mbean.getTotalSwapSpaceSize();
+
+            System.out.println("Re-read total swap space size from OS in bytes: " + expected_swap_size);
+            System.out.println("Total swap space size in MBean bytes: " + size);
+        }
 
         if (expected_swap_size > -1) {
             if (size != expected_swap_size) {
@@ -117,26 +115,6 @@ public class TestTotalSwap {
             String swapSizeStr = ProcessTools.executeCommand("free", "-b")
                                              .firstMatch("Swap:\\s+([0-9]+)\\s+.*", 1);
             return Long.parseLong(swapSizeStr);
-        } else if (Platform.isSolaris()) {
-            // swapfile             dev   swaplo blocks   free
-            // /dev/dsk/c0t0d0s1   136,1      16 1638608 1600528
-            OutputAnalyzer out= ProcessTools.executeCommand(
-                    "/usr/sbin/swap",
-                    "-l"
-            );
-
-            long swapSize = 0;
-
-            for (String line : out.asLines()) {
-                if (line.contains("swapfile")) continue;
-
-                String[] vals = line.split("\\s+");
-                if (vals.length == 5) {
-                    swapSize += Long.parseLong(vals[3]) * 512; // size is reported in 512b blocks
-                }
-            }
-
-            return swapSize;
         } else if (Platform.isOSX()) {
             // total = 8192.00M used = 7471.11M free = 720.89M (encrypted)
             String swapSizeStr = ProcessTools.executeCommand(

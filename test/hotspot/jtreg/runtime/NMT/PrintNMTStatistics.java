@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,6 @@
 
 /*
  * @test
- * @key nmt regression
  * @bug 8005936 8058606
  * @summary Verify PrintNMTStatistics on normal JVM exit for detail and summary tracking level
  * @modules java.base/jdk.internal.misc
@@ -38,7 +37,7 @@ public class PrintNMTStatistics {
 
     public static void main(String args[]) throws Exception {
 
-    ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+    ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
       "-XX:+UnlockDiagnosticVMOptions",
       "-XX:+PrintNMTStatistics",
       "-XX:NativeMemoryTracking=detail",
@@ -56,7 +55,7 @@ public class PrintNMTStatistics {
     // Make sure memory reserved for Module processing is recorded.
     output_detail.shouldContain(" Module (reserved=");
 
-    ProcessBuilder pb1 = ProcessTools.createJavaProcessBuilder(
+    ProcessBuilder pb1 = ProcessTools.createTestJavaProcessBuilder(
       "-XX:+UnlockDiagnosticVMOptions",
       "-XX:+PrintNMTStatistics",
       "-XX:NativeMemoryTracking=summary",

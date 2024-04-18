@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,14 +30,13 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
-import java.net.InetAddress;
 import java.security.AccessController;
 import java.security.Permission;
 import java.security.PermissionCollection;
 import java.security.PrivilegedAction;
-import java.security.Security;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.StringTokenizer;
@@ -45,6 +44,7 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import sun.net.util.IPAddressUtil;
 import sun.net.PortConfig;
+import sun.security.action.GetBooleanAction;
 import sun.security.util.RegisteredDomain;
 import sun.security.util.SecurityConstants;
 import sun.security.util.Debug;
@@ -136,6 +136,8 @@ import sun.security.util.Debug;
  * transfer and share confidential data among parties who may not
  * otherwise have access to the data.
  *
+ * @spec https://www.rfc-editor.org/info/rfc2732
+ *      RFC 2732: Format for Literal IPv6 Addresses in URL's
  * @see java.security.Permissions
  * @see SocketPermission
  *
@@ -176,7 +178,7 @@ public final class SocketPermission extends Permission
     /**
      * No actions
      */
-    private static final int NONE               = 0x0;
+    private static final int NONE       = 0x0;
 
     /**
      * All actions
@@ -186,8 +188,6 @@ public final class SocketPermission extends Permission
     // various port constants
     private static final int PORT_MIN = 0;
     private static final int PORT_MAX = 65535;
-    private static final int PRIV_PORT_MAX = 1023;
-    private static final int DEF_EPH_LOW = 49152;
 
     // the actions mask
     private transient int mask;
@@ -233,21 +233,15 @@ public final class SocketPermission extends Permission
     private transient boolean trusted;
 
     // true if the sun.net.trustNameService system property is set
-    private static boolean trustNameService;
+    private static final boolean trustNameService = GetBooleanAction.privilegedGetProperty("sun.net.trustNameService");
 
     private static Debug debug = null;
     private static boolean debugInit = false;
 
     // lazy initializer
     private static class EphemeralRange {
-        static final int low = initEphemeralPorts("low", DEF_EPH_LOW);
-            static final int high = initEphemeralPorts("high", PORT_MAX);
-    };
-
-    static {
-        Boolean tmp = java.security.AccessController.doPrivileged(
-                new sun.security.action.GetBooleanAction("sun.net.trustNameService"));
-        trustNameService = tmp.booleanValue();
+        static final int low = initEphemeralPorts("low");
+        static final int high = initEphemeralPorts("high");
     }
 
     private static synchronized Debug getDebug() {
@@ -332,7 +326,7 @@ public final class SocketPermission extends Permission
                         ind = host.lastIndexOf(':');
                         host = "[" + host.substring(0, ind) + "]" +
                             host.substring(ind);
-                    } else if (tokens == 8 && host.indexOf("::") == -1) {
+                    } else if (tokens == 8 && !host.contains("::")) {
                         // IPv6 address only, not followed by port
                         host = "[" + host + "]";
                     } else {
@@ -346,10 +340,7 @@ public final class SocketPermission extends Permission
         }
     }
 
-    private int[] parsePort(String port)
-        throws Exception
-    {
-
+    private int[] parsePort(String port) {
         if (port == null || port.isEmpty() || port.equals("*")) {
             return new int[] {PORT_MIN, PORT_MAX};
         }
@@ -459,7 +450,7 @@ public final class SocketPermission extends Permission
             if (host.equals("*")) {
                 cname = "";
             } else if (host.startsWith("*.")) {
-                cname = host.substring(1).toLowerCase();
+                cname = host.substring(1).toLowerCase(Locale.ROOT);
             } else {
               throw new
                IllegalArgumentException("invalid host wildcard specification");
@@ -469,8 +460,8 @@ public final class SocketPermission extends Permission
             if (!host.isEmpty()) {
                 // see if we are being initialized with an IP address.
                 char ch = host.charAt(0);
-                if (ch == ':' || Character.digit(ch, 16) != -1) {
-                    byte ip[] = IPAddressUtil.textToNumericFormatV4(host);
+                if (ch == ':' || IPAddressUtil.digit(ch, 16) != -1) {
+                    byte[] ip = IPAddressUtil.textToNumericFormatV4(host);
                     if (ip == null) {
                         ip = IPAddressUtil.textToNumericFormatV6(host);
                     }
@@ -525,8 +516,6 @@ public final class SocketPermission extends Permission
         char[] a = action.toCharArray();
 
         int i = a.length - 1;
-        if (i < 0)
-            return mask;
 
         while (i != -1) {
             char c;
@@ -623,13 +612,13 @@ public final class SocketPermission extends Permission
         if (invalid || untrusted) return true;
         try {
             if (!trustNameService && (defaultDeny ||
-                sun.net.www.URLConnection.isProxiedHost(hostname))) {
+                    sun.net.www.URLConnection.isProxiedHost(hostname))) {
                 if (this.cname == null) {
                     this.getCanonName();
                 }
                 if (!match(cname, hostname)) {
                     // Last chance
-                    if (!authorized(hostname, addresses[0].getAddress())) {
+                    if (!authorized(addresses[0].getAddress())) {
                         untrusted = true;
                         Debug debug = getDebug();
                         if (debug != null && Debug.isOn("failure")) {
@@ -669,10 +658,10 @@ public final class SocketPermission extends Permission
             // we have to do this check, otherwise we might not
             // get the fully qualified domain name
             if (init_with_ip) {
-                cname = addresses[0].getHostName(false).toLowerCase();
+                cname = addresses[0].getHostName(false).toLowerCase(Locale.ROOT);
             } else {
              cname = InetAddress.getByName(addresses[0].getHostAddress()).
-                                              getHostName(false).toLowerCase();
+                                              getHostName(false).toLowerCase(Locale.ROOT);
             }
         } catch (UnknownHostException uhe) {
             invalid = true;
@@ -695,8 +684,8 @@ public final class SocketPermission extends Permission
     }
 
     private boolean match(String cname, String hname) {
-        String a = checkForIDN(cname.toLowerCase());
-        String b = checkForIDN(hname.toLowerCase());
+        String a = checkForIDN(cname.toLowerCase(Locale.ROOT));
+        String b = checkForIDN(hname.toLowerCase(Locale.ROOT));
         if (a.startsWith(b)  &&
             ((a.length() == b.length()) || (a.charAt(b.length()) == '.'))) {
             return true;
@@ -715,16 +704,16 @@ public final class SocketPermission extends Permission
         return !cdomain.isEmpty() && !hdomain.isEmpty() && cdomain.equals(hdomain);
     }
 
-    private boolean authorized(String cname, byte[] addr) {
+    private boolean authorized(byte[] addr) {
         if (addr.length == 4)
-            return authorizedIPv4(cname, addr);
+            return authorizedIPv4(addr);
         else if (addr.length == 16)
-            return authorizedIPv6(cname, addr);
+            return authorizedIPv6(addr);
         else
             return false;
     }
 
-    private boolean authorizedIPv4(String cname, byte[] addr) {
+    private boolean authorizedIPv4(byte[] addr) {
         String authHost = "";
         InetAddress auth;
 
@@ -753,7 +742,7 @@ public final class SocketPermission extends Permission
         return false;
     }
 
-    private boolean authorizedIPv6(String cname, byte[] addr) {
+    private boolean authorizedIPv6(byte[] addr) {
         String authHost = "";
         InetAddress auth;
 
@@ -858,15 +847,11 @@ public final class SocketPermission extends Permission
      */
     @Override
     public boolean implies(Permission p) {
-        int i,j;
-
-        if (!(p instanceof SocketPermission))
+        if (!(p instanceof SocketPermission that))
             return false;
 
         if (p == this)
             return true;
-
-        SocketPermission that = (SocketPermission) p;
 
         return ((this.mask & that.mask) == that.mask) &&
                                         impliesIgnoreMask(that);
@@ -874,7 +859,7 @@ public final class SocketPermission extends Permission
 
     /**
      * Checks if the incoming Permission's action are a proper subset of
-     * the this object's actions.
+     * this object's actions.
      * <P>
      * Check, in the following order:
      * <ul>
@@ -1040,10 +1025,8 @@ public final class SocketPermission extends Permission
         if (obj == this)
             return true;
 
-        if (! (obj instanceof SocketPermission))
+        if (! (obj instanceof SocketPermission that))
             return false;
-
-        SocketPermission that = (SocketPermission) obj;
 
         //this is (overly?) complex!!!
 
@@ -1189,9 +1172,12 @@ public final class SocketPermission extends Permission
     }
 
     /**
-     * WriteObject is called to save the state of the SocketPermission
-     * to a stream. The actions are serialized, and the superclass
-     * takes care of the name.
+     * {@code writeObject} is called to save the state of the
+     * {@code SocketPermission} to a stream. The actions are serialized,
+     * and the superclass takes care of the name.
+     *
+     * @param  s the {@code ObjectOutputStream} to which data is written
+     * @throws IOException if an I/O error occurs
      */
     @java.io.Serial
     private synchronized void writeObject(java.io.ObjectOutputStream s)
@@ -1205,8 +1191,12 @@ public final class SocketPermission extends Permission
     }
 
     /**
-     * readObject is called to restore the state of the SocketPermission from
-     * a stream.
+     * {@code readObject} is called to restore the state of the
+     * {@code SocketPermission} from a stream.
+     *
+     * @param  s the {@code ObjectInputStream} from which data is read
+     * @throws IOException if an I/O error occurs
+     * @throws ClassNotFoundException if a serialized class cannot be loaded
      */
     @java.io.Serial
     private synchronized void readObject(java.io.ObjectInputStream s)
@@ -1221,7 +1211,8 @@ public final class SocketPermission extends Permission
      * Check the system/security property for the ephemeral port range
      * for this system. The suffix is either "high" or "low"
      */
-    private static int initEphemeralPorts(String suffix, int defval) {
+    @SuppressWarnings("removal")
+    private static int initEphemeralPorts(String suffix) {
         return AccessController.doPrivileged(
             new PrivilegedAction<>(){
                 public Integer run() {
@@ -1292,7 +1283,7 @@ public final class SocketPermission extends Permission
     /*
     public String toString()
     {
-        StringBuffer s = new StringBuffer(super.toString() + "\n" +
+        StringBuilder s = new StringBuilder(super.toString() + "\n" +
             "cname = " + cname + "\n" +
             "wildcard = " + wildcard + "\n" +
             "invalid = " + invalid + "\n" +
@@ -1372,37 +1363,28 @@ final class SocketPermissionCollection extends PermissionCollection
      */
     @Override
     public void add(Permission permission) {
-        if (! (permission instanceof SocketPermission))
+        if (! (permission instanceof SocketPermission sp))
             throw new IllegalArgumentException("invalid permission: "+
                                                permission);
         if (isReadOnly())
             throw new SecurityException(
                 "attempt to add a Permission to a readonly PermissionCollection");
 
-        SocketPermission sp = (SocketPermission)permission;
-
         // Add permission to map if it is absent, or replace with new
-        // permission if applicable. NOTE: cannot use lambda for
-        // remappingFunction parameter until JDK-8076596 is fixed.
-        perms.merge(sp.getName(), sp,
-            new java.util.function.BiFunction<>() {
-                @Override
-                public SocketPermission apply(SocketPermission existingVal,
-                                              SocketPermission newVal) {
-                    int oldMask = existingVal.getMask();
-                    int newMask = newVal.getMask();
-                    if (oldMask != newMask) {
-                        int effective = oldMask | newMask;
-                        if (effective == newMask) {
-                            return newVal;
-                        }
-                        if (effective != oldMask) {
-                            return new SocketPermission(sp.getName(),
-                                                        effective);
-                        }
+        // permission if applicable.
+        perms.merge(sp.getName(), sp, (existingVal, newVal) -> {
+                int oldMask = existingVal.getMask();
+                int newMask = newVal.getMask();
+                if (oldMask != newMask) {
+                    int effective = oldMask | newMask;
+                    if (effective == newMask) {
+                        return newVal;
                     }
-                    return existingVal;
+                    if (effective != oldMask) {
+                        return new SocketPermission(sp.getName(), effective);
+                    }
                 }
+                return existingVal;
             }
         );
     }
@@ -1419,10 +1401,8 @@ final class SocketPermissionCollection extends PermissionCollection
     @Override
     public boolean implies(Permission permission)
     {
-        if (! (permission instanceof SocketPermission))
+        if (! (permission instanceof SocketPermission np))
                 return false;
-
-        SocketPermission np = (SocketPermission) permission;
 
         int desired = np.getMask();
         int effective = 0;
@@ -1488,7 +1468,11 @@ final class SocketPermissionCollection extends PermissionCollection
     };
 
     /**
+     * Writes the state of this object to the stream.
      * @serialData "permissions" field (a Vector containing the SocketPermissions).
+     *
+     * @param  out the {@code ObjectOutputStream} to which data is written
+     * @throws IOException if an I/O error occurs
      */
     /*
      * Writes the contents of the perms field out as a Vector for
@@ -1506,8 +1490,13 @@ final class SocketPermissionCollection extends PermissionCollection
         out.writeFields();
     }
 
-    /*
-     * Reads in a Vector of SocketPermissions and saves them in the perms field.
+    /**
+     * Reads in a {@code Vector} of {@code SocketPermission} and saves
+     * them in the perms field.
+     *
+     * @param  in the {@code ObjectInputStream} from which data is read
+     * @throws IOException if an I/O error occurs
+     * @throws ClassNotFoundException if a serialized class cannot be loaded
      */
     @java.io.Serial
     private void readObject(ObjectInputStream in)

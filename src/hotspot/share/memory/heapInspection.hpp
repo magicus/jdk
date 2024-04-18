@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,11 +25,14 @@
 #ifndef SHARE_MEMORY_HEAPINSPECTION_HPP
 #define SHARE_MEMORY_HEAPINSPECTION_HPP
 
+#include "gc/shared/workerThread.hpp"
 #include "memory/allocation.hpp"
 #include "oops/objArrayOop.hpp"
 #include "oops/oop.hpp"
 #include "oops/annotations.hpp"
 #include "utilities/macros.hpp"
+
+class ParallelObjectIterator;
 
 #if INCLUDE_SERVICES
 
@@ -51,27 +54,27 @@ class KlassInfoEntry: public CHeapObj<mtInternal> {
  private:
   KlassInfoEntry* _next;
   Klass*          _klass;
-  long            _instance_count;
+  uint64_t        _instance_count;
   size_t          _instance_words;
-  long            _index;
+  int64_t         _index;
   bool            _do_print; // True if we should print this class when printing the class hierarchy.
   GrowableArray<KlassInfoEntry*>* _subclasses;
 
  public:
   KlassInfoEntry(Klass* k, KlassInfoEntry* next) :
     _next(next), _klass(k), _instance_count(0), _instance_words(0), _index(-1),
-    _do_print(false), _subclasses(NULL)
+    _do_print(false), _subclasses(nullptr)
   {}
   ~KlassInfoEntry();
   KlassInfoEntry* next() const   { return _next; }
   bool is_equal(const Klass* k)  { return k == _klass; }
-  Klass* klass()  const      { return _klass; }
-  long count()    const      { return _instance_count; }
-  void set_count(long ct)    { _instance_count = ct; }
-  size_t words()  const      { return _instance_words; }
-  void set_words(size_t wds) { _instance_words = wds; }
-  void set_index(long index) { _index = index; }
-  long index()    const      { return _index; }
+  Klass* klass()  const          { return _klass; }
+  uint64_t count()    const      { return _instance_count; }
+  void set_count(uint64_t ct)    { _instance_count = ct; }
+  size_t words()  const          { return _instance_words; }
+  void set_words(size_t wds)     { _instance_words = wds; }
+  void set_index(int64_t index)  { _index = index; }
+  int64_t index()    const       { return _index; }
   GrowableArray<KlassInfoEntry*>* subclasses() const { return _subclasses; }
   void add_subclass(KlassInfoEntry* cie);
   void set_do_print(bool do_print) { _do_print = do_print; }
@@ -94,7 +97,7 @@ class KlassInfoBucket: public CHeapObj<mtInternal> {
   void set_list(KlassInfoEntry* l) { _list = l; }
  public:
   KlassInfoEntry* lookup(Klass* k);
-  void initialize() { _list = NULL; }
+  void initialize() { _list = nullptr; }
   void empty();
   void iterate(KlassInfoClosure* cic);
 };
@@ -105,9 +108,8 @@ class KlassInfoTable: public StackObj {
   size_t _size_of_instances_in_words;
 
   // An aligned reference address (typically the least
-  // address in the perm gen) used for hashing klass
-  // objects.
-  HeapWord* _ref;
+  // address in the metaspace) used for hashing klasses.
+  uintptr_t _ref;
 
   KlassInfoBucket* _buckets;
   uint hash(const Klass* p);
@@ -120,8 +122,10 @@ class KlassInfoTable: public StackObj {
   ~KlassInfoTable();
   bool record_instance(const oop obj);
   void iterate(KlassInfoClosure* cic);
-  bool allocation_failed() { return _buckets == NULL; }
+  bool allocation_failed() { return _buckets == nullptr; }
   size_t size_of_instances_in_words() const;
+  bool merge(KlassInfoTable* table);
+  bool merge_entry(const KlassInfoEntry* cie);
 
   friend class KlassInfoHisto;
   friend class KlassHierarchy;
@@ -147,22 +151,6 @@ class KlassInfoHisto : public StackObj {
   static int sort_helper(KlassInfoEntry** e1, KlassInfoEntry** e2);
   void print_elements(outputStream* st) const;
   bool is_selected(const char *col_name);
-
-  template <class T> static int count_bytes(T* x) {
-    return (HeapWordSize * ((x) ? (x)->size() : 0));
-  }
-
-  template <class T> static int count_bytes_array(T* x) {
-    if (x == NULL) {
-      return 0;
-    }
-    if (x->length() == 0) {
-      // This is a shared array, e.g., Universe::the_empty_int_array(). Don't
-      // count it to avoid double-counting.
-      return 0;
-    }
-    return HeapWordSize * x->size();
-  }
 
   static void print_julong(outputStream* st, int width, julong n) {
     int num_spaces = width - julong_width(n);
@@ -211,11 +199,44 @@ class KlassInfoClosure;
 
 class HeapInspection : public StackObj {
  public:
-  void heap_inspection(outputStream* st) NOT_SERVICES_RETURN;
-  size_t populate_table(KlassInfoTable* cit, BoolObjectClosure* filter = NULL) NOT_SERVICES_RETURN_(0);
+  void heap_inspection(outputStream* st, WorkerThreads* workers) NOT_SERVICES_RETURN;
+  uintx populate_table(KlassInfoTable* cit, BoolObjectClosure* filter, WorkerThreads* workers) NOT_SERVICES_RETURN_(0);
   static void find_instances_at_safepoint(Klass* k, GrowableArray<oop>* result) NOT_SERVICES_RETURN;
+};
+
+// Parallel heap inspection task. Parallel inspection can fail due to
+// a native OOM when allocating memory for TL-KlassInfoTable.
+// _success will be set false on an OOM, and serial inspection tried.
+class ParHeapInspectTask : public WorkerTask {
  private:
-  void iterate_over_heap(KlassInfoTable* cit, BoolObjectClosure* filter = NULL);
+  ParallelObjectIterator* _poi;
+  KlassInfoTable* _shared_cit;
+  BoolObjectClosure* _filter;
+  uintx _missed_count;
+  bool _success;
+  Mutex _mutex;
+
+ public:
+  ParHeapInspectTask(ParallelObjectIterator* poi,
+                     KlassInfoTable* shared_cit,
+                     BoolObjectClosure* filter) :
+      WorkerTask("Iterating heap"),
+      _poi(poi),
+      _shared_cit(shared_cit),
+      _filter(filter),
+      _missed_count(0),
+      _success(true),
+      _mutex(Mutex::nosafepoint, "ParHeapInspectTask_lock") {}
+
+  uintx missed_count() const {
+    return _missed_count;
+  }
+
+  bool success() {
+    return _success;
+  }
+
+  virtual void work(uint worker_id);
 };
 
 #endif // SHARE_MEMORY_HEAPINSPECTION_HPP

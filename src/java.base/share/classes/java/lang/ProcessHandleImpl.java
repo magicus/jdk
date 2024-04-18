@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,10 @@
  */
 package java.lang;
 
+import jdk.internal.misc.InnocuousThread;
+
 import java.lang.annotation.Native;
+import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,10 +39,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import static java.security.AccessController.doPrivileged;
 
 /**
  * ProcessHandleImpl is the implementation of ProcessHandle.
@@ -47,11 +49,12 @@ import static java.security.AccessController.doPrivileged;
  * @see Process
  * @since 9
  */
+@jdk.internal.ValueBased
 final class ProcessHandleImpl implements ProcessHandle {
     /**
      * Default size of stack for reaper processes.
      */
-    private static long REAPER_DEFAULT_STACKSIZE = 128 * 1024;
+    private static final long REAPER_DEFAULT_STACKSIZE = 128 * 1024;
 
     /**
      * Return value from waitForProcessExit0 indicating the process is not a child.
@@ -81,21 +84,23 @@ final class ProcessHandleImpl implements ProcessHandle {
     /**
      * The thread pool of "process reaper" daemon threads.
      */
+    @SuppressWarnings("removal")
     private static final Executor processReaperExecutor =
-            doPrivileged((PrivilegedAction<Executor>) () -> {
+            AccessController.doPrivileged((PrivilegedAction<Executor>) () -> {
+                // Initialize ThreadLocalRandom now to avoid using the smaller stack
+                // of the processReaper threads.
+                ThreadLocalRandom.current();
 
-                ThreadGroup tg = Thread.currentThread().getThreadGroup();
-                while (tg.getParent() != null) tg = tg.getParent();
-                ThreadGroup systemThreadGroup = tg;
+                // For a debug build, the stack shadow zone is larger;
+                // Increase the total stack size to avoid potential stack overflow.
+                int debugDelta = "release".equals(System.getProperty("jdk.debug")) ? 0 : (4*4096);
                 final long stackSize = Boolean.getBoolean("jdk.lang.processReaperUseDefaultStackSize")
-                        ? 0 : REAPER_DEFAULT_STACKSIZE;
+                        ? 0 : REAPER_DEFAULT_STACKSIZE + debugDelta;
 
                 ThreadFactory threadFactory = grimReaper -> {
-                    Thread t = new Thread(systemThreadGroup, grimReaper,
-                            "process reaper", stackSize, false);
-                    t.setDaemon(true);
-                    // A small attempt (probably futile) to avoid priority inversion
-                    t.setPriority(Thread.MAX_PRIORITY);
+                    Thread t = InnocuousThread.newSystemThread("process reaper", grimReaper,
+                            stackSize, Thread.MAX_PRIORITY);
+                    privilegedThreadSetDaemon(t, true);
                     return t;
                 };
 
@@ -108,6 +113,22 @@ final class ProcessHandleImpl implements ProcessHandle {
         ExitCompletion(boolean isReaping) {
             this.isReaping = isReaping;
         }
+    }
+
+    @SuppressWarnings("removal")
+    private static void privilegedThreadSetName(Thread thread, String name) {
+        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+            thread.setName(name);
+            return null;
+        });
+    }
+
+    @SuppressWarnings("removal")
+    private static void privilegedThreadSetDaemon(Thread thread, boolean on) {
+        AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+            thread.setDaemon(on);
+            return null;
+        });
     }
 
     /**
@@ -135,33 +156,41 @@ final class ProcessHandleImpl implements ProcessHandle {
                 processReaperExecutor.execute(new Runnable() {
                     // Use inner class to avoid lambda stack overhead
                     public void run() {
-                        int exitValue = waitForProcessExit0(pid, shouldReap);
-                        if (exitValue == NOT_A_CHILD) {
-                            // pid not alive or not a child of this process
-                            // If it is alive wait for it to terminate
-                            long sleep = 300;     // initial milliseconds to sleep
-                            int incr = 30;        // increment to the sleep time
+                        Thread t = Thread.currentThread();
+                        String threadName = t.getName();
+                        privilegedThreadSetName(t, "process reaper (pid " + pid + ")");
+                        try {
+                            int exitValue = waitForProcessExit0(pid, shouldReap);
+                            if (exitValue == NOT_A_CHILD) {
+                                // pid not alive or not a child of this process
+                                // If it is alive wait for it to terminate
+                                long sleep = 300;     // initial milliseconds to sleep
+                                int incr = 30;        // increment to the sleep time
 
-                            long startTime = isAlive0(pid);
-                            long origStart = startTime;
-                            while (startTime >= 0) {
-                                try {
-                                    Thread.sleep(Math.min(sleep, 5000L)); // no more than 5 sec
-                                    sleep += incr;
-                                } catch (InterruptedException ie) {
-                                    // ignore and retry
+                                long startTime = isAlive0(pid);
+                                long origStart = startTime;
+                                while (startTime >= 0) {
+                                    try {
+                                        Thread.sleep(Math.min(sleep, 5000L)); // no more than 5 sec
+                                        sleep += incr;
+                                    } catch (InterruptedException ie) {
+                                        // ignore and retry
+                                    }
+                                    startTime = isAlive0(pid);  // recheck if it is alive
+                                    if (startTime > 0 && origStart > 0 && startTime != origStart) {
+                                        // start time changed (and is not zero), pid is not the same process
+                                        break;
+                                    }
                                 }
-                                startTime = isAlive0(pid);  // recheck if it is alive
-                                if (startTime > 0 && origStart > 0 && startTime != origStart) {
-                                    // start time changed (and is not zero), pid is not the same process
-                                    break;
-                                }
+                                exitValue = 0;
                             }
-                            exitValue = 0;
+                            newCompletion.complete(exitValue);
+                            // remove from cache afterwards
+                            completions.remove(pid, newCompletion);
+                        } finally {
+                            // Restore thread name
+                            privilegedThreadSetName(t, threadName);
                         }
-                        newCompletion.complete(exitValue);
-                        // remove from cache afterwards
-                        completions.remove(pid, newCompletion);
                     }
                 });
             }
@@ -206,10 +235,10 @@ final class ProcessHandleImpl implements ProcessHandle {
      * Typically, this is because the OS can not supply it.
      * The process is known to exist but not the exact start time.
      */
-    private final long STARTTIME_ANY = 0L;
+    private static final long STARTTIME_ANY = 0L;
 
     /* The start time of a Process that does not exist. */
-    private final long STARTTIME_PROCESS_UNKNOWN = -1;
+    private static final long STARTTIME_PROCESS_UNKNOWN = -1;
 
     /**
      * Private constructor.  Instances are created by the {@code get(long)} factory.
@@ -229,6 +258,7 @@ final class ProcessHandleImpl implements ProcessHandle {
      * @throws SecurityException if RuntimePermission("manageProcess") is not granted
      */
     static Optional<ProcessHandle> get(long pid) {
+        @SuppressWarnings("removal")
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(new RuntimePermission("manageProcess"));
@@ -269,6 +299,7 @@ final class ProcessHandleImpl implements ProcessHandle {
      * @throws SecurityException if RuntimePermission("manageProcess") is not granted
      */
     public static ProcessHandleImpl current() {
+        @SuppressWarnings("removal")
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(new RuntimePermission("manageProcess"));
@@ -292,6 +323,7 @@ final class ProcessHandleImpl implements ProcessHandle {
      *                                     security policy
      */
     public Optional<ProcessHandle> parent() {
+        @SuppressWarnings("removal")
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(new RuntimePermission("manageProcess"));
@@ -410,6 +442,7 @@ final class ProcessHandleImpl implements ProcessHandle {
      * @return a stream of ProcessHandles
      */
     static Stream<ProcessHandle> children(long pid) {
+        @SuppressWarnings("removal")
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(new RuntimePermission("manageProcess"));
@@ -430,6 +463,7 @@ final class ProcessHandleImpl implements ProcessHandle {
 
     @Override
     public Stream<ProcessHandle> descendants() {
+        @SuppressWarnings("removal")
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(new RuntimePermission("manageProcess"));
@@ -510,14 +544,9 @@ final class ProcessHandleImpl implements ProcessHandle {
         if (this == obj) {
             return true;
         }
-        if (obj instanceof ProcessHandleImpl) {
-            ProcessHandleImpl other = (ProcessHandleImpl) obj;
-            return (pid == other.pid) &&
-                    (startTime == other.startTime
-                        || startTime == 0
-                        || other.startTime == 0);
-        }
-        return false;
+        return (obj instanceof ProcessHandleImpl other)
+                && (pid == other.pid)
+                && (startTime == other.startTime || startTime == 0 || other.startTime == 0);
     }
 
     /**
@@ -633,27 +662,27 @@ final class ProcessHandleImpl implements ProcessHandle {
                 sb.append(user());
             }
             if (command != null) {
-                if (sb.length() != 0) sb.append(", ");
+                if (sb.length() > 1) sb.append(", ");
                 sb.append("cmd: ");
                 sb.append(command);
             }
             if (arguments != null && arguments.length > 0) {
-                if (sb.length() != 0) sb.append(", ");
+                if (sb.length() > 1) sb.append(", ");
                 sb.append("args: ");
                 sb.append(Arrays.toString(arguments));
             }
             if (commandLine != null) {
-                if (sb.length() != 0) sb.append(", ");
+                if (sb.length() > 1) sb.append(", ");
                 sb.append("cmdLine: ");
                 sb.append(commandLine);
             }
             if (startTime > 0) {
-                if (sb.length() != 0) sb.append(", ");
+                if (sb.length() > 1) sb.append(", ");
                 sb.append("startTime: ");
                 sb.append(startInstant());
             }
             if (totalTime != -1) {
-                if (sb.length() != 0) sb.append(", ");
+                if (sb.length() > 1) sb.append(", ");
                 sb.append("totalTime: ");
                 sb.append(totalCpuDuration().toString());
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -79,7 +79,7 @@ final class Finished {
             VerifyDataScheme vds =
                     VerifyDataScheme.valueOf(context.negotiatedProtocol);
 
-            byte[] vd = null;
+            byte[] vd;
             try {
                 vd = vds.createVerifyData(context, false);
             } catch (IOException ioe) {
@@ -143,11 +143,12 @@ final class Finished {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    "\"Finished\": '{'\n" +
-                    "  \"verify data\": '{'\n" +
-                    "{0}\n" +
-                    "  '}'" +
-                    "'}'",
+                    """
+                            "Finished": '{'
+                              "verify data": '{'
+                            {0}
+                              '}'
+                            '}'""",
                     Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -214,7 +215,6 @@ final class Finished {
             HandshakeHash handshakeHash = context.handshakeHash;
             SecretKey masterSecretKey =
                     context.handshakeSession.getMasterSecret();
-
             boolean useClientLabel =
                     (context.sslConfig.isClientMode && !isValidation) ||
                     (!context.sslConfig.isClientMode && isValidation);
@@ -265,8 +265,7 @@ final class Finished {
                         "Invalid PRF output, format must be RAW. " +
                         "Format received: " + prfKey.getFormat());
                 }
-                byte[] finished = prfKey.getEncoded();
-                return finished;
+                return prfKey.getEncoded();
             } catch (GeneralSecurityException e) {
                 throw new RuntimeException("PRF failed", e);
             }
@@ -317,15 +316,14 @@ final class Finished {
                         "Invalid PRF output, format must be RAW. " +
                         "Format received: " + prfKey.getFormat());
                 }
-                byte[] finished = prfKey.getEncoded();
-                return finished;
+                return prfKey.getEncoded();
             } catch (GeneralSecurityException e) {
                 throw new RuntimeException("PRF failed", e);
             }
         }
     }
 
-    // TLS 1.2
+    // TLS 1.3
     private static final
             class T13VerifyDataGenerator implements VerifyDataGenerator {
         private static final byte[] hkdfLabel = "tls13 finished".getBytes();
@@ -482,7 +480,8 @@ final class Finished {
                 shc.conContext.inputRecord.expectingFinishFlight();
             } else {
                 // Set the session's context based on stateless/cache status
-                if (shc.handshakeSession.isStatelessable(shc)) {
+                if (shc.statelessResumption &&
+                        shc.handshakeSession.isStatelessable()) {
                     shc.handshakeSession.setContext((SSLSessionContextImpl)
                             shc.sslContext.engineGetServerSessionContext());
                 } else {
@@ -1140,27 +1139,23 @@ final class Finished {
 
             //
             // produce
-            if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                SSLLogger.fine(
-                "Sending new session ticket");
-            }
-
-            NewSessionTicket.kickstartProducer.produce(shc);
+            NewSessionTicket.t13PosthandshakeProducer.produce(shc);
         }
     }
 
     private static void recordEvent(SSLSessionImpl session) {
         TLSHandshakeEvent event = new TLSHandshakeEvent();
         if (event.shouldCommit() || EventHelper.isLoggingSecurity()) {
-            int peerCertificateId = 0;
+            int hash = 0;
             try {
                 // use hash code for Id
-                peerCertificateId = session
+                hash = session
                         .getCertificateChain()[0]
                         .hashCode();
             } catch (SSLPeerUnverifiedException e) {
                  // not verified msg
             }
+            long peerCertificateId = Integer.toUnsignedLong(hash);
             if (event.shouldCommit()) {
                 event.peerHost = session.getPeerHost();
                 event.peerPort = session.getPeerPort();

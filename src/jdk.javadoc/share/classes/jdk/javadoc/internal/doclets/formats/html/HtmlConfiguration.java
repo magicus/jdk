@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,33 +25,51 @@
 
 package jdk.javadoc.internal.doclets.formats.html;
 
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.tools.DocumentationTool;
 import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
-
-import com.sun.source.util.DocTreePath;
 
 import jdk.javadoc.doclet.Doclet;
 import jdk.javadoc.doclet.DocletEnvironment;
 import jdk.javadoc.doclet.Reporter;
 import jdk.javadoc.doclet.StandardDoclet;
 import jdk.javadoc.doclet.Taglet;
+import jdk.javadoc.internal.Versions;
+import jdk.javadoc.internal.doclets.formats.html.taglets.TagletManager;
 import jdk.javadoc.internal.doclets.toolkit.BaseConfiguration;
+import jdk.javadoc.internal.doclets.toolkit.BaseOptions;
 import jdk.javadoc.internal.doclets.toolkit.DocletException;
 import jdk.javadoc.internal.doclets.toolkit.Messages;
 import jdk.javadoc.internal.doclets.toolkit.Resources;
-import jdk.javadoc.internal.doclets.toolkit.WriterFactory;
+import jdk.javadoc.internal.doclets.toolkit.util.DeprecatedAPIListBuilder;
 import jdk.javadoc.internal.doclets.toolkit.util.DocFile;
 import jdk.javadoc.internal.doclets.toolkit.util.DocPath;
 import jdk.javadoc.internal.doclets.toolkit.util.DocPaths;
-
-import static javax.tools.Diagnostic.Kind.*;
+import jdk.javadoc.internal.doclets.toolkit.util.NewAPIBuilder;
+import jdk.javadoc.internal.doclets.toolkit.util.PreviewAPIListBuilder;
+import jdk.javadoc.internal.doclets.toolkit.util.RestrictedAPIListBuilder;
+import jdk.javadoc.internal.doclets.toolkit.util.SimpleDocletException;
 
 /**
  * Configure the output based on the command-line options.
@@ -65,11 +83,6 @@ import static javax.tools.Diagnostic.Kind.*;
  * Also do the error checking on the options used. For example it is illegal to
  * use "-helpfile" option when already "-nohelp" option is used.
  * </p>
- *
- *  <p><b>This is NOT part of any supported API.
- *  If you write code that depends on this, you do so at your own risk.
- *  This code and its internal interfaces are subject to change or
- *  deletion without notice.</b>
  */
 public class HtmlConfiguration extends BaseConfiguration {
 
@@ -91,17 +104,99 @@ public class HtmlConfiguration extends BaseConfiguration {
      */
     public TypeElement currentTypeElement = null;  // Set this TypeElement in the ClassWriter.
 
-    protected SearchIndexItems searchItems;
+    /**
+     * The collections of items for the main index.
+     * This field is only initialized if {@code options.createIndex()}
+     * is {@code true}.
+     * This index is populated somewhat lazily:
+     * 1. items found in doc comments are found while generating declaration pages
+     * 2. items for elements are added in bulk before generating the index files
+     * 3. additional items are added as needed
+     */
+    public HtmlIndexBuilder indexBuilder;
 
-    public final Contents contents;
+    /**
+     * The collection of deprecated items, if any, to be displayed on the deprecated-list page,
+     * or null if the page should not be generated.
+     * The page will not be generated if {@link BaseOptions#noDeprecated() no deprecated items}
+     * are to be included in the documentation,
+     * or if the page is {@link HtmlOptions#noDeprecatedList() not wanted},
+     * or if there are no deprecated elements being documented.
+     */
+    protected DeprecatedAPIListBuilder deprecatedAPIListBuilder;
 
-    protected final Messages messages;
+    /**
+     * The collection of preview items, if any, to be displayed on the preview-list page,
+     * or null if the page should not be generated.
+     * The page will not be generated if there are no preview elements being documented.
+     */
+    protected PreviewAPIListBuilder previewAPIListBuilder;
+
+    /**
+     * The collection of new API items, if any, to be displayed on the new-list page,
+     * or null if the page should not be generated.
+     * The page is only generated if the {@code --since} option is used with release
+     * names matching {@code @since} tags in the documented code.
+     */
+    protected NewAPIBuilder newAPIPageBuilder;
+
+    /**
+     * The collection of restricted methods, if any, to be displayed on the
+     * restricted-list page, or null if the page should not be generated.
+     * The page will not be generated if there are no restricted methods to be
+     * documented.
+     */
+    protected RestrictedAPIListBuilder restrictedAPIListBuilder;
+
+    public Contents contents;
+
+    public final Messages messages;
 
     public DocPaths docPaths;
+
+    public HtmlIds htmlIds;
 
     public Map<Element, List<DocPath>> localStylesheetMap = new HashMap<>();
 
     private final HtmlOptions options;
+
+    /**
+     * The taglet manager.
+     */
+    public TagletManager tagletManager;
+
+    /**
+     * Kinds of conditional pages.
+     */
+    // Note: this should (eventually) be merged with Navigation.PageMode,
+    // which performs a somewhat similar role
+    public enum ConditionalPage {
+        CONSTANT_VALUES, DEPRECATED, EXTERNAL_SPECS, PREVIEW, RESTRICTED,
+        SERIALIZED_FORM, SYSTEM_PROPERTIES, NEW
+    }
+
+    /**
+     * A set of values indicating which conditional pages should be generated.
+     *
+     * The set is computed lazily, although values must (obviously) be set before
+     * they are required, such as when deciding whether to generate links
+     * to these files in the navigation bar, on each page, the help file, and so on.
+     *
+     * The value for any page may depend on both command-line options to enable or
+     * disable a page, and on content being found for the page, such as deprecated
+     * items to appear in the summary page of deprecated items.
+     */
+    public final Set<ConditionalPage> conditionalPages;
+
+    /**
+     * The build date, to be recorded in generated files.
+     */
+    private ZonedDateTime buildDate;
+
+    /**
+     * The set of packages for which we have copied the doc files.
+     */
+    private final Set<PackageElement> containingPackagesSeen;
 
     /**
      * Constructs the full configuration needed by the doclet, including
@@ -139,31 +234,33 @@ public class HtmlConfiguration extends BaseConfiguration {
         }
 
         messages = new Messages(this, msgResources);
-        contents = new Contents(this);
         options = new HtmlOptions(this);
+        containingPackagesSeen = new HashSet<>();
 
-        String v;
+        Runtime.Version v;
         try {
-            // the version bundle is not localized
-            ResourceBundle rb = ResourceBundle.getBundle(versionBundleName, Locale.getDefault());
-            try {
-                v = rb.getString("release");
-            } catch (MissingResourceException e) {
-                v = defaultDocletVersion;
-            }
-        } catch (MissingResourceException e) {
-            v = defaultDocletVersion;
+            v = Versions.javadocVersion();
+        } catch (RuntimeException e) {
+            assert false : e;
+            v = Runtime.version(); // arguably, the only sensible default
         }
         docletVersion = v;
+
+        conditionalPages = EnumSet.noneOf(ConditionalPage.class);
     }
 
-    private static final String versionBundleName = "jdk.javadoc.internal.tool.resources.version";
-    private static final String defaultDocletVersion = System.getProperty("java.version");
-    public final String docletVersion;
-    public final Date startTime = new Date();
+    @Override
+    protected void initConfiguration(DocletEnvironment docEnv,
+                                     Function<String, String> resourceKeyMapper) {
+        super.initConfiguration(docEnv, resourceKeyMapper);
+        contents = new Contents(this);
+        htmlIds = new HtmlIds(this);
+    }
+
+    private final Runtime.Version docletVersion;
 
     @Override
-    public String getDocletVersion() {
+    public Runtime.Version getDocletVersion() {
         return docletVersion;
     }
 
@@ -178,7 +275,7 @@ public class HtmlConfiguration extends BaseConfiguration {
      * @return a utility object providing commonly used fragments of content
      */
     public Contents getContents() {
-        return contents;
+        return Objects.requireNonNull(contents);
     }
 
     @Override
@@ -191,11 +288,24 @@ public class HtmlConfiguration extends BaseConfiguration {
         return options;
     }
 
+    /**
+     * {@return the packages for which we have copied the doc files}
+     *
+     * @see ClassWriter#copyDocFiles()
+     */
+    public Set<PackageElement> getContainingPackagesSeen() {
+        return containingPackagesSeen;
+    }
+
     @Override
     public boolean finishOptionSettings() {
         if (!options.validateOptions()) {
             return false;
         }
+
+        ZonedDateTime zdt = options.date();
+        buildDate = zdt != null ? zdt : ZonedDateTime.now();
+
         if (!getSpecifiedTypeElements().isEmpty()) {
             Map<String, PackageElement> map = new HashMap<>();
             PackageElement pkg;
@@ -206,11 +316,21 @@ public class HtmlConfiguration extends BaseConfiguration {
                 }
             }
         }
+        if (options.createIndex()) {
+            indexBuilder = new HtmlIndexBuilder(this);
+        }
         docPaths = new DocPaths(utils);
         setCreateOverview();
-        setTopFile(docEnv);
-        workArounds.initDocLint(options.doclintOpts(), tagletManager.getAllTagletNames());
+        setTopFile();
+        initDocLint(options.doclintOpts(), tagletManager.getAllTagletNames());
         return true;
+    }
+
+    /**
+     * {@return the date to be recorded in generated files}
+     */
+    public ZonedDateTime getBuildDate() {
+        return buildDate;
     }
 
     /**
@@ -220,24 +340,13 @@ public class HtmlConfiguration extends BaseConfiguration {
      * "package-summary.html" of the respective package if there is only one
      * package to document. It will be a class page(first in the sorted order),
      * if only classes are provided on the command line.
-     *
-     * @param docEnv the doclet environment
      */
-    protected void setTopFile(DocletEnvironment docEnv) {
-        if (!checkForDeprecation(docEnv)) {
-            return;
-        }
+    protected void setTopFile() {
         if (options.createOverview()) {
             topFile = DocPaths.INDEX;
         } else {
             if (showModules) {
                 topFile = DocPath.empty.resolve(docPaths.moduleSummary(modules.first()));
-            } else if (packages.size() == 1 && packages.first().isUnnamed()) {
-                List<TypeElement> classes = new ArrayList<>(getIncludedTypeElements());
-                if (!classes.isEmpty()) {
-                    TypeElement te = getValidClass(classes);
-                    topFile = docPaths.forClass(te);
-                }
             } else if (!packages.isEmpty()) {
                 topFile = docPaths.forPackage(packages.first()).resolve(DocPaths.PACKAGE_SUMMARY);
             }
@@ -256,15 +365,6 @@ public class HtmlConfiguration extends BaseConfiguration {
         return null;
     }
 
-    protected boolean checkForDeprecation(DocletEnvironment docEnv) {
-        for (TypeElement te : getIncludedTypeElements()) {
-            if (isGeneratedDoc(te)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * Generate "overview.html" page if option "-overview" is used or number of
      * packages is more than one. Sets {@code HtmlOptions.createOverview} field to true.
@@ -279,9 +379,9 @@ public class HtmlConfiguration extends BaseConfiguration {
         }
     }
 
-    @Override
     public WriterFactory getWriterFactory() {
-        return new WriterFactoryImpl(this);
+        // TODO: this is called many times: why not create and use a single instance?
+        return new WriterFactory(this);
     }
 
     @Override
@@ -299,8 +399,7 @@ public class HtmlConfiguration extends BaseConfiguration {
     @Override
     public JavaFileObject getOverviewPath() {
         String overviewpath = options.overviewPath();
-        if (overviewpath != null && getFileManager() instanceof StandardJavaFileManager) {
-            StandardJavaFileManager fm = (StandardJavaFileManager) getFileManager();
+        if (overviewpath != null && getFileManager() instanceof StandardJavaFileManager fm) {
             return fm.getJavaFileObjects(overviewpath).iterator().next();
         }
         return null;
@@ -319,22 +418,19 @@ public class HtmlConfiguration extends BaseConfiguration {
         return options.additionalStylesheets().stream()
                 .map(ssf -> DocFile.createFileForInput(this, ssf))
                 .map(file -> DocPath.create(file.getName()))
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public List<DocPath> getAdditionalScripts() {
+        return options.additionalScripts().stream()
+                .map(sf -> DocFile.createFileForInput(this, sf))
+                .map(file -> DocPath.create(file.getName()))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     @Override
     public JavaFileManager getFileManager() {
         return docEnv.getJavaFileManager();
-    }
-
-    @Override
-    public boolean showMessage(DocTreePath path, String key) {
-        return (path == null || workArounds.haveDocLint());
-    }
-
-    @Override
-    public boolean showMessage(Element e, String key) {
-        return (e == null || workArounds.haveDocLint());
     }
 
     @Override
@@ -355,12 +451,125 @@ public class HtmlConfiguration extends BaseConfiguration {
                 return false;
             }
         }
+
+        String snippetPath = options.snippetPath();
+        if (snippetPath != null) {
+            Messages messages = getMessages();
+            JavaFileManager fm = getFileManager();
+            if (fm instanceof StandardJavaFileManager) {
+                try {
+                    List<Path> sp = Arrays.stream(snippetPath.split(File.pathSeparator))
+                            .map(Path::of)
+                            .toList();
+                    StandardJavaFileManager sfm = (StandardJavaFileManager) fm;
+                    sfm.setLocationFromPaths(DocumentationTool.Location.SNIPPET_PATH, sp);
+                } catch (IOException | InvalidPathException e) {
+                    throw new SimpleDocletException(messages.getResources().getText(
+                            "doclet.error_setting_snippet_path", snippetPath, e), e);
+                }
+            } else {
+                throw new SimpleDocletException(messages.getResources().getText(
+                        "doclet.cannot_use_snippet_path", snippetPath));
+            }
+        }
+
+        initTagletManager(options.customTagStrs());
+
         return super.finishOptionSettings0();
     }
 
-    @Override
-    protected void initConfiguration(DocletEnvironment docEnv) {
-        super.initConfiguration(docEnv);
-        searchItems = new SearchIndexItems(utils);
+    /**
+     * Initialize the taglet manager.  The strings to initialize the simple custom tags should
+     * be in the following format:  "[tag name]:[location str]:[heading]".
+     *
+     * @param customTagStrs the set two-dimensional arrays of strings.  These arrays contain
+     *                      either -tag or -taglet arguments.
+     */
+    private void initTagletManager(Set<List<String>> customTagStrs) {
+        tagletManager = tagletManager != null ? tagletManager : new TagletManager(this);
+        JavaFileManager fileManager = getFileManager();
+        Messages messages = getMessages();
+        try {
+            tagletManager.initTagletPath(fileManager);
+            tagletManager.loadTaglets(fileManager);
+
+            for (List<String> args : customTagStrs) {
+                if (args.get(0).equals("-taglet")) {
+                    tagletManager.addCustomTag(args.get(1), fileManager);
+                    continue;
+                }
+                /* Since there are few constraints on the characters in a tag name,
+                 * and real world examples with ':' in the tag name, we cannot simply use
+                 * String.split(regex);  instead, we tokenize the string, allowing
+                 * special characters to be escaped with '\'. */
+                List<String> tokens = tokenize(args.get(1), 3);
+                switch (tokens.size()) {
+                    case 1 -> {
+                        String tagName = args.get(1);
+                        if (tagletManager.isKnownCustomTag(tagName)) {
+                            //reorder a standard tag
+                            tagletManager.addNewSimpleCustomTag(tagName, null, "");
+                        } else {
+                            //Create a simple tag with the heading that has the same name as the tag.
+                            StringBuilder heading = new StringBuilder(tagName + ":");
+                            heading.setCharAt(0, Character.toUpperCase(tagName.charAt(0)));
+                            tagletManager.addNewSimpleCustomTag(tagName, heading.toString(), "a");
+                        }
+                    }
+
+                    case 2 ->
+                        //Add simple taglet without heading, probably to excluding it in the output.
+                            tagletManager.addNewSimpleCustomTag(tokens.get(0), tokens.get(1), "");
+
+                    case 3 ->
+                            tagletManager.addNewSimpleCustomTag(tokens.get(0), tokens.get(2), tokens.get(1));
+
+                    default ->
+                            messages.error("doclet.Error_invalid_custom_tag_argument", args.get(1));
+                }
+            }
+        } catch (IOException e) {
+            messages.error("doclet.taglet_could_not_set_location", e.toString());
+        }
     }
+
+    /**
+     * Given a string, return an array of tokens, separated by ':'.
+     * The separator character can be escaped with the '\' character.
+     * The '\' character may also be escaped with the '\' character.
+     *
+     * @param s         the string to tokenize
+     * @param maxTokens the maximum number of tokens returned.  If the
+     *                  max is reached, the remaining part of s is appended
+     *                  to the end of the last token.
+     * @return an array of tokens
+     */
+    private List<String> tokenize(String s, int maxTokens) {
+        List<String> tokens = new ArrayList<>();
+        StringBuilder token = new StringBuilder();
+        boolean prevIsEscapeChar = false;
+        for (int i = 0; i < s.length(); i += Character.charCount(i)) {
+            int currentChar = s.codePointAt(i);
+            if (prevIsEscapeChar) {
+                // Case 1:  escaped character
+                token.appendCodePoint(currentChar);
+                prevIsEscapeChar = false;
+            } else if (currentChar == ':' && tokens.size() < maxTokens - 1) {
+                // Case 2:  separator
+                tokens.add(token.toString());
+                token = new StringBuilder();
+            } else if (currentChar == '\\') {
+                // Case 3:  escape character
+                prevIsEscapeChar = true;
+            } else {
+                // Case 4:  regular character
+                token.appendCodePoint(currentChar);
+            }
+        }
+        if (token.length() > 0) {
+            tokens.add(token.toString());
+        }
+        return tokens;
+    }
+
 }

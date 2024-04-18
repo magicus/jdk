@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -69,6 +69,11 @@ public class BasicMenuUI extends BasicMenuItemUI
     private static final boolean DEBUG =   false;  // show bad params, misc.
 
     private static boolean crossMenuMnemonic = true;
+
+    /**
+     * Constructs a {@code BasicMenuUI}.
+     */
+    public BasicMenuUI() {}
 
     /**
      * Constructs a new instance of {@code BasicMenuUI}.
@@ -292,20 +297,20 @@ public class BasicMenuUI extends BasicMenuItemUI
             final MenuSelectionManager defaultManager = MenuSelectionManager.defaultManager();
             if(force) {
                 Container cnt = menu.getParent();
-                if(cnt != null && cnt instanceof JMenuBar) {
+                if (cnt instanceof JMenuBar menuBar) {
                     MenuElement[] me;
                     MenuElement[] subElements;
 
                     subElements = menu.getPopupMenu().getSubElements();
                     if(subElements.length > 0) {
                         me = new MenuElement[4];
-                        me[0] = (MenuElement) cnt;
+                        me[0] = menuBar;
                         me[1] = menu;
                         me[2] = menu.getPopupMenu();
                         me[3] = subElements[0];
                     } else {
                         me = new MenuElement[3];
-                        me[0] = (MenuElement)cnt;
+                        me[0] = menuBar;
                         me[1] = menu;
                         me[2] = menu.getPopupMenu();
                     }
@@ -364,6 +369,11 @@ public class BasicMenuUI extends BasicMenuItemUI
         // its functionality has been moved into Handler. If you need to add
         // new functionality add it to the Handler, but make sure this
         // class calls into the Handler.
+
+        /**
+         * Constructs a {@code MouseInputHandler}.
+         */
+        protected MouseInputHandler() {}
 
         public void mouseClicked(MouseEvent e) {
             getHandler().mouseClicked(e);
@@ -502,10 +512,10 @@ public class BasicMenuUI extends BasicMenuItemUI
                     manager.clearSelectedPath();
                 } else {
                     Container cnt = menu.getParent();
-                    if(cnt != null && cnt instanceof JMenuBar) {
+                    if (cnt instanceof JMenuBar menuBar) {
                         MenuElement[] me = new MenuElement[2];
-                        me[0]=(MenuElement)cnt;
-                        me[1]=menu;
+                        me[0] = menuBar;
+                        me[1] = menu;
                         manager.setSelectedPath(me);
                     }
                 }
@@ -677,7 +687,7 @@ public class BasicMenuUI extends BasicMenuItemUI
                     newList.add(sub);
                 }
                 MenuSelectionManager manager = e.getMenuSelectionManager();
-                MenuElement[] newPath = new MenuElement[0];;
+                MenuElement[] newPath = new MenuElement[0];
                 newPath = newList.toArray(newPath);
                 manager.setSelectedPath(newPath);
                 e.consume();

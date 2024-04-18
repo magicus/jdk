@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -84,6 +84,14 @@ public final class SunRsaSignEntries {
                 "sun.security.rsa.RSASignature$SHA512_224withRSA", attrs);
         addA(p, "Signature", "SHA512/256withRSA",
                 "sun.security.rsa.RSASignature$SHA512_256withRSA", attrs);
+        addA(p, "Signature", "SHA3-224withRSA",
+                "sun.security.rsa.RSASignature$SHA3_224withRSA", attrs);
+        addA(p, "Signature", "SHA3-256withRSA",
+                "sun.security.rsa.RSASignature$SHA3_256withRSA", attrs);
+        addA(p, "Signature", "SHA3-384withRSA",
+               "sun.security.rsa.RSASignature$SHA3_384withRSA", attrs);
+        addA(p, "Signature", "SHA3-512withRSA",
+                "sun.security.rsa.RSASignature$SHA3_512withRSA", attrs);
 
         addA(p, "KeyFactory", "RSASSA-PSS",
                 "sun.security.rsa.RSAKeyFactory$PSS", attrs);
@@ -92,12 +100,12 @@ public final class SunRsaSignEntries {
         addA(p, "Signature", "RSASSA-PSS",
                 "sun.security.rsa.RSAPSSSignature", attrs);
         addA(p, "AlgorithmParameters", "RSASSA-PSS",
-                "sun.security.rsa.PSSParameters", attrs);
+                "sun.security.rsa.PSSParameters", null);
     }
 
     public Iterator<Provider.Service> iterator() {
         return services.iterator();
     }
 
-    private LinkedHashSet<Provider.Service> services;
+    private final LinkedHashSet<Provider.Service> services;
 }

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2020, NTT DATA.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, NTT DATA.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -99,12 +99,13 @@ JNIEXPORT void JNICALL Java_sun_jvm_hotspot_debugger_linux_amd64_DwarfParser_ini
 extern "C"
 JNIEXPORT jlong JNICALL Java_sun_jvm_hotspot_debugger_linux_amd64_DwarfParser_createDwarfContext
   (JNIEnv *env, jclass this_cls, jlong lib) {
-  jlong result = 0L;
-
   DwarfParser *parser = new DwarfParser(reinterpret_cast<lib_info *>(lib));
   if (!parser->is_parseable()) {
     jclass ex_cls = env->FindClass("sun/jvm/hotspot/debugger/DebuggerException");
-    env->ThrowNew(ex_cls, "DWARF not found");
+    if (!env->ExceptionOccurred()) {
+        env->ThrowNew(ex_cls, "DWARF not found");
+    }
+    delete parser;
     return 0L;
   }
 
@@ -146,7 +147,9 @@ JNIEXPORT void JNICALL Java_sun_jvm_hotspot_debugger_linux_amd64_DwarfParser_pro
   DwarfParser *parser = reinterpret_cast<DwarfParser *>(get_dwarf_context(env, this_obj));
   if (!parser->process_dwarf(pc)) {
     jclass ex_cls = env->FindClass("sun/jvm/hotspot/debugger/DebuggerException");
-    env->ThrowNew(ex_cls, "Could not find PC in DWARF");
+    if (!env->ExceptionOccurred()) {
+        env->ThrowNew(ex_cls, "Could not find PC in DWARF");
+    }
     return;
   }
 }

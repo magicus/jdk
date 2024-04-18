@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,24 +31,14 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.security.AlgorithmConstraints;
 import java.security.CryptoPrimitive;
+import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLHandshakeException;
 import javax.security.auth.x500.X500Principal;
 import sun.security.ssl.NamedGroup.NamedGroupSpec;
 import static sun.security.ssl.NamedGroup.NamedGroupSpec.*;
-import sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
 
 abstract class HandshakeContext implements ConnectionContext {
     // System properties
@@ -102,11 +92,11 @@ abstract class HandshakeContext implements ConnectionContext {
     boolean                                 isResumption;
     SSLSessionImpl                          resumingSession;
     // Session is using stateless resumption
-    boolean                                 statelessResumption = false;
+    boolean                                 statelessResumption;
 
     final Queue<Map.Entry<Byte, ByteBuffer>> delegatedActions;
-    volatile boolean                        taskDelegated = false;
-    volatile Exception                      delegatedThrown = null;
+    volatile boolean                        taskDelegated;
+    volatile Exception                      delegatedThrown;
 
     ProtocolVersion                         negotiatedProtocol;
     CipherSuite                             negotiatedCipherSuite;
@@ -164,10 +154,10 @@ abstract class HandshakeContext implements ConnectionContext {
         this.conContext = conContext;
         this.sslConfig = (SSLConfiguration)conContext.sslConfig.clone();
 
-        this.algorithmConstraints = new SSLAlgorithmConstraints(
+        this.algorithmConstraints = SSLAlgorithmConstraints.wrap(
                 sslConfig.userSpecifiedAlgorithmConstraints);
-        this.activeProtocols = getActiveProtocols(sslConfig.enabledProtocols,
-                sslConfig.enabledCipherSuites, algorithmConstraints);
+        this.activeProtocols =
+                getActiveProtocols(sslConfig, algorithmConstraints);
         if (activeProtocols.isEmpty()) {
             throw new SSLHandshakeException(
                 "No appropriate protocol (protocol is disabled or " +
@@ -182,8 +172,8 @@ abstract class HandshakeContext implements ConnectionContext {
             }
         }
         this.maximumActiveProtocol = maximumVersion;
-        this.activeCipherSuites = getActiveCipherSuites(this.activeProtocols,
-                sslConfig.enabledCipherSuites, algorithmConstraints);
+        this.activeCipherSuites = getActiveCipherSuites(sslConfig,
+                this.activeProtocols, algorithmConstraints);
         if (activeCipherSuites.isEmpty()) {
             throw new SSLHandshakeException("No appropriate cipher suite");
         }
@@ -265,12 +255,11 @@ abstract class HandshakeContext implements ConnectionContext {
     }
 
     private static List<ProtocolVersion> getActiveProtocols(
-            List<ProtocolVersion> enabledProtocols,
-            List<CipherSuite> enabledCipherSuites,
+            SSLConfiguration sslConfig,
             AlgorithmConstraints algorithmConstraints) {
         boolean enabledSSL20Hello = false;
         ArrayList<ProtocolVersion> protocols = new ArrayList<>(4);
-        for (ProtocolVersion protocol : enabledProtocols) {
+        for (ProtocolVersion protocol : sslConfig.enabledProtocols) {
             if (!enabledSSL20Hello && protocol == ProtocolVersion.SSL20Hello) {
                 enabledSSL20Hello = true;
                 continue;
@@ -286,9 +275,9 @@ abstract class HandshakeContext implements ConnectionContext {
             boolean found = false;
             Map<NamedGroupSpec, Boolean> cachedStatus =
                     new EnumMap<>(NamedGroupSpec.class);
-            for (CipherSuite suite : enabledCipherSuites) {
+            for (CipherSuite suite : sslConfig.enabledCipherSuites) {
                 if (suite.isAvailable() && suite.supports(protocol)) {
-                    if (isActivatable(suite,
+                    if (isActivatable(sslConfig, suite,
                             algorithmConstraints, cachedStatus)) {
                         protocols.add(protocol);
                         found = true;
@@ -297,13 +286,13 @@ abstract class HandshakeContext implements ConnectionContext {
                 } else if (SSLLogger.isOn && SSLLogger.isOn("verbose")) {
                     SSLLogger.fine(
                         "Ignore unsupported cipher suite: " + suite +
-                             " for " + protocol);
+                             " for " + protocol.name);
                 }
             }
 
             if (!found && (SSLLogger.isOn) && SSLLogger.isOn("handshake")) {
                 SSLLogger.fine(
-                    "No available cipher suite for " + protocol);
+                    "No available cipher suite for " + protocol.name);
             }
         }
 
@@ -318,15 +307,15 @@ abstract class HandshakeContext implements ConnectionContext {
     }
 
     private static List<CipherSuite> getActiveCipherSuites(
+            SSLConfiguration sslConfig,
             List<ProtocolVersion> enabledProtocols,
-            List<CipherSuite> enabledCipherSuites,
             AlgorithmConstraints algorithmConstraints) {
 
         List<CipherSuite> suites = new LinkedList<>();
         if (enabledProtocols != null && !enabledProtocols.isEmpty()) {
             Map<NamedGroupSpec, Boolean> cachedStatus =
                     new EnumMap<>(NamedGroupSpec.class);
-            for (CipherSuite suite : enabledCipherSuites) {
+            for (CipherSuite suite : sslConfig.enabledCipherSuites) {
                 if (!suite.isAvailable()) {
                     continue;
                 }
@@ -336,7 +325,7 @@ abstract class HandshakeContext implements ConnectionContext {
                     if (!suite.supports(protocol)) {
                         continue;
                     }
-                    if (isActivatable(suite,
+                    if (isActivatable(sslConfig, suite,
                             algorithmConstraints, cachedStatus)) {
                         suites.add(suite);
                         isSupported = true;
@@ -416,6 +405,41 @@ abstract class HandshakeContext implements ConnectionContext {
                         handshakeType,
                         fragment
                     ));
+
+                // For TLS 1.2 and previous versions, the ChangeCipherSpec
+                // message is always delivered before the Finished handshake
+                // message.  ChangeCipherSpec is not a handshake message,
+                // and cannot be wrapped in one TLS record.  The processing
+                // of Finished handshake message is unlikely to be delegated.
+                //
+                // However, for TLS 1.3 there is no non-handshake messages
+                // delivered immediately before Finished message.  Then, the
+                // 'hasDelegated' could be true, and the Finished message is
+                // handled in a delegated action.
+                //
+                // The HandshakeStatus.FINISHED for the final handshake flight
+                // could be used to determine if the handshake has completed.
+                // Per the HandshakeStatus.FINISHED specification, it is only
+                // generated by call to SSLEngine.wrap()/unwrap().  It is
+                // unlikely to change the spec, so we cannot use delegated
+                // action and SSLEngine.getHandshakeStatus() to indicate the
+                // FINISHED handshake status.
+                //
+                // To work around this special user case, the follow-on call to
+                // SSLEngine.wrap() method will return HandshakeStatus.FINISHED
+                // status if needed.
+                //
+                // As the final handshake flight is always delivered from the
+                // client side, so we only need to take care of the server
+                // dispatching processes.
+                //
+                // See also the note on
+                // TransportContext.needHandshakeFinishedStatus.
+                if (hasDelegated &&
+                        !conContext.sslConfig.isClientMode &&
+                        handshakeType == SSLHandshake.FINISHED.id) {
+                    conContext.hasDelegatedFinished = true;
+                }
             } else {
                 dispatch(handshakeType, plaintext.fragment);
             }
@@ -430,7 +454,14 @@ abstract class HandshakeContext implements ConnectionContext {
         if (handshakeType == SSLHandshake.HELLO_REQUEST.id) {
             // For TLS 1.2 and prior versions, the HelloRequest message MAY
             // be sent by the server at any time.
-            consumer = SSLHandshake.HELLO_REQUEST;
+
+            // If we're in server mode, we want the consumer to be null so
+            // that we don't attempt to cast a Server object as a Client object
+            // further down in the stack. Having the consumer be null forces
+            // the check a few lines later to pass and throws the message for
+            // "Unexpected handshake message".
+            consumer = conContext.sslConfig.isClientMode ?
+                    SSLHandshake.HELLO_REQUEST : null;
         } else {
             consumer = handshakeConsumers.get(handshakeType);
         }
@@ -499,16 +530,9 @@ abstract class HandshakeContext implements ConnectionContext {
         return activeProtocols.contains(protocolVersion);
     }
 
-    /**
-     * Set the active protocol version and propagate it to the SSLSocket
-     * and our handshake streams. Called from ClientHandshaker
-     * and ServerHandshaker with the negotiated protocol version.
-     */
-    void setVersion(ProtocolVersion protocolVersion) {
-        this.conContext.protocolVersion = protocolVersion;
-    }
-
-    private static boolean isActivatable(CipherSuite suite,
+    private static boolean isActivatable(
+            SSLConfiguration sslConfig,
+            CipherSuite suite,
             AlgorithmConstraints algorithmConstraints,
             Map<NamedGroupSpec, Boolean> cachedStatus) {
 
@@ -526,8 +550,8 @@ abstract class HandshakeContext implements ConnectionContext {
                 if (groupType != NAMED_GROUP_NONE) {
                     Boolean checkedStatus = cachedStatus.get(groupType);
                     if (checkedStatus == null) {
-                        groupAvailable = SupportedGroups.isActivatable(
-                                algorithmConstraints, groupType);
+                        groupAvailable = NamedGroup.isActivatable(
+                                sslConfig, algorithmConstraints, groupType);
                         cachedStatus.put(groupType, groupAvailable);
 
                         if (!groupAvailable &&
@@ -541,7 +565,7 @@ abstract class HandshakeContext implements ConnectionContext {
 
                     retval |= groupAvailable;
                 } else {
-                    retval |= true;
+                    retval = true;
                 }
             }
 
@@ -559,10 +583,8 @@ abstract class HandshakeContext implements ConnectionContext {
     }
 
     List<SNIServerName> getRequestedServerNames() {
-        if (requestedServerNames == null) {
-            return Collections.emptyList();
-        }
-        return requestedServerNames;
+        return Objects.requireNonNullElse(requestedServerNames,
+                Collections.emptyList());
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,16 +32,33 @@ import javax.lang.model.type.TypeMirror;
  * Represents a module program element.  Provides access to
  * information about the module, its directives, and its members.
  *
+ * @apiNote
+ * The represented module may have an explicit {@linkplain
+ * javax.lang.model.util.Elements#getFileObjectOf(Element) reference
+ * representation} (either source code or executable output) or may be
+ * created from implicit information. The explicit and standalone
+ * source code construct for a module is typically a {@code
+ * module-info.java} file (JLS {@jls 7.7}). {@linkplain
+ * javax.lang.model.util.Elements#isAutomaticModule(ModuleElement)
+ * Automatic modules} (JLS {@jls 7.7.1}) are named modules that do
+ * <em>not</em> have a {@code module-info} file. Implicit information
+ * is used to model {@linkplain #isUnnamed unnamed modules}.
+ * <p>In the context of annotation processing, a module element can
+ * be:
+ * <ul>
+ * <li>created from the initial inputs to a run of the tool
+ * <li>{@linkplain javax.lang.model.util.Elements#getModuleElement(CharSequence)
+ * queried for} in the configured environment
+ * </ul>
+ *
  * @see javax.lang.model.util.Elements#getModuleOf
  * @since 9
  * @jls 7.7 Module Declarations
- * @spec JPMS
  */
 public interface ModuleElement extends Element, QualifiedNameable {
     /**
-     * Returns a {@linkplain javax.lang.model.type.NoType pseudo-type}
-     * for this module.
-     * @return a pseudo-type for this module
+     * {@return a {@linkplain javax.lang.model.type.NoType pseudo-type}
+     * for this module}
      *
      * @see javax.lang.model.type.NoType
      * @see javax.lang.model.type.TypeKind#MODULE
@@ -51,7 +68,8 @@ public interface ModuleElement extends Element, QualifiedNameable {
 
     /**
      * Returns the fully qualified name of this module.  For an
-     * {@linkplain #isUnnamed() unnamed module}, an empty name is returned.
+     * {@linkplain #isUnnamed() unnamed module}, an {@linkplain
+     * Name##empty_name empty name} is returned.
      *
      * @apiNote If the module name consists of one identifier, then
      * this method returns that identifier, which is deemed to be
@@ -69,7 +87,8 @@ public interface ModuleElement extends Element, QualifiedNameable {
 
     /**
      * Returns the simple name of this module.  For an {@linkplain
-     * #isUnnamed() unnamed module}, an empty name is returned.
+     * #isUnnamed() unnamed module}, an {@linkplain
+     * Name##empty_name empty name} is returned.
      *
      * @apiNote If the module name consists of one identifier, then
      * this method returns that identifier.  If the module name
@@ -86,27 +105,20 @@ public interface ModuleElement extends Element, QualifiedNameable {
     Name getSimpleName();
 
     /**
-     * Returns the packages within this module.
-     * @return the packages within this module
+     * {@return the packages within this module}
      */
     @Override
     List<? extends Element> getEnclosedElements();
 
     /**
-     * Returns {@code true} if this is an open module and {@code
-     * false} otherwise.
-     *
-     * @return {@code true} if this is an open module and {@code
-     * false} otherwise
+     * {@return {@code true} if this is an open module and {@code
+     * false} otherwise}
      */
     boolean isOpen();
 
     /**
-     * Returns {@code true} if this is an unnamed module and {@code
-     * false} otherwise.
-     *
-     * @return {@code true} if this is an unnamed module and {@code
-     * false} otherwise
+     * {@return {@code true} if this is an unnamed module and {@code
+     * false} otherwise}
      *
      * @jls 7.7.5 Unnamed Modules
      */
@@ -132,10 +144,9 @@ public interface ModuleElement extends Element, QualifiedNameable {
      *
      * <p>Note that it is possible additional directive kinds will be added
      * to accommodate new, currently unknown, language structures added to
-     * future versions of the Java&trade; programming language.
+     * future versions of the Java programming language.
      *
      * @since 9
-     * @spec JPMS
      */
     enum DirectiveKind {
         /** A "requires (static|transitive)* module-name" directive. */
@@ -156,11 +167,10 @@ public interface ModuleElement extends Element, QualifiedNameable {
      * module in the Java Platform Module System.
      *
      * @since 9
-     * @spec JPMS
      */
     interface Directive {
         /**
-         * Returns the {@code kind} of this directive.
+         * {@return the {@code kind} of this directive}
          * <ul>
          *
          * <li> The kind of a {@linkplain RequiresDirective requires
@@ -179,8 +189,6 @@ public interface ModuleElement extends Element, QualifiedNameable {
          * directive} is {@link DirectiveKind#PROVIDES PROVIDES}.
          *
          * </ul>
-         *
-         * @return the kind of this directive
          */
         DirectiveKind getKind();
 
@@ -211,7 +219,7 @@ public interface ModuleElement extends Element, QualifiedNameable {
      *
      * <p> <b>WARNING:</b> It is possible that methods will be added to
      * this interface to accommodate new, currently unknown, language
-     * structures added to future versions of the Java&trade; programming
+     * structures added to future versions of the Java programming
      * language. Methods to accommodate new language constructs will
      * be added in a source <em>compatible</em> way using
      * <em>default methods</em>.
@@ -223,7 +231,6 @@ public interface ModuleElement extends Element, QualifiedNameable {
      *            additional parameter.
      *
      * @since 9
-     * @spec JPMS
      */
     interface DirectiveVisitor<R, P> {
         /**
@@ -309,24 +316,20 @@ public interface ModuleElement extends Element, QualifiedNameable {
     /**
      * A dependency of a module.
      * @since 9
-     * @spec JPMS
      */
     interface RequiresDirective extends Directive {
         /**
-         * Returns whether or not this is a static dependency.
-         * @return whether or not this is a static dependency
+         * {@return whether or not this is a static dependency}
          */
         boolean isStatic();
 
         /**
-         * Returns whether or not this is a transitive dependency.
-         * @return whether or not this is a transitive dependency
+         * {@return whether or not this is a transitive dependency}
          */
         boolean isTransitive();
 
         /**
-         * Returns the module that is required
-         * @return the module that is required
+         * {@return the module that is required}
          */
         ModuleElement getDependency();
     }
@@ -334,13 +337,11 @@ public interface ModuleElement extends Element, QualifiedNameable {
     /**
      * An exported package of a module.
      * @since 9
-     * @spec JPMS
      */
     interface ExportsDirective extends Directive {
 
         /**
-         * Returns the package being exported.
-         * @return the package being exported
+         * {@return the package being exported}
          */
         PackageElement getPackage();
 
@@ -356,13 +357,11 @@ public interface ModuleElement extends Element, QualifiedNameable {
     /**
      * An opened package of a module.
      * @since 9
-     * @spec JPMS
      */
     interface OpensDirective extends Directive {
 
         /**
-         * Returns the package being opened.
-         * @return the package being opened
+         * {@return the package being opened}
          */
         PackageElement getPackage();
 
@@ -378,18 +377,15 @@ public interface ModuleElement extends Element, QualifiedNameable {
     /**
      * An implementation of a service provided by a module.
      * @since 9
-     * @spec JPMS
      */
     interface ProvidesDirective extends Directive {
         /**
-         * Returns the service being provided.
-         * @return the service being provided
+         * {@return the service being provided}
          */
         TypeElement getService();
 
         /**
-         * Returns the implementations of the service being provided.
-         * @return the implementations of the service being provided
+         * {@return the implementations of the service being provided}
          */
         List<? extends TypeElement> getImplementations();
     }
@@ -397,12 +393,10 @@ public interface ModuleElement extends Element, QualifiedNameable {
     /**
      * A reference to a service used by a module.
      * @since 9
-     * @spec JPMS
      */
     interface UsesDirective extends Directive {
         /**
-         * Returns the service that is used.
-         * @return the service that is used
+         * {@return the service that is used}
          */
         TypeElement getService();
     }

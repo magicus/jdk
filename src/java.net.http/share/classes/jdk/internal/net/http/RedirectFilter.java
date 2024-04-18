@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,11 +30,14 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
+import java.util.concurrent.locks.ReentrantLock;
+
 import jdk.internal.net.http.common.Log;
 import jdk.internal.net.http.common.Utils;
 
 class RedirectFilter implements HeaderFilter {
 
+    private final ReentrantLock stateLock = new ReentrantLock();
     HttpRequestImpl request;
     HttpClientImpl client;
     HttpClient.Redirect policy;
@@ -58,35 +61,39 @@ class RedirectFilter implements HeaderFilter {
     public RedirectFilter() {}
 
     @Override
-    public synchronized void request(HttpRequestImpl r, MultiExchange<?> e) throws IOException {
-        this.request = r;
-        this.client = e.client();
-        this.policy = client.followRedirects();
+    public void request(HttpRequestImpl r, MultiExchange<?> e) throws IOException {
+        stateLock.lock();
+        try {
+            this.request = r;
+            this.client = e.client();
+            this.policy = client.followRedirects();
 
-        this.method = r.method();
-        this.uri = r.uri();
-        this.exchange = e;
+            this.method = r.method();
+            this.uri = r.uri();
+            this.exchange = e;
+        } finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
-    public synchronized HttpRequestImpl response(Response r) throws IOException {
-        return handleResponse(r);
+    public HttpRequestImpl response(Response r) throws IOException {
+        stateLock.lock();
+        try {
+            return handleResponse(r);
+        } finally {
+            stateLock.unlock();
+        }
     }
 
     private static String redirectedMethod(int statusCode, String orig) {
-        switch (statusCode) {
-            case 301:
-            case 302:
-                return orig.equals("POST") ? "GET" : orig;
-            case 303:
-                return "GET";
-            case 307:
-            case 308:
-                return orig;
-            default:
-                // unexpected but return orig
-                return orig;
-        }
+        return switch (statusCode) {
+            case 301, 302   -> orig.equals("POST") ? "GET" : orig;
+            case 303        -> "GET";
+            case 307, 308   -> orig;
+
+            default -> orig; // unexpected but return orig
+        };
     }
 
     private static boolean isRedirecting(int statusCode) {
@@ -95,23 +102,16 @@ class RedirectFilter implements HeaderFilter {
         // 309-399 Unassigned => don't follow
         // > 399: not a redirect code
         if (statusCode > 308) return false;
-        switch (statusCode) {
+
+        return switch (statusCode) {
             // 300: MultipleChoice => don't follow
-            case 300:
-                return false;
             // 304: Not Modified => don't follow
-            case 304:
-                return false;
             // 305: Proxy Redirect => don't follow.
-            case 305:
-                return false;
             // 306: Unused => don't follow
-            case 306:
-                return false;
+            case 300, 304, 305, 306 -> false;
             // 301, 302, 303, 307, 308: OK to follow.
-            default:
-                return true;
-        }
+            default -> true;
+        };
     }
 
     /**
@@ -158,16 +158,11 @@ class RedirectFilter implements HeaderFilter {
     private boolean canRedirect(URI redir) {
         String newScheme = redir.getScheme();
         String oldScheme = uri.getScheme();
-        switch (policy) {
-            case ALWAYS:
-                return true;
-            case NEVER:
-                return false;
-            case NORMAL:
-                return newScheme.equalsIgnoreCase(oldScheme)
-                        || newScheme.equalsIgnoreCase("https");
-            default:
-                throw new InternalError();
-        }
+        return switch (policy) {
+            case ALWAYS -> true;
+            case NEVER -> false;
+            case NORMAL -> newScheme.equalsIgnoreCase(oldScheme)
+                    || newScheme.equalsIgnoreCase("https");
+        };
     }
 }

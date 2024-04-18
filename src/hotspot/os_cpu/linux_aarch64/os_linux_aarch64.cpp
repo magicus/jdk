@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2014, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -24,22 +24,19 @@
  */
 
 // no precompiled headers
-#include "jvm.h"
 #include "asm/macroAssembler.hpp"
-#include "classfile/classLoader.hpp"
-#include "classfile/systemDictionary.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "code/codeCache.hpp"
-#include "code/icBuffer.hpp"
 #include "code/vtableStubs.hpp"
 #include "code/nativeInst.hpp"
 #include "interpreter/interpreter.hpp"
+#include "jvm.h"
 #include "memory/allocation.inline.hpp"
-#include "os_share_linux.hpp"
+#include "os_linux.hpp"
+#include "os_posix.hpp"
 #include "prims/jniFastGetField.hpp"
 #include "prims/jvm_misc.hpp"
 #include "runtime/arguments.hpp"
-#include "runtime/extendedPC.hpp"
 #include "runtime/frame.inline.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/java.hpp"
@@ -49,8 +46,9 @@
 #include "runtime/safepointMechanism.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/stubRoutines.hpp"
-#include "runtime/thread.inline.hpp"
+#include "runtime/javaThread.hpp"
 #include "runtime/timer.hpp"
+#include "signals_posix.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/events.hpp"
 #include "utilities/vmError.hpp"
@@ -75,7 +73,6 @@
 # include <pwd.h>
 # include <poll.h>
 # include <ucontext.h>
-# include <fpu_control.h>
 
 #define REG_FP 29
 #define REG_LR 30
@@ -92,11 +89,11 @@ char* os::non_memory_address_word() {
   return (char*) 0xffffffffffff;
 }
 
-address os::Linux::ucontext_get_pc(const ucontext_t * uc) {
+address os::Posix::ucontext_get_pc(const ucontext_t * uc) {
   return (address)uc->uc_mcontext.pc;
 }
 
-void os::Linux::ucontext_set_pc(ucontext_t * uc, address pc) {
+void os::Posix::ucontext_set_pc(ucontext_t * uc, address pc) {
   uc->uc_mcontext.pc = (intptr_t)pc;
 }
 
@@ -108,36 +105,20 @@ intptr_t* os::Linux::ucontext_get_fp(const ucontext_t * uc) {
   return (intptr_t*)uc->uc_mcontext.regs[REG_FP];
 }
 
-// For Forte Analyzer AsyncGetCallTrace profiling support - thread
-// is currently interrupted by SIGPROF.
-// os::Solaris::fetch_frame_from_ucontext() tries to skip nested signal
-// frames. Currently we don't do that on Linux, so it's the same as
-// os::fetch_frame_from_context().
-ExtendedPC os::Linux::fetch_frame_from_ucontext(Thread* thread,
-  const ucontext_t* uc, intptr_t** ret_sp, intptr_t** ret_fp) {
-
-  assert(thread != NULL, "just checking");
-  assert(ret_sp != NULL, "just checking");
-  assert(ret_fp != NULL, "just checking");
-
-  return os::fetch_frame_from_context(uc, ret_sp, ret_fp);
-}
-
-ExtendedPC os::fetch_frame_from_context(const void* ucVoid,
+address os::fetch_frame_from_context(const void* ucVoid,
                     intptr_t** ret_sp, intptr_t** ret_fp) {
 
-  ExtendedPC  epc;
+  address epc;
   const ucontext_t* uc = (const ucontext_t*)ucVoid;
 
-  if (uc != NULL) {
-    epc = ExtendedPC(os::Linux::ucontext_get_pc(uc));
+  if (uc != nullptr) {
+    epc = os::Posix::ucontext_get_pc(uc);
     if (ret_sp) *ret_sp = os::Linux::ucontext_get_sp(uc);
     if (ret_fp) *ret_fp = os::Linux::ucontext_get_fp(uc);
   } else {
-    // construct empty ExtendedPC for return value checking
-    epc = ExtendedPC(NULL);
-    if (ret_sp) *ret_sp = (intptr_t *)NULL;
-    if (ret_fp) *ret_fp = (intptr_t *)NULL;
+    epc = nullptr;
+    if (ret_sp) *ret_sp = (intptr_t *)nullptr;
+    if (ret_fp) *ret_fp = (intptr_t *)nullptr;
   }
 
   return epc;
@@ -146,54 +127,47 @@ ExtendedPC os::fetch_frame_from_context(const void* ucVoid,
 frame os::fetch_frame_from_context(const void* ucVoid) {
   intptr_t* sp;
   intptr_t* fp;
-  ExtendedPC epc = fetch_frame_from_context(ucVoid, &sp, &fp);
-  return frame(sp, fp, epc.pc());
+  address epc = fetch_frame_from_context(ucVoid, &sp, &fp);
+  if (!is_readable_pointer(epc)) {
+    // Try to recover from calling into bad memory
+    // Assume new frame has not been set up, the same as
+    // compiled frame stack bang
+    return fetch_compiled_frame_from_context(ucVoid);
+  }
+  return frame(sp, fp, epc);
 }
 
-bool os::Linux::get_frame_at_stack_banging_point(JavaThread* thread, ucontext_t* uc, frame* fr) {
-  address pc = (address) os::Linux::ucontext_get_pc(uc);
-  if (Interpreter::contains(pc)) {
-    // interpreter performs stack banging after the fixed frame header has
-    // been generated while the compilers perform it before. To maintain
-    // semantic consistency between interpreted and compiled frames, the
-    // method returns the Java sender of the current frame.
-    *fr = os::fetch_frame_from_context(uc);
-    if (!fr->is_first_java_frame()) {
-      assert(fr->safe_for_sender(thread), "Safety check");
-      *fr = fr->java_sender();
-    }
-  } else {
-    // more complex code with compiled code
-    assert(!Interpreter::contains(pc), "Interpreted methods should have been handled above");
-    CodeBlob* cb = CodeCache::find_blob(pc);
-    if (cb == NULL || !cb->is_nmethod() || cb->is_frame_complete_at(pc)) {
-      // Not sure where the pc points to, fallback to default
-      // stack overflow handling
-      return false;
-    } else {
-      // In compiled code, the stack banging is performed before LR
-      // has been saved in the frame.  LR is live, and SP and FP
-      // belong to the caller.
-      intptr_t* fp = os::Linux::ucontext_get_fp(uc);
-      intptr_t* sp = os::Linux::ucontext_get_sp(uc);
-      address pc = (address)(uc->uc_mcontext.regs[REG_LR]
+frame os::fetch_compiled_frame_from_context(const void* ucVoid) {
+  const ucontext_t* uc = (const ucontext_t*)ucVoid;
+  // In compiled code, the stack banging is performed before LR
+  // has been saved in the frame.  LR is live, and SP and FP
+  // belong to the caller.
+  intptr_t* fp = os::Linux::ucontext_get_fp(uc);
+  intptr_t* sp = os::Linux::ucontext_get_sp(uc);
+  address pc = (address)(uc->uc_mcontext.regs[REG_LR]
                          - NativeInstruction::instruction_size);
-      *fr = frame(sp, fp, pc);
-      if (!fr->is_java_frame()) {
-        assert(fr->safe_for_sender(thread), "Safety check");
-        assert(!fr->is_first_frame(), "Safety check");
-        *fr = fr->java_sender();
-      }
-    }
-  }
-  assert(fr->is_java_frame(), "Safety check");
-  return true;
+  return frame(sp, fp, pc);
 }
 
 // By default, gcc always saves frame pointer rfp on this stack. This
 // may get turned off by -fomit-frame-pointer.
+// The "Procedure Call Standard for the Arm 64-bit Architecture" doesn't
+// specify a location for the frame record within a stack frame (6.4.6).
+// GCC currently chooses to save it at the top of the frame (lowest address).
+// This means that using fr->sender_sp() to set the caller's frame _unextended_sp,
+// as we do in x86, is wrong. Using fr->link() instead only makes sense for
+// native frames. Setting a correct value for _unextended_sp is important
+// if this value is later used to get that frame's caller. This will happen
+// if we end up calling frame::sender_for_compiled_frame(), which will be the
+// case if the _pc is associated with a CodeBlob that has a _frame_size > 0
+// (nmethod, runtime stub, safepoint stub, etc).
 frame os::get_sender_for_C_frame(frame* fr) {
-  return frame(fr->link(), fr->link(), fr->sender_pc());
+  address pc = fr->sender_pc();
+  CodeBlob* cb = CodeCache::find_blob(pc);
+  bool use_codeblob = cb != nullptr && cb->frame_size() > 0;
+  assert(!use_codeblob || !Interpreter::contains(pc), "should not be an interpreter frame");
+  intptr_t* sender_sp = use_codeblob ? (fr->link() + frame::metadata_words - cb->frame_size()) : fr->link();
+  return frame(sender_sp, sender_sp, fr->link(), pc, cb, true /* allow_cb_null */);
 }
 
 NOINLINE frame os::current_frame() {
@@ -209,80 +183,26 @@ NOINLINE frame os::current_frame() {
   }
 }
 
-extern "C" JNIEXPORT int
-JVM_handle_linux_signal(int sig,
-                        siginfo_t* info,
-                        void* ucVoid,
-                        int abort_if_unrecognized) {
-  ucontext_t* uc = (ucontext_t*) ucVoid;
+bool PosixSignals::pd_hotspot_signal_handler(int sig, siginfo_t* info,
+                                             ucontext_t* uc, JavaThread* thread) {
 
-  Thread* t = Thread::current_or_null_safe();
-
-  // Must do this before SignalHandlerMark, if crash protection installed we will longjmp away
-  // (no destructors can be run)
-  os::ThreadCrashProtection::check_crash_protection(sig, t);
-
-  SignalHandlerMark shm(t);
-
-  // Note: it's not uncommon that JNI code uses signal/sigset to install
-  // then restore certain signal handler (e.g. to temporarily block SIGPIPE,
-  // or have a SIGILL handler when detecting CPU type). When that happens,
-  // JVM_handle_linux_signal() might be invoked with junk info/ucVoid. To
-  // avoid unnecessary crash when libjsig is not preloaded, try handle signals
-  // that do not require siginfo/ucontext first.
-
-  if (sig == SIGPIPE || sig == SIGXFSZ) {
-    // allow chained handler to go first
-    if (os::Linux::chained_handler(sig, info, ucVoid)) {
-      return true;
-    } else {
-      // Ignoring SIGPIPE/SIGXFSZ - see bugs 4229104 or 6499219
-      return true;
-    }
-  }
-
-#ifdef CAN_SHOW_REGISTERS_ON_ASSERT
-  if ((sig == SIGSEGV || sig == SIGBUS) && info != NULL && info->si_addr == g_assert_poison) {
-    if (handle_assert_poison_fault(ucVoid, info->si_addr)) {
-      return 1;
-    }
-  }
-#endif
-
-  JavaThread* thread = NULL;
-  VMThread* vmthread = NULL;
-  if (os::Linux::signal_handlers_are_installed) {
-    if (t != NULL ){
-      if(t->is_Java_thread()) {
-        thread = (JavaThread*)t;
-      }
-      else if(t->is_VM_thread()){
-        vmthread = (VMThread *)t;
-      }
-    }
-  }
 /*
   NOTE: does not seem to work on linux.
-  if (info == NULL || info->si_code <= 0 || info->si_code == SI_NOINFO) {
+  if (info == nullptr || info->si_code <= 0 || info->si_code == SI_NOINFO) {
     // can't decode this kind of signal
-    info = NULL;
+    info = nullptr;
   } else {
     assert(sig == info->si_signo, "bad siginfo");
   }
 */
   // decide if this trap can be handled by a stub
-  address stub = NULL;
+  address stub = nullptr;
 
-  address pc          = NULL;
+  address pc          = nullptr;
 
   //%note os_trap_1
-  if (info != NULL && uc != NULL && thread != NULL) {
-    pc = (address) os::Linux::ucontext_get_pc(uc);
-
-    if (StubRoutines::is_safefetch_fault(pc)) {
-      os::Linux::ucontext_set_pc(uc, StubRoutines::continuation_for_safefetch_fault(pc));
-      return 1;
-    }
+  if (info != nullptr && uc != nullptr && thread != nullptr) {
+    pc = (address) os::Posix::ucontext_get_pc(uc);
 
     address addr = (address) info->si_addr;
 
@@ -295,61 +215,8 @@ JVM_handle_linux_signal(int sig,
     if (sig == SIGSEGV) {
       // check if fault address is within thread stack
       if (thread->is_in_full_stack(addr)) {
-        // stack overflow
-        if (thread->in_stack_yellow_reserved_zone(addr)) {
-          if (thread->thread_state() == _thread_in_Java) {
-            if (thread->in_stack_reserved_zone(addr)) {
-              frame fr;
-              if (os::Linux::get_frame_at_stack_banging_point(thread, uc, &fr)) {
-                assert(fr.is_java_frame(), "Must be a Java frame");
-                frame activation =
-                  SharedRuntime::look_for_reserved_stack_annotated_method(thread, fr);
-                if (activation.sp() != NULL) {
-                  thread->disable_stack_reserved_zone();
-                  if (activation.is_interpreted_frame()) {
-                    thread->set_reserved_stack_activation((address)(
-                      activation.fp() + frame::interpreter_frame_initial_sp_offset));
-                  } else {
-                    thread->set_reserved_stack_activation((address)activation.unextended_sp());
-                  }
-                  return 1;
-                }
-              }
-            }
-            // Throw a stack overflow exception.  Guard pages will be reenabled
-            // while unwinding the stack.
-            thread->disable_stack_yellow_reserved_zone();
-            stub = SharedRuntime::continuation_for_implicit_exception(thread, pc, SharedRuntime::STACK_OVERFLOW);
-          } else {
-            // Thread was in the vm or native code.  Return and try to finish.
-            thread->disable_stack_yellow_reserved_zone();
-            return 1;
-          }
-        } else if (thread->in_stack_red_zone(addr)) {
-          // Fatal red zone violation.  Disable the guard pages and fall through
-          // to handle_unexpected_exception way down below.
-          thread->disable_stack_red_zone();
-          tty->print_raw_cr("An irrecoverable stack overflow has occurred.");
-
-          // This is a likely cause, but hard to verify. Let's just print
-          // it as a hint.
-          tty->print_raw_cr("Please check if any of your loaded .so files has "
-                            "enabled executable stack (see man page execstack(8))");
-        } else {
-          // Accessing stack address below sp may cause SEGV if current
-          // thread has MAP_GROWSDOWN stack. This should only happen when
-          // current thread was created by user code with MAP_GROWSDOWN flag
-          // and then attached to VM. See notes in os_linux.cpp.
-          if (thread->osthread()->expanding_stack() == 0) {
-             thread->osthread()->set_expanding_stack();
-             if (os::Linux::manually_expand_stack(thread, addr)) {
-               thread->osthread()->clear_expanding_stack();
-               return 1;
-             }
-             thread->osthread()->clear_expanding_stack();
-          } else {
-             fatal("recursive segv. expanding stack.");
-          }
+        if (os::Posix::handle_stack_overflow(thread, addr, pc, uc, &stub)) {
+          return true; // continue
         }
       }
     }
@@ -360,9 +227,9 @@ JVM_handle_linux_signal(int sig,
 
       // Handle signal from NativeJump::patch_verified_entry().
       if ((sig == SIGILL || sig == SIGTRAP)
-          && nativeInstruction_at(pc)->is_sigill_zombie_not_entrant()) {
+          && nativeInstruction_at(pc)->is_sigill_not_entrant()) {
         if (TraceTraps) {
-          tty->print_cr("trap: zombie_not_entrant (%s)", (sig == SIGTRAP) ? "SIGTRAP" : "SIGILL");
+          tty->print_cr("trap: not_entrant (%s)", (sig == SIGTRAP) ? "SIGTRAP" : "SIGILL");
         }
         stub = SharedRuntime::get_handle_wrong_method_stub();
       } else if (sig == SIGSEGV && SafepointMechanism::is_poll_address((address)info->si_addr)) {
@@ -371,16 +238,33 @@ JVM_handle_linux_signal(int sig,
         // BugId 4454115: A read from a MappedByteBuffer can fault
         // here if the underlying file has been truncated.
         // Do not crash the VM in such a case.
-        CodeBlob* cb = CodeCache::find_blob_unsafe(pc);
-        CompiledMethod* nm = (cb != NULL) ? cb->as_compiled_method_or_null() : NULL;
+        CodeBlob* cb = CodeCache::find_blob(pc);
+        nmethod* nm = (cb != nullptr) ? cb->as_nmethod_or_null() : nullptr;
         bool is_unsafe_arraycopy = (thread->doing_unsafe_access() && UnsafeCopyMemory::contains_pc(pc));
-        if ((nm != NULL && nm->has_unsafe_access()) || is_unsafe_arraycopy) {
+        if ((nm != nullptr && nm->has_unsafe_access()) || is_unsafe_arraycopy) {
           address next_pc = pc + NativeCall::instruction_size;
           if (is_unsafe_arraycopy) {
             next_pc = UnsafeCopyMemory::page_error_continue_pc(pc);
           }
           stub = SharedRuntime::handle_unsafe_access(thread, next_pc);
         }
+      } else if (sig == SIGILL && nativeInstruction_at(pc)->is_stop()) {
+        // Pull a pointer to the error message out of the instruction
+        // stream.
+        const uint64_t *detail_msg_ptr
+          = (uint64_t*)(pc + NativeInstruction::instruction_size);
+        const char *detail_msg = (const char *)*detail_msg_ptr;
+        const char *msg = "stop";
+        if (TraceTraps) {
+          tty->print_cr("trap: %s: (SIGILL)", msg);
+        }
+
+        // End life with a fatal error, message and detail message and the context.
+        // Note: no need to do any post-processing here (e.g. signal chaining)
+        VMError::report_and_die(thread, uc, nullptr, 0, msg, "%s", detail_msg);
+
+        ShouldNotReachHere();
+
       }
       else
 
@@ -418,38 +302,15 @@ JVM_handle_linux_signal(int sig,
     }
   }
 
-  if (stub != NULL) {
+  if (stub != nullptr) {
     // save all thread context in case we need to restore it
-    if (thread != NULL) thread->set_saved_exception_pc(pc);
+    if (thread != nullptr) thread->set_saved_exception_pc(pc);
 
-    os::Linux::ucontext_set_pc(uc, stub);
+    os::Posix::ucontext_set_pc(uc, stub);
     return true;
   }
 
-  // signal-chaining
-  if (os::Linux::chained_handler(sig, info, ucVoid)) {
-     return true;
-  }
-
-  if (!abort_if_unrecognized) {
-    // caller wants another chance, so give it to him
-    return false;
-  }
-
-  if (pc == NULL && uc != NULL) {
-    pc = os::Linux::ucontext_get_pc(uc);
-  }
-
-  // unmask current signal
-  sigset_t newset;
-  sigemptyset(&newset);
-  sigaddset(&newset, sig);
-  sigprocmask(SIG_UNBLOCK, &newset, NULL);
-
-  VMError::report_and_die(t, sig, pc, info, ucVoid);
-
-  ShouldNotReachHere();
-  return true; // Mute compiler
+  return false; // Mute compiler
 }
 
 void os::Linux::init_thread_fpu_state(void) {
@@ -462,18 +323,14 @@ int os::Linux::get_fpu_control_word(void) {
 void os::Linux::set_fpu_control_word(int fpu_control) {
 }
 
-bool os::is_allocatable(size_t bytes) {
-  return true;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // thread stack
 
 // Minimum usable stack sizes required to get to user code. Space for
 // HotSpot guard pages is added later.
-size_t os::Posix::_compiler_thread_min_stack_allowed = 72 * K;
-size_t os::Posix::_java_thread_min_stack_allowed = 72 * K;
-size_t os::Posix::_vm_internal_thread_min_stack_allowed = 72 * K;
+size_t os::_compiler_thread_min_stack_allowed = 72 * K;
+size_t os::_java_thread_min_stack_allowed = 72 * K;
+size_t os::_vm_internal_thread_min_stack_allowed = 72 * K;
 
 // return default stack size for thr_type
 size_t os::Posix::default_stack_size(os::ThreadType thr_type) {
@@ -486,46 +343,50 @@ size_t os::Posix::default_stack_size(os::ThreadType thr_type) {
 // helper functions for fatal error handler
 
 void os::print_context(outputStream *st, const void *context) {
-  if (context == NULL) return;
+  if (context == nullptr) return;
 
   const ucontext_t *uc = (const ucontext_t*)context;
+
   st->print_cr("Registers:");
   for (int r = 0; r < 31; r++) {
-    st->print("R%-2d=", r);
-    print_location(st, uc->uc_mcontext.regs[r]);
+    st->print_cr(  "R%d=" INTPTR_FORMAT, r, (uintptr_t)uc->uc_mcontext.regs[r]);
   }
   st->cr();
+}
 
-  intptr_t *sp = (intptr_t *)os::Linux::ucontext_get_sp(uc);
-  st->print_cr("Top of Stack: (sp=" PTR_FORMAT ")", p2i(sp));
-  print_hex_dump(st, (address)sp, (address)(sp + 8*sizeof(intptr_t)), sizeof(intptr_t));
+void os::print_tos_pc(outputStream *st, const void *context) {
+  if (context == nullptr) return;
+
+  const ucontext_t* uc = (const ucontext_t*)context;
+
+  address sp = (address)os::Linux::ucontext_get_sp(uc);
+  print_tos(st, sp);
   st->cr();
 
   // Note: it may be unsafe to inspect memory near pc. For example, pc may
   // point to garbage if entry point in an nmethod is corrupted. Leave
   // this at the end, and hope for the best.
-  address pc = os::Linux::ucontext_get_pc(uc);
-  print_instructions(st, pc, sizeof(char));
+  address pc = os::fetch_frame_from_context(uc).pc();
+  print_instructions(st, pc);
   st->cr();
 }
 
-void os::print_register_info(outputStream *st, const void *context) {
-  if (context == NULL) return;
+void os::print_register_info(outputStream *st, const void *context, int& continuation) {
+  const int register_count = 32 /* r0-r31 */;
+  int n = continuation;
+  assert(n >= 0 && n <= register_count, "Invalid continuation value");
+  if (context == nullptr || n == register_count) {
+    return;
+  }
 
   const ucontext_t *uc = (const ucontext_t*)context;
-
-  st->print_cr("Register to memory mapping:");
-  st->cr();
-
-  // this is horrendously verbose but the layout of the registers in the
-  // context does not match how we defined our abstract Register set, so
-  // we can't just iterate through the gregs area
-
-  // this is only for the "general purpose" registers
-
-  for (int r = 0; r < 31; r++)
-    st->print_cr(  "R%d=" INTPTR_FORMAT, r, (uintptr_t)uc->uc_mcontext.regs[r]);
-  st->cr();
+  while (n < register_count) {
+    // Update continuation with next index before printing location
+    continuation = n + 1;
+    st->print("R%-2d=", n);
+    print_location(st, uc->uc_mcontext.regs[n]);
+    ++n;
+  }
 }
 
 void os::setup_fpu() {
@@ -542,9 +403,26 @@ int os::extra_bang_size_in_bytes() {
   return 0;
 }
 
+static inline void atomic_copy64(const volatile void *src, volatile void *dst) {
+  *(jlong *) dst = *(const jlong *) src;
+}
+
 extern "C" {
   int SpinPause() {
-    return 0;
+    using spin_wait_func_ptr_t = void (*)();
+    spin_wait_func_ptr_t func = CAST_TO_FN_PTR(spin_wait_func_ptr_t, StubRoutines::aarch64::spin_wait());
+    assert(func != nullptr, "StubRoutines::aarch64::spin_wait must not be null.");
+    (*func)();
+    // If StubRoutines::aarch64::spin_wait consists of only a RET,
+    // SpinPause can be considered as implemented. There will be a sequence
+    // of instructions for:
+    // - call of SpinPause
+    // - load of StubRoutines::aarch64::spin_wait stub pointer
+    // - indirect call of the stub
+    // - return from the stub
+    // - return from SpinPause
+    // So '1' always is returned.
+    return 1;
   }
 
   void _Copy_conjoint_jshorts_atomic(const jshort* from, jshort* to, size_t count) {
@@ -575,18 +453,19 @@ extern "C" {
         *(to--) = *(from--);
     }
   }
+
   void _Copy_conjoint_jlongs_atomic(const jlong* from, jlong* to, size_t count) {
     if (from > to) {
       const jlong *end = from + count;
       while (from < end)
-        os::atomic_copy64(from++, to++);
+        atomic_copy64(from++, to++);
     }
     else if (from < to) {
       const jlong *end = from;
       from += count - 1;
       to   += count - 1;
       while (from >= end)
-        os::atomic_copy64(from--, to--);
+        atomic_copy64(from--, to--);
     }
   }
 

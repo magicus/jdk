@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +31,10 @@ import java.io.IOException;
 /**
  * This class implements a stream filter for writing compressed data in
  * the GZIP file format.
+ * <p> Unless otherwise noted, passing a {@code null} argument to a constructor
+ * or method in this class will cause a {@link NullPointerException} to be
+ * thrown.
+ *
  * @author      David Connelly
  * @since 1.1
  *
@@ -51,6 +55,9 @@ public class GZIPOutputStream extends DeflaterOutputStream {
      *
      */
     private static final int TRAILER_SIZE = 8;
+
+    // Represents the default "unknown" value for OS header, per RFC-1952
+    private static final byte OS_UNKNOWN = (byte) 255;
 
     /**
      * Creates a new output stream with the specified buffer size.
@@ -87,7 +94,7 @@ public class GZIPOutputStream extends DeflaterOutputStream {
     public GZIPOutputStream(OutputStream out, int size, boolean syncFlush)
         throws IOException
     {
-        super(out, new Deflater(Deflater.DEFAULT_COMPRESSION, true),
+        super(out, out != null ? new Deflater(Deflater.DEFAULT_COMPRESSION, true) : null,
               size,
               syncFlush);
         usesDefaultDeflater = true;
@@ -154,24 +161,30 @@ public class GZIPOutputStream extends DeflaterOutputStream {
      */
     public void finish() throws IOException {
         if (!def.finished()) {
-            def.finish();
-            while (!def.finished()) {
-                int len = def.deflate(buf, 0, buf.length);
-                if (def.finished() && len <= buf.length - TRAILER_SIZE) {
-                    // last deflater buffer. Fit trailer at the end
-                    writeTrailer(buf, len);
-                    len = len + TRAILER_SIZE;
-                    out.write(buf, 0, len);
-                    return;
+            try {
+                def.finish();
+                while (!def.finished()) {
+                    int len = def.deflate(buf, 0, buf.length);
+                    if (def.finished() && len <= buf.length - TRAILER_SIZE) {
+                        // last deflater buffer. Fit trailer at the end
+                        writeTrailer(buf, len);
+                        len = len + TRAILER_SIZE;
+                        out.write(buf, 0, len);
+                        return;
+                    }
+                    if (len > 0)
+                        out.write(buf, 0, len);
                 }
-                if (len > 0)
-                    out.write(buf, 0, len);
+                // if we can't fit the trailer at the end of the last
+                // deflater buffer, we write it separately
+                byte[] trailer = new byte[TRAILER_SIZE];
+                writeTrailer(trailer, 0);
+                out.write(trailer);
+            } catch (IOException e) {
+                if (usesDefaultDeflater)
+                    def.end();
+                throw e;
             }
-            // if we can't fit the trailer at the end of the last
-            // deflater buffer, we write it separately
-            byte[] trailer = new byte[TRAILER_SIZE];
-            writeTrailer(trailer, 0);
-            out.write(trailer);
         }
     }
 
@@ -189,7 +202,7 @@ public class GZIPOutputStream extends DeflaterOutputStream {
                       0,                        // Modification time MTIME (int)
                       0,                        // Modification time MTIME (int)
                       0,                        // Extra flags (XFLG)
-                      0                         // Operating system (OS)
+                      OS_UNKNOWN                // Operating system (OS)
                   });
     }
 
@@ -199,7 +212,9 @@ public class GZIPOutputStream extends DeflaterOutputStream {
      */
     private void writeTrailer(byte[] buf, int offset) throws IOException {
         writeInt((int)crc.getValue(), buf, offset); // CRC-32 of uncompr. data
-        writeInt(def.getTotalIn(), buf, offset + 4); // Number of uncompr. bytes
+        // RFC 1952: Size of the original (uncompressed) input data modulo 2^32
+        int iSize = (int) def.getBytesRead();
+        writeInt(iSize, buf, offset + 4);
     }
 
     /*

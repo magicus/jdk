@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
  * @test
  * @bug 8081800 8010319
  * @summary Redefine private and default interface methods
+ * @requires vm.jvmti
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  * @modules java.compiler
@@ -52,29 +53,31 @@ public class RedefineInterfaceMethods {
 
     static final int RET = -2;
 
-    public static String redefinedPrivateMethod =
-        "interface RedefineInterfaceMethods_B {" +
-        "    int ORIGINAL_RETURN = 1;" +
-        "    int NEW_RETURN = 2;" +
-        "    private int privateMethod() {" +
-        "        return NEW_RETURN;" +
-        "    }" +
-        "    public default int defaultMethod() {" +
-        "       return privateMethod();" +
-        "    }" +
-        "}";
+    public static String redefinedPrivateMethod = """
+        interface RedefineInterfaceMethods_B {
+            int ORIGINAL_RETURN = 1;
+            int NEW_RETURN = 2;
+            private int privateMethod() {
+                return NEW_RETURN;
+            }
+            public default int defaultMethod() {
+                return privateMethod();
+            }
+        }
+        """;
 
-    public static String redefinedDefaultMethod =
-        "interface RedefineInterfaceMethods_B {" +
-        "    int ORIGINAL_RETURN = 1;" +
-        "    int NEW_RETURN = 2;" +
-        "    private int privateMethod() {" +
-        "        return ORIGINAL_RETURN;" +
-        "    }" +
-        "    public default int defaultMethod() {" +
-        "       return RedefineInterfaceMethods.RET;" +
-        "    }" +
-        "}";
+    public static String redefinedDefaultMethod = """
+        interface RedefineInterfaceMethods_B {
+            int ORIGINAL_RETURN = 1;
+            int NEW_RETURN = 2;
+            private int privateMethod() {
+                return ORIGINAL_RETURN;
+            }
+            public default int defaultMethod() {
+                return RedefineInterfaceMethods.RET;
+            }
+        }
+        """;
 
     static class Impl implements RedefineInterfaceMethods_B {
     }

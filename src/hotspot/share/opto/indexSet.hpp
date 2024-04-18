@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -60,9 +60,12 @@ class IndexSet : public ResourceObj {
   // membership of the element in the set.
 
   // The lengths of the index bitfields
-  enum { bit_index_length = 5,
-         word_index_length = 3,
-         block_index_length = 8 // not used
+  enum {
+         // Each block consists of 256 bits
+         block_index_length = 8,
+         // Split over 4 or 8 words depending on bitness
+         word_index_length  = block_index_length - LogBitsPerWord,
+         bit_index_length   = block_index_length - word_index_length,
   };
 
   // Derived constants used for manipulating the index bitfields
@@ -88,7 +91,7 @@ class IndexSet : public ResourceObj {
     return mask_bits(element >> word_index_offset,word_index_mask);
   }
   static uint get_bit_index(uint element) {
-    return mask_bits(element,bit_index_mask);
+    return mask_bits(element, bit_index_mask);
   }
 
   //------------------------------ class BitBlock ----------------------------
@@ -102,17 +105,17 @@ class IndexSet : public ResourceObj {
     // All of BitBlocks fields and methods are declared private.  We limit
     // access to IndexSet and IndexSetIterator.
 
-    // A BitBlock is composed of some number of 32 bit words.  When a BitBlock
+    // A BitBlock is composed of some number of 32- or 64-bit words.  When a BitBlock
     // is not in use by any IndexSet, it is stored on a free list.  The next field
-    // is used by IndexSet to mainting this free list.
+    // is used by IndexSet to maintain this free list.
 
     union {
-      uint32_t _words[words_per_block];
+      uintptr_t _words[words_per_block];
       BitBlock *_next;
     } _data;
 
     // accessors
-    uint32_t* words() { return _data._words; }
+    uintptr_t* words() { return _data._words; }
     void set_next(BitBlock *next) { _data._next = next; }
     BitBlock *next() { return _data._next; }
 
@@ -121,32 +124,32 @@ class IndexSet : public ResourceObj {
     // not assume that the block index has been masked out.
 
     void clear() {
-      memset(words(), 0, sizeof(uint32_t) * words_per_block);
+      memset(words(), 0, sizeof(uintptr_t) * words_per_block);
     }
 
     bool member(uint element) {
       uint word_index = IndexSet::get_word_index(element);
-      uint bit_index = IndexSet::get_bit_index(element);
+      uintptr_t bit_index = IndexSet::get_bit_index(element);
 
-      return ((words()[word_index] & (uint32_t)(0x1 << bit_index)) != 0);
+      return ((words()[word_index] & (uintptr_t(1) << bit_index)) != 0);
     }
 
     bool insert(uint element) {
       uint word_index = IndexSet::get_word_index(element);
-      uint bit_index = IndexSet::get_bit_index(element);
+      uintptr_t bit_index = IndexSet::get_bit_index(element);
 
-      uint32_t bit = (0x1 << bit_index);
-      uint32_t before = words()[word_index];
+      uintptr_t bit = uintptr_t(1) << bit_index;
+      uintptr_t before = words()[word_index];
       words()[word_index] = before | bit;
       return ((before & bit) != 0);
     }
 
     bool remove(uint element) {
       uint word_index = IndexSet::get_word_index(element);
-      uint bit_index = IndexSet::get_bit_index(element);
+      uintptr_t bit_index = IndexSet::get_bit_index(element);
 
-      uint32_t bit = (0x1 << bit_index);
-      uint32_t before = words()[word_index];
+      uintptr_t bit = uintptr_t(1) << bit_index;
+      uintptr_t before = words()[word_index];
       words()[word_index] = before & ~bit;
       return ((before & bit) != 0);
     }
@@ -171,7 +174,7 @@ class IndexSet : public ResourceObj {
   // from a new arena.  It is essential that this method is called whenever
   // the Arena being used for BitBlock allocation is reset.
   static void reset_memory(Compile* compile, Arena *arena) {
-    compile->set_indexSet_free_block_list(NULL);
+    compile->set_indexSet_free_block_list(nullptr);
     compile->set_indexSet_arena(arena);
 
    // This should probably be done in a static initializer
@@ -341,22 +344,22 @@ class IndexSet : public ResourceObj {
   // Sanity tests
   void verify() const;
 
-  static int _serial_count;
-  int        _serial_number;
+  static uint _serial_count;
+  uint        _serial_number;
 
   // Check to see if the serial number of the current set is the one we're tracing.
   // If it is, print a message.
   void check_watch(const char *operation, uint operand) const {
     if (IndexSetWatch != 0) {
-      if (IndexSetWatch == -1 || _serial_number == IndexSetWatch) {
-        tty->print_cr("IndexSet %d : %s ( %d )", _serial_number, operation, operand);
+      if (IndexSetWatch == -1 || (uintx)_serial_number == (uintx)IndexSetWatch) {
+        tty->print_cr("IndexSet %u : %s ( %d )", _serial_number, operation, operand);
       }
     }
   }
   void check_watch(const char *operation) const {
     if (IndexSetWatch != 0) {
-      if (IndexSetWatch == -1 || _serial_number == IndexSetWatch) {
-        tty->print_cr("IndexSet %d : %s", _serial_number, operation);
+      if (IndexSetWatch == -1 || (uintx)_serial_number == (uintx)IndexSetWatch) {
+        tty->print_cr("IndexSet %u : %s", _serial_number, operation);
       }
     }
   }
@@ -376,7 +379,7 @@ class IndexSetIterator {
 
  private:
   // The current word we are inspecting
-  uint32_t              _current;
+  uintptr_t             _current;
 
   // What element number are we currently on?
   uint                  _value;
@@ -391,14 +394,14 @@ class IndexSetIterator {
   uint                  _max_blocks;
 
   // A pointer to the contents of the current block
-  uint32_t             *_words;
+  uintptr_t*            _words;
 
   // A pointer to the blocks in our set
   IndexSet::BitBlock **_blocks;
 
   // If the iterator was created from a non-const set, we replace
   // non-canonical empty blocks with the _empty_block pointer.  If
-  // _set is NULL, we do no replacement.
+  // _set is null, we do no replacement.
   IndexSet            *_set;
 
   // Advance to the next non-empty word and return the next
@@ -415,7 +418,7 @@ class IndexSetIterator {
     _next_word(IndexSet::words_per_block),
     _next_block(0),
     _max_blocks(set->is_empty() ? 0 : set->_current_block_limit),
-    _words(NULL),
+    _words(nullptr),
     _blocks(set->_blocks),
     _set(set) {
   #ifdef ASSERT
@@ -432,9 +435,9 @@ class IndexSetIterator {
     _next_word(IndexSet::words_per_block),
     _next_block(0),
     _max_blocks(set->is_empty() ? 0 : set->_current_block_limit),
-    _words(NULL),
+    _words(nullptr),
     _blocks(set->_blocks),
-    _set(NULL)
+    _set(nullptr)
   {
   #ifdef ASSERT
     if (CollectIndexSetStatistics) {
@@ -447,7 +450,7 @@ class IndexSetIterator {
 
   // Return the next element of the set.
   uint next_value() {
-    uint current = _current;
+    uintptr_t current = _current;
     assert(current != 0, "sanity");
     uint advance = count_trailing_zeros(current);
     assert(((current >> advance) & 0x1) == 1, "sanity");

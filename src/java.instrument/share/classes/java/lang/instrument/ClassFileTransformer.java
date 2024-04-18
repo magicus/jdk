@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -156,7 +156,7 @@ import java.security.ProtectionDomain;
  *
  * <P>
  * Note the term <i>class file</i> is used as defined in section 3.1 of
- * <cite>The Java&trade; Virtual Machine Specification</cite>, to mean a
+ * <cite>The Java Virtual Machine Specification</cite>, to mean a
  * sequence of bytes in class file format, whether or not they reside in a
  * file.
  *
@@ -190,9 +190,6 @@ public interface ClassFileTransformer {
      *         if the input does not represent a well-formed class file
      * @return a well-formed class file buffer (the result of the transform),
      *         or {@code null} if no transform is performed
-     *
-     * @revised 9
-     * @spec JPMS
      */
     default byte[]
     transform(  ClassLoader         loader,
@@ -231,7 +228,6 @@ public interface ClassFileTransformer {
      *         or {@code null} if no transform is performed
      *
      * @since  9
-     * @spec JPMS
      */
     default byte[]
     transform(  Module              module,

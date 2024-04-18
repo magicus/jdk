@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -125,14 +125,6 @@ static bool process_write_data(struct ps_prochandle* ph,
 static bool process_get_lwp_regs(struct ps_prochandle* ph, pid_t pid, struct user_regs_struct *user) {
   // we have already attached to all thread 'pid's, just use ptrace call
   // to get regset now. Note that we don't cache regset upfront for processes.
-// Linux on x86 and sparc are different.  On x86 ptrace(PTRACE_GETREGS, ...)
-// uses pointer from 4th argument and ignores 3rd argument.  On sparc it uses
-// pointer from 3rd argument and ignores 4th argument
-#if defined(sparc) || defined(sparcv9)
-#define ptrace_getregs(request, pid, addr, data) ptrace(request, pid, addr, data)
-#else
-#define ptrace_getregs(request, pid, addr, data) ptrace(request, pid, data, addr)
-#endif
 
 #if defined(_LP64) && defined(PTRACE_GETREGS64)
 #define PTRACE_GETREGS_REQ PTRACE_GETREGS64
@@ -142,18 +134,19 @@ static bool process_get_lwp_regs(struct ps_prochandle* ph, pid_t pid, struct use
 #define PTRACE_GETREGS_REQ PT_GETREGS
 #endif
 
-#ifdef PTRACE_GETREGS_REQ
- if (ptrace_getregs(PTRACE_GETREGS_REQ, pid, user, NULL) < 0) {
-   print_debug("ptrace(PTRACE_GETREGS, ...) failed for lwp %d\n", pid);
-   return false;
- }
- return true;
-#elif defined(PTRACE_GETREGSET)
- struct iovec iov;
- iov.iov_base = user;
- iov.iov_len = sizeof(*user);
- if (ptrace(PTRACE_GETREGSET, pid, NT_PRSTATUS, (void*) &iov) < 0) {
-   print_debug("ptrace(PTRACE_GETREGSET, ...) failed for lwp %d\n", pid);
+#if defined(PTRACE_GETREGSET)
+  struct iovec iov;
+  iov.iov_base = user;
+  iov.iov_len = sizeof(*user);
+  if (ptrace(PTRACE_GETREGSET, pid, NT_PRSTATUS, (void*) &iov) < 0) {
+    print_debug("ptrace(PTRACE_GETREGSET, ...) failed for lwp %d\n", pid);
+    return false;
+  }
+  return true;
+#elif defined(PTRACE_GETREGS_REQ)
+ if (ptrace(PTRACE_GETREGS_REQ, pid, NULL, user) < 0) {
+   print_debug("ptrace(PTRACE_GETREGS, ...) failed for lwp(%d) errno(%d) \"%s\"\n", pid,
+               errno, strerror(errno));
    return false;
  }
  return true;
@@ -234,7 +227,7 @@ static bool process_doesnt_exist(pid_t pid) {
   FILE *fp = NULL;
   const char state_string[] = "State:";
 
-  sprintf(fname, "/proc/%d/status", pid);
+  snprintf(fname, sizeof(fname), "/proc/%d/status", pid);
   fp = fopen(fname, "r");
   if (fp == NULL) {
     print_debug("can't open /proc/%d/status file\n", pid);
@@ -282,8 +275,17 @@ static attach_state_t ptrace_attach(pid_t pid, char* err_buf, size_t err_buf_len
         return ATTACH_THREAD_DEAD;
       }
     }
+
+    // strerror_r() API function is not compatible in different implementations:
+    // GNU-specific:  char *strerror_r(int errnum, char *buf, size_t buflen);
+    // XSI-compliant: int   strerror_r(int errnum, char *buf, size_t buflen);
     char buf[200];
+#if defined(__GLIBC__) && defined(_GNU_SOURCE)
     char* msg = strerror_r(errno, buf, sizeof(buf));
+#else
+    int rc = strerror_r(errno, buf, sizeof(buf));
+    char* msg = (rc == 0) ? (char*)buf : "Unknown";
+#endif
     snprintf(err_buf, err_buf_len, "ptrace(PTRACE_ATTACH, ..) failed for %d: %s", pid, msg);
     print_error("%s\n", err_buf);
     return ATTACH_FAIL;
@@ -344,7 +346,7 @@ static bool read_lib_info(struct ps_prochandle* ph) {
   char buf[PATH_MAX];
   FILE *fp = NULL;
 
-  sprintf(fname, "/proc/%d/maps", ph->pid);
+  snprintf(fname, sizeof(fname), "/proc/%d/maps", ph->pid);
   fp = fopen(fname, "r");
   if (fp == NULL) {
     print_debug("can't open /proc/%d/maps file\n", ph->pid);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,16 +24,22 @@
 #ifndef SHARE_GC_Z_ZHEURISTICS_HPP
 #define SHARE_GC_Z_ZHEURISTICS_HPP
 
-#include "memory/allocation.hpp"
+#include "memory/allStatic.hpp"
+#include "utilities/globalDefinitions.hpp"
 
 class ZHeuristics : public AllStatic {
 public:
   static void set_medium_page_size();
 
+  static size_t relocation_headroom();
+
   static bool use_per_cpu_shared_small_pages();
 
   static uint nparallel_workers();
   static uint nconcurrent_workers();
+
+  static size_t significant_heap_overhead();
+  static size_t significant_young_overhead();
 };
 
 #endif // SHARE_GC_Z_ZHEURISTICS_HPP

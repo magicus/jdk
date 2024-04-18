@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,9 +25,9 @@
 
 package java.awt;
 
-import java.awt.Component;
-import java.awt.Image;
 import java.awt.image.ImageObserver;
+import java.io.Serial;
+
 import sun.awt.image.MultiResolutionToolkitImage;
 
 /**
@@ -188,9 +188,10 @@ public class MediaTracker implements java.io.Serializable {
     @SuppressWarnings("serial") // Not statically typed as Serializable
     MediaEntry head;
 
-    /*
-     * JDK 1.1 serialVersionUID
+    /**
+     * Use serialVersionUID from JDK 1.1 for interoperability.
      */
+    @Serial
     private static final long serialVersionUID = -483174189758638095L;
 
     /**
@@ -395,7 +396,7 @@ public class MediaTracker implements java.io.Serializable {
      * @see         java.awt.MediaTracker#waitForAll(long)
      * @see         java.awt.MediaTracker#isErrorAny
      * @see         java.awt.MediaTracker#isErrorID
-     * @exception   InterruptedException  if any thread has
+     * @throws   InterruptedException  if any thread has
      *                                     interrupted this thread
      */
     public void waitForAll() throws InterruptedException {
@@ -417,10 +418,9 @@ public class MediaTracker implements java.io.Serializable {
      * @return      {@code true} if all images were successfully
      *                       loaded; {@code false} otherwise
      * @see         java.awt.MediaTracker#waitForID(int)
-     * @see         java.awt.MediaTracker#waitForAll(long)
      * @see         java.awt.MediaTracker#isErrorAny
      * @see         java.awt.MediaTracker#isErrorID
-     * @exception   InterruptedException  if any thread has
+     * @throws   InterruptedException  if any thread has
      *                                     interrupted this thread.
      */
     public synchronized boolean waitForAll(long ms)
@@ -526,7 +526,7 @@ public class MediaTracker implements java.io.Serializable {
      * @return      {@code true} if all images have finished loading,
      *                       have been aborted, or have encountered
      *                       an error; {@code false} otherwise
-     * @see         java.awt.MediaTracker#checkID(int, boolean)
+     * @see         java.awt.MediaTracker#checkID(int)
      * @see         java.awt.MediaTracker#checkAll()
      * @see         java.awt.MediaTracker#isErrorAny()
      * @see         java.awt.MediaTracker#isErrorID(int)
@@ -626,7 +626,7 @@ public class MediaTracker implements java.io.Serializable {
      * @see           java.awt.MediaTracker#waitForAll
      * @see           java.awt.MediaTracker#isErrorAny()
      * @see           java.awt.MediaTracker#isErrorID(int)
-     * @exception     InterruptedException  if any thread has
+     * @throws     InterruptedException  if any thread has
      *                          interrupted this thread.
      */
     public void waitForID(int id) throws InterruptedException {
@@ -654,7 +654,7 @@ public class MediaTracker implements java.io.Serializable {
      * @see           java.awt.MediaTracker#statusID
      * @see           java.awt.MediaTracker#isErrorAny()
      * @see           java.awt.MediaTracker#isErrorID(int)
-     * @exception     InterruptedException  if any thread has
+     * @throws     InterruptedException  if any thread has
      *                          interrupted this thread.
      */
     public synchronized boolean waitForID(int id, long ms)
@@ -923,6 +923,10 @@ abstract class MediaEntry {
     }
 }
 
+/**
+ * The entry of the list of {@code Images} that is being tracked by the
+ * {@code MediaTracker}.
+ */
 @SuppressWarnings("serial") // MediaEntry does not have a no-arg ctor
 class ImageMediaEntry extends MediaEntry implements ImageObserver,
 java.io.Serializable {
@@ -931,9 +935,10 @@ java.io.Serializable {
     int width;
     int height;
 
-    /*
-     * JDK 1.1 serialVersionUID
+    /**
+     * Use serialVersionUID from JDK 1.1 for interoperability.
      */
+    @Serial
     private static final long serialVersionUID = 4739377000350280650L;
 
     ImageMediaEntry(MediaTracker mt, Image img, int c, int w, int h) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -118,9 +118,8 @@ public abstract class ReferenceTypeImpl extends TypeImpl implements ReferenceTyp
         // Fetch all methods for the class, check performance impact
         // Needs no synchronization now, since methods() returns
         // unmodifiable local data
-        Iterator<Method> it = methods().iterator();
-        while (it.hasNext()) {
-            MethodImpl method = (MethodImpl)it.next();
+        for (Method m : methods()) {
+            MethodImpl method = (MethodImpl)m;
             if (method.ref() == ref) {
                 return method;
             }
@@ -132,9 +131,8 @@ public abstract class ReferenceTypeImpl extends TypeImpl implements ReferenceTyp
         // Fetch all fields for the class, check performance impact
         // Needs no synchronization now, since fields() returns
         // unmodifiable local data
-        Iterator<Field>it = fields().iterator();
-        while (it.hasNext()) {
-            FieldImpl field = (FieldImpl)it.next();
+        for (Field f : fields()) {
+            FieldImpl field = (FieldImpl)f;
             if (field.ref() == ref) {
                 return field;
             }
@@ -143,8 +141,7 @@ public abstract class ReferenceTypeImpl extends TypeImpl implements ReferenceTyp
     }
 
     public boolean equals(Object obj) {
-        if ((obj != null) && (obj instanceof ReferenceTypeImpl)) {
-            ReferenceTypeImpl other = (ReferenceTypeImpl)obj;
+        if (obj instanceof ReferenceTypeImpl other) {
             return (ref() == other.ref()) &&
                 (vm.equals(other.virtualMachine()));
         } else {
@@ -152,8 +149,9 @@ public abstract class ReferenceTypeImpl extends TypeImpl implements ReferenceTyp
         }
     }
 
+    @Override
     public int hashCode() {
-        return(int)ref();
+        return Long.hashCode(ref());
     }
 
     public int compareTo(ReferenceType object) {
@@ -420,12 +418,11 @@ public abstract class ReferenceTypeImpl extends TypeImpl implements ReferenceTyp
 
         /* Add inherited, visible fields */
         List<? extends ReferenceType> types = inheritedTypes();
-        Iterator<? extends ReferenceType> iter = types.iterator();
-        while (iter.hasNext()) {
+        for (ReferenceType referenceType : types) {
             /*
              * TO DO: Be defensive and check for cyclic interface inheritance
              */
-            ReferenceTypeImpl type = (ReferenceTypeImpl)iter.next();
+            ReferenceTypeImpl type = (ReferenceTypeImpl)referenceType;
             type.addVisibleFields(visibleList, visibleTable, ambiguousNames);
         }
 
@@ -454,9 +451,8 @@ public abstract class ReferenceTypeImpl extends TypeImpl implements ReferenceTyp
 
             /* Add inherited fields */
             List<? extends ReferenceType> types = inheritedTypes();
-            Iterator<? extends ReferenceType> iter = types.iterator();
-            while (iter.hasNext()) {
-                ReferenceTypeImpl type = (ReferenceTypeImpl)iter.next();
+            for (ReferenceType referenceType : types) {
+                ReferenceTypeImpl type = (ReferenceTypeImpl)referenceType;
                 type.addAllFields(fieldList, typeSet);
             }
         }
@@ -568,7 +564,7 @@ public abstract class ReferenceTypeImpl extends TypeImpl implements ReferenceTyp
         return list;
     }
 
-    abstract public List<Method> allMethods();
+    public abstract List<Method> allMethods();
 
     public List<Method> methodsByName(String name) {
         List<Method> methods = visibleMethods();
@@ -916,9 +912,8 @@ public abstract class ReferenceTypeImpl extends TypeImpl implements ReferenceTyp
 
         List<Location> list = new ArrayList<Location>();
 
-        Iterator<Method> iter = methods.iterator();
-        while(iter.hasNext()) {
-            MethodImpl method = (MethodImpl)iter.next();
+        for (Method m : methods) {
+            MethodImpl method = (MethodImpl)m;
             // eliminate native and abstract to eliminate
             // false positives
             if (!method.isAbstract() &&
@@ -1151,40 +1146,28 @@ public abstract class ReferenceTypeImpl extends TypeImpl implements ReferenceTyp
     }
 
     private static boolean isOneDimensionalPrimitiveArray(String signature) {
-        int i = signature.lastIndexOf('[');
-        /*
-         * TO DO: Centralize JNI signature knowledge.
-         *
-         * Ref:
-         *  jdk1.4/doc/guide/jpda/jdi/com/sun/jdi/doc-files/signature.html
-         */
-        boolean isPA;
-        if (i < 0 || signature.startsWith("[[")) {
-            isPA = false;
-        } else {
-            char c = signature.charAt(i + 1);
-            isPA = (c != 'L');
+        JNITypeParser sig = new JNITypeParser(signature);
+        if (sig.isArray()) {
+            JNITypeParser componentSig = new JNITypeParser(sig.componentSignature());
+            return componentSig.isPrimitive();
         }
-        return isPA;
+        return false;
     }
 
     Type findType(String signature) throws ClassNotLoadedException {
         Type type;
-        if (signature.length() == 1) {
-            /* OTI FIX: Must be a primitive type or the void type */
-            char sig = signature.charAt(0);
-            if (sig == 'V') {
-                type = vm.theVoidType();
-            } else {
-                type = vm.primitiveTypeMirror((byte)sig);
-            }
+        JNITypeParser sig = new JNITypeParser(signature);
+        if (sig.isVoid()) {
+            type = vm.theVoidType();
+        } else if (sig.isPrimitive()) {
+            type = vm.primitiveTypeMirror(sig.jdwpTag());
         } else {
             // Must be a reference type.
             ClassLoaderReferenceImpl loader =
-                       (ClassLoaderReferenceImpl)classLoader();
+                    (ClassLoaderReferenceImpl) classLoader();
             if ((loader == null) ||
-                (isOneDimensionalPrimitiveArray(signature)) //Work around 4450091
-                ) {
+                    (isOneDimensionalPrimitiveArray(signature)) //Work around 4450091
+            ) {
                 // Caller wants type of boot class field
                 type = vm.findBootType(signature);
             } else {

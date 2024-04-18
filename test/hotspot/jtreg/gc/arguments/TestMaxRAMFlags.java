@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package gc.arguments;
 
 /*
  * @test TestMaxRAMFlags
- * @key gc
  * @bug 8222252
  * @summary Verify correct MaxHeapSize and UseCompressedOops when MaxRAM and MaxRAMPercentage
  * are specified.
@@ -34,8 +33,8 @@ package gc.arguments;
  * @requires vm.bits == "64"
  * @modules java.base/jdk.internal.misc
  *          java.management
- * @build sun.hotspot.WhiteBox
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @build jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run driver gc.arguments.TestMaxRAMFlags
  * @author bob.vandette@oracle.com
  */
@@ -47,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import jdk.test.lib.process.OutputAnalyzer;
-import jdk.test.lib.process.ProcessTools;
 
 public class TestMaxRAMFlags {
 
@@ -63,8 +61,7 @@ public class TestMaxRAMFlags {
     args.add("-XX:+PrintFlagsFinal");
     args.add("-version");
 
-    ProcessBuilder pb = GCArguments.createJavaProcessBuilder(args);
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    OutputAnalyzer output = GCArguments.executeLimitedTestJava(args);
     output.shouldHaveExitValue(0);
     String stdout = output.getStdout();
 
@@ -86,8 +83,7 @@ public class TestMaxRAMFlags {
     args.add("-XX:+PrintFlagsFinal");
     args.add("-version");
 
-    ProcessBuilder pb = GCArguments.createJavaProcessBuilder(args);
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    OutputAnalyzer output = GCArguments.executeLimitedTestJava(args);
     output.shouldHaveExitValue(0);
     String stdout = output.getStdout();
     return (new Long(getFlagValue("HeapBaseMinAddress", stdout)).longValue());

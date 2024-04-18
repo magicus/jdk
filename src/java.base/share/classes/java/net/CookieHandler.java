@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,10 +46,16 @@ import sun.security.util.SecurityConstants;
  * href="http://www.ietf.org/rfc/rfc2965.txt"><i>RFC&nbsp;2965: HTTP
  * State Management Mechanism</i></a>
  *
+ * @spec https://www.rfc-editor.org/info/rfc2965 RFC 2965: HTTP State Management Mechanism
  * @author Yingxian Wang
  * @since 1.5
  */
 public abstract class CookieHandler {
+    /**
+     * Constructor for subclasses to call.
+     */
+    public CookieHandler() {}
+
     /**
      * The system-wide cookie handler that will apply cookies to the
      * request headers and manage cookies from the response headers.
@@ -70,6 +76,7 @@ public abstract class CookieHandler {
      * @see #setDefault(CookieHandler)
      */
     public static synchronized CookieHandler getDefault() {
+        @SuppressWarnings("removal")
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(SecurityConstants.GET_COOKIEHANDLER_PERMISSION);
@@ -90,6 +97,7 @@ public abstract class CookieHandler {
      * @see #getDefault()
      */
     public static synchronized void setDefault(CookieHandler cHandler) {
+        @SuppressWarnings("removal")
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(SecurityConstants.SET_COOKIEHANDLER_PERMISSION);
@@ -116,7 +124,7 @@ public abstract class CookieHandler {
      *
      * @param uri a {@code URI} representing the intended use for the
      *            cookies
-     * @param requestHeaders - a Map from request header
+     * @param requestHeaders a Map from request header
      *            field names to lists of field values representing
      *            the current request headers
      * @return an immutable map from state management headers, with

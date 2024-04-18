@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
 #include "precompiled.hpp"
 #include "c1/c1_Defs.hpp"
 #include "c1/c1_LIRGenerator.hpp"
+#include "classfile/javaClasses.hpp"
 #include "gc/shared/c1/barrierSetC1.hpp"
 #include "utilities/macros.hpp"
 
@@ -193,7 +194,7 @@ void BarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
   if (mask_boolean) {
     LabelObj* equalZeroLabel = new LabelObj();
     __ cmp(lir_cond_equal, result, 0);
-    __ branch(lir_cond_equal, T_BOOLEAN, equalZeroLabel->label());
+    __ branch(lir_cond_equal, equalZeroLabel->label());
     __ move(LIR_OprFact::intConst(1), result);
     __ branch_destination(equalZeroLabel->label());
   }
@@ -222,8 +223,8 @@ void BarrierSetC1::generate_referent_check(LIRAccess& access, LabelObj* cont) {
   //
   // We need to generate code similar to the following...
   //
-  // if (offset == java_lang_ref_Reference::referent_offset) {
-  //   if (src != NULL) {
+  // if (offset == java_lang_ref_Reference::referent_offset()) {
+  //   if (src != nullptr) {
   //     if (klass(src)->reference_type() != REF_NONE) {
   //       pre_barrier(..., value, ...);
   //     }
@@ -247,7 +248,7 @@ void BarrierSetC1::generate_referent_check(LIRAccess& access, LabelObj* cont) {
                      constant->as_jlong());
 
 
-    if (off_con != (jlong) java_lang_ref_Reference::referent_offset) {
+    if (off_con != (jlong) java_lang_ref_Reference::referent_offset()) {
       // The constant offset is something other than referent_offset.
       // We can skip generating/checking the remaining guards and
       // skip generation of the code stub.
@@ -268,7 +269,7 @@ void BarrierSetC1::generate_referent_check(LIRAccess& access, LabelObj* cont) {
     // We still need to continue with the checks.
     if (base.is_constant()) {
       ciObject* src_con = base.get_jobject_constant();
-      guarantee(src_con != NULL, "no source constant");
+      guarantee(src_con != nullptr, "no source constant");
 
       if (src_con->is_null_object()) {
         // The constant src object is null - We can skip
@@ -286,7 +287,7 @@ void BarrierSetC1::generate_referent_check(LIRAccess& access, LabelObj* cont) {
     // Can the klass of object be statically determined to be
     // a sub-class of Reference?
     ciType* type = base.value()->declared_type();
-    if ((type != NULL) && type->is_loaded()) {
+    if ((type != nullptr) && type->is_loaded()) {
       if (type->is_subtype_of(gen->compilation()->env()->Reference_klass())) {
         gen_type_check = false;
       } else if (type->is_klass() &&
@@ -314,35 +315,31 @@ void BarrierSetC1::generate_referent_check(LIRAccess& access, LabelObj* cont) {
       LIR_Opr referent_off;
 
       if (offset->type() == T_INT) {
-        referent_off = LIR_OprFact::intConst(java_lang_ref_Reference::referent_offset);
+        referent_off = LIR_OprFact::intConst(java_lang_ref_Reference::referent_offset());
       } else {
         assert(offset->type() == T_LONG, "what else?");
         referent_off = gen->new_register(T_LONG);
-        __ move(LIR_OprFact::longConst(java_lang_ref_Reference::referent_offset), referent_off);
+        __ move(LIR_OprFact::longConst(java_lang_ref_Reference::referent_offset()), referent_off);
       }
       __ cmp(lir_cond_notEqual, offset, referent_off);
-      __ branch(lir_cond_notEqual, offset->type(), cont->label());
+      __ branch(lir_cond_notEqual, cont->label());
     }
     if (gen_source_check) {
       // offset is a const and equals referent offset
       // if (source == null) -> continue
-      __ cmp(lir_cond_equal, base_reg, LIR_OprFact::oopConst(NULL));
-      __ branch(lir_cond_equal, T_OBJECT, cont->label());
+      __ cmp(lir_cond_equal, base_reg, LIR_OprFact::oopConst(nullptr));
+      __ branch(lir_cond_equal, cont->label());
     }
     LIR_Opr src_klass = gen->new_register(T_METADATA);
     if (gen_type_check) {
       // We have determined that offset == referent_offset && src != null.
       // if (src->_klass->_reference_type == REF_NONE) -> continue
-      __ move(new LIR_Address(base_reg, oopDesc::klass_offset_in_bytes(), T_ADDRESS), src_klass);
+      gen->load_klass(base_reg, src_klass, nullptr);
       LIR_Address* reference_type_addr = new LIR_Address(src_klass, in_bytes(InstanceKlass::reference_type_offset()), T_BYTE);
       LIR_Opr reference_type = gen->new_register(T_INT);
       __ move(reference_type_addr, reference_type);
       __ cmp(lir_cond_equal, reference_type, LIR_OprFact::intConst(REF_NONE));
-      __ branch(lir_cond_equal, T_INT, cont->label());
+      __ branch(lir_cond_equal, cont->label());
     }
   }
-}
-
-LIR_Opr BarrierSetC1::resolve(LIRGenerator* gen, DecoratorSet decorators, LIR_Opr obj) {
-  return obj;
 }

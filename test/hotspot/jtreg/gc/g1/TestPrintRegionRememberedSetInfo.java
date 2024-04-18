@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package gc.g1;
 
 /**
  * @test TestPrintRegionRememberedSetInfo
- * @key gc
  * @bug 8014240
  * @summary Test output of G1PrintRegionRememberedSetInfo
  * @requires vm.gc.G1
@@ -70,8 +69,7 @@ public class TestPrintRegionRememberedSetInfo {
 
         finalargs.add(RunAndWaitForMarking.class.getName());
 
-        ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(finalargs);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(finalargs);
         output.shouldHaveExitValue(0);
 
         String result = output.getStdout();
@@ -93,4 +91,3 @@ public class TestPrintRegionRememberedSetInfo {
         }
     }
 }
-

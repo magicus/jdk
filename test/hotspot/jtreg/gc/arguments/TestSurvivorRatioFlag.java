@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,15 +25,14 @@ package gc.arguments;
 
 /*
  * @test TestSurvivorRatioFlag
- * @key gc
  * @summary Verify that actual survivor ratio is equal to specified SurvivorRatio value
  * @requires vm.gc != "Z" & vm.gc != "Shenandoah"
  * @library /test/lib
  * @library /
  * @modules java.base/jdk.internal.misc
  *          java.management
- * @build sun.hotspot.WhiteBox
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @build jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run driver gc.arguments.TestSurvivorRatioFlag
  */
 
@@ -42,9 +41,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import jdk.test.lib.process.OutputAnalyzer;
-import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.Utils;
-import sun.hotspot.WhiteBox;
+import jdk.test.whitebox.WhiteBox;
 
 public class TestSurvivorRatioFlag {
 
@@ -79,7 +77,6 @@ public class TestSurvivorRatioFlag {
                 "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
                 "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:+WhiteBoxAPI",
-                "-XX:GCLockerEdenExpansionPercent=0",
                 "-XX:MaxNewSize=" + NEW_SIZE,
                 "-XX:NewSize=" + NEW_SIZE,
                 "-Xmx" + HEAP_SIZE,
@@ -89,8 +86,7 @@ public class TestSurvivorRatioFlag {
                 Integer.toString(ratio)
         );
 
-        ProcessBuilder procBuilder = GCArguments.createJavaProcessBuilder(vmOptions);
-        OutputAnalyzer analyzer = new OutputAnalyzer(procBuilder.start());
+        OutputAnalyzer analyzer = GCArguments.executeLimitedTestJava(vmOptions);
         analyzer.shouldHaveExitValue(0);
     }
 

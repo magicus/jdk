@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,7 +28,6 @@ package gc.g1;
  * @bug 8134857
  * @summary Regression test to ensure that G1 supports PLAB sizes of half a region size.
  * @requires vm.gc.G1
- * @key gc
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -63,8 +62,7 @@ public class TestPLABSizeBounds {
         testArguments.add("-XX:OldPLABSize=" + plabSize);
         testArguments.add(GCTest.class.getName());
 
-        ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(testArguments);
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(testArguments);
 
         if (shouldSucceed) {
             output.shouldHaveExitValue(0);
@@ -97,4 +95,3 @@ public class TestPLABSizeBounds {
         }
     }
 }
-

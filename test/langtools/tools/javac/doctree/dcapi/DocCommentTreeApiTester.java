@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug  8132096 8157611 8190552
+ * @bug  8132096 8157611 8190552 8251357
  * @summary test the APIs  in the DocTree interface
  * @modules jdk.compiler/com.sun.tools.javac.api
  *          jdk.compiler/com.sun.tools.javac.file
@@ -53,7 +53,6 @@ import javax.lang.model.element.PackageElement;
 import javax.lang.model.util.Elements;
 import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
-import javax.tools.JavaFileObject.Kind;
 import javax.tools.StandardJavaFileManager;
 
 import com.sun.source.doctree.DocTree;
@@ -204,7 +203,7 @@ public class DocCommentTreeApiTester {
                     t.getElements().getPackageOf(klass).getQualifiedName().toString(),
                     fileName + ".out");
 
-            String expected = getExpected(htmlFo.openReader(true));
+            String expected = getExpectedAndClose(htmlFo.openReader(true));
             astcheck(fileName, expected, found);
         }
     }
@@ -240,7 +239,7 @@ public class DocCommentTreeApiTester {
                             throw new Exception("invalid input: " + jfo);
                         break;
                     default:
-                        expected = getExpected(jfo.openReader(true));
+                        expected = getExpectedAndClose(jfo.openReader(true));
                 }
             }
 
@@ -298,7 +297,7 @@ public class DocCommentTreeApiTester {
             String found = sw.toString();
             Iterable<? extends JavaFileObject> oos = fm.getJavaFileObjectsFromFiles(otherFiles);
             JavaFileObject otherFo = oos.iterator().next();
-            String expected = getExpected(otherFo.openReader(true));
+            String expected = getExpectedAndClose(otherFo.openReader(true));
 
             astcheck(pkgFileName, expected, found);
         }
@@ -324,13 +323,14 @@ public class DocCommentTreeApiTester {
         }
     }
 
-    String getExpected(Reader inrdr) throws IOException {
-        BufferedReader rdr = new BufferedReader(inrdr);
+    String getExpectedAndClose(Reader inrdr) throws IOException {
         List<String> lines = new ArrayList<>();
-        String line = rdr.readLine();
-        while (line != null) {
-            lines.add(line);
-            line = rdr.readLine();
+        try (BufferedReader rdr = new BufferedReader(inrdr)) {
+            String line = rdr.readLine();
+            while (line != null) {
+                lines.add(line);
+                line = rdr.readLine();
+            }
         }
         return getExpected(lines);
     }

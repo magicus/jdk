@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,7 @@
  * @run driver/timeout=240 ClassPathAttr
  */
 
+import jdk.test.lib.cds.CDSTestUtils;
 import jdk.test.lib.process.OutputAnalyzer;
 import java.io.File;
 import java.nio.file.Files;
@@ -54,9 +55,10 @@ public class ClassPathAttr {
         "CpAttr2", "CpAttr3", "CpAttr4", "CpAttr5");
     buildCpAttr("cpattr5_123456789_223456789_323456789_423456789_523456789_623456789", "cpattr5_extra_long.mf", "CpAttr5", "CpAttr5");
 
+    String[] classlist = { "CpAttr1", "CpAttr2", "CpAttr3", "CpAttr4", "CpAttr5"};
+    String jar4 = TestCommon.getTestJar("cpattr4.jar");
     for (int i=1; i<=2; i++) {
       String jar1 = TestCommon.getTestJar("cpattr1.jar");
-      String jar4 = TestCommon.getTestJar("cpattr4.jar");
       if (i == 2) {
         // Test case #2 -- same as #1, except we use cpattr1_long.jar, which has a super-long
         // Class-Path: attribute.
@@ -64,11 +66,7 @@ public class ClassPathAttr {
       }
       String cp = jar1 + File.pathSeparator + jar4;
 
-      TestCommon.testDump(cp, TestCommon.list("CpAttr1",
-                                                          "CpAttr2",
-                                                          "CpAttr3",
-                                                          "CpAttr4",
-                                                          "CpAttr5"));
+      TestCommon.testDump(cp, classlist);
 
       TestCommon.run(
           "-cp", cp,
@@ -84,24 +82,24 @@ public class ClassPathAttr {
             output.shouldMatch("checking shared classpath entry: .*cpattr2.jar");
             output.shouldMatch("checking shared classpath entry: .*cpattr3.jar");
           });
-
-      //  Make sure aliased TraceClassPaths still works
-      TestCommon.run(
-          "-XX:+TraceClassPaths",
-          "-cp", cp,
-          "CpAttr1")
-        .assertNormalExit(output -> {
-            output.shouldMatch("checking shared classpath entry: .*cpattr2.jar");
-            output.shouldMatch("checking shared classpath entry: .*cpattr3.jar");
-          });
     }
+
+    // test duplicate jars in the "Class-path" attribute in the jar manifest
+    buildCpAttr("cpattr_dup", "cpattr_dup.mf", "CpAttr1", "CpAttr1");
+    String cp = TestCommon.getTestJar("cpattr_dup.jar") + File.pathSeparator + jar4;
+    TestCommon.testDump(cp, classlist);
+
+    TestCommon.run(
+        "-cp", cp,
+        "CpAttr1")
+      .assertNormalExit();
   }
 
   static void testNonExistentJars() throws Exception {
     buildCpAttr("cpattr6", "cpattr6.mf", "CpAttr6", "CpAttr6");
 
     String cp = TestCommon.getTestJar("cpattr6.jar");
-    String nonExistPath = System.getProperty("test.classes") + File.separator + "cpattrX.jar";
+    String nonExistPath = CDSTestUtils.getOutputDir() + File.separator + "cpattrX.jar";
     (new File(nonExistPath)).delete();
 
     TestCommon.testDump(cp, TestCommon.list("CpAttr6"),
@@ -129,7 +127,7 @@ public class ClassPathAttr {
   }
 
   private static void buildCpAttr(String jarName, String manifest, String enclosingClassName, String ...testClassNames) throws Exception {
-    String jarClassesDir = System.getProperty("test.classes") + File.separator + jarName + "_classes";
+    String jarClassesDir = CDSTestUtils.getOutputDir() + File.separator + jarName + "_classes";
     try { Files.createDirectory(Paths.get(jarClassesDir)); } catch (FileAlreadyExistsException e) { }
 
     JarBuilder.compile(jarClassesDir, System.getProperty("test.src") + File.separator +

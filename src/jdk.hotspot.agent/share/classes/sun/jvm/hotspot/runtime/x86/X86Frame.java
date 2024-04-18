@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -380,7 +380,7 @@ public class X86Frame extends Frame {
 
     // frame owned by optimizing compiler
     if (Assert.ASSERTS_ENABLED) {
-        Assert.that(cb.getFrameSize() >= 0, "must have non-zero frame size");
+        Assert.that(cb.getFrameSize() > 0, "must have non-zero frame size");
     }
     Address senderSP = getUnextendedSP().addOffsetTo(cb.getFrameSize());
 
@@ -433,20 +433,20 @@ public class X86Frame extends Frame {
   public Address getSenderSP()     { return addressOfStackSlot(SENDER_SP_OFFSET); }
 
   public Address addressOfInterpreterFrameLocals() {
-    return addressOfStackSlot(INTERPRETER_FRAME_LOCALS_OFFSET);
+    long n = addressOfStackSlot(INTERPRETER_FRAME_LOCALS_OFFSET).getCIntegerAt(0, VM.getVM().getAddressSize(), false);
+    return getFP().addOffsetTo(n * VM.getVM().getAddressSize());
   }
 
   private Address addressOfInterpreterFrameBCX() {
     return addressOfStackSlot(INTERPRETER_FRAME_BCX_OFFSET);
   }
 
-  public int getInterpreterFrameBCI() {
+  public Address getInterpreterFrameBCP() {
     // FIXME: this is not atomic with respect to GC and is unsuitable
     // for use in a non-debugging, or reflective, system. Need to
     // figure out how to express this.
 
-    Address methodHandle = addressOfInterpreterFrameMethod().getAddressAt(0);
-    Method method = (Method)Metadata.instantiateWrapperFor(methodHandle);
+    Method method = getInterpreterFrameMethod();
     Address bcp = addressOfInterpreterFrameBCX().getAddressAt(0);
 
     // If we are in the top level frame then the bcp may have been set for us. If so then let it
@@ -461,6 +461,12 @@ public class X86Frame extends Frame {
         }
     }
 
+    return bcp;
+  }
+
+  public int getInterpreterFrameBCI() {
+    Address bcp = getInterpreterFrameBCP();
+    Method method = getInterpreterFrameMethod();
     return bcpToBci(bcp, method);
   }
 
@@ -506,7 +512,8 @@ public class X86Frame extends Frame {
   }
 
   public BasicObjectLock interpreterFrameMonitorEnd() {
-    Address result = addressOfStackSlot(INTERPRETER_FRAME_MONITOR_BLOCK_TOP_OFFSET).getAddressAt(0);
+    long n = addressOfStackSlot(INTERPRETER_FRAME_MONITOR_BLOCK_TOP_OFFSET).getCIntegerAt(0, VM.getVM().getAddressSize(), false);
+    Address result = getFP().addOffsetTo(n * VM.getVM().getAddressSize());
     if (Assert.ASSERTS_ENABLED) {
       // make sure the pointer points inside the frame
       Assert.that(AddressOps.gt(getFP(), result), "result must <  than frame pointer");

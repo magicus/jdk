@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,7 +56,7 @@ import jdk.internal.access.SharedSecrets;
  * code that need to link to supporting classes.
  *
  * The parameters that are package names in this API are the fully-qualified
- * names of the packages as defined in section 6.5.3 of <cite>The Java&trade;
+ * names of the packages as defined in section 6.5.3 of <cite>The Java
  * Language Specification </cite>, for example, {@code "java.lang"}.
  */
 
@@ -106,6 +106,13 @@ public class Modules {
     }
 
     /**
+     * Updates module m to export a package unconditionally.
+     */
+    public static void addExports(Module m, String pn) {
+        JLA.addExports(m, pn);
+    }
+
+    /**
      * Updates module m to export a package to all unnamed modules.
      */
     public static void addExportsToAllUnnamed(Module m, String pn) {
@@ -128,6 +135,13 @@ public class Modules {
     }
 
     /**
+     * Adds native access to all unnamed modules.
+     */
+    public static void addEnableNativeAccessToAllUnnamed() {
+        JLA.addEnableNativeAccessToAllUnnamed();
+    }
+
+    /**
      * Updates module m to use a service.
      * Same as m2.addUses(service) but without a caller check.
      */
@@ -142,6 +156,7 @@ public class Modules {
         ModuleLayer layer = m.getLayer();
 
         PrivilegedAction<ClassLoader> pa = m::getClassLoader;
+        @SuppressWarnings("removal")
         ClassLoader loader = AccessController.doPrivileged(pa);
 
         ClassLoader platformClassLoader = ClassLoaders.platformClassLoader();

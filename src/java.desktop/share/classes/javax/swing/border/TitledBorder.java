@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,7 +65,7 @@ import jdk.internal.ref.CleanerFactory;
  * future Swing releases. The current serialization support is
  * appropriate for short term storage or RMI between applications running
  * the same version of Swing.  As of 1.4, support for long term storage
- * of all JavaBeans&trade;
+ * of all JavaBeans
  * has been added to the <code>java.beans</code> package.
  * Please see {@link java.beans.XMLEncoder}.
  *
@@ -374,6 +374,8 @@ public class TitledBorder extends AbstractBorder
      * Reinitialize the insets parameter with this Border's current Insets.
      * @param c the component for which this border insets value applies
      * @param insets the object to be reinitialized
+     * @throws NullPointerException if the specified {@code insets}
+     *         is {@code null}
      */
     public Insets getBorderInsets(Component c, Insets insets) {
         Border border = getBorder();
@@ -587,7 +589,7 @@ public class TitledBorder extends AbstractBorder
     /**
      * Returns the baseline.
      *
-     * @throws NullPointerException {@inheritDoc}
+     * @throws NullPointerException if {@code Component} is {@code null}
      * @throws IllegalArgumentException {@inheritDoc}
      * @see javax.swing.JComponent#getBaseline(int, int)
      * @since 1.6

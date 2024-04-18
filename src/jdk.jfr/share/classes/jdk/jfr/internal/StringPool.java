@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,109 +27,124 @@ package jdk.jfr.internal;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import jdk.internal.misc.Unsafe;
-
 public final class StringPool {
+    public static final int MIN_LIMIT = 16;
+    public static final int MAX_LIMIT = 128; /* 0 MAX means disabled */
 
-    private static final Unsafe unsafe = Unsafe.getUnsafe();
+    private static final long DO_NOT_POOL = -1;
+    /* max size */
+    private static final int MAX_SIZE = 32 * 1024;
+    /* max size bytes */
+    private static final long MAX_SIZE_UTF16 = 16 * 1024 * 1024;
+    /* mask for constructing generation relative string id. */
+    private static final long SID_MASK = -65536;
+    /* string id index */
+    private static final AtomicLong sidIdx = new AtomicLong(1);
+    /* looking at a biased data set 4 is a good value */
+    private static final String[] preCache = new String[] { "", "", "", "" };
+    /* the cache */
+    private static final ConcurrentHashMap<String, Long> cache = new ConcurrentHashMap<>(MAX_SIZE, 0.75f);
+    /* loop mask */
+    private static final int preCacheMask = 0x03;
+    /* index of oldest */
+    private static int preCacheOld = 0;
+    /* max size bytes */
+    private static long currentSizeUTF16;
+    /* string pool generation (0-65535) set by the JVM on epoch shift. Not private to avoid being optimized away. */
+    static short generation = 0;
 
-    static final int MIN_LIMIT = 16;
-    static final int MAX_LIMIT = 128; /* 0 MAX means disabled */
-    private static final long epochAddress;
-    private static final SimpleStringIdPool sp = new SimpleStringIdPool();
-    static {
-        epochAddress = JVM.getJVM().getEpochAddress();
-        sp.reset();
+    /* internalSid is a composite id [48-bit externalSid][16-bit generation]. */
+    private static boolean isCurrentGeneration(long internalSid) {
+        return generation == (short)internalSid;
     }
+
+    private static long updateInternalSid(long internalSid) {
+        return (internalSid & SID_MASK) | generation;
+    }
+
+    private static long nextInternalSid() {
+        return sidIdx.getAndIncrement() << 16  | generation;
+    }
+
+    /* externalSid is the most significant 48-bits of the internalSid. */
+    private static long externalSid(long internalSid) {
+        return internalSid >> 16;
+    }
+
+    /* synchronized because of writing the string to the JVM. */
+    private static synchronized long storeString(String s) {
+        Long lsid = cache.get(s);
+        long internalSid;
+        if (lsid != null) {
+            internalSid = lsid.longValue();
+            if (isCurrentGeneration(internalSid)) {
+                // Someone already updated the cache.
+                return externalSid(internalSid);
+            }
+            internalSid = updateInternalSid(internalSid);
+        } else {
+            // Not yet added or the cache was cleared.
+            internalSid = nextInternalSid();
+            currentSizeUTF16 += s.length();
+        }
+        long extSid = externalSid(internalSid);
+        // Write the string to the JVM before publishing to the cache.
+        JVM.addStringConstant(extSid, s);
+        cache.put(s, internalSid);
+        return extSid;
+    }
+
+    /* a string fetched from the string pool must be of the current generation */
+    private static long ensureCurrentGeneration(String s, Long lsid) {
+        long internalSid = lsid.longValue();
+        return isCurrentGeneration(internalSid) ? externalSid(internalSid) : storeString(s);
+    }
+
+    /*
+     * The string pool uses a generational id scheme to sync the JVM and Java sides.
+     * The string pool relies on the EventWriter and its implementation, especially
+     * its ability to restart event write attempts on interleaving epoch shifts.
+     * Even though a string id is generationally valid during StringPool lookup,
+     * the JVM can evolve the generation before the event is committed,
+     * effectively invalidating the fetched string id. The event restart mechanism
+     * of the EventWriter ensures that committed strings are in the correct generation.
+     */
     public static long addString(String s) {
-        return sp.addString(s);
+        Long lsid = cache.get(s);
+        if (lsid != null) {
+            return ensureCurrentGeneration(s, lsid);
+        }
+        if (!preCache(s)) {
+            /* we should not pool this string */
+            return DO_NOT_POOL;
+        }
+        if (cache.size() > MAX_SIZE || currentSizeUTF16 > MAX_SIZE_UTF16) {
+            /* pool was full */
+            reset();
+        }
+        return storeString(s);
     }
-    private static boolean getCurrentEpoch() {
-        return unsafe.getByte(epochAddress) == 1;
+
+    private static boolean preCache(String s) {
+        if (preCache[0].equals(s)) {
+            return true;
+        }
+        if (preCache[1].equals(s)) {
+            return true;
+        }
+        if (preCache[2].equals(s)) {
+            return true;
+        }
+        if (preCache[3].equals(s)) {
+            return true;
+        }
+        preCacheOld = (preCacheOld - 1) & preCacheMask;
+        preCache[preCacheOld] = s;
+        return false;
     }
-    private static class SimpleStringIdPool {
-        /* string id index */
-        private final AtomicLong sidIdx = new AtomicLong();
-        /* epoch of cached strings */
-        private boolean poolEpoch;
-        /* the cache */
-        private final ConcurrentHashMap<String, Long> cache;
-        /* max size */
-        private final int MAX_SIZE = 32*1024;
-        /* max size bytes*/
-        private final long MAX_SIZE_UTF16 = 16*1024*1024;
-        /* max size bytes*/
-        private long currentSizeUTF16;
 
-        /* looking at a biased data set 4 is a good value */
-        private final String[] preCache = new String[]{"", "" , "" ,""};
-        /* index of oldest */
-        private int preCacheOld = 0;
-        /* loop mask */
-        private static final int preCacheMask = 0x03;
-
-        SimpleStringIdPool() {
-            cache = new ConcurrentHashMap<>(MAX_SIZE, 0.75f);
-        }
-        void reset() {
-            reset(getCurrentEpoch());
-        }
-        private void reset(boolean epoch) {
-            this.cache.clear();
-            this.poolEpoch = epoch;
-            this.currentSizeUTF16 = 0;
-        }
-        private long addString(String s) {
-            boolean currentEpoch = getCurrentEpoch();
-            if (poolEpoch == currentEpoch) {
-                /* pool is for current chunk */
-                Long lsid = this.cache.get(s);
-                if (lsid != null) {
-                    return lsid.longValue();
-                }
-            } else {
-                /* pool is for an old chunk */
-                reset(currentEpoch);
-            }
-            if (!preCache(s)) {
-                /* we should not pool this string */
-                return -1;
-            }
-            if (cache.size() > MAX_SIZE || currentSizeUTF16 > MAX_SIZE_UTF16) {
-                /* pool was full */
-                reset(currentEpoch);
-            }
-            return storeString(s);
-        }
-
-        private long storeString(String s) {
-            long sid = this.sidIdx.getAndIncrement();
-            /* we can race but it is ok */
-            this.cache.put(s, sid);
-            boolean currentEpoch;
-            synchronized(SimpleStringIdPool.class) {
-                currentEpoch = JVM.addStringConstant(poolEpoch, sid, s);
-                currentSizeUTF16 += s.length();
-            }
-            /* did we write in chunk that this pool represent */
-            return currentEpoch == poolEpoch ? sid : -1;
-        }
-        private boolean preCache(String s) {
-            if (preCache[0].equals(s)) {
-                return true;
-            }
-            if (preCache[1].equals(s)) {
-                return true;
-            }
-            if (preCache[2].equals(s)) {
-                return true;
-            }
-            if (preCache[3].equals(s)) {
-                return true;
-            }
-            preCacheOld = (preCacheOld - 1) & preCacheMask;
-            preCache[preCacheOld] = s;
-            return false;
-        }
+    private static synchronized void reset() {
+        cache.clear();
+        currentSizeUTF16 = 0;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -55,25 +55,8 @@
   #if !defined(NAME_MAX)
     #define NAME_MAX MAXNAMLEN
   #endif
-  #define DIR DIR64
-  #define dirent dirent64
-  #define opendir opendir64
-  #define readdir readdir64
-  #define closedir closedir64
-  #define stat stat64
+  #define statvfs statvfs64
 #endif
-
-#if defined(__solaris__) && !defined(NAME_MAX)
-  #define NAME_MAX MAXNAMLEN
-#endif
-
-#if defined(_ALLBSD_SOURCE)
-  #ifndef MACOSX
-    #define statvfs64 statvfs
-    #define stat64 stat
-  #endif
-#endif
-
 /* -- Field IDs -- */
 
 static struct {
@@ -121,8 +104,8 @@ Java_java_io_UnixFileSystem_canonicalize0(JNIEnv *env, jobject this,
 static jboolean
 statMode(const char *path, int *mode)
 {
-    struct stat64 sb;
-    if (stat64(path, &sb) == 0) {
+    struct stat sb;
+    if (stat(path, &sb) == 0) {
         *mode = sb.st_mode;
         return JNI_TRUE;
     }
@@ -149,8 +132,8 @@ Java_java_io_UnixFileSystem_getBooleanAttributes0(JNIEnv *env, jobject this,
 }
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_UnixFileSystem_checkAccess(JNIEnv *env, jobject this,
-                                        jobject file, jint a)
+Java_java_io_UnixFileSystem_checkAccess0(JNIEnv *env, jobject this,
+                                         jobject file, jint a)
 {
     jboolean rv = JNI_FALSE;
     int mode = 0;
@@ -178,11 +161,11 @@ Java_java_io_UnixFileSystem_checkAccess(JNIEnv *env, jobject this,
 
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_UnixFileSystem_setPermission(JNIEnv *env, jobject this,
-                                          jobject file,
-                                          jint access,
-                                          jboolean enable,
-                                          jboolean owneronly)
+Java_java_io_UnixFileSystem_setPermission0(JNIEnv *env, jobject this,
+                                           jobject file,
+                                           jint access,
+                                           jboolean enable,
+                                           jboolean owneronly)
 {
     jboolean rv = JNI_FALSE;
 
@@ -227,14 +210,14 @@ Java_java_io_UnixFileSystem_setPermission(JNIEnv *env, jobject this,
 }
 
 JNIEXPORT jlong JNICALL
-Java_java_io_UnixFileSystem_getLastModifiedTime(JNIEnv *env, jobject this,
-                                                jobject file)
+Java_java_io_UnixFileSystem_getLastModifiedTime0(JNIEnv *env, jobject this,
+                                                 jobject file)
 {
     jlong rv = 0;
 
     WITH_FIELD_PLATFORM_STRING(env, file, ids.path, path) {
-        struct stat64 sb;
-        if (stat64(path, &sb) == 0) {
+        struct stat sb;
+        if (stat(path, &sb) == 0) {
 #if defined(_AIX)
             rv =  (jlong)sb.st_mtime * 1000;
             rv += (jlong)sb.st_mtime_n / 1000000;
@@ -252,14 +235,14 @@ Java_java_io_UnixFileSystem_getLastModifiedTime(JNIEnv *env, jobject this,
 
 
 JNIEXPORT jlong JNICALL
-Java_java_io_UnixFileSystem_getLength(JNIEnv *env, jobject this,
-                                      jobject file)
+Java_java_io_UnixFileSystem_getLength0(JNIEnv *env, jobject this,
+                                       jobject file)
 {
     jlong rv = 0;
 
     WITH_FIELD_PLATFORM_STRING(env, file, ids.path, path) {
-        struct stat64 sb;
-        if (stat64(path, &sb) == 0) {
+        struct stat sb;
+        if (stat(path, &sb) == 0) {
             rv = sb.st_size;
         }
     } END_PLATFORM_STRING(env, path);
@@ -271,8 +254,8 @@ Java_java_io_UnixFileSystem_getLength(JNIEnv *env, jobject this,
 
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_UnixFileSystem_createFileExclusively(JNIEnv *env, jclass cls,
-                                                  jstring pathname)
+Java_java_io_UnixFileSystem_createFileExclusively0(JNIEnv *env, jclass cls,
+                                                   jstring pathname)
 {
     jboolean rv = JNI_FALSE;
 
@@ -311,8 +294,7 @@ Java_java_io_UnixFileSystem_delete0(JNIEnv *env, jobject this,
 
 
 JNIEXPORT jobjectArray JNICALL
-Java_java_io_UnixFileSystem_list(JNIEnv *env, jobject this,
-                                 jobject file)
+Java_java_io_UnixFileSystem_list0(JNIEnv *env, jobject this, jobject file)
 {
     DIR *dir = NULL;
     struct dirent *ptr;
@@ -377,8 +359,8 @@ Java_java_io_UnixFileSystem_list(JNIEnv *env, jobject this,
 
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_UnixFileSystem_createDirectory(JNIEnv *env, jobject this,
-                                            jobject file)
+Java_java_io_UnixFileSystem_createDirectory0(JNIEnv *env, jobject this,
+                                             jobject file)
 {
     jboolean rv = JNI_FALSE;
 
@@ -408,15 +390,15 @@ Java_java_io_UnixFileSystem_rename0(JNIEnv *env, jobject this,
 }
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_UnixFileSystem_setLastModifiedTime(JNIEnv *env, jobject this,
-                                                jobject file, jlong time)
+Java_java_io_UnixFileSystem_setLastModifiedTime0(JNIEnv *env, jobject this,
+                                                 jobject file, jlong time)
 {
     jboolean rv = JNI_FALSE;
 
     WITH_FIELD_PLATFORM_STRING(env, file, ids.path, path) {
-        struct stat64 sb;
+        struct stat sb;
 
-        if (stat64(path, &sb) == 0) {
+        if (stat(path, &sb) == 0) {
             struct timeval tv[2];
 
             /* Preserve access time */
@@ -444,8 +426,8 @@ Java_java_io_UnixFileSystem_setLastModifiedTime(JNIEnv *env, jobject this,
 
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_UnixFileSystem_setReadOnly(JNIEnv *env, jobject this,
-                                        jobject file)
+Java_java_io_UnixFileSystem_setReadOnly0(JNIEnv *env, jobject this,
+                                         jobject file)
 {
     jboolean rv = JNI_FALSE;
 
@@ -463,8 +445,8 @@ Java_java_io_UnixFileSystem_setReadOnly(JNIEnv *env, jobject this,
 }
 
 JNIEXPORT jlong JNICALL
-Java_java_io_UnixFileSystem_getSpace(JNIEnv *env, jobject this,
-                                     jobject file, jint t)
+Java_java_io_UnixFileSystem_getSpace0(JNIEnv *env, jobject this,
+                                      jobject file, jint t)
 {
     jlong rv = 0L;
 
@@ -472,7 +454,7 @@ Java_java_io_UnixFileSystem_getSpace(JNIEnv *env, jobject this,
 #ifdef MACOSX
         struct statfs fsstat;
 #else
-        struct statvfs64 fsstat;
+        struct statvfs fsstat;
         int res;
 #endif
         memset(&fsstat, 0, sizeof(fsstat));
@@ -496,7 +478,7 @@ Java_java_io_UnixFileSystem_getSpace(JNIEnv *env, jobject this,
             }
         }
 #else
-        RESTARTABLE(statvfs64(path, &fsstat), res);
+        RESTARTABLE(statvfs(path, &fsstat), res);
         if (res == 0) {
             switch(t) {
             case java_io_FileSystem_SPACE_TOTAL:

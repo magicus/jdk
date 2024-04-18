@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.commons;
 
 import java.util.ArrayList;
@@ -232,7 +233,7 @@ public class GeneratorAdapter extends LocalVariablesSorter {
             final int access,
             final String name,
             final String descriptor) {
-        this(/* latest api = */ Opcodes.ASM8, methodVisitor, access, name, descriptor);
+        this(/* latest api = */ Opcodes.ASM9, methodVisitor, access, name, descriptor);
         if (getClass() != GeneratorAdapter.class) {
             throw new IllegalStateException();
         }
@@ -241,9 +242,8 @@ public class GeneratorAdapter extends LocalVariablesSorter {
     /**
       * Constructs a new {@link GeneratorAdapter}.
       *
-      * @param api the ASM API version implemented by this visitor. Must be one of {@link
-      *     Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6}, {@link Opcodes#ASM7} or {@link
-      *     Opcodes#ASM8}.
+      * @param api the ASM API version implemented by this visitor. Must be one of the {@code
+      *     ASM}<i>x</i> values in {@link Opcodes}.
       * @param methodVisitor the method visitor to which this adapter delegates calls.
       * @param access the method's access flags (see {@link Opcodes}).
       * @param name the method's name.
@@ -308,7 +308,7 @@ public class GeneratorAdapter extends LocalVariablesSorter {
       * Returns the internal names of the given types.
       *
       * @param types a set of types.
-      * @return the internal names of the given types.
+      * @return the internal names of the given types (see {@link Type#getInternalName()}).
       */
     private static String[] getInternalNames(final Type[] types) {
         String[] names = new String[types.length];
@@ -1386,7 +1386,8 @@ public class GeneratorAdapter extends LocalVariablesSorter {
       *
       * @param start beginning of the exception handler's scope (inclusive).
       * @param end end of the exception handler's scope (exclusive).
-      * @param exception internal name of the type of exceptions handled by the handler.
+      * @param exception internal name of the type of exceptions handled by the handler (see {@link
+      *     Type#getInternalName()}).
       */
     public void catchException(final Label start, final Label end, final Type exception) {
         Label catchLabel = new Label();

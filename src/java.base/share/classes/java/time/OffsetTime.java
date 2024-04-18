@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -102,12 +102,12 @@ import java.util.Objects;
  * as well as a zone offset.
  * For example, the value "13:45:30.123456789+02:00" can be stored
  * in an {@code OffsetTime}.
- *
  * <p>
  * This is a <a href="{@docRoot}/java.base/java/lang/doc-files/ValueBased.html">value-based</a>
- * class; use of identity-sensitive operations (including reference equality
- * ({@code ==}), identity hash code, or synchronization) on instances of
- * {@code OffsetTime} may have unpredictable results and should be avoided.
+ * class; programmers should treat instances that are
+ * {@linkplain #equals(Object) equal} as interchangeable and should not
+ * use instances for synchronization, or unpredictable behavior may
+ * occur. For example, in a future release, synchronization may fail.
  * The {@code equals} method should be used for comparisons.
  *
  * @implSpec
@@ -115,6 +115,7 @@ import java.util.Objects;
  *
  * @since 1.8
  */
+@jdk.internal.ValueBased
 public final class OffsetTime
         implements Temporal, TemporalAdjuster, Comparable<OffsetTime>, Serializable {
 
@@ -1177,18 +1178,18 @@ public final class OffsetTime
     @Override
     public long until(Temporal endExclusive, TemporalUnit unit) {
         OffsetTime end = OffsetTime.from(endExclusive);
-        if (unit instanceof ChronoUnit) {
+        if (unit instanceof ChronoUnit chronoUnit) {
             long nanosUntil = end.toEpochNano() - toEpochNano();  // no overflow
-            switch ((ChronoUnit) unit) {
-                case NANOS: return nanosUntil;
-                case MICROS: return nanosUntil / 1000;
-                case MILLIS: return nanosUntil / 1000_000;
-                case SECONDS: return nanosUntil / NANOS_PER_SECOND;
-                case MINUTES: return nanosUntil / NANOS_PER_MINUTE;
-                case HOURS: return nanosUntil / NANOS_PER_HOUR;
-                case HALF_DAYS: return nanosUntil / (12 * NANOS_PER_HOUR);
-            }
-            throw new UnsupportedTemporalTypeException("Unsupported unit: " + unit);
+            return switch (chronoUnit) {
+                case NANOS     -> nanosUntil;
+                case MICROS    -> nanosUntil / 1000;
+                case MILLIS    -> nanosUntil / 1000_000;
+                case SECONDS   -> nanosUntil / NANOS_PER_SECOND;
+                case MINUTES   -> nanosUntil / NANOS_PER_MINUTE;
+                case HOURS     -> nanosUntil / NANOS_PER_HOUR;
+                case HALF_DAYS -> nanosUntil / (12 * NANOS_PER_HOUR);
+                default -> throw new UnsupportedTemporalTypeException("Unsupported unit: " + unit);
+            };
         }
         return unit.between(this, end);
     }
@@ -1280,7 +1281,11 @@ public final class OffsetTime
      * use {@link ChronoField#NANO_OF_DAY} as a comparator.
      *
      * @param other  the other time to compare to, not null
-     * @return the comparator value, negative if less, positive if greater
+     * @return the comparator value, that is the comparison of the UTC equivalent {@code other} instant,
+     *          if they are not equal, and if the UTC equivalent {@code other} instant is equal,
+     *          the comparison of this local time with {@code other} local time
+     * @see #isBefore
+     * @see #isAfter
      */
     @Override
     public int compareTo(OffsetTime other) {
@@ -1359,11 +1364,9 @@ public final class OffsetTime
         if (this == obj) {
             return true;
         }
-        if (obj instanceof OffsetTime) {
-            OffsetTime other = (OffsetTime) obj;
-            return time.equals(other.time) && offset.equals(other.offset);
-        }
-        return false;
+        return (obj instanceof OffsetTime other)
+                && time.equals(other.time)
+                && offset.equals(other.offset);
     }
 
     /**

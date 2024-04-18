@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,62 +32,20 @@
 #include "runtime/mutexLocker.hpp"
 #include "runtime/os.hpp"
 #include "runtime/safepoint.hpp"
-#include "runtime/thread.hpp"
+#include "runtime/threads.hpp"
 #include "runtime/threadSMR.hpp"
 #include "runtime/vmThread.hpp"
 #include "utilities/globalCounter.inline.hpp"
 
 SATBMarkQueue::SATBMarkQueue(SATBMarkQueueSet* qset) :
-  // SATB queues are only active during marking cycles. We create
-  // them with their active field set to false. If a thread is
-  // created during a cycle and its SATB queue needs to be activated
-  // before the thread starts running, we'll need to set its active
-  // field to true. This must be done in the collector-specific
+  PtrQueue(qset),
+  // SATB queues are only active during marking cycles. We create them
+  // with their active field set to false. If a thread is created
+  // during a cycle, it's SATB queue needs to be activated before the
+  // thread starts running.  This is handled by the collector-specific
   // BarrierSet thread attachment protocol.
-  PtrQueue(qset, false /* active */)
+  _active(false)
 { }
-
-void SATBMarkQueue::flush() {
-  // Filter now to possibly save work later.  If filtering empties the
-  // buffer then flush_impl can deallocate the buffer.
-  filter();
-  flush_impl();
-}
-
-// This method will first apply filtering to the buffer. If filtering
-// retains a small enough collection in the buffer, we can continue to
-// use the buffer as-is, instead of enqueueing and replacing it.
-
-void SATBMarkQueue::handle_completed_buffer() {
-  // This method should only be called if there is a non-NULL buffer
-  // that is full.
-  assert(index() == 0, "pre-condition");
-  assert(_buf != NULL, "pre-condition");
-
-  filter();
-
-  size_t threshold = satb_qset()->buffer_enqueue_threshold();
-  // Ensure we'll enqueue completely full buffers.
-  assert(threshold > 0, "enqueue threshold = 0");
-  // Ensure we won't enqueue empty buffers.
-  assert(threshold <= capacity(),
-         "enqueue threshold " SIZE_FORMAT " exceeds capacity " SIZE_FORMAT,
-         threshold, capacity());
-
-  if (index() < threshold) {
-    // Buffer is sufficiently full; enqueue and allocate a new one.
-    enqueue_completed_buffer();
-  } // Else continue to accumulate in buffer.
-}
-
-void SATBMarkQueue::apply_closure_and_empty(SATBBufferClosure* cl) {
-  assert(SafepointSynchronize::is_at_safepoint(),
-         "SATB queues must only be processed at safepoints");
-  if (_buf != NULL) {
-    cl->do_buffer(&_buf[index()], size());
-    reset();
-  }
-}
 
 #ifndef PRODUCT
 // Helpful for debugging
@@ -102,7 +60,7 @@ static void print_satb_buffer(const char* name,
 }
 
 void SATBMarkQueue::print(const char* name) {
-  print_satb_buffer(name, _buf, index(), capacity());
+  print_satb_buffer(name, _buf, index(), current_capacity());
 }
 
 #endif // PRODUCT
@@ -112,7 +70,8 @@ SATBMarkQueueSet::SATBMarkQueueSet(BufferNode::Allocator* allocator) :
   _list(),
   _count_and_process_flag(0),
   _process_completed_buffers_threshold(SIZE_MAX),
-  _buffer_enqueue_threshold(0)
+  _buffer_enqueue_threshold(0),
+  _all_active(false)
 {}
 
 SATBMarkQueueSet::~SATBMarkQueueSet() {
@@ -165,7 +124,7 @@ void SATBMarkQueueSet::set_process_completed_buffers_threshold(size_t value) {
 
 void SATBMarkQueueSet::set_buffer_enqueue_threshold_percentage(uint value) {
   // Minimum threshold of 1 ensures enqueuing of completely full buffers.
-  size_t size = buffer_size();
+  size_t size = buffer_capacity();
   size_t enqueue_qty = (size * value) / 100;
   _buffer_enqueue_threshold = MAX2(size - enqueue_qty, (size_t)1);
 }
@@ -233,7 +192,13 @@ void SATBMarkQueueSet::set_active_all_threads(bool active, bool expected_active)
     SetThreadActiveClosure(SATBMarkQueueSet* qset, bool active) :
       _qset(qset), _active(active) {}
     virtual void do_thread(Thread* t) {
-      _qset->satb_queue_for_thread(t).set_active(_active);
+      SATBMarkQueue& queue = _qset->satb_queue_for_thread(t);
+      if (_active) {
+        assert(queue.is_empty(), "queues should be empty when activated");
+      } else {
+        queue.set_index(queue.current_capacity());
+      }
+      queue.set_active(_active);
     }
   } closure(this, active);
   Threads::threads_do(&closure);
@@ -241,17 +206,57 @@ void SATBMarkQueueSet::set_active_all_threads(bool active, bool expected_active)
 
 bool SATBMarkQueueSet::apply_closure_to_completed_buffer(SATBBufferClosure* cl) {
   BufferNode* nd = get_completed_buffer();
-  if (nd != NULL) {
+  if (nd != nullptr) {
     void **buf = BufferNode::make_buffer_from_node(nd);
-    size_t index = nd->index();
-    size_t size = buffer_size();
-    assert(index <= size, "invariant");
-    cl->do_buffer(buf + index, size - index);
+    cl->do_buffer(buf + nd->index(), nd->size());
     deallocate_buffer(nd);
     return true;
   } else {
     return false;
   }
+}
+
+void SATBMarkQueueSet::flush_queue(SATBMarkQueue& queue) {
+  // Filter now to possibly save work later.  If filtering empties the
+  // buffer then flush_queue can deallocate the buffer.
+  filter(queue);
+  PtrQueueSet::flush_queue(queue);
+}
+
+void SATBMarkQueueSet::enqueue_known_active(SATBMarkQueue& queue, oop obj) {
+  assert(queue.is_active(), "precondition");
+  void* value = cast_from_oop<void*>(obj);
+  if (!try_enqueue(queue, value)) {
+    handle_zero_index(queue);
+    retry_enqueue(queue, value);
+  }
+}
+
+void SATBMarkQueueSet::handle_zero_index(SATBMarkQueue& queue) {
+  assert(queue.index() == 0, "precondition");
+  if (queue.buffer() == nullptr) {
+    install_new_buffer(queue);
+  } else {
+    filter(queue);
+    if (should_enqueue_buffer(queue)) {
+      enqueue_completed_buffer(exchange_buffer_with_new(queue));
+    } // Else continue to use the existing buffer.
+  }
+  assert(queue.buffer() != nullptr, "post condition");
+  assert(queue.index() > 0, "post condition");
+}
+
+bool SATBMarkQueueSet::should_enqueue_buffer(SATBMarkQueue& queue) {
+  assert(queue.buffer() != nullptr, "precondition");
+  // Keep the current buffer if filtered index >= threshold.
+  size_t threshold = buffer_enqueue_threshold();
+  // Ensure we'll enqueue completely full buffers.
+  assert(threshold > 0, "enqueue threshold = 0");
+  // Ensure we won't enqueue empty buffers.
+  assert(threshold <= queue.current_capacity(),
+         "enqueue threshold %zu exceeds capacity %zu",
+         threshold, queue.current_capacity());
+  return queue.index() < threshold;
 }
 
 // SATB buffer life-cycle - Per-thread queues obtain buffers from the
@@ -265,7 +270,7 @@ bool SATBMarkQueueSet::apply_closure_to_completed_buffer(SATBBufferClosure* cl) 
 // pushing onto the allocator's list.
 
 void SATBMarkQueueSet::enqueue_completed_buffer(BufferNode* node) {
-  assert(node != NULL, "precondition");
+  assert(node != nullptr, "precondition");
   // Increment count and update flag appropriately.  Done before
   // pushing buffer so count is always at least the actual number in
   // the list, and decrement never underflows.
@@ -279,7 +284,7 @@ BufferNode* SATBMarkQueueSet::get_completed_buffer() {
     GlobalCounter::CriticalSection cs(Thread::current());
     node = _list.pop();
   }
-  if (node != NULL) {
+  if (node != nullptr) {
     // Got a buffer so decrement count and update flag appropriately.
     decrement_count(&_count_and_process_flag);
   }
@@ -300,10 +305,10 @@ void SATBMarkQueueSet::print_all(const char* msg) {
 
   BufferNode* nd = _list.top();
   int i = 0;
-  while (nd != NULL) {
+  while (nd != nullptr) {
     void** buf = BufferNode::make_buffer_from_node(nd);
     os::snprintf(buffer, SATB_PRINTER_BUFFER_SIZE, "Enqueued: %d", i);
-    print_satb_buffer(buffer, buf, nd->index(), buffer_size());
+    print_satb_buffer(buffer, buf, nd->index(), nd->capacity());
     nd = nd->next();
     i += 1;
   }
@@ -330,10 +335,10 @@ void SATBMarkQueueSet::print_all(const char* msg) {
 void SATBMarkQueueSet::abandon_completed_buffers() {
   Atomic::store(&_count_and_process_flag, size_t(0));
   BufferNode* buffers_to_delete = _list.pop_all();
-  while (buffers_to_delete != NULL) {
+  while (buffers_to_delete != nullptr) {
     BufferNode* bn = buffers_to_delete;
     buffers_to_delete = bn->next();
-    bn->set_next(NULL);
+    bn->set_next(nullptr);
     deallocate_buffer(bn);
   }
 }
@@ -343,12 +348,12 @@ void SATBMarkQueueSet::abandon_partial_marking() {
   abandon_completed_buffers();
 
   class AbandonThreadQueueClosure : public ThreadClosure {
-    SATBMarkQueueSet* _qset;
+    SATBMarkQueueSet& _qset;
   public:
-    AbandonThreadQueueClosure(SATBMarkQueueSet* qset) : _qset(qset) {}
+    AbandonThreadQueueClosure(SATBMarkQueueSet& qset) : _qset(qset) {}
     virtual void do_thread(Thread* t) {
-      _qset->satb_queue_for_thread(t).reset();
+      _qset.reset_queue(_qset.satb_queue_for_thread(t));
     }
-  } closure(this);
+  } closure(*this);
   Threads::threads_do(&closure);
 }

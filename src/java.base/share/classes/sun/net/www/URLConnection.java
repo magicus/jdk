@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
 
 package sun.net.www;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
@@ -70,7 +71,7 @@ public abstract class URLConnection extends java.net.URLConnection {
 
     public void setRequestProperty(String key, String value) {
         if(connected)
-            throw new IllegalAccessError("Already connected");
+            throw new IllegalStateException("Already connected");
         if (key == null)
             throw new NullPointerException ("key cannot be null");
         properties.set(key, value);
@@ -107,6 +108,26 @@ public abstract class URLConnection extends java.net.URLConnection {
             return null;
         }
         return properties == null ? null : properties.findValue(name);
+    }
+
+
+    Map<String, List<String>> headerFields;
+
+    @Override
+    public Map<String, List<String>> getHeaderFields() {
+        if (headerFields == null) {
+            try {
+                getInputStream();
+                if (properties == null) {
+                    headerFields = super.getHeaderFields();
+                } else {
+                    headerFields = properties.getHeaders();
+                }
+            } catch (IOException e) {
+                return super.getHeaderFields();
+            }
+        }
+        return headerFields;
     }
 
     /**
@@ -240,13 +261,13 @@ public abstract class URLConnection extends java.net.URLConnection {
         url = null;
     }
 
-    private static HashMap<String,Void> proxiedHosts = new HashMap<>();
+    private static final HashMap<String,Void> proxiedHosts = new HashMap<>();
 
     public static synchronized void setProxiedHost(String host) {
-        proxiedHosts.put(host.toLowerCase(), null);
+        proxiedHosts.put(host.toLowerCase(Locale.ROOT), null);
     }
 
     public static synchronized boolean isProxiedHost(String host) {
-        return proxiedHosts.containsKey(host.toLowerCase());
+        return proxiedHosts.containsKey(host.toLowerCase(Locale.ROOT));
     }
 }

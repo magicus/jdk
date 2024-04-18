@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2023, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -50,8 +50,34 @@ $(eval $(call SetupTextFileProcessing, BUILD_VERSION_JAVA, \
         @@VENDOR_URL_VM_BUG@@ => $(VENDOR_URL_VM_BUG), \
 ))
 
-TARGETS += $(BUILD_VERSION_JAVA)
 
+# Normalize OPENJDK_TARGET_CPU name to match jdk.internal.util.Architecture enum
+ifneq ($(filter $(OPENJDK_TARGET_CPU), s390x), )
+  OPENJDK_TARGET_ARCH_CANONICAL = s390
+else ifneq ($(filter $(OPENJDK_TARGET_CPU), x86_64 amd64), )
+  OPENJDK_TARGET_ARCH_CANONICAL = x64
+else
+  OPENJDK_TARGET_ARCH_CANONICAL := $(OPENJDK_TARGET_CPU)
+endif
+
+# Normalize OPENJDK_TARGET_OS operating system name to match jdk.internal.util.OperatingSystem enum
+ifeq ($(OPENJDK_TARGET_OS), macosx)
+  OPENJDK_TARGET_OS_CANONICAL = macos
+else
+  OPENJDK_TARGET_OS_CANONICAL := $(OPENJDK_TARGET_OS)
+endif
+
+$(eval $(call SetupTextFileProcessing, BUILD_PLATFORMPROPERTIES_JAVA, \
+    SOURCE_FILES := $(TOPDIR)/src/java.base/share/classes/jdk/internal/util/PlatformProps.java.template, \
+    OUTPUT_FILE := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/PlatformProps.java, \
+    REPLACEMENTS := \
+        @@OPENJDK_TARGET_OS@@ => $(OPENJDK_TARGET_OS_CANONICAL) ; \
+        @@OPENJDK_TARGET_CPU@@ => $(OPENJDK_TARGET_ARCH_CANONICAL) ; \
+        @@OPENJDK_TARGET_CPU_ENDIAN@@ => $(OPENJDK_TARGET_CPU_ENDIAN) ; \
+        @@OPENJDK_TARGET_CPU_BITS@@ => $(OPENJDK_TARGET_CPU_BITS), \
+))
+
+TARGETS += $(BUILD_VERSION_JAVA) $(BUILD_PLATFORMPROPERTIES_JAVA)
 ################################################################################
 
 ifneq ($(filter $(TOOLCHAIN_TYPE), gcc clang), )
@@ -60,6 +86,12 @@ ifneq ($(filter $(TOOLCHAIN_TYPE), gcc clang), )
   CPP_FLAGS += -x c
 else ifeq ($(TOOLCHAIN_TYPE), microsoft)
   CPP_FLAGS += -nologo
+
+  ifeq ($(OPENJDK_TARGET_CPU),aarch64)
+    # cl.exe does only recognize few file extensions as valid (ex: .c, .h, .cpp), so
+    # make sure *.java.template files are recognized as valid input files
+    CPP_FILEPREFIX = -Tc
+  endif
 endif
 
 # Generate a java source file from a template through the C preprocessor for the
@@ -72,10 +104,10 @@ endif
 define generate-preproc-src
 	$(call MakeDir, $(@D))
 	$(call ExecuteWithLog, $(SUPPORT_OUTPUTDIR)/gensrc/java.base/_$(@F), \
-	    ( $(NAWK) '/@@END_COPYRIGHT@@/{exit}1' $< && \
-	      $(CPP) $(CPP_FLAGS) $(SYSROOT_CFLAGS) $(CFLAGS_JDKLIB) $< \
+	    ( $(AWK) '/@@END_COPYRIGHT@@/{exit}1' $< && \
+	      $(CPP) $(CPP_FLAGS) $(SYSROOT_CFLAGS) $(CFLAGS_JDKLIB) $(CPP_FILEPREFIX) $< \
 	          2> >($(GREP) -v '^$(<F)$$' >&2) \
-	          | $(NAWK) '/@@START_HERE@@/,0' \
+	          | $(AWK) '/@@START_HERE@@/,0' \
 	          |  $(SED) -e 's/@@START_HERE@@/\/\/ AUTOMATICALLY GENERATED FILE - DO NOT EDIT/' \
 	          -e 's/PREFIX_//' -e 's/^#.*//' \
 	    ) > $@ \
@@ -104,21 +136,6 @@ ifeq ($(call isTargetOs, windows), false)
 
 endif
 
-################################################################################
-
-ifeq ($(call isTargetOs, solaris), true)
-
-  GENSRC_SC_FILE := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/nio/fs/SolarisConstants.java
-
-  $(GENSRC_SC_FILE): \
-      $(TOPDIR)/src/java.base/solaris/classes/sun/nio/fs/SolarisConstants.java.template
-	$(generate-preproc-src)
-
-  TARGETS += $(GENSRC_SC_FILE)
-
-endif
-
-################################################################################
 # Create the javax/crypto/JceSecurity.class, using the build default.
 #
 ifeq ($(UNLIMITED_CRYPTO), true)

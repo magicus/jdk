@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+  ~ Copyright (c) 2007, 2020, Oracle and/or its affiliates. All rights reserved.
   ~ DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
   ~
   ~ This code is free software; you can redistribute it and/or modify it
@@ -42,7 +42,7 @@
 
  build
    |-bin (scripts to invoke various tools, javac etc.)
-   |-genrsc (generated sources - i.e. properties)
+   |-gensrc (generated sources - i.e. properties)
    |-modules (compiled classes in a modular layout)
    |-jtreg (test work/results)
    |-toolclasses (tools used for building - like the property compiler)
@@ -100,7 +100,7 @@
     <property name="xpatch.noquotes.cmd" value="--patch-module=${xpatch.noquotes.rest}"/>
 
     <!-- java.marker is set to a marker file to check for within a Java install dir.
-         The best file to check for across Solaris/Linux/Windows/MacOS is one of the
+         The best file to check for across Linux/Windows/MacOS is one of the
          executables; regrettably, that is OS-specific. -->
     <condition property="java.marker" value="bin/java">
         <os family="unix"/>
@@ -109,7 +109,7 @@
         <os family="windows"/>
     </condition>
 
-    <!-- Standard property values, if not overriden by earlier settings. -->
+    <!-- Standard property values, if not overridden by earlier settings. -->
     <property file="${make.dir}/build.properties"/>
 
     <condition property="langtools.jdk.home" value="${jdk.home}">
@@ -238,7 +238,6 @@
         <build-tool name="javadoc"/>
         <build-tool name="javap"/>
         <build-tool name="jdeps"/>
-        <build-tool name="sjavac"/>
         <build-tool name="jshell"/>
     </target>
 

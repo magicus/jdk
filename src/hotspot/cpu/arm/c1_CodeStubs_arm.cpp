@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@
 #include "c1/c1_LIRAssembler.hpp"
 #include "c1/c1_MacroAssembler.hpp"
 #include "c1/c1_Runtime1.hpp"
+#include "classfile/javaClasses.hpp"
 #include "memory/universe.hpp"
 #include "nativeInst_arm.hpp"
 #include "runtime/sharedRuntime.hpp"
@@ -36,6 +37,10 @@
 #include "vmreg_arm.inline.hpp"
 
 #define __ ce->masm()->
+
+void C1SafepointPollStub::emit_code(LIR_Assembler* ce) {
+  ShouldNotReachHere();
+}
 
 void CounterOverflowStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
@@ -46,22 +51,6 @@ void CounterOverflowStub::emit_code(LIR_Assembler* ce) {
   ce->verify_oop_map(_info);
 
   __ b(_continuation);
-}
-
-
-// TODO: ARM - is it possible to inline these stubs into the main code stream?
-
-
-RangeCheckStub::RangeCheckStub(CodeEmitInfo* info, LIR_Opr index, LIR_Opr array)
-  : _index(index), _array(array), _throw_index_out_of_bounds_exception(false) {
-  assert(info != NULL, "must have info");
-  _info = new CodeEmitInfo(info);
-}
-
-RangeCheckStub::RangeCheckStub(CodeEmitInfo* info, LIR_Opr index)
-  : _index(index), _array(NULL), _throw_index_out_of_bounds_exception(true) {
-  assert(info != NULL, "must have info");
-  _info = new CodeEmitInfo(info);
 }
 
 void RangeCheckStub::emit_code(LIR_Assembler* ce) {
@@ -187,16 +176,6 @@ void NewObjectArrayStub::emit_code(LIR_Assembler* ce) {
   __ b(_continuation);
 }
 
-
-// Implementation of MonitorAccessStubs
-
-MonitorEnterStub::MonitorEnterStub(LIR_Opr obj_reg, LIR_Opr lock_reg, CodeEmitInfo* info)
-: MonitorAccessStub(obj_reg, lock_reg)
-{
-  _info = new CodeEmitInfo(info);
-}
-
-
 void MonitorEnterStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
   const Register obj_reg = _obj_reg->as_pointer_register();
@@ -311,7 +290,7 @@ void PatchingStub::emit_code(LIR_Assembler* ce) {
 
     assert(_obj != noreg, "must be a valid register");
     // Rtemp should be OK in C1
-    __ ldr(Rtemp, Address(_obj, java_lang_Class::klass_offset_in_bytes()));
+    __ ldr(Rtemp, Address(_obj, java_lang_Class::klass_offset()));
     __ ldr(Rtemp, Address(Rtemp, InstanceKlass::init_thread_offset()));
     __ cmp(Rtemp, Rthread);
     __ b(call_patch, ne);
@@ -340,7 +319,7 @@ void PatchingStub::emit_code(LIR_Assembler* ce) {
 
   address entry = __ pc();
   NativeGeneralJump::insert_unconditional((address)_pc_start, entry);
-  address target = NULL;
+  address target = nullptr;
   relocInfo::relocType reloc_type = relocInfo::none;
   switch (_id) {
     case access_field_id:  target = Runtime1::entry_for(Runtime1::access_field_patching_id); break;
@@ -416,7 +395,7 @@ void ArrayCopyStub::emit_code(LIR_Assembler* ce) {
 
   VMRegPair args[5];
   BasicType signature[5] = { T_OBJECT, T_INT, T_OBJECT, T_INT, T_INT };
-  SharedRuntime::java_calling_convention(signature, args, 5, true);
+  SharedRuntime::java_calling_convention(signature, args, 5);
 
   Register r[5];
   r[0] = src()->as_pointer_register();

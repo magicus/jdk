@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,9 +31,6 @@ double G1NUMAStats::Stat::rate() const {
 }
 
 G1NUMAStats::NodeDataArray::NodeDataArray(uint num_nodes) {
-  // Not using > 1, for -XX:+ForceNUMA support.
-  guarantee(num_nodes > 0, "Number of nodes (%u) should be set", num_nodes);
-
   // The row represents the number of nodes.
   _num_column = num_nodes;
   // +1 for G1MemoryNodeManager::AnyNodeIndex.
@@ -67,7 +64,7 @@ void G1NUMAStats::NodeDataArray::create_hit_rate(Stat* result) const {
     }
   }
 
-  assert(result != NULL, "Invariant");
+  assert(result != nullptr, "Invariant");
   result->_hit = hit;
   result->_requested = requested;
 }
@@ -80,7 +77,7 @@ void G1NUMAStats::NodeDataArray::create_hit_rate(Stat* result, uint req_index) c
     requested += _data[req_index][column];
   }
 
-  assert(result != NULL, "Invariant");
+  assert(result != nullptr, "Invariant");
   result->_hit = hit;
   result->_requested = requested;
 }
@@ -115,18 +112,17 @@ size_t G1NUMAStats::NodeDataArray::get(uint req_index, uint alloc_index) {
 }
 
 void G1NUMAStats::NodeDataArray::copy(uint req_index, size_t* stat) {
-  assert(stat != NULL, "Invariant");
+  assert(stat != nullptr, "Invariant");
 
   for (uint column = 0; column < _num_column; column++) {
     _data[req_index][column] += stat[column];
   }
 }
 
-G1NUMAStats::G1NUMAStats(const int* node_ids, uint num_node_ids) :
+G1NUMAStats::G1NUMAStats(const uint* node_ids, uint num_node_ids) :
   _node_ids(node_ids), _num_node_ids(num_node_ids), _node_data() {
 
-  // Not using > 1, for -XX:+ForceNUMA support.
-  assert(_num_node_ids > 0, "Should have at least one node id: %u", _num_node_ids);
+  assert(_num_node_ids > 1, "Should have at least one node id: %u", _num_node_ids);
 
   for (int i = 0; i < NodeDataItemsSentinel; i++) {
     _node_data[i] = new NodeDataArray(_num_node_ids);

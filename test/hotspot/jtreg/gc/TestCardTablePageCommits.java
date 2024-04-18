@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,11 +25,9 @@ package gc;
 
 import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
-import jdk.test.lib.Platform;
 
 /*
  * @test TestCardTablePageCommits
- * @key gc
  * @bug 8059066
  * @summary Tests that the card table does not commit the same page twice
  * @requires vm.gc.Parallel
@@ -42,14 +40,13 @@ public class TestCardTablePageCommits {
         // The test is run with a small heap to make sure all pages in the card
         // table gets committed. Need 8 MB heap to trigger the bug on SPARC
         // because of 8kB pages, assume 4 KB pages for all other CPUs.
-        String Xmx = Platform.isSparc() ? "-Xmx8m" : "-Xmx4m";
+        String Xmx = "-Xmx4m";
 
-        ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+        OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
             Xmx,
             "-XX:NativeMemoryTracking=detail",
             "-XX:+UseParallelGC",
             "-version");
-        OutputAnalyzer output = new OutputAnalyzer(pb.start());
         output.shouldHaveExitValue(0);
     }
 }

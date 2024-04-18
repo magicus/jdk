@@ -75,6 +75,7 @@ abstract class HmacCore extends MacSpi implements Cloneable {
             } else {
                 String noCloneProv = md.getProvider().getName();
                 // if no Sun provider, use provider list
+                md = null;
                 Provider[] provs = Security.getProviders();
                 for (Provider p : provs) {
                     try {
@@ -89,6 +90,10 @@ abstract class HmacCore extends MacSpi implements Cloneable {
                     } catch (NoSuchAlgorithmException nsae) {
                         continue;
                     }
+                }
+                if (md == null) {
+                    throw new NoSuchAlgorithmException
+                            ("No Cloneable digest found for " + digestAlgo);
                 }
             }
         }
@@ -329,7 +334,6 @@ abstract class HmacCore extends MacSpi implements Cloneable {
     public static final class HmacSHA3_512 extends HmacCore {
         public HmacSHA3_512() throws NoSuchAlgorithmException {
             super("SHA3-512", 72);
-            System.out.println(AlgorithmId.get("HmacSHA3-512"));
         }
     }
 }

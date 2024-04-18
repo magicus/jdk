@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,11 +22,19 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/g1/g1BlockOffsetTable.inline.hpp"
+#include "gc/g1/g1CardSet.inline.hpp"
 #include "gc/g1/g1CollectedHeap.inline.hpp"
+#include "gc/g1/g1HeapRegion.inline.hpp"
+#include "gc/g1/g1HeapRegionSet.hpp"
+#include "gc/g1/g1RegionToSpaceMapper.hpp"
+#include "memory/allocation.hpp"
+#include "memory/memRegion.hpp"
+#include "memory/virtualspace.hpp"
 #include "unittest.hpp"
 
 // @requires UseG1GC
-TEST_VM(FreeRegionList, length) {
+TEST_OTHER_VM(FreeRegionList, length) {
   if (!UseG1GC) {
     return;
   }
@@ -36,7 +44,7 @@ TEST_VM(FreeRegionList, length) {
 
   // Create a fake heap. It does not need to be valid, as the HeapRegion constructor
   // does not access it.
-  MemRegion heap(NULL, num_regions_in_test * HeapRegion::GrainWords);
+  MemRegion heap(nullptr, num_regions_in_test * HeapRegion::GrainWords);
 
   // Allocate a fake BOT because the HeapRegion constructor initializes
   // the BOT.
@@ -48,7 +56,7 @@ TEST_VM(FreeRegionList, length) {
                                          bot_rs.size(),
                                          os::vm_page_size(),
                                          HeapRegion::GrainBytes,
-                                         BOTConstants::N_bytes,
+                                         CardTable::card_size(),
                                          mtGC);
   G1BlockOffsetTable bot(heap, bot_storage);
   bot_storage->commit_regions(0, num_regions_in_test);
@@ -60,11 +68,14 @@ TEST_VM(FreeRegionList, length) {
   MemRegion mr3(mr2.end(), HeapRegion::GrainWords);
   MemRegion mr4(mr3.end(), HeapRegion::GrainWords);
 
-  HeapRegion hr0(0, &bot, mr0);
-  HeapRegion hr1(1, &bot, mr1);
-  HeapRegion hr2(2, &bot, mr2);
-  HeapRegion hr3(3, &bot, mr3);
-  HeapRegion hr4(4, &bot, mr4);
+  G1CardSetConfiguration config;
+
+  HeapRegion hr0(0, &bot, mr0, &config);
+  HeapRegion hr1(1, &bot, mr1, &config);
+  HeapRegion hr2(2, &bot, mr2, &config);
+  HeapRegion hr3(3, &bot, mr3, &config);
+  HeapRegion hr4(4, &bot, mr4, &config);
+
   l.add_ordered(&hr1);
   l.add_ordered(&hr0);
   l.add_ordered(&hr3);

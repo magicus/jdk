@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -98,7 +98,7 @@ public abstract class RMISocketFactory
      * @param  host   the host name
      * @param  port   the port number
      * @return a socket connected to the specified host and port.
-     * @exception IOException if an I/O error occurs during socket creation
+     * @throws IOException if an I/O error occurs during socket creation
      * @since 1.1
      */
     public abstract Socket createSocket(String host, int port)
@@ -109,7 +109,7 @@ public abstract class RMISocketFactory
      * an anonymous port).
      * @param  port the port number
      * @return the server socket on the specified port
-     * @exception IOException if an I/O error occurs during server socket
+     * @throws IOException if an I/O error occurs during server socket
      * creation
      * @since 1.1
      */
@@ -124,19 +124,20 @@ public abstract class RMISocketFactory
      * setting a socket factory; if disallowed, a SecurityException will be
      * thrown.
      * @param fac the socket factory
-     * @exception IOException if the RMI socket factory is already set
-     * @exception  SecurityException  if a security manager exists and its
-     *             <code>checkSetFactory</code> method doesn't allow the operation.
+     * @throws IOException if the RMI socket factory is already set
+     * @throws  SecurityException  if a security manager exists and its
+     *          <code>checkSetFactory</code> method doesn't allow the operation.
      * @see #getSocketFactory
      * @see java.lang.SecurityManager#checkSetFactory()
      * @since 1.1
      */
-    public synchronized static void setSocketFactory(RMISocketFactory fac)
+    public static synchronized void setSocketFactory(RMISocketFactory fac)
         throws IOException
     {
         if (factory != null) {
             throw new SocketException("factory already defined");
         }
+        @SuppressWarnings("removal")
         SecurityManager security = System.getSecurityManager();
         if (security != null) {
             security.checkSetFactory();
@@ -152,7 +153,7 @@ public abstract class RMISocketFactory
      * @see #setSocketFactory(RMISocketFactory)
      * @since 1.1
      */
-    public synchronized static RMISocketFactory getSocketFactory()
+    public static synchronized RMISocketFactory getSocketFactory()
     {
         return factory;
     }
@@ -165,7 +166,7 @@ public abstract class RMISocketFactory
      * @return the default RMI socket factory
      * @since 1.1
      */
-    public synchronized static RMISocketFactory getDefaultSocketFactory() {
+    public static synchronized RMISocketFactory getDefaultSocketFactory() {
         if (defaultSocketFactory == null) {
             defaultSocketFactory =
                 new sun.rmi.transport.tcp.TCPDirectSocketFactory();
@@ -192,8 +193,9 @@ public abstract class RMISocketFactory
      * @see java.rmi.server.RMIFailureHandler#failure(Exception)
      * @since 1.1
      */
-    public synchronized static void setFailureHandler(RMIFailureHandler fh)
+    public static synchronized void setFailureHandler(RMIFailureHandler fh)
     {
+        @SuppressWarnings("removal")
         SecurityManager security = System.getSecurityManager();
         if (security != null) {
             security.checkSetFactory();
@@ -208,7 +210,7 @@ public abstract class RMISocketFactory
      * @see #setFailureHandler(RMIFailureHandler)
      * @since 1.1
      */
-    public synchronized static RMIFailureHandler getFailureHandler()
+    public static synchronized RMIFailureHandler getFailureHandler()
     {
         return handler;
     }

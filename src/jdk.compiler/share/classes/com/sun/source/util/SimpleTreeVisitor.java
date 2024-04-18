@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,7 +54,7 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
 
     /**
      * Creates a visitor, with a specified DEFAULT_VALUE.
-     * @param defaultValue the default value to be returned by the default action.
+     * @param defaultValue the default value to be returned by the default action
      */
     protected SimpleTreeVisitor(R defaultValue) {
         DEFAULT_VALUE = defaultValue;
@@ -85,7 +85,7 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
      * @param nodes the nodes on which to dispatch
      * @param p a parameter value to be passed to each appropriate visit method
      * @return the value return from the last of the visit methods, or null
-     *      if none were called.
+     *      if none were called
      */
     public final R visit(Iterable<? extends Tree> nodes, P p) {
         R r = null;
@@ -96,7 +96,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -108,7 +110,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -120,7 +124,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -132,7 +138,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -144,7 +152,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -156,7 +166,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -168,7 +180,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -180,7 +194,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -192,7 +208,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -204,7 +222,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -216,7 +236,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -228,7 +250,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -240,7 +264,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -252,7 +278,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -264,7 +292,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -276,7 +306,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -288,7 +320,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -300,7 +334,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -312,7 +348,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -324,7 +362,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -336,7 +376,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -348,7 +390,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -360,7 +404,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -372,7 +418,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -384,7 +432,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -396,7 +446,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -408,7 +460,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -420,7 +474,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -432,7 +488,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -444,7 +502,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -456,7 +516,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -468,7 +530,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -480,7 +544,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -492,7 +558,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -504,7 +572,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -516,7 +586,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -528,7 +600,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -540,7 +614,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -552,7 +628,24 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     * @since 22
+     */
+    @Override
+    public R visitAnyPattern(AnyPatternTree node, P p) {
+        return defaultAction(node, p);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -565,7 +658,69 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     * @since 21
+     */
+    @Override
+    public R visitDefaultCaseLabel(DefaultCaseLabelTree node, P p) {
+        return defaultAction(node, p);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     * @since 21
+     */
+    @Override
+    public R visitConstantCaseLabel(ConstantCaseLabelTree node, P p) {
+        return defaultAction(node, p);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     * @since 21
+     */
+    @Override
+    public R visitDeconstructionPattern(DeconstructionPatternTree node, P p) {
+        return defaultAction(node, p);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     * @since 21
+     */
+    @Override
+    public R visitPatternCaseLabel(PatternCaseLabelTree node, P p) {
+        return defaultAction(node, p);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -577,7 +732,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -589,7 +746,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -601,7 +760,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -613,7 +774,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -625,7 +788,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -637,7 +802,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -649,7 +816,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -661,7 +830,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -673,7 +844,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -685,7 +858,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -697,7 +872,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -709,7 +886,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -721,7 +900,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -733,7 +914,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -744,41 +927,108 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
         return defaultAction(node, p);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     */
+    @Override
     public R visitModule(ModuleTree node, P p) {
         return defaultAction(node, p);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     */
     @Override
     public R visitExports(ExportsTree node, P p) {
         return defaultAction(node, p);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     */
     @Override
     public R visitOpens(OpensTree node, P p) {
         return defaultAction(node, p);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     */
     @Override
     public R visitProvides(ProvidesTree node, P p) {
         return defaultAction(node, p);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     */
     @Override
     public R visitRequires(RequiresTree node, P p) {
         return defaultAction(node, p);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     */
     @Override
     public R visitUses(UsesTree node, P p) {
         return defaultAction(node, p);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
+     *
+     * @param node {@inheritDoc}
+     * @param p {@inheritDoc}
+     * @return  the result of {@code defaultAction}
+     */
+    @Override
     public R visitErroneous(ErroneousTree node, P p) {
         return defaultAction(node, p);
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}
@@ -790,7 +1040,9 @@ public class SimpleTreeVisitor <R,P> implements TreeVisitor<R,P> {
     }
 
     /**
-     * {@inheritDoc} This implementation calls {@code defaultAction}.
+     * {@inheritDoc}
+     *
+     * @implSpec This implementation calls {@code defaultAction}.
      *
      * @param node {@inheritDoc}
      * @param p {@inheritDoc}

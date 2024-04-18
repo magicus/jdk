@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -51,8 +51,8 @@ public class TestHtmlLandmarkRegions extends JavadocTester {
     final ToolBox tb;
 
     public static void main(String... args) throws Exception {
-        TestHtmlLandmarkRegions tester = new TestHtmlLandmarkRegions();
-        tester.runTests(m -> new Object[]{Paths.get(m.getName())});
+        var tester = new TestHtmlLandmarkRegions();
+        tester.runTests();
     }
 
     TestHtmlLandmarkRegions() {
@@ -68,6 +68,7 @@ public class TestHtmlLandmarkRegions extends JavadocTester {
         javadoc("-d", outDir.toString(),
                 "-doctitle", "Document Title",
                 "-header", "Test Header",
+                "-bottom", "bottom text",
                 "--module-source-path", srcDir.toString(),
                 "--module", "m1,m2");
 
@@ -75,15 +76,17 @@ public class TestHtmlLandmarkRegions extends JavadocTester {
 
         checkOrder("index.html",
                 """
-                    <header role="banner" class="flex-header">
+                    <header role="banner">
                     <nav role="navigation">""",
                 """
                     <main role="main">
                     <div class="header">
                     <h1 class="title">Document Title</h1>""",
                 """
-                    <footer role="contentinfo">
-                    <nav role="navigation">""");
+                    <footer role="contentinfo"> """,
+                """
+                    bottom text"""
+        );
     }
 
     @Test
@@ -95,6 +98,7 @@ public class TestHtmlLandmarkRegions extends JavadocTester {
         javadoc("-d", outDir.toString(),
                 "-doctitle", "Document Title",
                 "-header", "Test Header",
+                "-bottom", "bottom text",
                 "-sourcepath", srcDir.toString(),
                 "pkg1", "pkg2");
 
@@ -102,15 +106,16 @@ public class TestHtmlLandmarkRegions extends JavadocTester {
 
         checkOrder("index.html",
                 """
-                    <header role="banner" class="flex-header">
+                    <header role="banner">
                     <nav role="navigation">""",
                 """
                     <main role="main">
                     <div class="header">
                     <h1 class="title">Document Title</h1>""",
                 """
-                    <footer role="contentinfo">
-                    <nav role="navigation">""");
+                    <footer role="contentinfo">""",
+                """
+                    bottom text""");
     }
 
     @Test
@@ -131,6 +136,7 @@ public class TestHtmlLandmarkRegions extends JavadocTester {
 
         Path outDir = base.resolve("out");
         javadoc("-d", outDir.toString(),
+                "-bottom", "bottom text",
                 "-sourcepath", srcDir.toString(),
                 "pkg1", "pkg2");
 
@@ -138,14 +144,15 @@ public class TestHtmlLandmarkRegions extends JavadocTester {
 
         checkOrder("pkg1/doc-files/s.html",
                 """
-                    <header role="banner" class="flex-header">
+                    <header role="banner">
                     <nav role="navigation">
                     """,
                 """
                     <main role="main">A sample doc file""",
                 """
-                    <footer role="contentinfo">
-                    <nav role="navigation">"""
+                    <footer role="contentinfo">""",
+                """
+                    bottom text"""
                 );
     }
 

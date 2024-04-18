@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -60,8 +60,6 @@ class InvocationCounter {
   // Manipulation
   void reset();
   void init();
-  void decay();                                  // decay counter (divide by two)
-  void set_carry_and_reduce();                   // set the sticky carry bit
   void set_carry_on_overflow();
   void set(uint count);
   void increment()                 { _counter += count_increment; }
@@ -69,7 +67,7 @@ class InvocationCounter {
   // Accessors
   bool carry() const               { return (_counter & carry_mask) != 0; }
   uint count() const               { return _counter >> number_of_noncount_bits; }
-  uint limit() const               { return CompileThreshold; }
+  intx limit() const               { return CompileThreshold; }
   uint raw_counter() const         { return _counter; }
 
   void print();
@@ -82,22 +80,6 @@ private:
   void set(uint count, uint carry);
 
 public:
-#ifdef CC_INTERP
-  static int InterpreterInvocationLimit;        // CompileThreshold scaled for interpreter use
-  static int InterpreterBackwardBranchLimit;    // A separate threshold for on stack replacement
-
-  // Test counter using scaled limits like the asm interpreter would do rather than doing
-  // the shifts to normalize the counter.
-  // Checks sum of invocation_counter and backedge_counter as the template interpreter does.
-  bool reached_InvocationLimit(InvocationCounter *back_edge_count) const {
-    return (_counter & count_mask) + (back_edge_count->_counter & count_mask) >=
-           (uint) InterpreterInvocationLimit;
-  }
-  bool reached_BackwardBranchLimit(InvocationCounter *back_edge_count) const {
-    return (_counter & count_mask) + (back_edge_count->_counter & count_mask) >=
-           (uint) InterpreterBackwardBranchLimit;
-  }
-#endif // CC_INTERP
 
   // Miscellaneous
   static ByteSize counter_offset()               { return byte_offset_of(InvocationCounter, _counter); }

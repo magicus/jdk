@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Red Hat, Inc. All rights reserved.
+ * Copyright (c) 2018, 2021, Red Hat, Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,18 +29,18 @@
 #include "gc/shenandoah/c2/shenandoahSupport.hpp"
 #include "utilities/growableArray.hpp"
 
-class ShenandoahBarrierSetC2State : public ResourceObj {
+class ShenandoahBarrierSetC2State : public ArenaObj {
 private:
-  GrowableArray<ShenandoahEnqueueBarrierNode*>* _enqueue_barriers;
+  GrowableArray<ShenandoahIUBarrierNode*>* _iu_barriers;
   GrowableArray<ShenandoahLoadReferenceBarrierNode*>* _load_reference_barriers;
 
 public:
   ShenandoahBarrierSetC2State(Arena* comp_arena);
 
-  int enqueue_barriers_count() const;
-  ShenandoahEnqueueBarrierNode* enqueue_barrier(int idx) const;
-  void add_enqueue_barrier(ShenandoahEnqueueBarrierNode* n);
-  void remove_enqueue_barrier(ShenandoahEnqueueBarrierNode * n);
+  int iu_barriers_count() const;
+  ShenandoahIUBarrierNode* iu_barrier(int idx) const;
+  void add_iu_barrier(ShenandoahIUBarrierNode* n);
+  void remove_iu_barrier(ShenandoahIUBarrierNode * n);
 
   int load_reference_barriers_count() const;
   ShenandoahLoadReferenceBarrierNode* load_reference_barrier(int idx) const;
@@ -52,7 +52,7 @@ class ShenandoahBarrierSetC2 : public BarrierSetC2 {
 private:
   void shenandoah_eliminate_wb_pre(Node* call, PhaseIterGVN* igvn) const;
 
-  bool satb_can_remove_pre_barrier(GraphKit* kit, PhaseTransform* phase, Node* adr,
+  bool satb_can_remove_pre_barrier(GraphKit* kit, PhaseValues* phase, Node* adr,
                                    BasicType bt, uint adr_idx) const;
   void satb_write_barrier_pre(GraphKit* kit, bool do_load,
                               Node* obj,
@@ -73,8 +73,7 @@ private:
                                     Node* pre_val,
                                     BasicType bt) const;
 
-  Node* shenandoah_enqueue_barrier(GraphKit* kit, Node* val) const;
-  Node* shenandoah_storeval_barrier(GraphKit* kit, Node* obj) const;
+  Node* shenandoah_iu_barrier(GraphKit* kit, Node* obj) const;
 
   void insert_pre_barrier(GraphKit* kit, Node* base_oop, Node* offset,
                           Node* pre_val, bool need_mem_bar) const;
@@ -95,7 +94,7 @@ public:
 
   static bool is_shenandoah_wb_pre_call(Node* call);
   static bool is_shenandoah_lrb_call(Node* call);
-  static bool is_shenandoah_marking_if(PhaseTransform *phase, Node* n);
+  static bool is_shenandoah_marking_if(PhaseValues* phase, Node* n);
   static bool is_shenandoah_state_load(Node* n);
   static bool has_only_shenandoah_wb_pre_uses(Node* n);
 
@@ -110,9 +109,10 @@ public:
   virtual void clone_at_expansion(PhaseMacroExpand* phase, ArrayCopyNode* ac) const;
 
   // These are general helper methods used by C2
-  virtual bool array_copy_requires_gc_barriers(bool tightly_coupled_alloc, BasicType type, bool is_clone, ArrayCopyPhase phase) const;
+  virtual bool array_copy_requires_gc_barriers(bool tightly_coupled_alloc, BasicType type, bool is_clone, bool is_clone_instance, ArrayCopyPhase phase) const;
 
   // Support for GC barriers emitted during parsing
+  virtual bool is_gc_pre_barrier_node(Node* node) const;
   virtual bool is_gc_barrier_node(Node* node) const;
   virtual Node* step_over_gc_barrier(Node* c) const;
   virtual bool expand_barriers(Compile* C, PhaseIterGVN& igvn) const;
@@ -139,7 +139,7 @@ public:
 #endif
 
   virtual Node* ideal_node(PhaseGVN* phase, Node* n, bool can_reshape) const;
-  virtual bool final_graph_reshaping(Compile* compile, Node* n, uint opcode) const;
+  virtual bool final_graph_reshaping(Compile* compile, Node* n, uint opcode, Unique_Node_List& dead_nodes) const;
 
   virtual bool escape_add_to_con_graph(ConnectionGraph* conn_graph, PhaseGVN* gvn, Unique_Node_List* delayed_worklist, Node* n, uint opcode) const;
   virtual bool escape_add_final_edges(ConnectionGraph* conn_graph, PhaseGVN* gvn, Node* n, uint opcode) const;

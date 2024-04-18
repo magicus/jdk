@@ -4,9 +4,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -30,14 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
 
-import jdk.jfr.EventType;
-import jdk.jfr.FlightRecorder;
 import jdk.jfr.Recording;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.test.lib.Platform;
 import jdk.test.lib.jfr.EventNames;
 import jdk.test.lib.jfr.Events;
-import jdk.test.lib.process.ProcessTools;
 
 /**
  * @test
@@ -52,7 +47,7 @@ public class TestProcessStart {
     public static void main(String[] args) throws Throwable {
 
         try (Recording recording = new Recording()) {
-            recording.enable(EVENT_NAME);
+            recording.enable(EVENT_NAME).withStackTrace();
             recording.start();
             List<String> commandList = new ArrayList<>();
             if (Platform.isWindows()) {
@@ -79,6 +74,7 @@ public class TestProcessStart {
                 Events.assertField(event, "pid").equal(p.pid());
                 Events.assertField(event, "directory").equal(pb.directory().toString());
                 Events.assertField(event, "command").equal(command.toString());
+                Events.assertTopFrame(event, TestProcessStart.class, "main");
             }
         }
     }

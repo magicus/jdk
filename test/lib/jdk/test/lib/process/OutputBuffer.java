@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,6 +45,12 @@ public interface OutputBuffer {
   }
 
   /**
+   * Waits for a process to finish, if there is one assocated with
+   * this OutputBuffer.
+   */
+  public void waitFor();
+
+  /**
    * Returns the stdout result
    *
    * @return stdout result
@@ -67,7 +73,21 @@ public interface OutputBuffer {
    * @return stderr result
    */
   public String getStderr();
+
+
+  /**
+   * Returns the exit value
+   *
+   * @return exit value
+   */
   public int getExitValue();
+
+  /**
+   * Returns the pid if available
+   *
+   * @return pid
+   */
+  public long pid();
 
   public static OutputBuffer of(Process p, Charset cs) {
     return new LazyOutputBuffer(p, cs);
@@ -113,6 +133,7 @@ public interface OutputBuffer {
     private final StreamTask outTask;
     private final StreamTask errTask;
     private final Process p;
+    private volatile Integer exitValue; // null implies we don't yet know
 
     private final void logProgress(String state) {
         System.out.println("[" + Instant.now().toString() + "] " + state
@@ -128,6 +149,31 @@ public interface OutputBuffer {
     }
 
     @Override
+    public void waitFor() {
+      if (exitValue != null) {
+        // Already waited for this process
+        return;
+      }
+
+      try {
+          logProgress("Waiting for completion");
+          boolean aborted = true;
+          try {
+              exitValue = p.waitFor();
+              logProgress("Waiting for completion finished");
+              aborted = false;
+          } finally {
+              if (aborted) {
+                  logProgress("Waiting for completion FAILED");
+              }
+          }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new OutputBufferException(e);
+      }
+    }
+
+    @Override
     public String getStdout() {
       return outTask.get();
     }
@@ -139,23 +185,13 @@ public interface OutputBuffer {
 
     @Override
     public int getExitValue() {
-      try {
-          logProgress("Waiting for completion");
-          boolean aborted = true;
-          try {
-              int result = p.waitFor();
-              logProgress("Waiting for completion finished");
-              aborted = false;
-              return result;
-          } finally {
-              if (aborted) {
-                  logProgress("Waiting for completion FAILED");
-              }
-          }
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new OutputBufferException(e);
-      }
+      waitFor();
+      return exitValue;
+    }
+
+    @Override
+    public long pid() {
+      return p.pid();
     }
   }
 
@@ -171,6 +207,11 @@ public interface OutputBuffer {
     }
 
     @Override
+    public void waitFor() {
+      // Nothing to do since this buffer is not associated with a Process.
+    }
+
+    @Override
     public String getStdout() {
       return stdout;
     }
@@ -183,6 +224,11 @@ public interface OutputBuffer {
     @Override
     public int getExitValue() {
       return exitValue;
+    }
+
+    @Override
+    public long pid() {
+      throw new RuntimeException("no process");
     }
   }
 }

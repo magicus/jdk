@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,8 @@
 #include "memory/allocation.hpp"
 #include "metaprogramming/primitiveConversions.hpp"
 
+#include <type_traits>
+
 //
 // Forwarding entry layout
 // -----------------------
@@ -46,7 +48,8 @@
 //
 
 class ZForwardingEntry {
-  friend class PrimitiveConversions;
+  friend struct PrimitiveConversions::Translate<ZForwardingEntry>;
+  friend class VMStructs;
 
 private:
   typedef ZBitField<uint64_t, bool,   0,   1> field_populated;
@@ -56,11 +59,11 @@ private:
   uint64_t _entry;
 
 public:
-  ZForwardingEntry() :
-      _entry(0) {}
+  ZForwardingEntry()
+    : _entry(0) {}
 
-  ZForwardingEntry(size_t from_index, size_t to_offset) :
-      _entry(field_populated::encode(true) |
+  ZForwardingEntry(size_t from_index, size_t to_offset)
+    : _entry(field_populated::encode(true) |
              field_to_offset::encode(to_offset) |
              field_from_index::encode(from_index)) {}
 
@@ -79,7 +82,7 @@ public:
 
 // Needed to allow atomic operations on ZForwardingEntry
 template <>
-struct PrimitiveConversions::Translate<ZForwardingEntry> : public TrueType {
+struct PrimitiveConversions::Translate<ZForwardingEntry> : public std::true_type {
   typedef ZForwardingEntry Value;
   typedef uint64_t         Decayed;
 

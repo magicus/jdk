@@ -23,10 +23,9 @@
  */
 
 /*
- * @test TestThreadCountsOverride
+ * @test
  * @summary Test that Shenandoah GC thread counts are overridable
- * @key gc
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -39,28 +38,28 @@ import jdk.test.lib.process.OutputAnalyzer;
 public class TestThreadCountsOverride {
     public static void main(String[] args) throws Exception {
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                "-Xmx128m",
                 "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:+UnlockExperimentalVMOptions",
                 "-XX:+UseShenandoahGC",
                 "-XX:ParallelGCThreads=1",
                 "-XX:+PrintFlagsFinal",
                 "-version");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
 
             output.shouldMatch("ParallelGCThreads(.*)= 1 ");
             output.shouldHaveExitValue(0);
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                "-Xmx128m",
                 "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:+UnlockExperimentalVMOptions",
                 "-XX:+UseShenandoahGC",
                 "-XX:ConcGCThreads=1",
                 "-XX:+PrintFlagsFinal",
                 "-version");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
 
             output.shouldMatch("ConcGCThreads(.*)= 1 ");
             output.shouldHaveExitValue(0);

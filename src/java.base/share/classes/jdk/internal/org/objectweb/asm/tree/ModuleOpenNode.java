@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.tree;
 
 import java.util.List;
@@ -68,7 +69,9 @@ import jdk.internal.org.objectweb.asm.ModuleVisitor;
  */
 public class ModuleOpenNode {
 
-    /** The internal name of the opened package. */
+    /**
+      * The internal name of the opened package (see {@link jdk.internal.org.objectweb.asm.Type#getInternalName()}).
+      */
     public String packaze;
 
     /**
@@ -86,7 +89,8 @@ public class ModuleOpenNode {
     /**
       * Constructs a new {@link ModuleOpenNode}.
       *
-      * @param packaze the internal name of the opened package.
+      * @param packaze the internal name of the opened package (see {@link
+      *     jdk.internal.org.objectweb.asm.Type#getInternalName()}).
       * @param access the access flag of the opened package, valid values are among {@code
       *     ACC_SYNTHETIC} and {@code ACC_MANDATED}.
       * @param modules the fully qualified names (using dots) of the modules that can use deep

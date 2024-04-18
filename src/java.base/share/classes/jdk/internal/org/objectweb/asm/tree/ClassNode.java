@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.tree;
 
 import java.util.ArrayList;
@@ -89,14 +90,14 @@ public class ClassNode extends ClassVisitor {
       */
     public int access;
 
-    /** The internal name of this class (see {@link jdk.internal.org.objectweb.asm.Type#getInternalName}). */
+    /** The internal name of this class (see {@link jdk.internal.org.objectweb.asm.Type#getInternalName()}). */
     public String name;
 
     /** The signature of this class. May be {@literal null}. */
     public String signature;
 
     /**
-      * The internal of name of the super class (see {@link jdk.internal.org.objectweb.asm.Type#getInternalName}).
+      * The internal of name of the super class (see {@link jdk.internal.org.objectweb.asm.Type#getInternalName()}).
       * For interfaces, the super class is {@link Object}. May be {@literal null}, but only for the
       * {@link Object} class.
       */
@@ -104,7 +105,7 @@ public class ClassNode extends ClassVisitor {
 
     /**
       * The internal names of the interfaces directly implemented by this class (see {@link
-      * jdk.internal.org.objectweb.asm.Type#getInternalName}).
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}).
       */
     public List<String> interfaces;
 
@@ -119,18 +120,26 @@ public class ClassNode extends ClassVisitor {
     /** The module stored in this class. May be {@literal null}. */
     public ModuleNode module;
 
-    /** The internal name of the enclosing class of this class. May be {@literal null}. */
+    /**
+      * The internal name of the enclosing class of this class (see {@link
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}). Must be {@literal null} if this class has no
+      * enclosing class, or if it is a local or anonymous class.
+      */
     public String outerClass;
 
     /**
-      * The name of the method that contains this class, or {@literal null} if this class is not
-      * enclosed in a method.
+      * The name of the method that contains the class, or {@literal null} if the class has no
+      * enclosing class, or is not enclosed in a method or constructor of its enclosing class (e.g. if
+      * it is enclosed in an instance initializer, static initializer, instance variable initializer,
+      * or class variable initializer).
       */
     public String outerMethod;
 
     /**
-      * The descriptor of the method that contains this class, or {@literal null} if this class is not
-      * enclosed in a method.
+      * The descriptor of the method that contains the class, or {@literal null} if the class has no
+      * enclosing class, or is not enclosed in a method or constructor of its enclosing class (e.g. if
+      * it is enclosed in an instance initializer, static initializer, instance variable initializer,
+      * or class variable initializer).
       */
     public String outerMethodDesc;
 
@@ -152,20 +161,23 @@ public class ClassNode extends ClassVisitor {
     /** The inner classes of this class. */
     public List<InnerClassNode> innerClasses;
 
-    /** The internal name of the nest host class of this class. May be {@literal null}. */
+    /**
+      * The internal name of the nest host class of this class (see {@link
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}). May be {@literal null}.
+      */
     public String nestHostClass;
 
-    /** The internal names of the nest members of this class. May be {@literal null}. */
+    /**
+      * The internal names of the nest members of this class (see {@link
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}). May be {@literal null}.
+      */
     public List<String> nestMembers;
 
     /**
-      * <b>Experimental, use at your own risk. This method will be renamed when it becomes stable, this
-      * will break existing code using it</b>. The internal names of the permitted subtypes of this
-      * class. May be {@literal null}.
-      *
-      * @deprecated this API is experimental.
+      * The internal names of the permitted subclasses of this class (see {@link
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}). May be {@literal null}.
       */
-    @Deprecated public List<String> permittedSubtypesExperimental;
+    public List<String> permittedSubclasses;
 
     /** The record components of this class. May be {@literal null}. */
     public List<RecordComponentNode> recordComponents;
@@ -183,7 +195,7 @@ public class ClassNode extends ClassVisitor {
       * @throws IllegalStateException If a subclass calls this constructor.
       */
     public ClassNode() {
-        this(Opcodes.ASM8);
+        this(Opcodes.ASM9);
         if (getClass() != ClassNode.class) {
             throw new IllegalStateException();
         }
@@ -192,9 +204,8 @@ public class ClassNode extends ClassVisitor {
     /**
       * Constructs a new {@link ClassNode}.
       *
-      * @param api the ASM API version implemented by this visitor. Must be one of {@link
-      *     Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6}, {@link Opcodes#ASM7} or {@link
-      *     Opcodes#ASM8}.
+      * @param api the ASM API version implemented by this visitor. Must be one of the {@code
+      *     ASM}<i>x</i> values in {@link Opcodes}.
       */
     public ClassNode(final int api) {
         super(api);
@@ -281,16 +292,9 @@ public class ClassNode extends ClassVisitor {
         nestMembers = Util.add(nestMembers, nestMember);
     }
 
-    /**
-      * <b>Experimental, use at your own risk.</b>.
-      *
-      * @param permittedSubtype the internal name of a permitted subtype.
-      * @deprecated this API is experimental.
-      */
     @Override
-    @Deprecated
-    public void visitPermittedSubtypeExperimental(final String permittedSubtype) {
-        permittedSubtypesExperimental = Util.add(permittedSubtypesExperimental, permittedSubtype);
+    public void visitPermittedSubclass(final String permittedSubclass) {
+        permittedSubclasses = Util.add(permittedSubclasses, permittedSubclass);
     }
 
     @Override
@@ -346,12 +350,11 @@ public class ClassNode extends ClassVisitor {
       * that this node, and all its children recursively, do not contain elements that were introduced
       * in more recent versions of the ASM API than the given version.
       *
-      * @param api an ASM API version. Must be one of {@link Opcodes#ASM4}, {@link Opcodes#ASM5},
-      *     {@link Opcodes#ASM6}, {@link Opcodes#ASM7}. or {@link Opcodes#ASM8}.
+      * @param api an ASM API version. Must be one of the {@code ASM}<i>x</i> values in {@link
+      *     Opcodes}.
       */
-    @SuppressWarnings("deprecation")
     public void check(final int api) {
-        if (api != Opcodes.ASM9_EXPERIMENTAL && permittedSubtypesExperimental != null) {
+        if (api < Opcodes.ASM9 && permittedSubclasses != null) {
             throw new UnsupportedClassVersionException();
         }
         if (api < Opcodes.ASM8 && ((access & Opcodes.ACC_RECORD) != 0 || recordComponents != null)) {
@@ -410,7 +413,6 @@ public class ClassNode extends ClassVisitor {
       *
       * @param classVisitor a class visitor.
       */
-    @SuppressWarnings("deprecation")
     public void accept(final ClassVisitor classVisitor) {
         // Visit the header.
         String[] interfacesArray = new String[this.interfaces.size()];
@@ -473,10 +475,10 @@ public class ClassNode extends ClassVisitor {
                 classVisitor.visitNestMember(nestMembers.get(i));
             }
         }
-        // Visit the permitted subtypes.
-        if (permittedSubtypesExperimental != null) {
-            for (int i = 0, n = permittedSubtypesExperimental.size(); i < n; ++i) {
-                classVisitor.visitPermittedSubtypeExperimental(permittedSubtypesExperimental.get(i));
+        // Visit the permitted subclasses.
+        if (permittedSubclasses != null) {
+            for (int i = 0, n = permittedSubclasses.size(); i < n; ++i) {
+                classVisitor.visitPermittedSubclass(permittedSubclasses.get(i));
             }
         }
         // Visit the inner classes.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,8 +23,8 @@
 
 import static com.sun.swingset3.demos.editorpane.EditorPaneDemo.DEMO_TITLE;
 import static com.sun.swingset3.demos.editorpane.EditorPaneDemo.SOURCE_FILES;
-import static org.jemmy2ext.JemmyExt.EXACT_STRING_COMPARATOR;
-import static org.jemmy2ext.JemmyExt.assertNotBlack;
+import static org.jemmy2ext.JemmyExt.*;
+import static org.testng.Assert.assertFalse;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -52,7 +52,7 @@ import com.sun.swingset3.demos.editorpane.EditorPaneDemo;
 /*
  * @test
  * @key headful screenshots
- * @summary Verifies SwingSet3 EditorPaneDemo by navigating and and validating
+ * @summary Verifies SwingSet3 EditorPaneDemo by navigating and validating
  *  the page contents in all pages
  *
  * @library /sanity/client/lib/jemmy/src
@@ -149,7 +149,8 @@ public class EditorPaneDemoTest {
         final int xGap = 100, yGap = 40, columns = 2, rows = 5;
         editorPaneOperator.waitState(comp -> {
             BufferedImage capturedImage = ImageTool.getImage(imageRect);
-            assertNotBlack(capturedImage);
+            save(capturedImage, "editor");
+            assertFalse(isBlack(capturedImage), "image blackness");
             int x = 0, y = 0, i = 0, j;
             for (; i < columns; i++) {
                 x += xGap;
@@ -158,8 +159,7 @@ public class EditorPaneDemoTest {
                     y += yGap;
                     if(capturedImage.getRGB(x, y) == Color.WHITE.getRGB()) {
                         // saving image for failure case
-                        JemmyExt.save(capturedImage, "capturedimage_" + pageName + "_" +
-                                UIManager.getLookAndFeel().getClass().getSimpleName() + ".png");
+                        save(capturedImage, "capturedimage-" + pageName);
                         return false;
                     }
                 }

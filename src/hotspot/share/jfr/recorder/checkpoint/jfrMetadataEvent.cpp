@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,24 +24,42 @@
 
 #include "precompiled.hpp"
 #include "jfr/jni/jfrJavaSupport.hpp"
+#include "jfr/jni/jfrUpcalls.hpp"
 #include "jfr/recorder/checkpoint/jfrMetadataEvent.hpp"
 #include "jfr/recorder/repository/jfrChunkWriter.hpp"
+#include "jfr/recorder/jfrEventSetting.inline.hpp"
 #include "oops/klass.inline.hpp"
 #include "oops/oop.inline.hpp"
 #include "oops/typeArrayOop.inline.hpp"
-#include "runtime/thread.inline.hpp"
+#include "runtime/interfaceSupport.inline.hpp"
+#include "runtime/javaThread.hpp"
+#include "utilities/exceptions.hpp"
 
-static jbyteArray metadata_blob = NULL;
+static jbyteArray metadata_blob = nullptr;
 static u8 metadata_id = 0;
 static u8 last_metadata_id = 0;
 
-static void write_metadata_blob(JfrChunkWriter& chunkwriter) {
-  assert(metadata_blob != NULL, "invariant");
+static void check_internal_types() {
+  static bool visible = false;
+  if (!visible && JfrEventSetting::is_internal_types_visible()) {
+    JavaThread* const jt = JavaThread::current();
+    DEBUG_ONLY(JfrJavaSupport::check_java_thread_in_native(jt));
+    // can safepoint here
+    ThreadInVMfromNative transition(jt);
+    visible = JfrUpcalls::unhide_internal_types(jt);
+  }
+}
+
+static void write_metadata_blob(JfrChunkWriter& chunkwriter, JavaThread* thread) {
+  assert(chunkwriter.is_valid(), "invariant");
+  assert(thread != nullptr, "invariant");
+  assert(metadata_blob != nullptr, "invariant");
+  DEBUG_ONLY(JfrJavaSupport::check_java_thread_in_vm(thread));
   const typeArrayOop arr = (typeArrayOop)JfrJavaSupport::resolve_non_null(metadata_blob);
-  assert(arr != NULL, "invariant");
+  assert(arr != nullptr, "invariant");
   const int length = arr->length();
   const Klass* const k = arr->klass();
-  assert(k != NULL && k->is_array_klass(), "invariant");
+  assert(k != nullptr && k->is_array_klass(), "invariant");
   const TypeArrayKlass* const byte_arr_klass = TypeArrayKlass::cast(k);
   const jbyte* const data_address = arr->byte_at_addr(0);
   chunkwriter.write_unbuffered(data_address, length);
@@ -49,9 +67,14 @@ static void write_metadata_blob(JfrChunkWriter& chunkwriter) {
 
 void JfrMetadataEvent::write(JfrChunkWriter& chunkwriter) {
   assert(chunkwriter.is_valid(), "invariant");
+  check_internal_types();
   if (last_metadata_id == metadata_id && chunkwriter.has_metadata()) {
     return;
   }
+  JavaThread* const jt = JavaThread::current();
+  DEBUG_ONLY(JfrJavaSupport::check_java_thread_in_native(jt));
+  // can safepoint here
+  ThreadInVMfromNative transition(jt);
   // header
   const int64_t metadata_offset = chunkwriter.reserve(sizeof(u4));
   chunkwriter.write<u8>(EVENT_METADATA); // ID 0
@@ -59,7 +82,7 @@ void JfrMetadataEvent::write(JfrChunkWriter& chunkwriter) {
   chunkwriter.write(JfrTicks::now());
   chunkwriter.write((u8)0); // duration
   chunkwriter.write(metadata_id); // metadata id
-  write_metadata_blob(chunkwriter); // payload
+  write_metadata_blob(chunkwriter, jt); // payload
   // fill in size of metadata descriptor event
   const int64_t size_written = chunkwriter.current_offset() - metadata_offset;
   chunkwriter.write_padded_at_offset((u4)size_written, metadata_offset);
@@ -68,14 +91,13 @@ void JfrMetadataEvent::write(JfrChunkWriter& chunkwriter) {
 }
 
 void JfrMetadataEvent::update(jbyteArray metadata) {
-  JavaThread* thread = (JavaThread*)Thread::current();
-  assert(thread->is_Java_thread(), "invariant");
+  JavaThread* thread = JavaThread::current();
   DEBUG_ONLY(JfrJavaSupport::check_java_thread_in_vm(thread));
-  if (metadata_blob != NULL) {
+  if (metadata_blob != nullptr) {
     JfrJavaSupport::destroy_global_jni_handle(metadata_blob);
   }
   const oop new_desc_oop = JfrJavaSupport::resolve_non_null(metadata);
-  assert(new_desc_oop != NULL, "invariant");
+  assert(new_desc_oop != nullptr, "invariant");
   metadata_blob = (jbyteArray)JfrJavaSupport::global_jni_handle(new_desc_oop, thread);
   ++metadata_id;
 }

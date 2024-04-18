@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,15 +25,18 @@ import java.lang.management.*;
 /*
  * @test
  * @bug     8205878 8206954
- * @requires os.family != "windows" & os.family != "solaris"
+ * @requires os.family != "windows"
+ * @comment Calling pthread_getcpuclockid() with invalid pid leads to undefined
+ * behavior in musl libc (see 8240187).
+ * @requires !vm.musl
+ * @library /testlibrary
  * @summary Basic test of Thread and ThreadMXBean queries on a natively
  *          attached thread that has failed to detach before terminating.
- * @comment The native code only supports POSIX so no windows testing; also
- *          we have to skip solaris as a terminating thread that fails to
- *          detach will hit an infinite loop due to TLS destructor issues - see
- *          comments in JDK-8156708
+ * @comment The native code only supports POSIX so no windows testing
  * @run main/othervm/native TestTerminatedThread
  */
+
+import jvmti.JVMTIUtils;
 
 public class TestTerminatedThread {
 
@@ -63,9 +66,9 @@ public class TestTerminatedThread {
                            ",  in state: " + t.getState());
 
         System.out.println("Calling suspend ...");
-        t.suspend();
+        JVMTIUtils.suspendThread(t);
         System.out.println("Calling resume ...");
-        t.resume();
+        JVMTIUtils.resumeThread(t);
         System.out.println("Calling getStackTrace ...");
         StackTraceElement[] stack = t.getStackTrace();
         System.out.println(java.util.Arrays.toString(stack));
@@ -75,8 +78,6 @@ public class TestTerminatedThread {
         t.setName("NewName");
         System.out.println("Calling interrupt ...");
         t.interrupt();
-        System.out.println("Calling stop ...");
-        t.stop();
 
         // Now the ThreadMXBean functions
 

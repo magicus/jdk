@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -62,56 +62,52 @@ mkdir -p $DEVKIT_ROOT
 
 ################################################################################
 # Copy the relevant parts of Xcode.app, removing things that are both big and
-# unecessary for our purposes, without building an impossibly long exclude list.
-#
-# Not including WatchSimulator.platform makes ibtool crashes in some situations.
-# It doesn't seem to matter which extra platform is included, but that is the
-# smallest one.
-
+# unnecessary for our purposes, without building an impossibly long exclude list.
 EXCLUDE_DIRS=" \
     Contents/_CodeSignature \
-    $XCODE_APP_DIR_NAME/Contents/Applications \
-    $XCODE_APP_DIR_NAME/Contents/Resources \
-    $XCODE_APP_DIR_NAME/Contents/Library \
-    $XCODE_APP_DIR_NAME/Contents/XPCServices \
-    $XCODE_APP_DIR_NAME/Contents/OtherFrameworks \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Documentation \
-    $XCODE_APP_DIR_NAME/Contents/Developer/usr/share \
-    $XCODE_APP_DIR_NAME/Contents/Developer/usr/libexec/git-core \
-    $XCODE_APP_DIR_NAME/Contents/Developer/usr/bin/git* \
-    $XCODE_APP_DIR_NAME/Contents/Developer/usr/bin/svn* \
-    $XCODE_APP_DIR_NAME/Contents/Developer/usr/lib/libgit* \
-    $XCODE_APP_DIR_NAME/Contents/Developer/usr/lib/libsvn* \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/share/man \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/${SDK_VERSION}.sdk/usr/share/man \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/share/man \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Platforms/MacOSX.platform/usr \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/man \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift* \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift* \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/sourcekitd.framework \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/swift* \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/swift* \
-    $XCODE_APP_DIR_NAME/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/arc \
+    Contents/Applications \
+    Contents/Resources \
+    Contents/Library \
+    Contents/XPCServices \
+    Contents/OtherFrameworks \
+    Contents/Developer/Documentation \
+    Contents/Developer/usr/share \
+    Contents/Developer/usr/libexec/git-core \
+    Contents/Developer/usr/bin/git* \
+    Contents/Developer/usr/bin/svn* \
+    Contents/Developer/usr/lib/libgit* \
+    Contents/Developer/usr/lib/libsvn* \
+    Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/share/man \
+    Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/${SDK_VERSION}.sdk/usr/share/man \
+    Contents/Developer/Platforms/MacOSX.platform/Developer/usr/share/man \
+    Contents/Developer/Platforms/MacOSX.platform/usr \
+    Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/man \
+    Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift* \
+    Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift* \
+    Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/sourcekitd.framework \
+    Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/swift* \
+    Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/swift* \
+    Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/arc \
     Platforms/AppleTVSimulator.platform \
     Platforms/iPhoneSimulator.platform \
-    $XCODE_APP_DIR_NAME/Contents/SharedFrameworks/LLDB.framework \
-    $XCODE_APP_DIR_NAME/Contents/SharedFrameworks/ModelIO.framework \
-    $XCODE_APP_DIR_NAME/Contents/SharedFrameworks/XCSUI.framework \
-    $XCODE_APP_DIR_NAME/Contents/SharedFrameworks/SceneKit.framework \
-    $XCODE_APP_DIR_NAME/Contents/SharedFrameworks/XCBuild.framework \
-    $XCODE_APP_DIR_NAME/Contents/SharedFrameworks/GPUTools.framework \
-    $(cd $XCODE_APP/.. && ls -d $XCODE_APP_DIR_NAME/Contents/Developer/Platforms/* \
+    Platforms/WatchSimulator.platform \
+    Contents/SharedFrameworks/ModelIO.framework \
+    Contents/SharedFrameworks/XCSUI.framework \
+    Contents/SharedFrameworks/SceneKit.framework \
+    Contents/SharedFrameworks/XCBuild.framework \
+    Contents/SharedFrameworks/GPUTools*.framework \
+    Contents/SharedFrameworks/DNTDocumentationSupport.framework/Versions/A/Resources/external \
+    $(cd $XCODE_APP && ls -d Contents/Developer/Platforms/* \
         | grep -v MacOSX.platform | grep -v WatchSimulator.platform) \
 "
 
 for ex in $EXCLUDE_DIRS; do
-    EXCLUDE_ARGS+="--exclude=$ex "
+    EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude=$ex"
 done
 
 echo "Copying Xcode.app..."
-echo rsync -rlH $INCLUDE_ARGS $EXCLUDE_ARGS "$XCODE_APP" $DEVKIT_ROOT/
-rsync -rlH $INCLUDE_ARGS $EXCLUDE_ARGS "$XCODE_APP" $DEVKIT_ROOT/
+echo rsync -rlH $INCLUDE_ARGS $EXCLUDE_ARGS "$XCODE_APP/." $DEVKIT_ROOT/Xcode
+rsync -rlH $INCLUDE_ARGS $EXCLUDE_ARGS "$XCODE_APP/." $DEVKIT_ROOT/Xcode
 
 ################################################################################
 
@@ -123,8 +119,8 @@ echo "Generating devkit.info..."
 rm -f $DEVKIT_ROOT/devkit.info
 echo-info "# This file describes to configure how to interpret the contents of this devkit"
 echo-info "DEVKIT_NAME=\"Xcode $XCODE_VERSION (devkit)\""
-echo-info "DEVKIT_TOOLCHAIN_PATH=\"\$DEVKIT_ROOT/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:\$DEVKIT_ROOT/Xcode.app/Contents/Developer/usr/bin\""
-echo-info "DEVKIT_SYSROOT=\"\$DEVKIT_ROOT/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/$SDK_VERSION.sdk\""
+echo-info "DEVKIT_TOOLCHAIN_PATH=\"\$DEVKIT_ROOT/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:\$DEVKIT_ROOT/Xcode/Contents/Developer/usr/bin\""
+echo-info "DEVKIT_SYSROOT=\"\$DEVKIT_ROOT/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/$SDK_VERSION.sdk\""
 echo-info "DEVKIT_EXTRA_PATH=\"\$DEVKIT_TOOLCHAIN_PATH\""
 
 ################################################################################

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,9 +32,11 @@
  */
 
 import jdk.test.lib.JDKToolFinder;
+import jdk.test.lib.cds.CDSTestUtils;
 import jdk.test.lib.compiler.CompilerUtils;
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
+import jdk.test.lib.helpers.ClassFileInstaller;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -48,7 +50,7 @@ public class JarBuilder {
         .orElseThrow(() -> new RuntimeException("ToolProvider for jar not found"));
 
     public static String getJarFilePath(String jarName) {
-        return classDir + File.separator + jarName + ".jar";
+        return CDSTestUtils.getOutputDir() +  File.separator + jarName + ".jar";
     }
 
     // jar all files under dir, with manifest file man, with an optional versionArgs
@@ -59,7 +61,7 @@ public class JarBuilder {
     //   -C <path to the base classes> .\
     //    --release 9 -C <path to the versioned classes> .
     // the last line begins with "--release" corresponds to the optional versionArgs.
-    public static void build(String jarName, File dir, String man, String ...versionArgs)
+    public static String build(String jarName, File dir, String man, String ...versionArgs)
         throws Exception {
         ArrayList<String> args = new ArrayList<String>();
         if (man != null) {
@@ -67,7 +69,8 @@ public class JarBuilder {
         } else {
             args.add("cf");
         }
-        args.add(classDir + File.separator + jarName + ".jar");
+        String jarFile = getJarFilePath(jarName);
+        args.add(jarFile);
         if (man != null) {
             args.add(man);
         }
@@ -78,6 +81,7 @@ public class JarBuilder {
             args.add(verArg);
         }
         createJar(args);
+        return jarFile;
     }
 
     public static String build(String jarName, String ...classNames)
@@ -127,14 +131,15 @@ public class JarBuilder {
     }
 
     // Add commonly used inner classes that are often omitted by mistake. Currently
-    // we support only sun/hotspot/WhiteBox$WhiteBoxPermission. See JDK-8199290
+    // we support only jdk/test/whitebox/WhiteBox$WhiteBoxPermission.
+    // See JDK-8199290
     private static String[] addInnerClasses(String[] classes, int startIdx) {
-        boolean seenWB = false;
-        boolean seenWBInner = false;
+        boolean seenNewWb = false;
+        boolean seenNewWbInner = false;
         // This method is different than ClassFileInstaller.addInnerClasses which
         // uses "." as the package delimiter :-(
-        final String wb = "sun/hotspot/WhiteBox";
-        final String wbInner = "sun/hotspot/WhiteBox$WhiteBoxPermission";
+        final String newWb = "jdk/test/whitebox/WhiteBox";
+        final String newWbInner = newWb + "$WhiteBoxPermission";
 
         ArrayList<String> list = new ArrayList<>();
 
@@ -142,14 +147,13 @@ public class JarBuilder {
             String cls = classes[i];
             list.add(cls);
             switch (cls) {
-            case wb:      seenWB      = true; break;
-            case wbInner: seenWBInner = true; break;
+            case newWb:      seenNewWb      = true; break;
+            case newWbInner: seenNewWbInner = true; break;
             }
         }
-        if (seenWB && !seenWBInner) {
-            list.add(wbInner);
+        if (seenNewWb && !seenNewWbInner) {
+            list.add(newWbInner);
         }
-
         String[] array = new String[list.size()];
         list.toArray(array);
         return array;
@@ -189,6 +193,23 @@ public class JarBuilder {
         if (mainClass != null) {
             argList.add("--main-class=" + mainClass);
         }
+        argList.add("-C");
+        argList.add(classesDir);
+        argList.add(".");
+        createJar(argList);
+    }
+
+    public static void createModularJarWithManifest(String jarPath,
+                                                    String classesDir,
+                                                    String mainClass,
+                                                    String manifest) throws Exception {
+        ArrayList<String> argList = new ArrayList<String>();
+        argList.add("--create");
+        argList.add("--file=" + jarPath);
+        if (mainClass != null) {
+            argList.add("--main-class=" + mainClass);
+        }
+        argList.add("--manifest=" + manifest);
         argList.add("-C");
         argList.add(classesDir);
         argList.add(".");
@@ -255,23 +276,36 @@ public class JarBuilder {
         }
     }
 
+    static final String keyTool = JDKToolFinder.getJDKTool("keytool");
+    static final String jarSigner = JDKToolFinder.getJDKTool("jarsigner");
 
-    public static void signJar() throws Exception {
-        String keyTool = JDKToolFinder.getJDKTool("keytool");
-        String jarSigner = JDKToolFinder.getJDKTool("jarsigner");
-        String classDir = System.getProperty("test.classes");
-        String FS = File.separator;
-
+    public static void signJarWithDisabledAlgorithm(String jarName) throws Exception {
+        String keyName = "key_with_disabled_alg";
         executeProcess(keyTool,
-            "-genkey", "-keystore", "./keystore", "-alias", "mykey",
+            "-genkey", "-keystore", "./keystore", "-alias", keyName,
+            "-storepass", "abc123", "-keypass", "abc123", "-keyalg", "dsa",
+            "-sigalg", "SHA1withDSA", "-keysize", "512", "-dname", "CN=jvmtest2")
+            .shouldHaveExitValue(0);
+
+        doSigning(jarName, keyName);
+    }
+
+    public static void signJar(String jarName) throws Exception {
+        String keyName = "mykey";
+        executeProcess(keyTool,
+            "-genkey", "-keystore", "./keystore", "-alias", keyName,
             "-storepass", "abc123", "-keypass", "abc123", "-keyalg", "dsa",
             "-dname", "CN=jvmtest")
             .shouldHaveExitValue(0);
 
+        doSigning(jarName, keyName);
+    }
+
+    private static void doSigning(String jarName, String keyName) throws Exception {
         executeProcess(jarSigner,
            "-keystore", "./keystore", "-storepass", "abc123", "-keypass",
-           "abc123", "-signedjar", classDir + FS + "signed_hello.jar",
-           classDir + FS + "hello.jar", "mykey")
+           "abc123", "-signedjar", getJarFilePath("signed_" + jarName),
+           getJarFilePath(jarName), keyName)
            .shouldHaveExitValue(0);
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,10 +40,9 @@ import java.util.*;
     the header that don't have a valid key, but do have
     a value (this isn't legal according to the standard,
     but lines like this are everywhere). */
-public
-class MessageHeader {
-    private String keys[];
-    private String values[];
+public final class MessageHeader {
+    private String[] keys;
+    private String[] values;
     private int nkeys;
 
     public MessageHeader () {
@@ -245,7 +244,7 @@ class MessageHeader {
             String[] excludeList, Map<String, List<String>>  include) {
         boolean skipIt = false;
         Map<String, List<String>> m = new HashMap<>();
-        for (int i = nkeys; --i >= 0;) {
+        for (int i = 0; i < nkeys; i++) {
             if (excludeList != null) {
                 // check if the key is in the excludeList.
                 // if so, don't include it in the Map.
@@ -294,7 +293,7 @@ class MessageHeader {
      * @param line the line to check.
      * @return true if the line might be a request line.
      */
-    private boolean isRequestline(String line) {
+    private static boolean isRequestline(String line) {
         String k = line.trim();
         int i = k.lastIndexOf(' ');
         if (i <= 0) return false;
@@ -311,12 +310,23 @@ class MessageHeader {
         return (k.substring(i+1, len-3).equalsIgnoreCase("HTTP/"));
     }
 
+    /** Prints the key-value pairs represented by this
+        header. Also prints the RFC required blank line
+        at the end. Omits pairs with a null key. Omits
+        colon if key-value pair is the requestline. */
+    public void print(PrintStream p) {
+        // no synchronization: use cloned arrays instead.
+        String[] k; String[] v; int n;
+        synchronized (this) { n = nkeys; k = keys.clone(); v = values.clone(); }
+        print(n, k, v, p);
+    }
+
 
     /** Prints the key-value pairs represented by this
         header. Also prints the RFC required blank line
         at the end. Omits pairs with a null key. Omits
         colon if key-value pair is the requestline. */
-    public synchronized void print(PrintStream p) {
+    private  static void print(int nkeys, String[] keys, String[] values, PrintStream p) {
         for (int i = 0; i < nkeys; i++)
             if (keys[i] != null) {
                 StringBuilder sb = new StringBuilder(keys[i]);
@@ -543,7 +553,7 @@ class MessageHeader {
     }
 
     public synchronized String toString() {
-        String result = super.toString() + nkeys + " pairs: ";
+        String result = super.toString() + " " + nkeys + " pairs: ";
         for (int i = 0; i < keys.length && i < nkeys; i++) {
             result += "{"+keys[i]+": "+values[i]+"}";
         }

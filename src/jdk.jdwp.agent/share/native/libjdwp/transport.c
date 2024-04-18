@@ -77,10 +77,10 @@ printLastError(jdwpTransportEnv *t, jdwpTransportError err)
 
         /* Convert this string to UTF8 */
         len = (int)strlen(msg);
-        maxlen = len+len/2+2; /* Should allow for plenty of room */
-        utf8msg = (jbyte*)jvmtiAllocate(maxlen+1);
+        maxlen = len * 4 + 1;
+        utf8msg = (jbyte*)jvmtiAllocate(maxlen);
         if (utf8msg != NULL) {
-           (void)utf8FromPlatform(msg, len, utf8msg, maxlen+1);
+           (void)utf8FromPlatform(msg, len, utf8msg, maxlen);
         }
     }
     if (rv == JDWPTRANSPORT_ERROR_NONE) {
@@ -508,7 +508,7 @@ transport_startTransport(jboolean isServer, char *name, char *address,
     trans = info->transport;
 
     if (isServer) {
-        char *retAddress;
+        char *retAddress = NULL;
         char *launchCommand;
         jvmtiError error;
         int len;
@@ -607,9 +607,13 @@ transport_startTransport(jboolean isServer, char *name, char *address,
                     name, retAddress));
             }
         }
+        jvmtiDeallocate(retAddress);
         return JDWP_ERROR(NONE);
 
 handleError:
+        if (retAddress != NULL) {
+            jvmtiDeallocate(retAddress);
+        }
         freeTransportInfo(info);
     } else {
         /*

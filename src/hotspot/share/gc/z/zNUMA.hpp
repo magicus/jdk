@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,13 +24,14 @@
 #ifndef SHARE_GC_Z_ZNUMA_HPP
 #define SHARE_GC_Z_ZNUMA_HPP
 
-#include "memory/allocation.hpp"
+#include "memory/allStatic.hpp"
+#include "utilities/globalDefinitions.hpp"
 
 class ZNUMA : public AllStatic {
 private:
   static bool _enabled;
 
-  static void initialize_platform();
+  static void pd_initialize();
 
 public:
   static void initialize();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -66,6 +66,13 @@ class SourceChannelImpl
     // ID of native thread doing read, for signalling
     private long thread;
 
+    // True if the channel's socket has been forced into non-blocking mode
+    // by a virtual thread. It cannot be reset. When the channel is in
+    // blocking mode and the channel's socket is in non-blocking mode then
+    // operations that don't complete immediately will poll the socket and
+    // preserve the semantics of blocking operations.
+    private volatile boolean forcedNonBlocking;
+
     // -- End of fields protected by stateLock
 
 
@@ -77,10 +84,34 @@ class SourceChannelImpl
         return fdVal;
     }
 
-    SourceChannelImpl(SelectorProvider sp, FileDescriptor fd) {
+    SourceChannelImpl(SelectorProvider sp, FileDescriptor fd) throws IOException {
         super(sp);
         this.fd = fd;
         this.fdVal = IOUtil.fdVal(fd);
+    }
+
+    /**
+     * Checks that the channel is open.
+     *
+     * @throws ClosedChannelException if channel is closed (or closing)
+     */
+    private void ensureOpen() throws ClosedChannelException {
+        if (!isOpen())
+            throw new ClosedChannelException();
+    }
+
+    /**
+     * Ensures that the socket is configured non-blocking when on a virtual thread.
+     */
+    private void configureSocketNonBlockingIfVirtualThread() throws IOException {
+        assert readLock.isHeldByCurrentThread();
+        if (!forcedNonBlocking && Thread.currentThread().isVirtual()) {
+            synchronized (stateLock) {
+                ensureOpen();
+                IOUtil.configureBlocking(fd, false);
+                forcedNonBlocking = true;
+            }
+        }
     }
 
     /**
@@ -123,8 +154,12 @@ class SourceChannelImpl
             if (!tryClose()) {
                 long th = thread;
                 if (th != 0) {
-                    nd.preClose(fd);
-                    NativeThread.signal(th);
+                    if (NativeThread.isVirtualThread(th)) {
+                        Poller.stopPoll(fdVal);
+                    } else {
+                        nd.preClose(fd);
+                        NativeThread.signal(th);
+                    }
                 }
             }
         }
@@ -178,9 +213,11 @@ class SourceChannelImpl
         readLock.lock();
         try {
             synchronized (stateLock) {
-                if (!isOpen())
-                    throw new ClosedChannelException();
-                IOUtil.configureBlocking(fd, block);
+                ensureOpen();
+                // do nothing if virtual thread has forced the socket to be non-blocking
+                if (!forcedNonBlocking) {
+                    IOUtil.configureBlocking(fd, block);
+                }
             }
         } finally {
             readLock.unlock();
@@ -236,8 +273,7 @@ class SourceChannelImpl
             begin();
         }
         synchronized (stateLock) {
-            if (!isOpen())
-                throw new ClosedChannelException();
+            ensureOpen();
             if (blocking)
                 thread = NativeThread.current();
         }
@@ -270,10 +306,12 @@ class SourceChannelImpl
 
         readLock.lock();
         try {
+            ensureOpen();
             boolean blocking = isBlocking();
             int n = 0;
             try {
                 beginRead(blocking);
+                configureSocketNonBlockingIfVirtualThread();
                 n = IOUtil.read(fd, dst, -1, nd);
                 if (blocking) {
                     while (IOStatus.okayToRetry(n) && isOpen()) {
@@ -297,10 +335,12 @@ class SourceChannelImpl
 
         readLock.lock();
         try {
+            ensureOpen();
             boolean blocking = isBlocking();
             long n = 0;
             try {
                 beginRead(blocking);
+                configureSocketNonBlockingIfVirtualThread();
                 n = IOUtil.read(fd, dsts, offset, length, nd);
                 if (blocking) {
                     while (IOStatus.okayToRetry(n) && isOpen()) {

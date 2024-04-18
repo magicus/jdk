@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 
 /*
  * @test
+ * @bug 8246774
  * @summary Verify that annotation processing works for records
  * @library /tools/lib /tools/javac/lib
  * @modules
@@ -48,7 +49,6 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.ElementFilter;
 import javax.lang.model.util.ElementScanner14;
-import javax.tools.Diagnostic.Kind;
 import javax.tools.*;
 
 import toolbox.JavacTask;
@@ -67,7 +67,6 @@ public class JavaxLangModelForRecords extends TestRunner {
     }
 
     public static void main(String... args) throws Exception {
-        System.out.println(System.getProperties());
         new JavaxLangModelForRecords().runTests();
     }
 
@@ -105,17 +104,13 @@ public class JavaxLangModelForRecords extends TestRunner {
         tb.writeJavaFiles(r,
                 "record R(int i) {}");
 
-        List<String> expected = List.of("Note: field: i",
-                "Note: record component: i",
-                "Note: testQualifiedClassForProcessing" + File.separator + "src" + File.separator
-                     + "R" + File.separator + "R.java uses preview language features.",
-                "Note: Recompile with -Xlint:preview for details.");
+        List<String> expected = List.of(
+                "Note: field: i",
+                "Note: record component: i");
 
         for (Mode mode : new Mode[] {Mode.API}) {
             List<String> log = new JavacTask(tb, mode)
-                    .options("-processor", QualifiedClassForProcessing.class.getName(),
-                            "--enable-preview",
-                            "-source", Integer.toString(Runtime.version().feature()))
+                    .options("-processor", QualifiedClassForProcessing.class.getName())
                     .files(findJavaFiles(src))
                     .outdir(classes)
                     .run()
@@ -140,10 +135,10 @@ public class JavaxLangModelForRecords extends TestRunner {
 
             for (TypeElement clazz : ElementFilter.typesIn(roundEnv.getRootElements())) {
                 for (VariableElement field : ElementFilter.fieldsIn(clazz.getEnclosedElements())) {
-                    messager.printMessage(Kind.NOTE, "field: " + field.getSimpleName());
+                    messager.printNote("field: " + field.getSimpleName());
                 }
                 for (RecordComponentElement rc : ElementFilter.recordComponentsIn(clazz.getEnclosedElements())) {
-                    messager.printMessage(Kind.NOTE, "record component: " + rc.getSimpleName());
+                    messager.printNote("record component: " + rc.getSimpleName());
                 }
             }
 

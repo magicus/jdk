@@ -23,10 +23,10 @@
  */
 
 /*
- * @test TestHeapUncommit
+ * @test id=passive
  * @summary Acceptance tests: collector can withstand allocation
- * @key gc randomness
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @key randomness
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  *
  * @run main/othervm -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahUncommit -XX:ShenandoahUncommitDelay=0
@@ -51,10 +51,10 @@
  */
 
 /*
- * @test TestHeapUncommit
+ * @test id=adaptive
  * @summary Acceptance tests: collector can withstand allocation
- * @key gc randomness
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @key randomness
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  *
  * @run main/othervm -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahUncommit -XX:ShenandoahUncommitDelay=0
@@ -85,10 +85,10 @@
  */
 
 /*
- * @test TestHeapUncommit
+ * @test id=iu
  * @summary Acceptance tests: collector can withstand allocation
- * @key gc randomness
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @key randomness
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  *
  * @run main/othervm -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahUncommit -XX:ShenandoahUncommitDelay=0
@@ -106,9 +106,10 @@
  */
 
 /*
- * @test TestHeapUncommit
- * @key gc randomness
- * @requires vm.gc.Shenandoah & !vm.graal.enabled & (vm.bits == "64")
+ * @test id=default-lp
+ * @key randomness
+ * @requires vm.gc.Shenandoah
+ * @requires vm.bits == "64"
  * @library /test/lib
  *
  * @run main/othervm -Xmx1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahUncommit -XX:ShenandoahUncommitDelay=0 -XX:+UseLargePages

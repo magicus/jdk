@@ -22,6 +22,12 @@
 # the command line, set the key security.overridePropertiesFile
 # to false in the master security properties file. It is set to true
 # by default.
+#
+# If this properties file fails to load, the JDK implementation will throw
+# an unspecified error when initializing the java.security.Security class.
+# Properties in this file are typically parsed only once. If any of the
+# properties are modified, applications should be restarted to ensure the
+# changes are properly reflected.
 
 # In this file, various security properties are set for use by
 # java.security classes. This is where users can statically register
@@ -60,12 +66,6 @@
 #
 # List of providers and their preference orders (see above):
 #
-#ifdef solaris
-# Note: The OracleUcrypto provider is deprecated and subject to removal in
-# a future version of the JDK.
-security.provider.tbd=OracleUcrypto
-security.provider.tbd=SunPKCS11 ${java.home}/conf/security/sunpkcs11-solaris.cfg
-#endif
 security.provider.tbd=SUN
 security.provider.tbd=SunRsaSign
 security.provider.tbd=SunEC
@@ -83,9 +83,7 @@ security.provider.tbd=SunMSCAPI
 #ifdef macosx
 security.provider.tbd=Apple
 #endif
-#ifndef solaris
 security.provider.tbd=SunPKCS11
-#endif
 
 #
 # A list of preferred providers for specific algorithms. These providers will
@@ -119,12 +117,6 @@ security.provider.tbd=SunPKCS11
 #   jdk.security.provider.preferred=AES/GCM/NoPadding:SunJCE, \
 #         MessageDigest.SHA-256:SUN, Group.HmacSHA2:SunJCE
 #
-#ifdef solaris-sparc
-# Optional Solaris-SPARC configuration for non-FIPS 140 configurations.
-#   jdk.security.provider.preferred=AES:SunJCE, SHA1:SUN, Group.SHA2:SUN, \
-#   HmacSHA1:SunJCE, Group.HmacSHA2:SunJCE
-#
-#endif
 #jdk.security.provider.preferred=
 
 
@@ -135,7 +127,7 @@ security.provider.tbd=SunPKCS11
 # and "DRBG" SecureRandom implementations in the "Sun" provider.
 # (Other SecureRandom implementations might also use this property.)
 #
-# On Unix-like systems (for example, Solaris/Linux/MacOS), the
+# On Unix-like systems (for example, Linux/MacOS), the
 # "NativePRNG", "SHA1PRNG" and "DRBG" implementations obtains seed data from
 # special device files such as file:/dev/random.
 #
@@ -365,6 +357,17 @@ ssl.TrustManagerFactory.algorithm=PKIX
 #
 #networkaddress.cache.ttl=-1
 
+#
+# The Java-level namelookup cache stale policy:
+#
+# any positive value: the number of seconds to use the stale names
+# zero: do not use stale names
+# negative values are ignored
+#
+# default value is 0 (NEVER).
+#
+#networkaddress.cache.stale.ttl=0
+
 # The Java-level namelookup cache policy for failed lookups:
 #
 # any negative value: cache forever
@@ -455,21 +458,22 @@ networkaddress.cache.negative.ttl=10
 # Policy for failed Kerberos KDC lookups:
 #
 # When a KDC is unavailable (network error, service failure, etc), it is
-# put inside a blacklist and accessed less often for future requests. The
+# put inside a secondary list and accessed less often for future requests. The
 # value (case-insensitive) for this policy can be:
 #
 # tryLast
-#    KDCs in the blacklist are always tried after those not on the list.
+#    KDCs in the secondary list are always tried after those not on the list.
 #
 # tryLess[:max_retries,timeout]
-#    KDCs in the blacklist are still tried by their order in the configuration,
-#    but with smaller max_retries and timeout values. max_retries and timeout
-#    are optional numerical parameters (default 1 and 5000, which means once
-#    and 5 seconds). Please notes that if any of the values defined here is
-#    more than what is defined in krb5.conf, it will be ignored.
+#    KDCs in the secondary list are still tried by their order in the
+#    configuration, but with smaller max_retries and timeout values.
+#    max_retries and timeout are optional numerical parameters (default 1 and
+#    5000, which means once and 5 seconds). Please note that if any of the
+#    values defined here are more than what is defined in krb5.conf, it will be
+#    ignored.
 #
-# Whenever a KDC is detected as available, it is removed from the blacklist.
-# The blacklist is reset when krb5.conf is reloaded. You can add
+# Whenever a KDC is detected as available, it is removed from the secondary
+# list. The secondary list is reset when krb5.conf is reloaded. You can add
 # refreshKrb5Config=true to a JAAS configuration file so that krb5.conf is
 # reloaded whenever a JAAS authentication is attempted.
 #
@@ -509,16 +513,7 @@ sun.security.krb5.maxReferrals=5
 # in the jdk.[tls|certpath|jar].disabledAlgorithms properties.  To include this
 # list in any of the disabledAlgorithms properties, add the property name as
 # an entry.
-jdk.disabled.namedCurves = secp112r1, secp112r2, secp128r1, secp128r2, \
-    secp160k1, secp160r1, secp160r2, secp192k1, secp192r1, secp224k1, \
-    secp224r1, secp256k1, sect113r1, sect113r2, sect131r1, sect131r2, \
-    sect163k1, sect163r1, sect163r2, sect193r1, sect193r2, sect233k1, \
-    sect233r1, sect239k1, sect283k1, sect283r1, sect409k1, sect409r1, \
-    sect571k1, sect571r1, X9.62 c2tnb191v1, X9.62 c2tnb191v2, \
-    X9.62 c2tnb191v3, X9.62 c2tnb239v1, X9.62 c2tnb239v2, X9.62 c2tnb239v3, \
-    X9.62 c2tnb359v1, X9.62 c2tnb431r1, X9.62 prime192v2, X9.62 prime192v3, \
-    X9.62 prime239v1, X9.62 prime239v2, X9.62 prime239v3, brainpoolP256r1, \
-    brainpoolP320r1, brainpoolP384r1, brainpoolP512r1
+#jdk.disabled.namedCurves=
 
 #
 # Algorithm restrictions for certification path (CertPath) processing
@@ -580,7 +575,7 @@ jdk.disabled.namedCurves = secp112r1, secp112r2, secp128r1, secp128r2, \
 # can be included in the disabledAlgorithms properties.  These properties are
 # to help manage common actions easier across multiple disabledAlgorithm
 # properties.
-# There is one defined security property:  jdk.disabled.NamedCurves
+# There is one defined security property:  jdk.disabled.namedCurves
 # See the property for more specific details.
 #
 #
@@ -657,14 +652,12 @@ jdk.disabled.namedCurves = secp112r1, secp112r2, secp128r1, secp128r2, \
 #
 jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1 jdkCA & usage TLSServer, \
     RSA keySize < 1024, DSA keySize < 1024, EC keySize < 224, \
-    include jdk.disabled.namedCurves
+    SHA1 usage SignedJAR & denyAfter 2019-01-01
 
 #
-# Legacy algorithms for certification path (CertPath) processing and
-# signed JAR files.
+# Legacy cryptographic algorithms and key lengths.
 #
-# In some environments, a certain algorithm or key length may be undesirable
-# but is not yet disabled.
+# In some environments, a certain algorithm or key length may be undesirable.
 #
 # Tools such as keytool and jarsigner may emit warnings when these legacy
 # algorithms are used. See the man pages for those tools for more information.
@@ -677,7 +670,8 @@ jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1 jdkCA & usage TLSServer, \
 # implementations.
 
 jdk.security.legacyAlgorithms=SHA1, \
-    RSA keySize < 2048, DSA keySize < 2048
+    RSA keySize < 2048, DSA keySize < 2048, \
+    DES, DESede, MD5, RC2, ARCFOUR
 
 #
 # Algorithm restrictions for signed JAR files
@@ -721,7 +715,17 @@ jdk.security.legacyAlgorithms=SHA1, \
 # See "jdk.certpath.disabledAlgorithms" for syntax descriptions.
 #
 jdk.jar.disabledAlgorithms=MD2, MD5, RSA keySize < 1024, \
-      DSA keySize < 1024, include jdk.disabled.namedCurves
+      DSA keySize < 1024, SHA1 denyAfter 2019-01-01
+
+#
+# Disabled message digest algorithms for use with plaintext
+# HTTP Digest authentication (java.net.HttpURLConnection).
+# This includes HTTPS Digest authentication to proxies.
+# This may be overridden by setting the networking (or system)
+# property "http.auth.digest.reEnabledAlgorithms" to a comma
+# separated list of algorithms to be allowed.
+#
+http.auth.digest.disabledAlgorithms = MD5, SHA-1
 
 #
 # Algorithm restrictions for Secure Socket Layer/Transport Layer Security
@@ -755,9 +759,9 @@ jdk.jar.disabledAlgorithms=MD2, MD5, RSA keySize < 1024, \
 # Example:
 #   jdk.tls.disabledAlgorithms=MD5, SSLv3, DSA, RSA keySize < 2048, \
 #       rsa_pkcs1_sha1, secp224r1
-jdk.tls.disabledAlgorithms=SSLv3, RC4, DES, MD5withRSA, DH keySize < 1024, \
-    EC keySize < 224, 3DES_EDE_CBC, anon, NULL, \
-    include jdk.disabled.namedCurves
+jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, DTLSv1.0, RC4, DES, \
+    MD5withRSA, DH keySize < 1024, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, \
+    ECDH
 
 #
 # Legacy algorithms for Secure Socket Layer/Transport Layer Security (SSL/TLS)
@@ -888,7 +892,7 @@ jdk.tls.legacyAlgorithms=NULL, anon, RC4, DES, 3DES_EDE_CBC
 #   KeyLimits:
 #       " KeyLimit { , KeyLimit } "
 #
-#   WeakKeyLimit:
+#   KeyLimit:
 #       AlgorithmName Action Length
 #
 #   AlgorithmName:
@@ -908,7 +912,8 @@ jdk.tls.legacyAlgorithms=NULL, anon, RC4, DES, 3DES_EDE_CBC
 # Note: This property is currently used by OpenJDK's JSSE implementation. It
 # is not guaranteed to be examined and used by other implementations.
 #
-jdk.tls.keyLimits=AES/GCM/NoPadding KeyUpdate 2^37
+jdk.tls.keyLimits=AES/GCM/NoPadding KeyUpdate 2^37, \
+                  ChaCha20-Poly1305 KeyUpdate 2^37
 
 #
 # Cryptographic Jurisdiction Policy defaults
@@ -949,10 +954,17 @@ jdk.tls.keyLimits=AES/GCM/NoPadding KeyUpdate 2^37
 crypto.policy=crypto.policydir-tbd
 
 #
-# The policy for the XML Signature secure validation mode. The mode is
-# enabled by setting the property "org.jcp.xml.dsig.secureValidation" to
-# true with the javax.xml.crypto.XMLCryptoContext.setProperty() method,
-# or by running the code with a SecurityManager.
+# The policy for the XML Signature secure validation mode. Validation of
+# XML Signatures that violate any of these constraints will fail.
+# The mode can be enabled or disabled by setting the property
+# "org.jcp.xml.dsig.secureValidation" to Boolean.TRUE or Boolean.FALSE with
+# the javax.xml.crypto.XMLCryptoContext.setProperty() method, or by setting
+# the system property "org.jcp.xml.dsig.secureValidation" to "true" or
+# "false". Any other value for the system property is also treated as "false".
+# If the system property is set, it supersedes the XMLCryptoContext property
+# value.
+#
+# The secure validation mode is enabled by default.
 #
 #   Policy:
 #       Constraint {"," Constraint }
@@ -979,14 +991,19 @@ crypto.policy=crypto.policydir-tbd
 # MaxReferencesConstraint or KeySizeConstraint (for the same key type) is
 # specified more than once, only the last entry is enforced.
 #
-# Note: This property is currently used by the JDK Reference implementation. It
-# is not guaranteed to be examined and used by other implementations.
+# Note: This property is currently used by the JDK Reference implementation.
+# It is not guaranteed to be examined and used by other implementations.
 #
 jdk.xml.dsig.secureValidationPolicy=\
     disallowAlg http://www.w3.org/TR/1999/REC-xslt-19991116,\
     disallowAlg http://www.w3.org/2001/04/xmldsig-more#rsa-md5,\
     disallowAlg http://www.w3.org/2001/04/xmldsig-more#hmac-md5,\
     disallowAlg http://www.w3.org/2001/04/xmldsig-more#md5,\
+    disallowAlg http://www.w3.org/2000/09/xmldsig#sha1,\
+    disallowAlg http://www.w3.org/2000/09/xmldsig#dsa-sha1,\
+    disallowAlg http://www.w3.org/2000/09/xmldsig#rsa-sha1,\
+    disallowAlg http://www.w3.org/2007/05/xmldsig-more#sha1-rsa-MGF1,\
+    disallowAlg http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha1,\
     maxTransforms 5,\
     maxReferences 30,\
     disallowReferenceUriSchemes file http https,\
@@ -997,10 +1014,43 @@ jdk.xml.dsig.secureValidationPolicy=\
     noRetrievalMethodLoops
 
 #
-# Serialization system-wide filter
+# Support for the here() function
 #
-# A filter, if configured, is used by java.io.ObjectInputStream during
-# deserialization to check the contents of the stream.
+# This security property determines whether the here() XPath function is
+# supported in XML Signature generation and verification.
+#
+# If this property is set to false, the here() function is not supported.
+# Generating an XML Signature that uses the here() function will throw an
+# XMLSignatureException. Validating an existing XML Signature that uses the
+# here() function will also throw an XMLSignatureException.
+#
+# The default value for this property is true.
+#
+# Note: This property is currently used by the JDK Reference implementation.
+# It is not guaranteed to be examined and used by other implementations.
+#
+#jdk.xml.dsig.hereFunctionSupported=true
+
+#
+# Deserialization JVM-wide filter factory
+#
+# A filter factory class name is used to configure the JVM-wide filter factory.
+# The class must be public, must have a public zero-argument constructor, implement the
+# java.util.function.BinaryOperator<java.io.ObjectInputFilter> interface, provide its
+# implementation and be accessible via the application class loader.
+# A builtin filter factory is used if no filter factory is defined.
+# See java.io.ObjectInputFilter.Config for more information.
+#
+# If the system property jdk.serialFilterFactory is also specified, it supersedes
+# the security property value defined here.
+#
+#jdk.serialFilterFactory=<classname>
+
+#
+# Deserialization JVM-wide filter
+#
+# A filter, if configured, is used by the filter factory to provide the filter used by
+# java.io.ObjectInputStream during deserialization to check the contents of the stream.
 # A filter is configured as a sequence of patterns, each pattern is either
 # matched against the name of a class in the stream or defines a limit.
 # Patterns are separated by ";" (semicolon).
@@ -1078,7 +1128,6 @@ jdk.xml.dsig.secureValidationPolicy=\
 #    sun.rmi.server.UnicastRef;\
 #    sun.rmi.server.RMIClientSocketFactory;\
 #    sun.rmi.server.RMIServerSocketFactory;\
-#    java.rmi.activation.ActivationID;\
 #    java.rmi.server.UID
 #
 # RMI Distributed Garbage Collector (DGC) Serial Filter
@@ -1158,10 +1207,30 @@ jceks.key.serialFilter = java.base/java.lang.Enum;java.base/java.security.KeyRep
 # If a system property of the same name is also specified, it supersedes the
 # security property value defined here.
 #
-# If the property is set to an illegal value,
-# an iteration count that is not a positive integer, or an unknown algorithm
-# name, an exception will be thrown when the property is used.
-# If the property is not set or empty, a default value will be used.
+# If the property is set to an illegal value, an iteration count that is not
+# a positive integer, or an unknown algorithm name, an exception will be thrown
+# when the property is used. If the property is not set or empty, a default
+# value will be used.
+#
+# Some PKCS12 tools and libraries may not support algorithms based on PBES2
+# and AES. To create a PKCS12 keystore which they can load, set the system
+# property "keystore.pkcs12.legacy" which overrides the values of the properties
+# defined below with legacy algorithms. Setting this system property (which can
+# only be enabled and has no value) is equivalent to
+#
+#   -Dkeystore.pkcs12.certProtectionAlgorithm=PBEWithSHA1AndRC2_40
+#   -Dkeystore.pkcs12.keyProtectionAlgorithm=PBEWithSHA1AndDESede
+#   -Dkeystore.pkcs12.macAlgorithm=HmacPBESHA1
+#   -Dkeystore.pkcs12.certPbeIterationCount=50000
+#   -Dkeystore.pkcs12.keyPbeIterationCount=50000
+#   -Dkeystore.pkcs12.macIterationCount=100000
+#
+# Also, you can downgrade an existing PKCS12 keystore created with stronger
+# algorithms to legacy algorithms with
+#
+#    keytool -J-Dkeystore.pkcs12.legacy -importkeystore -srckeystore ks -destkeystore ks
+#
+# This system property should be used at your own risk.
 #
 # Note: These properties are currently used by the JDK Reference implementation.
 # They are not guaranteed to be examined and used by other implementations.
@@ -1169,33 +1238,33 @@ jceks.key.serialFilter = java.base/java.lang.Enum;java.base/java.security.KeyRep
 # The algorithm used to encrypt a certificate. This can be any non-Hmac PBE
 # algorithm defined in the Cipher section of the Java Security Standard
 # Algorithm Names Specification. When set to "NONE", the certificate
-# is not encrypted. The default value is "PBEWithSHA1AndRC2_40".
-#keystore.pkcs12.certProtectionAlgorithm = PBEWithSHA1AndRC2_40
+# is not encrypted. The default value is "PBEWithHmacSHA256AndAES_256".
+#keystore.pkcs12.certProtectionAlgorithm = PBEWithHmacSHA256AndAES_256
 
 # The iteration count used by the PBE algorithm when encrypting a certificate.
-# This value must be a positive integer. The default value is 50000.
-#keystore.pkcs12.certPbeIterationCount = 50000
+# This value must be a positive integer. The default value is 10000.
+#keystore.pkcs12.certPbeIterationCount = 10000
 
 # The algorithm used to encrypt a private key or secret key. This can be
 # any non-Hmac PBE algorithm defined in the Cipher section of the Java
 # Security Standard Algorithm Names Specification. The value must not be "NONE".
-# The default value is "PBEWithSHA1AndDESede".
-#keystore.pkcs12.keyProtectionAlgorithm = PBEWithSHA1AndDESede
+# The default value is "PBEWithHmacSHA256AndAES_256".
+#keystore.pkcs12.keyProtectionAlgorithm = PBEWithHmacSHA256AndAES_256
 
 # The iteration count used by the PBE algorithm when encrypting a private key
 # or a secret key. This value must be a positive integer. The default value
-# is 50000.
-#keystore.pkcs12.keyPbeIterationCount = 50000
+# is 10000.
+#keystore.pkcs12.keyPbeIterationCount = 10000
 
 # The algorithm used to calculate the optional MacData at the end of a PKCS12
 # file. This can be any HmacPBE algorithm defined in the Mac section of the
 # Java Security Standard Algorithm Names Specification. When set to "NONE",
-# no Mac is generated. The default value is "HmacPBESHA1".
-#keystore.pkcs12.macAlgorithm = HmacPBESHA1
+# no Mac is generated. The default value is "HmacPBESHA256".
+#keystore.pkcs12.macAlgorithm = HmacPBESHA256
 
 # The iteration count used by the MacData algorithm. This value must be a
-# positive integer. The default value is 100000.
-#keystore.pkcs12.macIterationCount = 100000
+# positive integer. The default value is 10000.
+#keystore.pkcs12.macIterationCount = 10000
 
 #
 # Enhanced exception message information
@@ -1334,3 +1403,115 @@ jdk.io.permissionsUseCanonicalPath=false
 # System value prevails. The default value of the property is "false".
 #
 #jdk.security.allowNonCaAnchor=true
+
+#
+# The default Character set name (java.nio.charset.Charset.forName())
+# for converting TLS ALPN values between byte arrays and Strings.
+# Prior versions of the JDK may use UTF-8 as the default charset. If
+# you experience interoperability issues, setting this property to UTF-8
+# may help.
+#
+# jdk.tls.alpnCharset=UTF-8
+jdk.tls.alpnCharset=ISO_8859_1
+
+#
+# Global JNDI Object Factories Filter
+#
+# This filter is used by the JNDI runtime to control the set of object factory classes
+# which will be allowed to instantiate objects from object references returned by
+# naming/directory systems. The factory class named by the reference instance will be
+# matched against this filter. The filter property supports pattern-based filter syntax
+# with the same format as jdk.serialFilter. Limit patterns specified in the filter property
+# are unused.
+#
+# Each class name pattern is matched against the factory class name to allow or disallow its
+# instantiation. The access to a factory class is allowed if the filter returns
+# ALLOWED.
+#
+# Note: This property is currently used by the JDK Reference implementation.
+# It is not guaranteed to be examined and used by other implementations.
+#
+# If the system property jdk.jndi.object.factoriesFilter is also specified, it supersedes
+# the security property value defined here. The default value of the property is "*".
+#
+# The default pattern value allows any object factory class specified by the reference
+# instance to recreate the referenced object.
+#jdk.jndi.object.factoriesFilter=*
+
+#
+# Protocol Specific JNDI/LDAP Object Factories Filter
+#
+# This filter is used by the JNDI/LDAP provider implementation in the JDK to further control the
+# set of object factory classes which will be allowed to instantiate objects from object
+# references bound to LDAP contexts. The factory class named by the reference instance will
+# be matched against this filter. The filter property supports pattern-based filter syntax
+# with the same format as jdk.serialFilter. Limit patterns specified in the filter property
+# are unused.
+#
+# Each class name pattern is matched against the factory class name to allow or disallow its
+# instantiation. The access to a factory class is allowed only when it is not rejected by this filter
+# or by the global filter defined by "jdk.jndi.object.factoriesFilter", and at least one of these
+# two filters returns ALLOWED.
+#
+# Note: This property is currently used by the JDK Reference implementation.
+# It is not guaranteed to be examined and used by other implementations.
+#
+# If the system property jdk.jndi.ldap.object.factoriesFilter is also specified, it supersedes
+# the security property value defined here. The default value of the property is
+# "java.naming/com.sun.jndi.ldap.**;!*".
+#
+# The default pattern value allows any object factory class defined in the java.naming module
+# to be specified by the reference instance, but rejects any other.
+#jdk.jndi.ldap.object.factoriesFilter=java.naming/com.sun.jndi.ldap.**;!*
+
+#
+# Protocol Specific JNDI/RMI Object Factories Filter
+#
+# This filter is used by the JNDI/RMI provider implementation in the JDK to further control the
+# set of object factory classes which will be allowed to instantiate objects from object
+# references bound to RMI names. The factory class named by the reference instance will
+# be matched against this filter. The filter property supports pattern-based filter syntax
+# with the same format as jdk.serialFilter. Limit patterns specified in the filter property
+# are unused.
+#
+# Each class name pattern is matched against the factory class name to allow or disallow its
+# instantiation. The access to a factory class is allowed only when it is not rejected by this filter
+# or by the global filter defined by "jdk.jndi.object.factoriesFilter", and at least one of these
+# two filters returns ALLOWED.
+#
+# Note: This property is currently used by the JDK Reference implementation.
+# It is not guaranteed to be examined and used by other implementations.
+#
+# If the system property jdk.jndi.rmi.object.factoriesFilter is also specified, it supersedes
+# the security property value defined here. The default value of the property is
+# "jdk.naming.rmi/com.sun.jndi.rmi.**;!*".
+#
+# The default pattern value allows any object factory class defined in the jdk.naming.rmi module
+# to be specified by the reference instance, but rejects any other.
+#jdk.jndi.rmi.object.factoriesFilter=jdk.naming.rmi/com.sun.jndi.rmi.**;!*
+
+#
+# Policy for non-forwardable service ticket in a S4U2proxy request
+#
+# The Service for User to Proxy (S4U2proxy) Kerberos extension enables a middle service
+# to obtain a service ticket to another service on behalf of a user. It requires that
+# the user's service ticket to the first service has the forwardable flag set [1].
+# However, some KDC implementations ignore this requirement and accept service tickets
+# with the flag unset.
+#
+# If this security property is set to "true", then
+#
+# 1) The user service ticket, when obtained by the middle service after a S4U2self
+#    impersonation, is not required to have the forwardable flag set; and,
+#
+# 2) If a S4U2proxy request receives a KRB_ERROR of the KDC_ERR_BADOPTION error code
+#    and the ticket to the middle service is not forwardable, OpenJDK will try the same
+#    request with another KDC instead of treating it as a fatal failure.
+#
+# The default value is "false".
+#
+# If a system property of the same name is also specified, it supersedes the
+# security property value defined here.
+#
+# [1] https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-sfu/bde93b0e-f3c9-4ddf-9f44-e1453be7af5a
+#jdk.security.krb5.s4u2proxy.acceptNonForwardableServiceTicket=false

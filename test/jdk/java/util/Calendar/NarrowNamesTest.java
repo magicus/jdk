@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,12 +23,13 @@
 
 /*
  * @test
- * @bug 8000983 8008577
+ * @bug 8000983 8008577 8247781 8262108 8174269
  * @summary Unit test for narrow names support. This test is locale data-dependent
- *          and assumes that both JRE and CLDR have the same narrow names.
+ *          and assumes that both COMPAT and CLDR have the same narrow names if not
+ *          explicitly specified.
  * @modules jdk.localedata
- * @comment Locale providers: JRE,SPI
- * @run main/othervm -Djava.locale.providers=JRE,SPI NarrowNamesTest JRE,SPI
+ * @comment Locale providers: CLDR,SPI
+ * @run main/othervm -Djava.locale.providers=CLDR,SPI NarrowNamesTest CLDR,SPI
  * @comment Locale providers: CLDR
  * @run main/othervm -Djava.locale.providers=CLDR NarrowNamesTest CLDR
  */
@@ -43,18 +44,16 @@ import static java.util.GregorianCalendar.*;
 
 public class NarrowNamesTest {
     private static final Locale US = Locale.US;
-    private static final Locale JAJPJP = new Locale("ja", "JP", "JP");
-    private static final Locale THTH = new Locale("th", "TH");
+    private static final Locale JAJPJP = Locale.of("ja", "JP", "JP");
+    private static final Locale THTH = Locale.of("th", "TH");
 
     private static final String RESET_INDEX = "RESET_INDEX";
 
     private static int errors = 0;
 
-    private static String providers;
-
     // This test is locale data-dependent.
     public static void main(String[] args) {
-        providers = args[0];
+        String providers = args[0];
 
         test(US, ERA, "B",
              ERA, BC, YEAR, 1);
@@ -176,16 +175,16 @@ public class NarrowNamesTest {
         if (expected.length > 0) {
             expectedMap = new TreeMap<>(LengthBasedComparator.INSTANCE);
             int index = 0;
-            for (int i = 0; i < expected.length; i++) {
-                if (expected[i].isEmpty()) {
+            for (String s : expected) {
+                if (s.isEmpty()) {
                     index++;
                     continue;
                 }
-                if (expected[i] == RESET_INDEX) {
+                if (s == RESET_INDEX) {
                     index = 0;
                     continue;
                 }
-                expectedMap.put(expected[i], index++);
+                expectedMap.put(s, index++);
             }
         }
         Calendar cal = Calendar.getInstance(locale);

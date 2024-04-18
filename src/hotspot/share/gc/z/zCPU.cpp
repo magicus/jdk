@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,22 +22,22 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/shared/gcLogPrecious.hpp"
 #include "gc/z/zCPU.inline.hpp"
-#include "logging/log.hpp"
 #include "memory/padded.inline.hpp"
+#include "runtime/javaThread.hpp"
 #include "runtime/os.hpp"
-#include "runtime/thread.inline.hpp"
 #include "utilities/debug.hpp"
 
 #define ZCPU_UNKNOWN_AFFINITY ((Thread*)-1)
 #define ZCPU_UNKNOWN_SELF     ((Thread*)-2)
 
-PaddedEnd<ZCPU::ZCPUAffinity>* ZCPU::_affinity = NULL;
+PaddedEnd<ZCPU::ZCPUAffinity>* ZCPU::_affinity = nullptr;
 THREAD_LOCAL Thread*           ZCPU::_self     = ZCPU_UNKNOWN_SELF;
 THREAD_LOCAL uint32_t          ZCPU::_cpu      = 0;
 
 void ZCPU::initialize() {
-  assert(_affinity == NULL, "Already initialized");
+  assert(_affinity == nullptr, "Already initialized");
   const uint32_t ncpus = count();
 
   _affinity = PaddedArray<ZCPUAffinity, mtGC>::create_unfreeable(ncpus);
@@ -46,9 +46,9 @@ void ZCPU::initialize() {
     _affinity[i]._thread = ZCPU_UNKNOWN_AFFINITY;
   }
 
-  log_info(gc, init)("CPUs: %u total, %u available",
-                     os::processor_count(),
-                     os::initial_active_processor_count());
+  log_info_p(gc, init)("CPUs: %u total, %u available",
+                       os::processor_count(),
+                       os::initial_active_processor_count());
 }
 
 uint32_t ZCPU::id_slow() {

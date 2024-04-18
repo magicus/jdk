@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,8 +36,6 @@
 
 import jdk.javadoc.internal.doclets.formats.html.markup.*;
 
-import static jdk.javadoc.internal.doclets.toolkit.util.DocletConstants.NL;
-
 /**
  * The class reads each file, complete with newlines, into a string to easily
  * compare the existing markup with the generated markup.
@@ -48,7 +46,7 @@ public class TestHtmlDocument extends JavadocTester {
 
     // Entry point
     public static void main(String... args) throws Exception {
-        TestHtmlDocument tester = new TestHtmlDocument();
+        var tester = new TestHtmlDocument();
         tester.runTests();
     }
 
@@ -56,7 +54,7 @@ public class TestHtmlDocument extends JavadocTester {
     public void test() {
         checking("markup");
         // Check whether the generated markup is same as the existing markup.
-        String expected = readFile(testSrc, "testMarkup.html").replace("\n", NL);
+        String expected = readFile(testSrc, "testMarkup.html");
         String actual = generateHtmlTree();
         if (actual.equals(expected)) {
             passed("");
@@ -74,7 +72,7 @@ public class TestHtmlDocument extends JavadocTester {
         HtmlTree head = new HtmlTree(TagName.HEAD);
         HtmlTree title = new HtmlTree(TagName.TITLE);
         // String content within the document
-        StringContent titleContent = new StringContent("Markup test");
+        TextBuilder titleContent = new TextBuilder("Markup test");
         title.add(titleContent);
         head.add(title);
         // Test META tag
@@ -82,17 +80,10 @@ public class TestHtmlDocument extends JavadocTester {
         meta.put(HtmlAttr.NAME, "keywords");
         meta.put(HtmlAttr.CONTENT, "testContent");
         head.add(meta);
-        // Test invalid META tag
-        HtmlTree invmeta = new HtmlTree(TagName.META);
-        head.add(invmeta);
-        // Test LINK tag
         HtmlTree link = new HtmlTree(TagName.LINK);
         link.put(HtmlAttr.REL, "testRel");
         link.put(HtmlAttr.HREF, "testLink.html");
         head.add(link);
-        // Test invalid LINK tag
-        HtmlTree invlink = new HtmlTree(TagName.LINK);
-        head.add(invlink);
         html.add(head);
         // Comment within the document
         Comment bodyMarker = new Comment("======== START OF BODY ========");
@@ -101,16 +92,16 @@ public class TestHtmlDocument extends JavadocTester {
         Comment pMarker = new Comment("======== START OF PARAGRAPH ========");
         body.add(pMarker);
         HtmlTree p = new HtmlTree(TagName.P);
-        StringContent bodyContent = new StringContent(
+        TextBuilder bodyContent = new TextBuilder(
                 "This document is generated from sample source code and HTML " +
                 "files with examples of a wide variety of Java language constructs: packages, " +
                 "subclasses, subinterfaces, nested classes, nested interfaces," +
                 "inheriting from other packages, constructors, fields," +
                 "methods, and so forth. ");
         p.add(bodyContent);
-        StringContent anchorContent = new StringContent("Click Here");
+        TextBuilder anchorContent = new TextBuilder("Click Here");
         p.add(HtmlTree.A("testLink.html", anchorContent));
-        StringContent pContent = new StringContent(" to <test> out a link.");
+        TextBuilder pContent = new TextBuilder(" to <test> out a link.");
         p.add(pContent);
         body.add(p);
         HtmlTree p1 = new HtmlTree(TagName.P);
@@ -131,11 +122,11 @@ public class TestHtmlDocument extends JavadocTester {
         HtmlTree dlDisplay = new HtmlTree(TagName.DL);
         dlDisplay.add(new HtmlTree(TagName.DT));
         HtmlTree dd = new HtmlTree (TagName.DD);
-        StringContent ddContent = new StringContent("Test DD");
+        TextBuilder ddContent = new TextBuilder("Test DD");
         dd.add(ddContent);
         dlDisplay.add(dd);
         body.add(dlDisplay);
-        StringContent emptyString = new StringContent("");
+        TextBuilder emptyString = new TextBuilder("");
         body.add(emptyString);
         Comment emptyComment = new Comment("");
         body.add(emptyComment);

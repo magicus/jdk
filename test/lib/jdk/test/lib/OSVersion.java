@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -26,13 +24,8 @@
 package jdk.test.lib;
 
 import java.util.Arrays;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 
 public final class OSVersion implements Comparable<OSVersion> {
     public static final OSVersion WINDOWS_95 = new OSVersion(4, 0);
@@ -46,9 +39,6 @@ public final class OSVersion implements Comparable<OSVersion> {
     private final int[] versionTokens;
 
     public static OSVersion current() {
-        if (Platform.isSolaris()) {
-            return new OSVersion(getSolarisVersion());
-        }
         return new OSVersion(Platform.getOsVersion());
     }
 
@@ -62,26 +52,6 @@ public final class OSVersion implements Comparable<OSVersion> {
                                    .filter(onlyDigits.asPredicate())
                                    .mapToInt(Integer::parseInt)
                                    .toArray();
-    }
-
-    private static String getSolarisVersion() {
-        try {
-            return Utils.distro();
-        } catch (Throwable e) {
-            System.out.println("First attempt failed with: " + e.getMessage());
-        }
-
-        // Try to get Solaris version from /etc/release
-        try (BufferedReader in = new BufferedReader(AccessController.doPrivileged(
-                (PrivilegedExceptionAction<FileReader>) () -> new FileReader("/etc/release")))) {
-            return in.readLine().trim().split(" ")[2];
-        } catch (PrivilegedActionException e) {
-            System.out.println("Second attempt failed with: " + e.getException().getMessage());
-        } catch (Exception e) {
-            System.out.println("Second attempt failed with: " + e.getMessage());
-        }
-
-        throw new RuntimeException("Unable to get Solaris version");
     }
 
     @Override

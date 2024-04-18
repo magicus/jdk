@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,21 +23,24 @@
 
 /*
  * @test
- * @modules java.base/jdk.internal.org.objectweb.asm
- *          jdk.compiler
+ * @bug 8330467
+ * @modules jdk.compiler
  * @library /test/lib
+ * @enablePreview
+ * @comment Change enablePreview with the flag in setup's compileSources
+ * @compile BadClassFile.jcod
+ *          BadClassFile2.jcod
+ *          BadClassFileVersion.jcod
  * @build jdk.test.lib.Utils
  *        jdk.test.lib.compiler.CompilerUtils
- * @run testng/othervm --enable-preview BasicTest
+ * @run testng/othervm BasicTest
  */
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.classfile.ClassFile;
+import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
-
-import static java.lang.invoke.MethodHandles.lookup;
-import static java.lang.invoke.MethodHandles.Lookup.ClassOption.*;
-
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -48,8 +51,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
-import jdk.internal.org.objectweb.asm.ClassWriter;
-import jdk.internal.org.objectweb.asm.Type;
 import jdk.test.lib.compiler.CompilerUtils;
 import jdk.test.lib.Utils;
 
@@ -57,7 +58,11 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import static jdk.internal.org.objectweb.asm.Opcodes.*;
+import static java.lang.classfile.ClassFile.*;
+import static java.lang.constant.ConstantDescs.CD_Enum;
+import static java.lang.constant.ConstantDescs.CD_Object;
+import static java.lang.invoke.MethodHandles.lookup;
+import static java.lang.invoke.MethodHandles.Lookup.ClassOption.*;
 import static org.testng.Assert.*;
 
 interface HiddenTest {
@@ -74,8 +79,8 @@ public class BasicTest {
 
     @BeforeTest
     static void setup() throws IOException {
-        compileSources(SRC_DIR, CLASSES_DIR,
-                "--enable-preview", "-source", String.valueOf(Runtime.version().feature()));
+        compileSources(SRC_DIR, CLASSES_DIR, "--enable-preview",
+                       "--release", Integer.toString(Runtime.version().feature()));
         hiddenClassBytes = Files.readAllBytes(CLASSES_DIR.resolve("HiddenClass.class"));
 
         // compile with --release 10 with no NestHost and NestMembers attribute
@@ -177,6 +182,20 @@ public class BasicTest {
         }
     }
 
+    // Define a hidden class that uses lambda and contains its implementation
+    // This verifies LambdaMetaFactory supports the caller which is a hidden class
+    @Test
+    public void testHiddenLambda() throws Throwable {
+        HiddenTest t = (HiddenTest)defineHiddenClass("HiddenLambda").newInstance();
+        try {
+            t.test();
+        } catch (Error e) {
+            if (!e.getMessage().equals("thrown by " + t.getClass().getName())) {
+                throw e;
+            }
+        }
+    }
+
     // Verify the nest host and nest members of a hidden class and hidden nestmate class
     @Test
     public void testHiddenNestHost() throws Throwable {
@@ -262,8 +281,8 @@ public class BasicTest {
      */
     @Test(dataProvider = "emptyClasses")
     public void emptyHiddenClass(String name, int accessFlags) throws Exception {
-        byte[] bytes = (accessFlags == ACC_ENUM) ? classBytes(name, Enum.class, accessFlags)
-                                                 : classBytes(name, accessFlags);
+        byte[] bytes = (accessFlags == ACC_ENUM) ? classBytes(name, CD_Enum, accessFlags)
+                : classBytes(name, accessFlags);
         Class<?> hc = lookup().defineHiddenClass(bytes, false).lookupClass();
         switch (accessFlags) {
             case ACC_SYNTHETIC:
@@ -360,7 +379,7 @@ public class BasicTest {
         }
     }
 
-    @Test(expectedExceptions = {IllegalArgumentException.class})
+    @Test(expectedExceptions = { IllegalArgumentException.class })
     public void cantDefineModule() throws Throwable {
         Path src = Paths.get("module-info.java");
         Path dir = CLASSES_DIR.resolve("m");
@@ -371,7 +390,7 @@ public class BasicTest {
         lookup().defineHiddenClass(bytes, false);
     }
 
-    @Test(expectedExceptions = {IllegalArgumentException.class})
+    @Test(expectedExceptions = { IllegalArgumentException.class })
     public void cantDefineClassInAnotherPackage() throws Throwable {
         Path src = Paths.get("ClassInAnotherPackage.java");
         Files.write(src, List.of("package p;", "public class ClassInAnotherPackage {}"), StandardCharsets.UTF_8);
@@ -381,10 +400,36 @@ public class BasicTest {
         lookup().defineHiddenClass(bytes, false);
     }
 
-    @Test(expectedExceptions = {IllegalAccessException.class})
+    @Test(expectedExceptions = { IllegalAccessException.class })
     public void lessPrivilegedLookup() throws Throwable {
         Lookup lookup = lookup().dropLookupMode(Lookup.PRIVATE);
         lookup.defineHiddenClass(hiddenClassBytes, false);
+    }
+
+    @Test(expectedExceptions = { UnsupportedClassVersionError.class })
+    public void badClassFileVersion() throws Throwable {
+        Path dir = Paths.get(System.getProperty("test.classes", "."));
+        byte[] bytes = Files.readAllBytes(dir.resolve("BadClassFileVersion.class"));
+        lookup().defineHiddenClass(bytes, false);
+    }
+
+    // malformed class files
+    @DataProvider(name = "malformedClassFiles")
+    private Object[][] malformedClassFiles() throws IOException {
+        Path dir = Paths.get(System.getProperty("test.classes", "."));
+        return new Object[][] {
+                // `this_class` has invalid CP entry
+                new Object[] { Files.readAllBytes(dir.resolve("BadClassFile.class")) },
+                new Object[] { Files.readAllBytes(dir.resolve("BadClassFile2.class")) },
+                // truncated file
+                new Object[] { new byte[0] },
+                new Object[] { new byte[] {(byte) 0xCA, (byte) 0xBA, (byte) 0xBE, (byte) 0x00} },
+        };
+    }
+
+    @Test(dataProvider = "malformedClassFiles", expectedExceptions = ClassFormatError.class)
+    public void badClassFile(byte[] bytes) throws Throwable {
+        lookup().defineHiddenClass(bytes, false);
     }
 
     @DataProvider(name = "nestedTypesOrAnonymousClass")
@@ -486,14 +531,13 @@ public class BasicTest {
     }
 
     private static byte[] classBytes(String classname, int accessFlags) {
-        return classBytes(classname, Object.class, accessFlags);
+        return classBytes(classname, CD_Object, accessFlags);
     }
 
-    private static byte[] classBytes(String classname, Class<?> supertType, int accessFlags) {
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES);
-        cw.visit(V14, ACC_PUBLIC|accessFlags, classname, null, Type.getInternalName(supertType), null);
-        cw.visitEnd();
-
-        return cw.toByteArray();
+    private static byte[] classBytes(String classname, ClassDesc superType, int accessFlags) {
+        return ClassFile.of().build(ClassDesc.ofInternalName(classname), clb -> clb
+                .withVersion(JAVA_14_VERSION, 0)
+                .withFlags(accessFlags | ACC_PUBLIC)
+                .withSuperclass(superType));
     }
 }

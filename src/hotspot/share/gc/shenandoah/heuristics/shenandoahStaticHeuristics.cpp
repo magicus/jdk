@@ -32,18 +32,23 @@
 #include "logging/log.hpp"
 #include "logging/logTag.hpp"
 
-ShenandoahStaticHeuristics::ShenandoahStaticHeuristics() : ShenandoahHeuristics() {
+ShenandoahStaticHeuristics::ShenandoahStaticHeuristics(ShenandoahSpaceInfo* space_info) :
+  ShenandoahHeuristics(space_info) {
   SHENANDOAH_ERGO_ENABLE_FLAG(ExplicitGCInvokesConcurrent);
   SHENANDOAH_ERGO_ENABLE_FLAG(ShenandoahImplicitGCInvokesConcurrent);
 }
 
 ShenandoahStaticHeuristics::~ShenandoahStaticHeuristics() {}
 
-bool ShenandoahStaticHeuristics::should_start_gc() const {
-  ShenandoahHeap* heap = ShenandoahHeap::heap();
+bool ShenandoahStaticHeuristics::should_start_gc() {
+  size_t max_capacity = _space_info->max_capacity();
+  size_t capacity = _space_info->soft_max_capacity();
+  size_t available = _space_info->available();
 
-  size_t capacity = heap->max_capacity();
-  size_t available = heap->free_set()->available();
+  // Make sure the code below treats available without the soft tail.
+  size_t soft_tail = max_capacity - capacity;
+  available = (available > soft_tail) ? (available - soft_tail) : 0;
+
   size_t threshold_available = capacity / 100 * ShenandoahMinFreeThreshold;
 
   if (available < threshold_available) {
@@ -66,16 +71,4 @@ void ShenandoahStaticHeuristics::choose_collection_set_from_regiondata(Shenandoa
       cset->add_region(r);
     }
   }
-}
-
-const char* ShenandoahStaticHeuristics::name() {
-  return "static";
-}
-
-bool ShenandoahStaticHeuristics::is_diagnostic() {
-  return false;
-}
-
-bool ShenandoahStaticHeuristics::is_experimental() {
-  return false;
 }

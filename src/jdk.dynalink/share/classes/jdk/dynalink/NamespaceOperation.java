@@ -134,6 +134,7 @@ import java.util.Objects;
  *         StandardNamespace.PROPERTY)
  *     .named("empty");
  * </pre>
+ * @since 9
  */
 public final class NamespaceOperation implements Operation {
     private final Operation baseOperation;
@@ -246,7 +247,7 @@ public final class NamespaceOperation implements Operation {
     @Override
     public int hashCode() {
         return baseOperation.hashCode() + 31 * Arrays.hashCode(namespaces);
-    };
+    }
 
     /**
      * Returns the string representation of this namespace operation. Defined to

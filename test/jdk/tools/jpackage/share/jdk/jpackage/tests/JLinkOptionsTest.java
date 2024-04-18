@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,7 +28,6 @@ import java.util.List;
 import jdk.jpackage.test.Annotations.Parameters;
 import jdk.jpackage.test.Annotations.Test;
 import jdk.jpackage.test.JPackageCommand;
-import jdk.jpackage.test.CfgFile;
 import jdk.jpackage.test.TKit;
 
 /*
@@ -36,7 +35,7 @@ import jdk.jpackage.test.TKit;
  * @summary jpackage application version testing
  * @library ../../../../helpers
  * @build jdk.jpackage.test.*
- * @modules jdk.incubator.jpackage/jdk.incubator.jpackage.internal
+ * @modules jdk.jpackage/jdk.jpackage.internal
  * @compile JLinkOptionsTest.java
  * @run main/othervm/timeout=360 -Xmx512m jdk.jpackage.test.Main
  *  --jpt-run=jdk.jpackage.tests.JLinkOptionsTest
@@ -64,7 +63,7 @@ public final class JLinkOptionsTest {
                     "--bind-services",
                     },
                     // with bind-services should have some services
-                    new String[]{"java.smartcardio", "jdk.crypto.ec"},
+                    new String[]{"java.smartcardio", "jdk.crypto.cryptoki"},
                     null,
                     },
             // bind-services
@@ -76,13 +75,12 @@ public final class JLinkOptionsTest {
                     null,
                     },
 
-            // bind-services and jpackage option --bind-services (deprecated)
+            // jlink-options --bind-services
             {"com.other/com.other.Hello", new String[]{
-                    "--bind-services",
                     "--jlink-options", "--bind-services",
                     },
                     // with bind-services should have some services
-                    new String[]{"java.smartcardio", "jdk.crypto.ec"},
+                    new String[]{"java.smartcardio", "jdk.crypto.cryptoki"},
                     null,
                     },
 
@@ -94,11 +92,12 @@ public final class JLinkOptionsTest {
                     // should have whatever it needs
                     new String[]{"java.base", "com.other"},
                     // should not have whatever it doesn't need
-                    new String[]{"jdk.incubator.jpackage"},
+                    new String[]{"jdk.jpackage"},
                     },
 
             // bind-services and limit-options
             {"com.other/com.other.Hello", new String[]{
+                    "--jlink-options",
                     "--bind-services",
                     "--jlink-options",
                     "--limit-modules java.base,java.datatransfer,java.xml,java.prefs,java.desktop,com.other,java.smartcardio",
@@ -106,7 +105,7 @@ public final class JLinkOptionsTest {
                     // with bind-services should have some services
                     new String[]{"java.smartcardio"},
                     // but not limited
-                    new String[]{"jdk.crypto.ec"},
+                    new String[]{"jdk.crypto.cryptoki"},
                     },
 
         });
@@ -115,10 +114,10 @@ public final class JLinkOptionsTest {
     public JLinkOptionsTest(String javaAppDesc, String[] jpackageArgs, String[] required, String[] prohibited) {
         this.required = required;
         this.prohibited = prohibited;
-        cmd = JPackageCommand.helloAppImage(javaAppDesc);
-        if (jpackageArgs != null) {
-            cmd.addArguments(jpackageArgs);
-        }
+        cmd = JPackageCommand
+                .helloAppImage(javaAppDesc)
+                .ignoreDefaultRuntime(true)
+                .addArguments(jpackageArgs);
     }
 
     @Test

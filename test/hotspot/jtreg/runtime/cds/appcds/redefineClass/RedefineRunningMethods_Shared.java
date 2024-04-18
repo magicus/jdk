@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,22 +27,22 @@
  * @summary Run /serviceability/jvmti/RedefineClasses/RedefineRunningMethods in AppCDS mode to
  *          make sure class redefinition works with CDS.
  * @requires vm.cds
+ * @requires vm.jvmti
  * @library /test/lib /test/hotspot/jtreg/serviceability/jvmti/RedefineClasses /test/hotspot/jtreg/runtime/cds/appcds
  * @run driver RedefineClassHelper
- * @build sun.hotspot.WhiteBox RedefineRunningMethods_SharedHelper
+ * @build jdk.test.whitebox.WhiteBox
+ * @compile RedefineRunningMethods_SharedHelper.java
  * @run driver RedefineRunningMethods_Shared
  */
 
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.helpers.ClassFileInstaller;
 
 public class RedefineRunningMethods_Shared {
     public static String shared_classes[] = {
         "RedefineRunningMethods_Shared",
         "RedefineRunningMethods_SharedHelper",
         "RedefineRunningMethods",
-        "RedefineRunningMethods$1",
-        "RedefineRunningMethods$2",
-        "RedefineRunningMethods$3",
         "RedefineRunningMethods_B",
         "RedefineClassHelper",
         "jdk/test/lib/compiler/InMemoryJavaCompiler",
@@ -52,7 +52,7 @@ public class RedefineRunningMethods_Shared {
     };
 
     public static void main(String[] args) throws Exception {
-        String wbJar = ClassFileInstaller.writeJar("WhiteBox.jar", "sun.hotspot.WhiteBox");
+        String wbJar = ClassFileInstaller.writeJar("WhiteBox.jar", "jdk.test.whitebox.WhiteBox");
         String appJar = ClassFileInstaller.writeJar("RedefineRunningMethods_Shared.jar", shared_classes);
         String use_whitebox_jar = "-Xbootclasspath/a:" + wbJar;
 

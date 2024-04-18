@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2012, 2019 SAP SE. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2021 SAP SE. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,8 +49,8 @@ protected:
     ldbrx,
     stdbrx,
     vshasig,
-    rtm,
     darn,
+    brw,
     num_features // last entry to count features
   };
   enum Feature_Flag_Set {
@@ -72,8 +72,8 @@ protected:
     ldbrx_m               = (1 << ldbrx  ),
     stdbrx_m              = (1 << stdbrx ),
     vshasig_m             = (1 << vshasig),
-    rtm_m                 = (1 << rtm    ),
     darn_m                = (1 << darn   ),
+    brw_m                 = (1 << brw    ),
     all_features_m        = (unsigned long)-1
   };
 
@@ -82,8 +82,7 @@ protected:
   static void print_features();
   static void determine_features(); // also measures cache line size
   static void config_dscr(); // Power 8: Configure Data Stream Control Register.
-  static void determine_section_size();
-  static void power6_micro_bench();
+
 public:
   // Initialization
   static void initialize();
@@ -92,11 +91,10 @@ public:
   // Override Abstract_VM_Version implementation
   static void print_platform_virtualization_info(outputStream*);
 
-  // Override Abstract_VM_Version implementation
-  static bool use_biased_locking();
-
-  // PPC64 supports fast class initialization checks for static methods.
+  // PPC64 supports fast class initialization checks
   static bool supports_fast_class_init_checks() { return true; }
+  constexpr static bool supports_stack_watermark_barrier() { return true; }
+  constexpr static bool supports_recursive_lightweight_locking() { return true; }
 
   static bool is_determine_features_test_running() { return _is_determine_features_test_running; }
   // CPU instruction support
@@ -117,8 +115,8 @@ public:
   static bool has_ldbrx()   { return (_features & ldbrx_m) != 0; }
   static bool has_stdbrx()  { return (_features & stdbrx_m) != 0; }
   static bool has_vshasig() { return (_features & vshasig_m) != 0; }
-  static bool has_tm()      { return (_features & rtm_m) != 0; }
   static bool has_darn()    { return (_features & darn_m) != 0; }
+  static bool has_brw()     { return (_features & brw_m) != 0; }
 
   static bool has_mtfprd()  { return has_vpmsumb(); } // alias for P8
 
@@ -128,6 +126,8 @@ public:
 
   // POWER 8: DSCR current value.
   static uint64_t _dscr_val;
+
+  static void initialize_cpu_information(void);
 };
 
 #endif // CPU_PPC_VM_VERSION_PPC_HPP

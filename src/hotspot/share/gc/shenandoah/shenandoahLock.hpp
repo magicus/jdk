@@ -27,41 +27,46 @@
 
 #include "gc/shenandoah/shenandoahPadding.hpp"
 #include "memory/allocation.hpp"
+#include "runtime/javaThread.hpp"
 #include "runtime/safepoint.hpp"
-#include "runtime/thread.hpp"
 
 class ShenandoahLock  {
 private:
   enum LockState { unlocked = 0, locked = 1 };
 
   shenandoah_padding(0);
-  volatile int _state;
+  volatile LockState _state;
   shenandoah_padding(1);
   volatile Thread* _owner;
   shenandoah_padding(2);
 
-public:
-  ShenandoahLock() : _state(unlocked), _owner(NULL) {};
+  template<typename BlockOp>
+  void contended_lock_internal(JavaThread* java_thread);
 
-  void lock() {
-#ifdef ASSERT
-    assert(_owner != Thread::current(), "reentrant locking attempt, would deadlock");
-#endif
-    Thread::SpinAcquire(&_state, "Shenandoah Heap Lock");
-#ifdef ASSERT
-    assert(_state == locked, "must be locked");
-    assert(_owner == NULL, "must not be owned");
-    _owner = Thread::current();
-#endif
+public:
+  ShenandoahLock() : _state(unlocked), _owner(nullptr) {};
+
+  void lock(bool allow_block_for_safepoint) {
+    assert(Atomic::load(&_owner) != Thread::current(), "reentrant locking attempt, would deadlock");
+
+    // Try to lock fast, or dive into contended lock handling.
+    if (Atomic::cmpxchg(&_state, unlocked, locked) != unlocked) {
+      contended_lock(allow_block_for_safepoint);
+    }
+
+    assert(Atomic::load(&_state) == locked, "must be locked");
+    assert(Atomic::load(&_owner) == nullptr, "must not be owned");
+    DEBUG_ONLY(Atomic::store(&_owner, Thread::current());)
   }
 
   void unlock() {
-#ifdef ASSERT
-    assert (_owner == Thread::current(), "sanity");
-    _owner = NULL;
-#endif
-    Thread::SpinRelease(&_state);
+    assert(Atomic::load(&_owner) == Thread::current(), "sanity");
+    DEBUG_ONLY(Atomic::store(&_owner, (Thread*)nullptr);)
+    OrderAccess::fence();
+    Atomic::store(&_state, unlocked);
   }
+
+  void contended_lock(bool allow_block_for_safepoint);
 
   bool owned_by_self() {
 #ifdef ASSERT
@@ -77,14 +82,14 @@ class ShenandoahLocker : public StackObj {
 private:
   ShenandoahLock* const _lock;
 public:
-  ShenandoahLocker(ShenandoahLock* lock) : _lock(lock) {
-    if (_lock != NULL) {
-      _lock->lock();
+  ShenandoahLocker(ShenandoahLock* lock, bool allow_block_for_safepoint = false) : _lock(lock) {
+    if (_lock != nullptr) {
+      _lock->lock(allow_block_for_safepoint);
     }
   }
 
   ~ShenandoahLocker() {
-    if (_lock != NULL) {
+    if (_lock != nullptr) {
       _lock->unlock();
     }
   }
@@ -92,7 +97,7 @@ public:
 
 class ShenandoahSimpleLock {
 private:
-  os::PlatformMonitor   _lock; // native lock
+  PlatformMonitor   _lock; // native lock
 public:
   ShenandoahSimpleLock();
 
@@ -123,13 +128,13 @@ private:
 public:
   ShenandoahReentrantLocker(ShenandoahReentrantLock* lock) :
     _lock(lock) {
-    if (_lock != NULL) {
+    if (_lock != nullptr) {
       _lock->lock();
     }
   }
 
   ~ShenandoahReentrantLocker() {
-    if (_lock != NULL) {
+    if (_lock != nullptr) {
       assert(_lock->owned_by_self(), "Must be owner");
       _lock->unlock();
     }

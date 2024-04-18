@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,25 +25,22 @@
 #ifndef SHARE_GC_SHARED_THREADLOCALALLOCBUFFER_INLINE_HPP
 #define SHARE_GC_SHARED_THREADLOCALALLOCBUFFER_INLINE_HPP
 
-#include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/threadLocalAllocBuffer.hpp"
+
+#include "gc/shared/collectedHeap.hpp"
+#include "gc/shared/tlab_globals.hpp"
 #include "memory/universe.hpp"
 #include "logging/log.hpp"
-#include "runtime/thread.hpp"
+#include "runtime/javaThread.hpp"
+#include "runtime/osThread.hpp"
 #include "utilities/copy.hpp"
 
 inline HeapWord* ThreadLocalAllocBuffer::allocate(size_t size) {
   invariants();
   HeapWord* obj = top();
   if (pointer_delta(end(), obj) >= size) {
-    // successful thread-local allocation
-#ifdef ASSERT
-    // Skip mangling the space corresponding to the object header to
-    // ensure that the returned space is not considered parsable by
-    // any concurrent GC thread.
-    size_t hdr_size = oopDesc::header_size();
-    Copy::fill_to_words(obj + hdr_size, size - hdr_size, badHeapWordVal);
-#endif // ASSERT
+    // Successful thread-local allocation.
+
     // This addition is safe because we know that top is
     // at least size below end, so the add can't wrap.
     set_top(obj + size);
@@ -51,7 +48,7 @@ inline HeapWord* ThreadLocalAllocBuffer::allocate(size_t size) {
     invariants();
     return obj;
   }
-  return NULL;
+  return nullptr;
 }
 
 inline size_t ThreadLocalAllocBuffer::compute_size(size_t obj_size) {
@@ -88,7 +85,7 @@ void ThreadLocalAllocBuffer::record_slow_allocation(size_t obj_size) {
 
   _slow_allocations++;
 
-  log_develop_trace(gc, tlab)("TLAB: %s thread: " INTPTR_FORMAT " [id: %2d]"
+  log_develop_trace(gc, tlab)("TLAB: %s thread: " PTR_FORMAT " [id: %2d]"
                               " obj: " SIZE_FORMAT
                               " free: " SIZE_FORMAT
                               " waste: " SIZE_FORMAT,

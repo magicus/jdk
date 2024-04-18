@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ package sun.jvm.hotspot.oops;
 import java.io.PrintStream;
 import sun.jvm.hotspot.utilities.Observable;
 import sun.jvm.hotspot.utilities.Observer;
+import sun.jvm.hotspot.utilities.U1Array;
 
 import sun.jvm.hotspot.code.NMethod;
 import sun.jvm.hotspot.debugger.Address;
@@ -39,6 +40,7 @@ import sun.jvm.hotspot.types.Type;
 import sun.jvm.hotspot.types.TypeDataBase;
 import sun.jvm.hotspot.types.WrongTypeException;
 import sun.jvm.hotspot.utilities.Assert;
+import sun.jvm.hotspot.utilities.U1Array;
 
 // A Method represents a Java method
 
@@ -113,18 +115,24 @@ public class Method extends Metadata {
   // Accessors for declared fields
   public ConstMethod  getConstMethod()                {
     Address addr = constMethod.getValue(getAddress());
-    return (ConstMethod) VMObjectFactory.newObject(ConstMethod.class, addr);
+    return VMObjectFactory.newObject(ConstMethod.class, addr);
   }
   public ConstantPool getConstants()                  {
     return getConstMethod().getConstants();
   }
+  public boolean      hasStackMapTable()              {
+    return getConstMethod().hasStackMapTable();
+  }
+  public U1Array      getStackMapData()               {
+    return getConstMethod().getStackMapData();
+  }
   public MethodData   getMethodData()                 {
     Address addr = methodData.getValue(getAddress());
-    return (MethodData) VMObjectFactory.newObject(MethodData.class, addr);
+    return VMObjectFactory.newObject(MethodData.class, addr);
   }
   public MethodCounters getMethodCounters()           {
     Address addr = methodCounters.getValue(getAddress());
-    return (MethodCounters) VMObjectFactory.newObject(MethodCounters.class, addr);
+    return VMObjectFactory.newObject(MethodCounters.class, addr);
   }
   /** WARNING: this is in words, not useful in this system; use getObjectSize() instead */
   public long         getMaxStack()                   { return                getConstMethod().getMaxStack();   }
@@ -148,7 +156,7 @@ public class Method extends Metadata {
   // get associated compiled native method, if available, else return null.
   public NMethod getNativeMethod() {
     Address addr = code.getValue(getAddress());
-    return (NMethod) VMObjectFactory.newObject(NMethod.class, addr);
+    return VMObjectFactory.newObject(NMethod.class, addr);
   }
 
   // Convenience routine
@@ -252,10 +260,6 @@ public class Method extends Metadata {
      return isStatic() && getName().equals(classInitializerName());
   }
 
-  public boolean isObsolete() {
-     return getAccessFlagsObj().isObsolete();
-  }
-
   public OopMapCacheEntry getMaskFor(int bci) {
     OopMapCacheEntry entry = new OopMapCacheEntry();
     entry.fill(this, bci);
@@ -267,7 +271,8 @@ public class Method extends Metadata {
   }
 
   public void printValueOn(PrintStream tty) {
-    tty.print("Method " + getName().asString() + getSignature().asString() + "@" + getAddress());
+      tty.print("Method " + getMethodHolder().getName().asString() + "." +
+                getName().asString() + getSignature().asString() + "@" + getAddress());
   }
 
   public void iterateFields(MetadataVisitor visitor) {
@@ -363,13 +368,29 @@ public class Method extends Metadata {
     return getMethodCounters().interpreterThrowoutCount();
   }
 
-  public int interpreterInvocationCount() {
-    return getMethodCounters().interpreterInvocationCount();
+  public long interpreterInvocationCount() {
+    return getInvocationCount();
   }
 
   public String nameAsAscii() {
     return getMethodHolder().getName().asString() + " " +
       OopUtilities.escapeString(getName().asString()) + " " +
       getSignature().asString();
+  }
+
+  public U1Array getAnnotations() {
+    return getConstMethod().getMethodAnnotations();
+  }
+
+  public U1Array getParameterAnnotations() {
+    return getConstMethod().getParameterAnnotations();
+  }
+
+  public U1Array getTypeAnnotations() {
+    return getConstMethod().getTypeAnnotations();
+  }
+
+  public U1Array getAnnotationDefault() {
+    return getConstMethod().getDefaultAnnotations();
   }
 }

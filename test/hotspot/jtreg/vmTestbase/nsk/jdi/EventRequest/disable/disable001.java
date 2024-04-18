@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -95,7 +95,9 @@ public class disable001 {
 
         int result = run(argv, System.out);
 
-        System.exit(result + PASS_BASE);
+        if (result != 0) {
+            throw new RuntimeException("TEST FAILED with result " + result);
+        }
     }
 
     public static int run (String argv[], PrintStream out) {
@@ -105,7 +107,7 @@ public class disable001 {
         if (exitCode != PASSED) {
             System.out.println("TEST FAILED");
         }
-        return testExitCode;
+        return exitCode;
     }
 
     //--------------------------------------------------   log procedures
@@ -411,6 +413,7 @@ public class disable001 {
                       throw new JDITestRuntimeException("** default case 2 **");
             }
 
+            vm.suspend();
             log2("......eventRequest1.setEnabled(true);");
             eventRequest1.setEnabled(true);
 
@@ -423,6 +426,7 @@ public class disable001 {
                 log3("ERROR: EventRequest is still enabled");
             }
             eventRequest1.setEnabled(false);
+            vm.resume();
 
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         }

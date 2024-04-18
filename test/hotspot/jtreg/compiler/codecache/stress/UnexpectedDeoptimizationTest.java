@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,8 +29,8 @@
  * @modules java.base/jdk.internal.misc
  *          java.management
  *
- * @build sun.hotspot.WhiteBox compiler.codecache.stress.Helper compiler.codecache.stress.TestCaseImpl
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @build jdk.test.whitebox.WhiteBox compiler.codecache.stress.Helper compiler.codecache.stress.TestCaseImpl
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions
  *                   -XX:+WhiteBoxAPI
  *                   -XX:+IgnoreUnrecognizedVMOptions -XX:-DeoptimizeRandom
@@ -42,6 +42,20 @@
  *                   -XX:+IgnoreUnrecognizedVMOptions -XX:-DeoptimizeRandom
  *                   -XX:CompileCommand=dontinline,compiler.codecache.stress.Helper$TestCase::method
  *                   -XX:+SegmentedCodeCache
+ *                   compiler.codecache.stress.UnexpectedDeoptimizationTest
+ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions
+ *                   -XX:+WhiteBoxAPI
+ *                   -XX:+IgnoreUnrecognizedVMOptions -XX:-DeoptimizeRandom
+ *                   -XX:CompileCommand=dontinline,compiler.codecache.stress.Helper$TestCase::method
+ *                   -XX:-SegmentedCodeCache
+ *                   -DhelperVirtualThread=true
+ *                   compiler.codecache.stress.UnexpectedDeoptimizationTest
+ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions
+ *                   -XX:+WhiteBoxAPI
+ *                   -XX:+IgnoreUnrecognizedVMOptions -XX:-DeoptimizeRandom
+ *                   -XX:CompileCommand=dontinline,compiler.codecache.stress.Helper$TestCase::method
+ *                   -XX:+SegmentedCodeCache
+ *                   -DhelperVirtualThread=true
  *                   compiler.codecache.stress.UnexpectedDeoptimizationTest
  */
 
@@ -60,6 +74,13 @@ public class UnexpectedDeoptimizationTest implements Runnable {
     @Override
     public void run() {
         Helper.WHITE_BOX.deoptimizeFrames(rng.nextBoolean());
+        // Sleep a short while to allow the stacks to grow - otherwise
+        //  we end up running almost all code in the interpreter
+        try {
+            Thread.sleep(10);
+        } catch (Exception e) {
+        }
+
     }
 
 }

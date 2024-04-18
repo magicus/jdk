@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -51,6 +51,11 @@ import java.security.spec.InvalidParameterSpecException;
 public abstract class AlgorithmParametersSpi {
 
     /**
+     * Constructor for subclasses to call.
+     */
+    public AlgorithmParametersSpi() {}
+
+    /**
      * Initializes this parameters object using the parameters
      * specified in {@code paramSpec}.
      *
@@ -79,7 +84,7 @@ public abstract class AlgorithmParametersSpi {
     /**
      * Imports the parameters from {@code params} and
      * decodes them according to the specified decoding format.
-     * If {@code format} is null, the
+     * If {@code format} is {@code null}, the
      * primary decoding format for parameters is used. The primary decoding
      * format is ASN.1, if an ASN.1 specification for these parameters
      * exists.
@@ -130,7 +135,7 @@ public abstract class AlgorithmParametersSpi {
 
     /**
      * Returns the parameters encoded in the specified format.
-     * If {@code format} is null, the
+     * If {@code format} is {@code null}, the
      * primary encoding format for parameters is used. The primary encoding
      * format is ASN.1, if an ASN.1 specification for these parameters
      * exists.

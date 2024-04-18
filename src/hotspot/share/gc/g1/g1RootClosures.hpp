@@ -33,26 +33,25 @@ class G1ParScanThreadState;
 
 class G1RootClosures : public CHeapObj<mtGC> {
 public:
-  virtual ~G1RootClosures() {}
-
-// Closures to process raw oops in the root set.
-  virtual OopClosure* weak_oops() = 0;
+  // Closures to process raw oops in the root set.
   virtual OopClosure* strong_oops() = 0;
 
   // Closures to process CLDs in the root set.
   virtual CLDClosure* weak_clds() = 0;
   virtual CLDClosure* strong_clds() = 0;
 
-  // Applied to code blobs reachable as strong roots.
-  virtual CodeBlobClosure* strong_codeblobs() = 0;
+  // Applied to nmethods reachable as strong roots.
+  virtual NMethodClosure* strong_nmethods() = 0;
 };
 
 class G1EvacuationRootClosures : public G1RootClosures {
 public:
-  // Applied to code blobs treated as weak roots.
-  virtual CodeBlobClosure* weak_codeblobs() = 0;
+  // Applied to nmethods treated as weak roots.
+  virtual NMethodClosure* weak_nmethods() = 0;
 
-  static G1EvacuationRootClosures* create_root_closures(G1ParScanThreadState* pss, G1CollectedHeap* g1h);
+  static G1EvacuationRootClosures* create_root_closures(G1CollectedHeap* g1h,
+                                                        G1ParScanThreadState* pss,
+                                                        bool process_only_dirty_klasses);
 };
 
 #endif // SHARE_GC_G1_G1ROOTCLOSURES_HPP

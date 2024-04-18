@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,16 +30,12 @@
 #include "gc/parallel/psGenerationCounters.hpp"
 #include "gc/parallel/psVirtualspace.hpp"
 #include "gc/parallel/spaceCounters.hpp"
+#include "runtime/mutexLocker.hpp"
 #include "runtime/safepoint.hpp"
 
 class PSOldGen : public CHeapObj<mtGC> {
   friend class VMStructs;
-  friend class PSPromotionManager; // Uses the cas_allocate methods
-  friend class ParallelScavengeHeap;
-  friend class AdjoiningGenerations;
-
  private:
-  MemRegion                _reserved;          // Used for simple containment tests
   PSVirtualSpace*          _virtual_space;     // Controls mapping and unmapping of virtual mem
   ObjectStartArray         _start_array;       // Keeps track of where objects start in a 512b block
   MutableSpace*            _object_space;      // Where all the objects live
@@ -52,56 +48,20 @@ class PSOldGen : public CHeapObj<mtGC> {
   const size_t _min_gen_size;
   const size_t _max_gen_size;
 
-#ifdef ASSERT
-  void assert_block_in_covered_region(MemRegion new_memregion) {
-    // Explictly capture current covered_region in a local
-    MemRegion covered_region = this->start_array()->covered_region();
-    assert(covered_region.contains(new_memregion),
-           "new region is not in covered_region [ " PTR_FORMAT ", " PTR_FORMAT " ], "
-           "new region [ " PTR_FORMAT ", " PTR_FORMAT " ], "
-           "object space [ " PTR_FORMAT ", " PTR_FORMAT " ]",
-           p2i(covered_region.start()),
-           p2i(covered_region.end()),
-           p2i(new_memregion.start()),
-           p2i(new_memregion.end()),
-           p2i(this->object_space()->used_region().start()),
-           p2i(this->object_space()->used_region().end()));
-  }
-#endif
+  // Block size for parallel iteration
+  static const size_t IterateBlockSize = 1024 * 1024;
 
-  HeapWord* allocate_noexpand(size_t word_size) {
-    // We assume the heap lock is held here.
-    assert_locked_or_safepoint(Heap_lock);
-    HeapWord* res = object_space()->allocate(word_size);
-    if (res != NULL) {
-      DEBUG_ONLY(assert_block_in_covered_region(MemRegion(res, word_size)));
-      _start_array.allocate_block(res);
-    }
-    return res;
-  }
-
-  // Support for MT garbage collection. CAS allocation is lower overhead than grabbing
-  // and releasing the heap lock, which is held during gc's anyway. This method is not
-  // safe for use at the same time as allocate_noexpand()!
   HeapWord* cas_allocate_noexpand(size_t word_size) {
-    assert(SafepointSynchronize::is_at_safepoint(), "Must only be called at safepoint");
+    assert_locked_or_safepoint(Heap_lock);
     HeapWord* res = object_space()->cas_allocate(word_size);
-    if (res != NULL) {
-      DEBUG_ONLY(assert_block_in_covered_region(MemRegion(res, word_size)));
-      _start_array.allocate_block(res);
+    if (res != nullptr) {
+      _start_array.update_for_block(res, res + word_size);
     }
     return res;
   }
 
-  // Support for MT garbage collection. See above comment.
-  HeapWord* cas_allocate(size_t word_size) {
-    HeapWord* res = cas_allocate_noexpand(word_size);
-    return (res == NULL) ? expand_and_cas_allocate(word_size) : res;
-  }
-
-  HeapWord* expand_and_allocate(size_t word_size);
-  HeapWord* expand_and_cas_allocate(size_t word_size);
-  void expand(size_t bytes);
+  bool expand_for_allocate(size_t word_size);
+  bool expand(size_t bytes);
   bool expand_by(size_t bytes);
   bool expand_to_reserved();
 
@@ -120,24 +80,30 @@ class PSOldGen : public CHeapObj<mtGC> {
   PSOldGen(ReservedSpace rs, size_t initial_size, size_t min_size,
            size_t max_size, const char* perf_data_name, int level);
 
-  MemRegion reserved() const { return _reserved; }
+  MemRegion reserved() const {
+    return MemRegion((HeapWord*)(_virtual_space->low_boundary()),
+                     (HeapWord*)(_virtual_space->high_boundary()));
+  }
+
+  MemRegion committed() const {
+    return MemRegion((HeapWord*)(_virtual_space->low()),
+                     (HeapWord*)(_virtual_space->high()));
+  }
+
   size_t max_gen_size() const { return _max_gen_size; }
   size_t min_gen_size() const { return _min_gen_size; }
 
   bool is_in(const void* p) const           {
-    return _virtual_space->contains((void *)p);
+    return _virtual_space->is_in_committed((void *)p);
   }
 
   bool is_in_reserved(const void* p) const {
-    return reserved().contains(p);
+    return _virtual_space->is_in_reserved(p);
   }
 
   MutableSpace*         object_space() const      { return _object_space; }
   ObjectStartArray*     start_array()             { return &_start_array; }
   PSVirtualSpace*       virtual_space() const     { return _virtual_space;}
-
-  // Has the generation been successfully allocated?
-  bool is_allocated();
 
   // Size info
   size_t capacity_in_bytes() const        { return object_space()->capacity_in_bytes(); }
@@ -152,23 +118,37 @@ class PSOldGen : public CHeapObj<mtGC> {
     return virtual_space()->uncommitted_size() == 0;
   }
 
+  void complete_loaded_archive_space(MemRegion archive_space);
+
   // Calculating new sizes
   void resize(size_t desired_free_space);
 
-  // Allocation. We report all successful allocations to the size policy
-  // Note that the perm gen does not use this method, and should not!
-  HeapWord* allocate(size_t word_size);
+  HeapWord* allocate(size_t word_size) {
+    HeapWord* res;
+    do {
+      res = cas_allocate_noexpand(word_size);
+      // Retry failed allocation if expand succeeds.
+    } while ((res == nullptr) && expand_for_allocate(word_size));
+    return res;
+  }
 
   // Iteration.
   void oop_iterate(OopIterateClosure* cl) { object_space()->oop_iterate(cl); }
   void object_iterate(ObjectClosure* cl) { object_space()->object_iterate(cl); }
+
+  // Number of blocks to be iterated over in the used part of old gen.
+  size_t num_iterable_blocks() const;
+  // Iterate the objects starting in block block_index within [bottom, top) of the
+  // old gen. The object just reaching into this block is not iterated over.
+  // A block is an evenly sized non-overlapping part of the old gen of
+  // IterateBlockSize bytes.
+  void object_iterate_block(ObjectClosure* cl, size_t block_index);
 
   // Debugging - do not use for time critical operations
   void print() const;
   virtual void print_on(outputStream* st) const;
 
   void verify();
-  void verify_object_start_array();
 
   // Performance Counter support
   void update_counters();

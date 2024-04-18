@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,7 +34,6 @@
 class PSYoungGen : public CHeapObj<mtGC> {
   friend class VMStructs;
   friend class ParallelScavengeHeap;
-  friend class AdjoiningGenerations;
 
  private:
   MemRegion       _reserved;
@@ -91,7 +90,7 @@ class PSYoungGen : public CHeapObj<mtGC> {
   MemRegion reserved() const { return _reserved; }
 
   bool is_in(const void* p) const {
-    return _virtual_space->contains((void *)p);
+    return _virtual_space->is_in_committed(p);
   }
 
   bool is_in_reserved(const void* p) const {
@@ -124,21 +123,13 @@ class PSYoungGen : public CHeapObj<mtGC> {
   size_t min_gen_size() const { return _min_gen_size; }
   size_t max_gen_size() const { return _max_gen_size; }
 
-  bool is_maximal_no_gc() const {
-    return true;  // Never expands except at a GC
-  }
-
   // Allocation
   HeapWord* allocate(size_t word_size) {
     HeapWord* result = eden_space()->cas_allocate(word_size);
     return result;
   }
 
-  HeapWord* volatile* top_addr() const   { return eden_space()->top_addr(); }
-  HeapWord** end_addr() const   { return eden_space()->end_addr(); }
-
   // Iteration.
-  void oop_iterate(OopIterateClosure* cl);
   void object_iterate(ObjectClosure* cl);
 
   void reset_survivors_after_shrink();

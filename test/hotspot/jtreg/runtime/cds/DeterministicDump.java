@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,10 +30,9 @@
  * @run driver DeterministicDump
  */
 
+import jdk.test.lib.cds.CDSOptions;
 import jdk.test.lib.cds.CDSTestUtils;
 import jdk.test.lib.Platform;
-import jdk.test.lib.process.ProcessTools;
-import jdk.test.lib.process.OutputAnalyzer;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,10 +54,9 @@ public class DeterministicDump {
         baseArgs.add("-Xmx128M");
 
         if (Platform.is64bit()) {
-            // These options are available only on 64-bit.
+            // This option is available only on 64-bit.
             String sign = (compressed) ?  "+" : "-";
             baseArgs.add("-XX:" + sign + "UseCompressedOops");
-            baseArgs.add("-XX:" + sign + "UseCompressedClassPointers");
         }
 
         String baseArchive = dump(baseArgs);
@@ -67,16 +65,10 @@ public class DeterministicDump {
         String baseArchive2 = dump(baseArgs);
         compare(baseArchive, baseArchive2);
 
-
-        // (2) This will cause GC to happen after we've allocated 1MB of metaspace objects
-        // while processing the built-in SharedClassListFile.
-        String withGCArchive = dump(baseArgs, "-XX:MetaspaceSize=1M");
-        compare(baseArchive, withGCArchive);
-
-        // (3) This will cause archive to be relocated during dump time. We should
-        //     still get the same bits. (This simulates relocation that happens when
+        // (2) This will cause the archive to be relocated during dump time. We should
+        //     still get the same bits. This simulates relocation that happens when
         //     Address Space Layout Randomization prevents the archive space to
-        //     be mapped at the default location)
+        //     be mapped at the default location.
         String relocatedArchive = dump(baseArgs, "-XX:+UnlockDiagnosticVMOptions", "-XX:ArchiveRelocationMode=1");
         compare(baseArchive, relocatedArchive);
     }
@@ -85,16 +77,15 @@ public class DeterministicDump {
     static String dump(ArrayList<String> args, String... more) throws Exception {
         String logName = "SharedArchiveFile" + (id++);
         String archiveName = logName + ".jsa";
-        args = (ArrayList<String>)args.clone();
-        args.add("-XX:SharedArchiveFile=" + archiveName);
-        args.add("-Xshare:dump");
-        args.add("-Xlog:cds=debug");
-        for (String m : more) {
-            args.add(m);
-        }
-        ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(args);
-        OutputAnalyzer out = CDSTestUtils.executeAndLog(pb, logName);
-        CDSTestUtils.checkDump(out);
+        String mapName = logName + ".map";
+        CDSOptions opts = (new CDSOptions())
+            .addPrefix("-Xint") // Override any -Xmixed/-Xcomp flags from jtreg -vmoptions
+            .addPrefix("-Xlog:cds=debug")
+            .addPrefix("-Xlog:cds+map*=trace:file=" + mapName + ":none:filesize=0")
+            .setArchiveName(archiveName)
+            .addSuffix(args)
+            .addSuffix(more);
+        CDSTestUtils.createArchiveAndCheck(opts);
 
         return archiveName;
     }

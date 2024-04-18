@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,7 @@
  * @summary Test verifies that jhsdb jmap could generate heap dump from core when heap is full
  * @requires vm.hasSA
  * @library /test/lib
- * @run driver/timeout=240 TestJmapCore run heap
+ * @run driver/timeout=480 TestJmapCore run heap
  */
 
 import java.io.File;
@@ -40,20 +40,16 @@ import jdk.test.lib.classloader.GeneratingClassLoader;
 import jdk.test.lib.hprof.HprofParser;
 import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
-import jdk.test.lib.SA.SATestUtils;
+import jdk.test.lib.util.CoreUtils;
 import jtreg.SkippedException;
 
 public class TestJmapCore {
-    static final String pidSeparator = ":KILLED_PID";
-
     public static final String HEAP_OOME = "heap";
     public static final String METASPACE_OOME = "metaspace";
 
 
     public static void main(String[] args) throws Throwable {
         if (args.length == 1) {
-            // If 1 argument is set prints pid so main process could find corefile
-            System.out.println(ProcessHandle.current().pid() + pidSeparator);
             try {
                 if (args[0].equals(HEAP_OOME)) {
                     Object[] oa = new Object[Integer.MAX_VALUE / 2];
@@ -74,50 +70,21 @@ public class TestJmapCore {
         test(args[1]);
     }
 
-    // Test tries to run java with ulimit unlimited if it is possible
-    static boolean useDefaultUlimit() {
-        if (Platform.isWindows()) {
-            return true;
-        }
-        try {
-            OutputAnalyzer output = ProcessTools.executeProcess("sh", "-c", "ulimit -c unlimited && ulimit -c");
-            return !(output.getExitValue() == 0 && output.getStdout().contains("unlimited"));
-        } catch (Throwable t) {
-            return true;
-        }
-    }
-
     static void test(String type) throws Throwable {
-        ProcessBuilder pb = ProcessTools.createTestJvm("-XX:+CreateCoredumpOnCrash",
+        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder("-XX:+CreateCoredumpOnCrash",
                 "-Xmx512m", "-XX:MaxMetaspaceSize=64m", "-XX:+CrashOnOutOfMemoryError",
+                // The test loads lots of small classes to exhaust Metaspace, skip method
+                // dependency verification to improve performance in debug builds.
+                Platform.isDebugBuild() ? "-XX:-VerifyDependencies" : "--show-version",
+                CoreUtils.getAlwaysPretouchArg(true),
                 TestJmapCore.class.getName(), type);
 
-        boolean useDefaultUlimit = useDefaultUlimit();
-        System.out.println("Run test with ulimit: " + (useDefaultUlimit ? "default" : "unlimited"));
-        OutputAnalyzer output = useDefaultUlimit
-            ? ProcessTools.executeProcess(pb)
-            : ProcessTools.executeProcess("sh", "-c", "ulimit -c unlimited && "
-                    + ProcessTools.getCommandLine(pb));
-        File pwd = new File(".");
-        SATestUtils.unzipCores(pwd);
-        File core;
-        String pattern = Platform.isWindows() ? ".*\\.mdmp" : "core(\\.\\d+)?";
-        File[] cores = pwd.listFiles((dir, name) -> name.matches(pattern));
-        if (cores.length == 0) {
-            // /cores/core.$pid might be generated on macosx by default
-            String pid = output.firstMatch("^(\\d+)" + pidSeparator, 1);
-            core = new File("cores/core." + pid);
-            if (!core.exists()) {
-                throw new SkippedException("Has not been able to find coredump");
-            }
-        } else {
-            Asserts.assertTrue(cores.length == 1,
-                    "There are unexpected files containing core "
-                    + ": " + String.join(",", pwd.list()) + ".");
-            core = cores[0];
-        }
-        System.out.println("Found corefile: " + core.getAbsolutePath());
+        // If we are going to force a core dump, apply "ulimit -c unlimited" if we can.
+        pb = CoreUtils.addCoreUlimitCommand(pb);
+        OutputAnalyzer output = ProcessTools.executeProcess(pb);
 
+        String coreFileName = CoreUtils.getCoreFileLocation(output.getStdout(), output.pid());
+        File core = new File(coreFileName);
         File dumpFile = new File("heap.hprof");
         JDKToolLauncher launcher = JDKToolLauncher.createUsingTestJDK("jhsdb");
         launcher.addVMArgs(Utils.getTestJavaOpts());

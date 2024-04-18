@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
+/*
+ * Copyright (c) 2000, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,12 +25,12 @@
 
 /**
  * Provides the API for server side data source access and processing from
- * the Java&trade; programming language.
+ * the Java programming language.
  * This package supplements the {@code java.sql}
  * package and, as of the version 1.4 release, is included in the
- * Java Platform, Standard Edition (Java SE&trade;).
+ * Java Platform, Standard Edition (Java SE).
  * It remains an essential part of the Java Platform, Enterprise Edition
- * (Java EE&trade;).
+ * (Java EE).
  * <p>
  * The {@code javax.sql} package provides for the following:
  * <OL>
@@ -76,7 +76,7 @@
  * creates is a connection to that physical data source.
  * <p>
  * A logical name for the data source is registered with a naming service that
- * uses the Java Naming and Directory Interface&trade;
+ * uses the Java Naming and Directory Interface
  * (JNDI) API, usually by a system administrator or someone performing the
  * duties of a system administrator. An application can retrieve the
  * {@code DataSource} object it wants by doing a lookup on the logical
@@ -173,7 +173,6 @@
  * each {@code XAConnection} object creates an {@code XAResource} object
  * that the transaction manager uses to manage the connection.
  *
- *
  * <H2>Rowsets</H2>
  * The {@code RowSet} interface works with various other classes and
  * interfaces behind the scenes. These can be grouped into three categories.
@@ -181,7 +180,7 @@
  * <LI>Event Notification
  * <UL>
  * <LI>{@code RowSetListener}<br>
- * A {@code RowSet} object is a JavaBeans&trade;
+ * A {@code RowSet} object is a JavaBeans
  * component because it has properties and participates in the JavaBeans
  * event notification mechanism. The {@code RowSetListener} interface
  * is implemented by a component that wants to be notified about events that
@@ -248,7 +247,6 @@
  * for its rowset.  The rowset's internal state is also updated, either by the
  * reader or directly by the method {@code RowSet.execute}.
  *
- *
  * <LI>{@code RowSetWriter}<br>
  * A disconnected {@code RowSet} object that has implemented the
  * {@code RowSetInternal} interface can call on its writer (the
@@ -265,14 +263,12 @@
  * <LI>Close the connection
  * </UL>
  *
- *
  * </UL>
  * </OL>
  * <p>
  * The {@code RowSet} interface may be implemented in any number of
  * ways, and anyone may write an implementation. Developers are encouraged
  * to use their imaginations in coming up with new ways to use rowsets.
- *
  *
  * <h2>Package Specification</h2>
  *
@@ -289,5 +285,6 @@
  * <ul>
  * <li>&ldquo;<i>JDBC&#8482;API Tutorial and Reference, Third Edition</i>&rdquo;
  * </ul>
+ * @since 1.4
  */
 package javax.sql;

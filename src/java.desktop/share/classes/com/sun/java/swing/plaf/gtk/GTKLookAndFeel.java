@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -249,7 +249,6 @@ public class GTKLookAndFeel extends SynthLookAndFeel {
                 region == Region.SPINNER ||
                 region == Region.TABLE ||
                 region == Region.TEXT_AREA ||
-                region == Region.TEXT_FIELD ||
                 region == Region.TEXT_PANE ||
                 region == Region.TREE);
     }
@@ -578,6 +577,7 @@ public class GTKLookAndFeel extends SynthLookAndFeel {
                  }),
             "ComboBox.font", new FontLazyValue(Region.COMBO_BOX),
             "ComboBox.isEnterSelectablePopup", Boolean.TRUE,
+            "ComboBox.squareButton", Boolean.FALSE,
 
 
             "EditorPane.caretForeground", caretColor,
@@ -591,6 +591,7 @@ public class GTKLookAndFeel extends SynthLookAndFeel {
             "FileChooser.ancestorInputMap",
                new UIDefaults.LazyInputMap(new Object[] {
                      "ESCAPE", "cancelSelection",
+                 "BACK_SPACE", "Go Up",
                  "ctrl ENTER", "approveSelection"
                  }),
             "FileChooserUI", "com.sun.java.swing.plaf.gtk.GTKLookAndFeel",
@@ -803,7 +804,7 @@ public class GTKLookAndFeel extends SynthLookAndFeel {
             "PasswordField.font", new FontLazyValue(Region.PASSWORD_FIELD),
 
 
-            "PopupMenu.consumeEventOnClose", Boolean.TRUE,
+            "PopupMenu.consumeEventOnClose", Boolean.FALSE,
             "PopupMenu.selectedWindowInputMapBindings", new Object[] {
                   "ESCAPE", "cancel",
                     "DOWN", "selectNext",
@@ -1057,7 +1058,7 @@ public class GTKLookAndFeel extends SynthLookAndFeel {
                               "KP_DOWN", "selectNextRow",
                            "shift DOWN", "selectNextRowExtendSelection",
                         "shift KP_DOWN", "selectNextRowExtendSelection",
-                      "ctrl shift DOWN", "selectNextRowExtendSelection",
+                      "ctrl shift DOWN", "selectLastRowExtendSelection",
                    "ctrl shift KP_DOWN", "selectNextRowExtendSelection",
                             "ctrl DOWN", "selectNextRowChangeLead",
                          "ctrl KP_DOWN", "selectNextRowChangeLead",
@@ -1065,7 +1066,7 @@ public class GTKLookAndFeel extends SynthLookAndFeel {
                                 "KP_UP", "selectPreviousRow",
                              "shift UP", "selectPreviousRowExtendSelection",
                           "shift KP_UP", "selectPreviousRowExtendSelection",
-                        "ctrl shift UP", "selectPreviousRowExtendSelection",
+                        "ctrl shift UP", "selectFirstRowExtendSelection",
                      "ctrl shift KP_UP", "selectPreviousRowExtendSelection",
                               "ctrl UP", "selectPreviousRowChangeLead",
                            "ctrl KP_UP", "selectPreviousRowChangeLead",
@@ -1357,7 +1358,7 @@ public class GTKLookAndFeel extends SynthLookAndFeel {
         // colors specific only for GTK
         // It is impossible to create a simple GtkWidget without specifying the
         // type. So for GtkWidget we can use any appropriate concrete type of
-        // wigdet. LABEL in this case.
+        // widget. LABEL in this case.
         GTKStyle widgetStyle = (GTKStyle)factory.getStyle(null, Region.LABEL);
         Color bg = widgetStyle.getGTKColor(SynthConstants.ENABLED,
                                            GTKColorType.BACKGROUND);
@@ -1422,6 +1423,7 @@ public class GTKLookAndFeel extends SynthLookAndFeel {
         }
 
         if (UNIXToolkit.getGtkVersion() == UNIXToolkit.GtkVersions.GTK2) {
+            @SuppressWarnings("removal")
             String version = AccessController.doPrivileged(
                     new GetPropertyAction("jdk.gtk.version"));
             if (version != null) {

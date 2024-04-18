@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,6 +33,7 @@ import java.text.MessageFormat;
 import java.util.Locale;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLHandshakeException;
+import sun.security.ssl.PskKeyExchangeModesExtension.PskKeyExchangeMode;
 import sun.security.ssl.PskKeyExchangeModesExtension.PskKeyExchangeModesSpec;
 import sun.security.ssl.SessionTicketExtension.SessionTicketSpec;
 import sun.security.ssl.SSLHandshake.HandshakeMessage;
@@ -49,8 +50,8 @@ final class NewSessionTicket {
         new T13NewSessionTicketConsumer();
     static final SSLConsumer handshake12Consumer =
         new T12NewSessionTicketConsumer();
-    static final SSLProducer kickstartProducer =
-        new NewSessionTicketKickstartProducer();
+    static final SSLProducer t13PosthandshakeProducer =
+        new T13NewSessionTicketProducer();
     static final HandshakeProducer handshake12Producer =
         new T12NewSessionTicketProducer();
 
@@ -137,12 +138,12 @@ final class NewSessionTicket {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    "\"NewSessionTicket\": '{'\n" +
-                            "  \"ticket_lifetime\"      : \"{0}\",\n" +
-                            "  \"ticket\"               : '{'\n" +
-                            "{1}\n" +
-                            "  '}'" +
-                            "'}'",
+                    """
+                            "NewSessionTicket": '{'
+                              "ticket_lifetime"      : "{0}",
+                              "ticket"               : '{'
+                            {1}
+                              '}''}'""",
                 Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -205,7 +206,7 @@ final class NewSessionTicket {
             if (ticket.length == 0) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.fine(
-                    "No ticket in the NewSessionTicket handshake message");
+                        "No ticket in the NewSessionTicket handshake message");
                 }
             }
 
@@ -266,17 +267,17 @@ final class NewSessionTicket {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                "\"NewSessionTicket\": '{'\n" +
-                "  \"ticket_lifetime\"      : \"{0}\",\n" +
-                "  \"ticket_age_add\"       : \"{1}\",\n" +
-                "  \"ticket_nonce\"         : \"{2}\",\n" +
-                "  \"ticket\"               : '{'\n" +
-                "{3}\n" +
-                "  '}'" +
-                "  \"extensions\"           : [\n" +
-                "{4}\n" +
-                "  ]\n" +
-                "'}'",
+                    """
+                            "NewSessionTicket": '{'
+                              "ticket_lifetime"      : "{0}",
+                              "ticket_age_add"       : "{1}",
+                              "ticket_nonce"         : "{2}",
+                              "ticket"               : '{'
+                            {3}
+                              '}'  "extensions"           : [
+                            {4}
+                              ]
+                            '}'""",
                 Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -301,15 +302,14 @@ final class NewSessionTicket {
             return hkdf.expand(resumptionMasterSecret, hkdfInfo,
                     hashAlg.hashLength, "TlsPreSharedKey");
         } catch  (GeneralSecurityException gse) {
-            throw (SSLHandshakeException) new SSLHandshakeException(
-                    "Could not derive PSK").initCause(gse);
+            throw new SSLHandshakeException("Could not derive PSK", gse);
         }
     }
 
     private static final
-            class NewSessionTicketKickstartProducer implements SSLProducer {
+            class T13NewSessionTicketProducer implements SSLProducer {
         // Prevent instantiation of this class.
-        private NewSessionTicketKickstartProducer() {
+        private T13NewSessionTicketProducer() {
             // blank
         }
 
@@ -317,10 +317,26 @@ final class NewSessionTicket {
         public byte[] produce(ConnectionContext context) throws IOException {
             HandshakeContext hc = (HandshakeContext)context;
 
+            // See note on TransportContext.needHandshakeFinishedStatus.
+            //
+            // Set to need handshake finished status.  Reset it later if a
+            // session ticket get delivered.
+            if (hc.conContext.hasDelegatedFinished) {
+                // Reset, as the delegated finished case will be handled later.
+                hc.conContext.hasDelegatedFinished = false;
+                hc.conContext.needHandshakeFinishedStatus = true;
+            }
+
             // The producing happens in server side only.
             if (hc instanceof ServerHandshakeContext) {
                 // Is this session resumable?
                 if (!hc.handshakeSession.isRejoinable()) {
+                    if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
+                        SSLLogger.fine(
+                                "No session ticket produced: " +
+                                "session is not resumable");
+                    }
+
                     return null;
                 }
 
@@ -332,16 +348,26 @@ final class NewSessionTicket {
                 PskKeyExchangeModesSpec pkemSpec =
                         (PskKeyExchangeModesSpec) hc.handshakeExtensions.get(
                                 SSLExtension.PSK_KEY_EXCHANGE_MODES);
-                if (pkemSpec == null || !pkemSpec.contains(
-                        PskKeyExchangeModesExtension.PskKeyExchangeMode.PSK_DHE_KE)) {
-                    // Client doesn't support PSK with (EC)DHE key establishment.
+                if (pkemSpec == null ||
+                        !pkemSpec.contains(PskKeyExchangeMode.PSK_DHE_KE)) {
+                    if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
+                        SSLLogger.fine(
+                                "No session ticket produced: " +
+                                "client does not support psk_dhe_ke");
+                    }
+
                     return null;
                 }
-            } else { // PostHandshakeContext
-
-                // Check if we have sent a PSK already, then we know it is using a
-                // allowable PSK exchange key mode
+            } else {     // PostHandshakeContext
+                // Check if we have sent a PSK already, then we know it is
+                // using an allowable PSK exchange key mode.
                 if (!hc.handshakeSession.isPSKable()) {
+                    if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
+                        SSLLogger.fine(
+                                "No session ticket produced: " +
+                                "No session ticket allowed in this session");
+                    }
+
                     return null;
                 }
             }
@@ -357,8 +383,10 @@ final class NewSessionTicket {
             if (resumptionMasterSecret == null) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.fine(
-                        "Session has no resumption secret. No ticket sent.");
+                            "No session ticket produced: " +
+                            "no resumption secret");
                 }
+
                 return null;
             }
 
@@ -373,8 +401,10 @@ final class NewSessionTicket {
             if (sessionTimeoutSeconds > MAX_TICKET_LIFETIME) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.fine(
-                        "Session timeout is too long. No ticket sent.");
+                            "No session ticket produced: " +
+                            "session timeout");
                 }
+
                 return null;
             }
 
@@ -386,7 +416,8 @@ final class NewSessionTicket {
             sessionCopy.setPskIdentity(newId.getId());
 
             // If a stateless ticket is allowed, attempt to make one
-            if (hc.handshakeSession.isStatelessable(hc)) {
+            if (hc.statelessResumption &&
+                    hc.handshakeSession.isStatelessable()) {
                 nstm = new T13NewSessionTicketMessage(hc,
                         sessionTimeoutSeconds,
                         hc.sslContext.getSecureRandom(),
@@ -398,19 +429,21 @@ final class NewSessionTicket {
                 } else {
                     if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                         SSLLogger.fine(
-                                "Produced NewSessionTicket stateless " +
-                                        "handshake message", nstm);
+                            "Produced NewSessionTicket stateless " +
+                            "post-handshake message", nstm);
                     }
                 }
             }
+
             // If a session cache ticket is being used, make one
-            if (!hc.handshakeSession.isStatelessable(hc)) {
+            if (!hc.statelessResumption ||
+                    !hc.handshakeSession.isStatelessable()) {
                 nstm = new T13NewSessionTicketMessage(hc, sessionTimeoutSeconds,
                         hc.sslContext.getSecureRandom(), nonceArr,
                         newId.getId());
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.fine(
-                            "Produced NewSessionTicket handshake message",
+                            "Produced NewSessionTicket post-handshake message",
                             nstm);
                 }
 
@@ -427,11 +460,20 @@ final class NewSessionTicket {
                 // should never be null
                 nstm.write(hc.handshakeOutput);
                 hc.handshakeOutput.flush();
+
+                // See note on TransportContext.needHandshakeFinishedStatus.
+                //
+                // Reset the needHandshakeFinishedStatus flag.  The delivery
+                // of this post-handshake message will indicate the FINISHED
+                // handshake status.  It is not needed to have a follow-on
+                // SSLEngine.wrap() any longer.
+                if (hc.conContext.needHandshakeFinishedStatus) {
+                    hc.conContext.needHandshakeFinishedStatus = false;
+                }
             }
 
-            if (hc.negotiatedProtocol.useTLS13PlusSpec()) {
-                hc.conContext.finishPostHandshake();
-            }
+            // clean the post handshake context
+            hc.conContext.finishPostHandshake();
 
             // The message has been delivered.
             return null;
@@ -483,7 +525,8 @@ final class NewSessionTicket {
                     new SessionTicketSpec().encrypt(shc, sessionCopy));
             if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                 SSLLogger.fine(
-                        "Produced NewSessionTicket stateless handshake message", nstm);
+                    "Produced NewSessionTicket stateless handshake message",
+                    nstm);
             }
 
             // Output the handshake message.
@@ -521,7 +564,7 @@ final class NewSessionTicket {
                     new T13NewSessionTicketMessage(hc, message);
             if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                 SSLLogger.fine(
-                "Consuming NewSessionTicket message", nstm);
+                        "Consuming NewSessionTicket message", nstm);
             }
 
             SSLSessionContextImpl sessionCache = (SSLSessionContextImpl)
@@ -532,8 +575,8 @@ final class NewSessionTicket {
                 nstm.ticketLifetime > MAX_TICKET_LIFETIME) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.fine(
-                    "Discarding NewSessionTicket with lifetime "
-                        + nstm.ticketLifetime, nstm);
+                            "Discarding NewSessionTicket with lifetime " +
+                            nstm.ticketLifetime, nstm);
                 }
                 sessionCache.remove(hc.handshakeSession.getSessionId());
                 return;
@@ -542,30 +585,28 @@ final class NewSessionTicket {
             if (sessionCache.getSessionTimeout() > MAX_TICKET_LIFETIME) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.fine(
-                    "Session cache lifetime is too long. Discarding ticket.");
+                        "Session cache lifetime is too long. " +
+                        "Discarding ticket.");
                 }
                 return;
             }
 
             SSLSessionImpl sessionToSave = hc.conContext.conSession;
-            SecretKey psk = null;
-            if (hc.negotiatedProtocol.useTLS13PlusSpec()) {
-                SecretKey resumptionMasterSecret =
-                        sessionToSave.getResumptionMasterSecret();
-                if (resumptionMasterSecret == null) {
-                    if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                        SSLLogger.fine(
-                                "Session has no resumption master secret." +
-                                        " Ignoring ticket.");
-                    }
-                    return;
+            SecretKey resumptionMasterSecret =
+                    sessionToSave.getResumptionMasterSecret();
+            if (resumptionMasterSecret == null) {
+                if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
+                    SSLLogger.fine(
+                            "Session has no resumption master secret. " +
+                            "Ignoring ticket.");
                 }
-
-                // derive the PSK
-                psk = derivePreSharedKey(
-                        sessionToSave.getSuite().hashAlg,
-                        resumptionMasterSecret, nstm.getTicketNonce());
+                return;
             }
+
+            // derive the PSK
+            SecretKey psk = derivePreSharedKey(
+                    sessionToSave.getSuite().hashAlg,
+                    resumptionMasterSecret, nstm.getTicketNonce());
 
             // create and cache the new session
             // The new session must be a child of the existing session so
@@ -580,10 +621,8 @@ final class NewSessionTicket {
             sessionCopy.setPskIdentity(nstm.ticket);
             sessionCache.put(sessionCopy);
 
-            // clean handshake context
-            if (hc.negotiatedProtocol.useTLS13PlusSpec()) {
-                hc.conContext.finishPostHandshake();
-            }
+            // clean the post handshake context
+            hc.conContext.finishPostHandshake();
         }
     }
 
@@ -615,8 +654,8 @@ final class NewSessionTicket {
                 nstm.ticketLifetime > MAX_TICKET_LIFETIME) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.fine(
-                    "Discarding NewSessionTicket with lifetime "
-                        + nstm.ticketLifetime, nstm);
+                            "Discarding NewSessionTicket with lifetime " +
+                            nstm.ticketLifetime, nstm);
                 }
                 return;
             }
@@ -627,7 +666,8 @@ final class NewSessionTicket {
             if (sessionCache.getSessionTimeout() > MAX_TICKET_LIFETIME) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.fine(
-                    "Session cache lifetime is too long. Discarding ticket.");
+                        "Session cache lifetime is too long. " +
+                        "Discarding ticket.");
                 }
                 return;
             }

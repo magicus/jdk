@@ -31,18 +31,13 @@
 #include "logging/logTag.hpp"
 #include "runtime/os.hpp"
 
-ShenandoahAggressiveHeuristics::ShenandoahAggressiveHeuristics() : ShenandoahHeuristics() {
+ShenandoahAggressiveHeuristics::ShenandoahAggressiveHeuristics(ShenandoahSpaceInfo* space_info) :
+  ShenandoahHeuristics(space_info) {
   // Do not shortcut evacuation
   SHENANDOAH_ERGO_OVERRIDE_DEFAULT(ShenandoahImmediateThreshold, 100);
 
   // Aggressive evacuates everything, so it needs as much evac space as it can get
   SHENANDOAH_ERGO_ENABLE_FLAG(ShenandoahEvacReserveOverflow);
-
-  // If class unloading is globally enabled, aggressive does unloading even with
-  // concurrent cycles.
-  if (ClassUnloading) {
-    SHENANDOAH_ERGO_OVERRIDE_DEFAULT(ShenandoahUnloadClassesFrequency, 1);
-  }
 }
 
 void ShenandoahAggressiveHeuristics::choose_collection_set_from_regiondata(ShenandoahCollectionSet* cset,
@@ -56,32 +51,14 @@ void ShenandoahAggressiveHeuristics::choose_collection_set_from_regiondata(Shena
   }
 }
 
-bool ShenandoahAggressiveHeuristics::should_start_gc() const {
+bool ShenandoahAggressiveHeuristics::should_start_gc() {
   log_info(gc)("Trigger: Start next cycle immediately");
   return true;
 }
 
-bool ShenandoahAggressiveHeuristics::should_process_references() {
-  if (!can_process_references()) return false;
-  // Randomly process refs with 50% chance.
-  return (os::random() & 1) == 1;
-}
-
 bool ShenandoahAggressiveHeuristics::should_unload_classes() {
-  if (!can_unload_classes_normal()) return false;
+  if (!can_unload_classes()) return false;
   if (has_metaspace_oom()) return true;
   // Randomly unload classes with 50% chance.
   return (os::random() & 1) == 1;
-}
-
-const char* ShenandoahAggressiveHeuristics::name() {
-  return "aggressive";
-}
-
-bool ShenandoahAggressiveHeuristics::is_diagnostic() {
-  return true;
-}
-
-bool ShenandoahAggressiveHeuristics::is_experimental() {
-  return false;
 }

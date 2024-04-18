@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,7 @@
  * @bug     8236949 8238259
  * @summary javadoc -Xdoclint does not accumulate options correctly
  * @library /tools/lib ../../lib
- * @modules jdk.compiler/com.sun.tools.doclint
+ * @modules jdk.javadoc/jdk.javadoc.internal.doclint
  *          jdk.javadoc/jdk.javadoc.internal.tool
  * @build   toolbox.ToolBox javadoc.tester.*
  * @run main TestDocLintOption
@@ -40,8 +40,8 @@ import java.util.Set;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import com.sun.tools.doclint.Messages.Group;
-import static com.sun.tools.doclint.Messages.Group.*;
+import jdk.javadoc.internal.doclint.Messages.Group;
+import static jdk.javadoc.internal.doclint.Messages.Group.*;
 
 import javadoc.tester.JavadocTester;
 import toolbox.ToolBox;
@@ -53,9 +53,9 @@ import toolbox.ToolBox;
 public class TestDocLintOption extends JavadocTester {
 
     public static void main(String... args) throws Exception {
-        TestDocLintOption tester = new TestDocLintOption();
+        var tester = new TestDocLintOption();
         tester.generateSrc();
-        tester.runTests(m -> new Object[] { Paths.get(m.getName()) });
+        tester.runTests();
     }
 
     private final ToolBox tb = new ToolBox();

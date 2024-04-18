@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,10 @@
  * questions.
  */
 
+#ifdef HEADLESS
+    #error This file should not be included in headless library
+#endif
+
 #include "jni_util.h"
 #include "awt_p.h"
 #include "awt.h"
@@ -31,14 +35,12 @@
 #include <sun_awt_X11GraphicsEnvironment.h>
 #include <sun_awt_X11GraphicsDevice.h>
 #include <sun_awt_X11GraphicsConfig.h>
-#ifndef HEADLESS
 #include <X11/extensions/Xdbe.h>
 #include <X11/XKBlib.h>
 #ifndef NO_XRANDR
 #include <X11/extensions/Xrandr.h>
 #endif
 #include "GLXGraphicsConfig.h"
-#endif /* !HEADLESS */
 
 #include <jni.h>
 #include <jni_util.h>
@@ -54,23 +56,15 @@
 #include <dlfcn.h>
 #include "Trace.h"
 
-#ifndef HEADLESS
-
 int awt_numScreens;     /* Xinerama-aware number of screens */
 
-AwtScreenDataPtr x11Screens;
+AwtScreenDataPtr x11Screens; // should be guarded by AWT_LOCK()/AWT_UNLOCK()
 
 /*
  * Set in initDisplay() to indicate whether we should attempt to initialize
  * GLX for the default configuration.
  */
 static jboolean glxRequested = JNI_FALSE;
-
-#endif /* !HEADLESS */
-
-#ifdef HEADLESS
-#define Display void
-#endif /* HEADLESS */
 
 Display *awt_display;
 
@@ -92,9 +86,7 @@ jboolean awtLockInited = JNI_FALSE;
 
 struct X11GraphicsConfigIDs x11GraphicsConfigIDs;
 
-#ifndef HEADLESS
 int awtCreateX11Colormap(AwtGraphicsConfigDataPtr adata);
-#endif /* HEADLESS */
 
 static char *x11GraphicsConfigClassName = "sun/awt/X11GraphicsConfig";
 
@@ -133,8 +125,6 @@ Java_sun_awt_X11GraphicsConfig_initIDs (JNIEnv *env, jclass cls)
     x11GraphicsConfigIDs.bitsPerPixel = (*env)->GetFieldID (env, cls, "bitsPerPixel", "I");
     CHECK_NULL(x11GraphicsConfigIDs.bitsPerPixel);
 }
-
-#ifndef HEADLESS
 
 /*
  * XIOErrorHandler
@@ -302,7 +292,10 @@ makeDefaultConfig(JNIEnv *env, int screen) {
 
 static void
 getAllConfigs (JNIEnv *env, int screen, AwtScreenDataPtr screenDataPtr) {
+    // NB: should be invoked only while holding the AWT lock
+    DASSERT(screen >= 0 && screen < awt_numScreens);
 
+    jboolean success = JNI_FALSE;
     int i;
     int n8p=0, n12p=0, n8s=0, n8gs=0, n8sg=0, n1sg=0, nTrue=0;
     int nConfig;
@@ -323,8 +316,6 @@ getAllConfigs (JNIEnv *env, int screen, AwtScreenDataPtr screenDataPtr) {
     else {
         xinawareScreen = screen;
     }
-
-    AWT_LOCK ();
 
     viTmp.screen = xinawareScreen;
 
@@ -382,7 +373,6 @@ getAllConfigs (JNIEnv *env, int screen, AwtScreenDataPtr screenDataPtr) {
     if (graphicsConfigs == NULL) {
         JNU_ThrowOutOfMemoryError((JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2),
                                   NULL);
-        AWT_UNLOCK();
         return;
     }
 
@@ -392,6 +382,9 @@ getAllConfigs (JNIEnv *env, int screen, AwtScreenDataPtr screenDataPtr) {
          * been reset, so we need to recreate the default config here.
          */
         screenDataPtr->defaultConfig = makeDefaultConfig(env, screen);
+        if (screenDataPtr->defaultConfig == NULL) {
+            goto cleanup;
+        }
     }
 
     defaultConfig = screenDataPtr->defaultConfig;
@@ -409,12 +402,7 @@ getAllConfigs (JNIEnv *env, int screen, AwtScreenDataPtr screenDataPtr) {
             xrenderLibHandle = dlopen("libXrender.so", RTLD_LAZY | RTLD_GLOBAL);
         }
 
-#if defined(__solaris__)
-        if (xrenderLibHandle == NULL) {
-            xrenderLibHandle = dlopen("/usr/lib/libXrender.so.1",
-                                      RTLD_LAZY | RTLD_GLOBAL);
-        }
-#elif defined(_AIX)
+#if defined(_AIX)
         if (xrenderLibHandle == NULL) {
             xrenderLibHandle = dlopen("libXrender.a(libXrender.so.0)",
                                       RTLD_MEMBER | RTLD_LAZY | RTLD_GLOBAL);
@@ -578,10 +566,17 @@ getAllConfigs (JNIEnv *env, int screen, AwtScreenDataPtr screenDataPtr) {
                 sizeof (XVisualInfo));
     }
 
+    success = JNI_TRUE;
     screenDataPtr->numConfigs = nConfig;
     screenDataPtr->configs = graphicsConfigs;
 
 cleanup:
+    if (success != JNI_TRUE) {
+        for (i = 0; i < nConfig; i++) {
+            free(graphicsConfigs[i]);
+        }
+        free(graphicsConfigs);
+    }
     if (n8p != 0)
        XFree (pVI8p);
     if (n12p != 0)
@@ -594,11 +589,9 @@ cleanup:
        XFree (pVI8sg);
     if (n1sg != 0)
        XFree (pVI1sg);
-
-    AWT_UNLOCK ();
+    if (nTrue != 0)
+       XFree (pVITrue);
 }
-
-#ifndef HEADLESS
 
 /*
  * Checks if Xinerama is running and perform Xinerama-related initialization.
@@ -608,8 +601,6 @@ static void xineramaInit(void) {
     int32_t major_opcode, first_event, first_error;
     Bool gotXinExt = False;
     void* libHandle = NULL;
-    int32_t locNumScr = 0;
-    XineramaScreenInfo *xinInfo;
     char* XineramaQueryScreensName = "XineramaQueryScreens";
 
     gotXinExt = XQueryExtension(awt_display, XinExtName, &major_opcode,
@@ -639,29 +630,91 @@ static void xineramaInit(void) {
         if (XineramaQueryScreens == NULL) {
             DTRACE_PRINTLN("couldn't load XineramaQueryScreens symbol");
             dlclose(libHandle);
-        } else {
-            DTRACE_PRINTLN("calling XineramaQueryScreens func");
-            xinInfo = (*XineramaQueryScreens)(awt_display, &locNumScr);
-            if (xinInfo != NULL) {
-                if (locNumScr > XScreenCount(awt_display)) {
-                    DTRACE_PRINTLN("Enabling Xinerama support");
-                    usingXinerama = True;
-                    /* set global number of screens */
-                    DTRACE_PRINTLN1(" num screens = %i\n", locNumScr);
-                    awt_numScreens = locNumScr;
-                } else {
-                    DTRACE_PRINTLN("XineramaQueryScreens <= XScreenCount");
-                }
-                XFree(xinInfo);
-            } else {
-                DTRACE_PRINTLN("calling XineramaQueryScreens didn't work");
-            }
         }
     } else {
         DTRACE_PRINTLN1("\ncouldn't open shared library: %s\n", dlerror());
     }
 }
-#endif /* HEADLESS */
+
+static void resetNativeData(int screen) {
+    /*
+     * Reset references to the various configs; the actual native config data
+     * will be free'd later by the Disposer mechanism when the Java-level
+     * X11GraphicsConfig objects go away.  By setting these values to NULL,
+     * we ensure that they will be reinitialized as necessary (for example,
+     * see the getNumConfigs() method).
+     */
+    if (x11Screens[screen].configs) {
+        free(x11Screens[screen].configs);
+        x11Screens[screen].configs = NULL;
+    }
+    x11Screens[screen].defaultConfig = NULL;
+    x11Screens[screen].numConfigs = 0;
+}
+
+/*
+ * Class:     sun_awt_X11GraphicsEnvironment
+ * Method:    initDevices
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL
+Java_sun_awt_X11GraphicsEnvironment_initNativeData(JNIEnv *env, jobject this) {
+    usingXinerama = False;
+    if (x11Screens) {
+        for (int i = 0; i < awt_numScreens; ++i) {
+            resetNativeData(i);
+        }
+        free((void *)x11Screens);
+        x11Screens = NULL;
+        awt_numScreens = 0;
+    }
+
+    // will try xinerama first
+    if (XineramaQueryScreens) {
+        int32_t locNumScr = 0;
+        XineramaScreenInfo *xinInfo;
+        DTRACE_PRINTLN("calling XineramaQueryScreens func");
+        xinInfo = (*XineramaQueryScreens)(awt_display, &locNumScr);
+        if (xinInfo != NULL) {
+            if (locNumScr > XScreenCount(awt_display)) {
+                DTRACE_PRINTLN("Enabling Xinerama support");
+                usingXinerama = True;
+                /* set global number of screens */
+                DTRACE_PRINTLN1(" num screens = %i\n", locNumScr);
+                awt_numScreens = locNumScr;
+            } else {
+                DTRACE_PRINTLN("XineramaQueryScreens <= XScreenCount");
+            }
+            XFree(xinInfo);
+        } else {
+            DTRACE_PRINTLN("calling XineramaQueryScreens didn't work");
+        }
+    }
+    // if xinerama is not enabled or does not work will use X11
+    if (!usingXinerama) {
+        awt_numScreens =  XScreenCount(awt_display);
+    }
+    DTRACE_PRINTLN1("allocating %i screens\n", awt_numScreens);
+    /* Allocate screen data structure array */
+    x11Screens = calloc(awt_numScreens, sizeof(AwtScreenData));
+    if (x11Screens == NULL) {
+        JNU_ThrowOutOfMemoryError((JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2),
+                                  NULL);
+        return;
+    }
+
+    for (int i = 0; i < awt_numScreens; i++) {
+        if (usingXinerama) {
+            /* All Xinerama screens use the same X11 root for now */
+            x11Screens[i].root = RootWindow(awt_display, 0);
+        }
+        else {
+            x11Screens[i].root = RootWindow(awt_display, i);
+        }
+        x11Screens[i].defaultConfig = makeDefaultConfig(env, i);
+        JNU_CHECK_EXCEPTION(env);
+    }
+}
 
 Display *
 awt_init_Display(JNIEnv *env, jobject this)
@@ -710,35 +763,8 @@ awt_init_Display(JNIEnv *env, jobject this)
 
     /* set awt_numScreens, and whether or not we're using Xinerama */
     xineramaInit();
-
-    if (!usingXinerama) {
-        awt_numScreens =  XScreenCount(awt_display);
-    }
-
-    DTRACE_PRINTLN1("allocating %i screens\n", awt_numScreens);
-    /* Allocate screen data structure array */
-    x11Screens = calloc(awt_numScreens, sizeof(AwtScreenData));
-    if (x11Screens == NULL) {
-        JNU_ThrowOutOfMemoryError((JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2),
-                                  NULL);
-        return NULL;
-    }
-
-    for (i = 0; i < awt_numScreens; i++) {
-        if (usingXinerama) {
-            /* All Xinerama screens use the same X11 root for now */
-            x11Screens[i].root = RootWindow(awt_display, 0);
-        }
-        else {
-            x11Screens[i].root = RootWindow(awt_display, i);
-        }
-        x11Screens[i].defaultConfig = makeDefaultConfig(env, i);
-        JNU_CHECK_EXCEPTION_RETURN(env, NULL);
-    }
-
     return dpy;
 }
-#endif /* !HEADLESS */
 
 /*
  * Class:     sun_awt_X11GraphicsEnvironment
@@ -749,15 +775,11 @@ JNIEXPORT jint JNICALL
 Java_sun_awt_X11GraphicsEnvironment_getDefaultScreenNum(
 JNIEnv *env, jobject this)
 {
-#ifdef HEADLESS
-    return (jint)0;
-#else
     return DefaultScreen(awt_display);
-#endif /* !HEADLESS */
 }
 
-#ifndef HEADLESS
 static void ensureConfigsInited(JNIEnv* env, int screen) {
+    // NB: should be invoked only while holding the AWT lock
    if (x11Screens[screen].numConfigs == 0) {
        if (env == NULL) {
            env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
@@ -765,19 +787,14 @@ static void ensureConfigsInited(JNIEnv* env, int screen) {
        getAllConfigs (env, screen, &(x11Screens[screen]));
     }
 }
-#endif
 
-#ifdef HEADLESS
-void* getDefaultConfig(int screen) {
-    return NULL;
-}
-#else
 AwtGraphicsConfigDataPtr
 getDefaultConfig(int screen) {
+    // NB: should be invoked only while holding the AWT lock
+    DASSERT(screen >= 0 && screen < awt_numScreens);
     ensureConfigsInited(NULL, screen);
     return x11Screens[screen].defaultConfig;
 }
-#endif /* !HEADLESS */
 
 /*
  * Class:     sun_awt_X11GraphicsEnvironment
@@ -788,10 +805,8 @@ JNIEXPORT void JNICALL
 Java_sun_awt_X11GraphicsEnvironment_initDisplay(JNIEnv *env, jobject this,
                                                 jboolean glxReq)
 {
-#ifndef HEADLESS
     glxRequested = glxReq;
     (void) awt_init_Display(env, this);
-#endif /* !HEADLESS */
 }
 
 /*
@@ -802,7 +817,6 @@ Java_sun_awt_X11GraphicsEnvironment_initDisplay(JNIEnv *env, jobject this,
 JNIEXPORT jboolean JNICALL
 Java_sun_awt_X11GraphicsEnvironment_initGLX(JNIEnv *env, jclass x11ge)
 {
-#ifndef HEADLESS
     jboolean glxAvailable;
 
     AWT_LOCK();
@@ -810,9 +824,6 @@ Java_sun_awt_X11GraphicsEnvironment_initGLX(JNIEnv *env, jclass x11ge)
     AWT_UNLOCK();
 
     return glxAvailable;
-#else
-    return JNI_FALSE;
-#endif /* !HEADLESS */
 }
 
 /*
@@ -823,11 +834,7 @@ Java_sun_awt_X11GraphicsEnvironment_initGLX(JNIEnv *env, jclass x11ge)
 JNIEXPORT jint JNICALL
 Java_sun_awt_X11GraphicsEnvironment_getNumScreens(JNIEnv *env, jobject this)
 {
-#ifdef HEADLESS
-    return (jint)0;
-#else
     return awt_numScreens;
-#endif /* !HEADLESS */
 }
 
 /*
@@ -838,11 +845,7 @@ Java_sun_awt_X11GraphicsEnvironment_getNumScreens(JNIEnv *env, jobject this)
 JNIEXPORT jlong JNICALL
 Java_sun_awt_X11GraphicsDevice_getDisplay(JNIEnv *env, jobject this)
 {
-#ifdef HEADLESS
-    return NULL;
-#else
     return ptr_to_jlong(awt_display);
-#endif /* !HEADLESS */
 }
 
 #ifdef MITSHM
@@ -916,7 +919,7 @@ void TryInitMITShm(JNIEnv *env, jint *shmExt, jint *shmPixmaps) {
         resetXShmAttachFailed();
         /**
          * The J2DXErrHandler handler will set xshmAttachFailed
-         * to JNI_TRUE if any Shm error has occured.
+         * to JNI_TRUE if any Shm error has occurred.
          */
         EXEC_WITH_XERROR_HANDLER(XShmAttachXErrHandler,
                                  XShmAttach(awt_display, &shminfo));
@@ -969,11 +972,7 @@ JNIEXPORT jstring JNICALL
 Java_sun_awt_X11GraphicsEnvironment_getDisplayString
   (JNIEnv *env, jobject this)
 {
-#ifdef HEADLESS
-    return (jstring)NULL;
-#else
     return (*env)->NewStringUTF(env, DisplayString(awt_display));
-#endif /* HEADLESS */
 }
 
 
@@ -986,12 +985,11 @@ JNIEXPORT jint JNICALL
 Java_sun_awt_X11GraphicsDevice_getNumConfigs(
 JNIEnv *env, jobject this, jint screen)
 {
-#ifdef HEADLESS
-    return (jint)0;
-#else
+    // NB: should be invoked only while holding the AWT lock
+    DASSERT(screen >= 0 && screen < awt_numScreens);
     ensureConfigsInited(env, screen);
     return x11Screens[screen].numConfigs;
-#endif /* !HEADLESS */
+
 }
 
 /*
@@ -1003,18 +1001,12 @@ JNIEXPORT jint JNICALL
 Java_sun_awt_X11GraphicsDevice_getConfigVisualId(
 JNIEnv *env, jobject this, jint index, jint screen)
 {
-#ifdef HEADLESS
-    return (jint)0;
-#else
-    int visNum;
-
+    // NB: should be invoked only while holding the AWT lock
+    DASSERT(screen >= 0 && screen < awt_numScreens);
     ensureConfigsInited(env, screen);
-    if (index == 0) {
-        return ((jint)x11Screens[screen].defaultConfig->awt_visInfo.visualid);
-    } else {
-        return ((jint)x11Screens[screen].configs[index]->awt_visInfo.visualid);
-    }
-#endif /* !HEADLESS */
+    jint id = (jint) (index == 0 ? x11Screens[screen].defaultConfig
+                                 : x11Screens[screen].configs[index])->awt_visInfo.visualid;
+    return id;
 }
 
 /*
@@ -1026,18 +1018,12 @@ JNIEXPORT jint JNICALL
 Java_sun_awt_X11GraphicsDevice_getConfigDepth(
 JNIEnv *env, jobject this, jint index, jint screen)
 {
-#ifdef HEADLESS
-    return (jint)0;
-#else
-    int visNum;
-
+    // NB: should be invoked only while holding the AWT lock
+    DASSERT(screen >= 0 && screen < awt_numScreens);
     ensureConfigsInited(env, screen);
-    if (index == 0) {
-        return ((jint)x11Screens[screen].defaultConfig->awt_visInfo.depth);
-    } else {
-        return ((jint)x11Screens[screen].configs[index]->awt_visInfo.depth);
-    }
-#endif /* !HEADLESS */
+    jint depth = (jint) (index == 0 ? x11Screens[screen].defaultConfig
+                                    : x11Screens[screen].configs[index])->awt_visInfo.depth;
+    return depth;
 }
 
 /*
@@ -1049,45 +1035,14 @@ JNIEXPORT jint JNICALL
 Java_sun_awt_X11GraphicsDevice_getConfigColormap(
 JNIEnv *env, jobject this, jint index, jint screen)
 {
-#ifdef HEADLESS
-    return (jint)0;
-#else
-    int visNum;
-
+    // NB: should be invoked only while holding the AWT lock
+    DASSERT(screen >= 0 && screen < awt_numScreens);
     ensureConfigsInited(env, screen);
-    if (index == 0) {
-        return ((jint)x11Screens[screen].defaultConfig->awt_cmap);
-    } else {
-        return ((jint)x11Screens[screen].configs[index]->awt_cmap);
-    }
-#endif /* !HEADLESS */
+    jint colormap = (jint) (index == 0 ? x11Screens[screen].defaultConfig
+                                       : x11Screens[screen].configs[index])->awt_cmap;
+    return colormap;
 }
 
-/*
- * Class:     sun_awt_X11GraphicsDevice
- * Method:    resetNativeData
- * Signature: (I)V
- */
-JNIEXPORT void JNICALL
-Java_sun_awt_X11GraphicsDevice_resetNativeData
-    (JNIEnv *env, jclass x11gd, jint screen)
-{
-#ifndef HEADLESS
-    /*
-     * Reset references to the various configs; the actual native config data
-     * will be free'd later by the Disposer mechanism when the Java-level
-     * X11GraphicsConfig objects go away.  By setting these values to NULL,
-     * we ensure that they will be reinitialized as necessary (for example,
-     * see the getNumConfigs() method).
-     */
-    if (x11Screens[screen].configs) {
-        free(x11Screens[screen].configs);
-        x11Screens[screen].configs = NULL;
-    }
-    x11Screens[screen].defaultConfig = NULL;
-    x11Screens[screen].numConfigs = 0;
-#endif /* !HEADLESS */
-}
 
 /*
  * Class:     sun_awt_X11GraphicsConfig
@@ -1098,7 +1053,6 @@ JNIEXPORT void JNICALL
 Java_sun_awt_X11GraphicsConfig_dispose
     (JNIEnv *env, jclass x11gc, jlong configData)
 {
-#ifndef HEADLESS
     AwtGraphicsConfigDataPtr aData = (AwtGraphicsConfigDataPtr)
         jlong_to_ptr(configData);
 
@@ -1140,7 +1094,6 @@ Java_sun_awt_X11GraphicsConfig_dispose
     }
 
     free(aData);
-#endif /* !HEADLESS */
 }
 
 /*
@@ -1152,12 +1105,8 @@ JNIEXPORT jdouble JNICALL
 Java_sun_awt_X11GraphicsConfig_getXResolution(
 JNIEnv *env, jobject this, jint screen)
 {
-#ifdef HEADLESS
-    return (jdouble)0;
-#else
     return ((DisplayWidth(awt_display, screen) * 25.4) /
             DisplayWidthMM(awt_display, screen));
-#endif /* !HEADLESS */
 }
 
 /*
@@ -1169,12 +1118,8 @@ JNIEXPORT jdouble JNICALL
 Java_sun_awt_X11GraphicsConfig_getYResolution(
 JNIEnv *env, jobject this, jint screen)
 {
-#ifdef HEADLESS
-    return (jdouble)0;
-#else
     return ((DisplayHeight(awt_display, screen) * 25.4) /
             DisplayHeightMM(awt_display, screen));
-#endif /* !HEADLESS */
 }
 
 
@@ -1187,16 +1132,12 @@ JNIEXPORT jint JNICALL
 Java_sun_awt_X11GraphicsConfig_getNumColors(
 JNIEnv *env, jobject this)
 {
-#ifdef HEADLESS
-    return (jint)0;
-#else
     AwtGraphicsConfigData *adata;
 
     adata = (AwtGraphicsConfigData *) JNU_GetLongFieldAsPtr(env, this,
                                               x11GraphicsConfigIDs.aData);
 
     return adata->awt_num_colors;
-#endif /* !HEADLESS */
 }
 
 /*
@@ -1208,7 +1149,9 @@ JNIEXPORT void JNICALL
 Java_sun_awt_X11GraphicsConfig_init(
 JNIEnv *env, jobject this, jint visualNum, jint screen)
 {
-#ifndef HEADLESS
+    // NB: should be invoked only while holding the AWT lock
+    DASSERT(screen >= 0 && screen < awt_numScreens);
+
     AwtGraphicsConfigData *adata = NULL;
     AwtScreenData asd = x11Screens[screen];
     int i, n;
@@ -1249,10 +1192,7 @@ JNIEnv *env, jobject this, jint visualNum, jint screen)
     (*env)->SetIntField(env, this, x11GraphicsConfigIDs.bitsPerPixel,
                         (jint)tempImage->bits_per_pixel);
     XDestroyImage(tempImage);
-#endif /* !HEADLESS */
 }
-
-
 
 /*
  * Class:     sun_awt_X11GraphicsConfig
@@ -1263,9 +1203,6 @@ JNIEXPORT jobject JNICALL
 Java_sun_awt_X11GraphicsConfig_makeColorModel(
 JNIEnv *env, jobject this)
 {
-#ifdef HEADLESS
-    return NULL;
-#else
     AwtGraphicsConfigData *adata;
     jobject colorModel;
 
@@ -1294,30 +1231,22 @@ JNIEnv *env, jobject this)
     AWT_UNLOCK ();
 
     return colorModel;
-#endif /* !HEADLESS */
 }
 
 
 /*
- * Class:     sun_awt_X11GraphicsConfig
+ * Class:     sun_awt_X11GraphicsDevice
  * Method:    getBounds
  * Signature: ()Ljava/awt/Rectangle
  */
 JNIEXPORT jobject JNICALL
-Java_sun_awt_X11GraphicsConfig_pGetBounds(JNIEnv *env, jobject this, jint screen)
+Java_sun_awt_X11GraphicsDevice_pGetBounds(JNIEnv *env, jobject this, jint screen)
 {
-#ifdef HEADLESS
-    return NULL;
-#else
     jclass clazz;
     jmethodID mid;
     jobject bounds = NULL;
-    AwtGraphicsConfigDataPtr adata;
     int32_t locNumScr = 0;
     XineramaScreenInfo *xinInfo;
-
-    adata = (AwtGraphicsConfigDataPtr)
-        JNU_GetLongFieldAsPtr(env, this, x11GraphicsConfigIDs.aData);
 
     clazz = (*env)->FindClass(env, "java/awt/Rectangle");
     CHECK_NULL_RETURN(clazz, NULL);
@@ -1353,8 +1282,7 @@ Java_sun_awt_X11GraphicsConfig_pGetBounds(JNIEnv *env, jobject this, jint screen
             memset(&xwa, 0, sizeof(xwa));
 
             AWT_LOCK ();
-            XGetWindowAttributes(awt_display,
-                    RootWindow(awt_display, adata->awt_visInfo.screen),
+            XGetWindowAttributes(awt_display, RootWindow(awt_display, screen),
                     &xwa);
             AWT_UNLOCK ();
 
@@ -1367,7 +1295,6 @@ Java_sun_awt_X11GraphicsConfig_pGetBounds(JNIEnv *env, jobject this, jint screen
         }
     }
     return bounds;
-#endif /* !HEADLESS */
 }
 
 /*
@@ -1443,15 +1370,11 @@ JNIEXPORT jboolean JNICALL
 Java_sun_awt_X11GraphicsConfig_isTranslucencyCapable
     (JNIEnv *env, jobject this, jlong configData)
 {
-#ifdef HEADLESS
-    return JNI_FALSE;
-#else
     AwtGraphicsConfigDataPtr aData = (AwtGraphicsConfigDataPtr)jlong_to_ptr(configData);
     if (aData == NULL) {
         return JNI_FALSE;
     }
     return aData->isTranslucencySupported ? JNI_TRUE : JNI_FALSE;
-#endif
 }
 
 /*
@@ -1462,9 +1385,6 @@ Java_sun_awt_X11GraphicsConfig_isTranslucencyCapable
 JNIEXPORT jboolean JNICALL
 Java_sun_awt_X11GraphicsDevice_isDBESupported(JNIEnv *env, jobject this)
 {
-#ifdef HEADLESS
-    return JNI_FALSE;
-#else
     int opcode = 0, firstEvent = 0, firstError = 0;
     jboolean ret;
 
@@ -1473,7 +1393,6 @@ Java_sun_awt_X11GraphicsDevice_isDBESupported(JNIEnv *env, jobject this)
                                     &opcode, &firstEvent, &firstError);
     AWT_FLUSH_UNLOCK();
     return ret;
-#endif /* !HEADLESS */
 }
 
 /*
@@ -1485,7 +1404,6 @@ JNIEXPORT void JNICALL
 Java_sun_awt_X11GraphicsDevice_getDoubleBufferVisuals(JNIEnv *env,
     jobject this, jint screen)
 {
-#ifndef HEADLESS
     jclass clazz;
     jmethodID midAddVisual;
     Window rootWindow;
@@ -1515,12 +1433,14 @@ Java_sun_awt_X11GraphicsDevice_getDoubleBufferVisuals(JNIEnv *env,
     AWT_FLUSH_UNLOCK();
     for (i = 0; i < visScreenInfo->count; i++) {
         XdbeVisualInfo* visInfo = visScreenInfo->visinfo;
-        (*env)->CallVoidMethod(env, this, midAddVisual, (visInfo[i]).visual);
         if ((*env)->ExceptionCheck(env)) {
             break;
         }
+        (*env)->CallVoidMethod(env, this, midAddVisual, (visInfo[i]).visual);
     }
-#endif /* !HEADLESS */
+    AWT_LOCK();
+    XdbeFreeVisualInfo(visScreenInfo);
+    AWT_UNLOCK();
 }
 
 /*
@@ -1532,18 +1452,12 @@ JNIEXPORT jboolean JNICALL
 Java_sun_awt_X11GraphicsEnvironment_pRunningXinerama(JNIEnv *env,
     jobject this)
 {
-#ifdef HEADLESS
-    return JNI_FALSE;
-#else
     return usingXinerama ? JNI_TRUE : JNI_FALSE;
-#endif /* HEADLESS */
 }
 
 /**
  * Begin DisplayMode/FullScreen support
  */
-
-#ifndef HEADLESS
 
 #ifndef NO_XRANDR
 
@@ -1782,7 +1696,6 @@ X11GD_SetFullscreenMode(Window win, jboolean enabled)
                &event);
     XSync(awt_display, False);
 }
-#endif /* !HEADLESS */
 
 /*
  * Class:     sun_awt_X11GraphicsDevice
@@ -1793,7 +1706,7 @@ JNIEXPORT jboolean JNICALL
 Java_sun_awt_X11GraphicsDevice_initXrandrExtension
     (JNIEnv *env, jclass x11gd)
 {
-#if defined(HEADLESS) || defined(NO_XRANDR)
+#if defined(NO_XRANDR)
     return JNI_FALSE;
 #else
     int opcode = 0, firstEvent = 0, firstError = 0;
@@ -1808,7 +1721,7 @@ Java_sun_awt_X11GraphicsDevice_initXrandrExtension
     AWT_FLUSH_UNLOCK();
 
     return ret;
-#endif /* HEADLESS */
+#endif /* NO_XRANDR */
 }
 
 /*
@@ -1820,7 +1733,7 @@ JNIEXPORT jobject JNICALL
 Java_sun_awt_X11GraphicsDevice_getCurrentDisplayMode
     (JNIEnv* env, jclass x11gd, jint screen)
 {
-#if defined(HEADLESS) || defined(NO_XRANDR)
+#if defined(NO_XRANDR)
     return NULL;
 #else
     XRRScreenConfiguration *config;
@@ -1828,49 +1741,7 @@ Java_sun_awt_X11GraphicsDevice_getCurrentDisplayMode
 
     AWT_LOCK();
 
-    if (usingXinerama && XScreenCount(awt_display) > 0) {
-        XRRScreenResources *res = awt_XRRGetScreenResources(awt_display,
-                                                    RootWindow(awt_display, 0));
-        if (res) {
-            if (res->noutput > screen) {
-                XRROutputInfo *output_info = awt_XRRGetOutputInfo(awt_display,
-                                                     res, res->outputs[screen]);
-                if (output_info) {
-                    if (output_info->crtc) {
-                        XRRCrtcInfo *crtc_info =
-                                    awt_XRRGetCrtcInfo (awt_display, res,
-                                                        output_info->crtc);
-                        if (crtc_info) {
-                            if (crtc_info->mode) {
-                                int i;
-                                for (i = 0; i < res->nmode; i++) {
-                                    XRRModeInfo *mode = &res->modes[i];
-                                    if (mode->id == crtc_info->mode) {
-                                        float rate = 0;
-                                        if (mode->hTotal && mode->vTotal) {
-                                             rate = ((float)mode->dotClock /
-                                                    ((float)mode->hTotal *
-                                                    (float)mode->vTotal));
-                                        }
-                                        displayMode = X11GD_CreateDisplayMode(
-                                                           env,
-                                                           mode->width,
-                                                           mode->height,
-                                                           BIT_DEPTH_MULTI,
-                                                           (int)(rate +.2));
-                                        break;
-                                    }
-                                }
-                            }
-                            awt_XRRFreeCrtcInfo(crtc_info);
-                        }
-                    }
-                    awt_XRRFreeOutputInfo(output_info);
-                }
-            }
-            awt_XRRFreeScreenResources(res);
-        }
-    } else {
+    if (screen < ScreenCount(awt_display)) {
 
         config = awt_XRRGetScreenInfo(awt_display,
                                       RootWindow(awt_display, screen));
@@ -1903,7 +1774,7 @@ Java_sun_awt_X11GraphicsDevice_getCurrentDisplayMode
     AWT_FLUSH_UNLOCK();
 
     return displayMode;
-#endif /* HEADLESS */
+#endif /* NO_XRANDR */
 }
 
 /*
@@ -1916,49 +1787,12 @@ Java_sun_awt_X11GraphicsDevice_enumDisplayModes
     (JNIEnv* env, jclass x11gd,
      jint screen, jobject arrayList)
 {
-#if !defined(HEADLESS) && !defined(NO_XRANDR)
+#if !defined(NO_XRANDR)
 
     AWT_LOCK();
 
-    if (usingXinerama && XScreenCount(awt_display) > 0) {
-        XRRScreenResources *res = awt_XRRGetScreenResources(awt_display,
-                                                    RootWindow(awt_display, 0));
-        if (res) {
-           if (res->noutput > screen) {
-                XRROutputInfo *output_info = awt_XRRGetOutputInfo(awt_display,
-                                                     res, res->outputs[screen]);
-                if (output_info) {
-                    int i;
-                    for (i = 0; i < output_info->nmode; i++) {
-                        RRMode m = output_info->modes[i];
-                        int j;
-                        XRRModeInfo *mode;
-                        for (j = 0; j < res->nmode; j++) {
-                            mode = &res->modes[j];
-                            if (mode->id == m) {
-                                 float rate = 0;
-                                 if (mode->hTotal && mode->vTotal) {
-                                     rate = ((float)mode->dotClock /
-                                                   ((float)mode->hTotal *
-                                                          (float)mode->vTotal));
-                                 }
-                                 X11GD_AddDisplayMode(env, arrayList,
-                                        mode->width, mode->height,
-                                              BIT_DEPTH_MULTI, (int)(rate +.2));
-                                 if ((*env)->ExceptionCheck(env)) {
-                                     goto ret0;
-                                 }
-                                 break;
-                            }
-                        }
-                    }
-ret0:
-                    awt_XRRFreeOutputInfo(output_info);
-                }
-            }
-            awt_XRRFreeScreenResources(res);
-        }
-    } else {
+    if (XScreenCount(awt_display) > 0) {
+
         XRRScreenConfiguration *config;
 
         config = awt_XRRGetScreenInfo(awt_display,
@@ -1991,7 +1825,7 @@ ret1:
     }
 
     AWT_FLUSH_UNLOCK();
-#endif /* !HEADLESS */
+#endif /* !NO_XRANDR */
 }
 
 /*
@@ -2004,7 +1838,7 @@ Java_sun_awt_X11GraphicsDevice_configDisplayMode
     (JNIEnv* env, jclass x11gd,
      jint screen, jint width, jint height, jint refreshRate)
 {
-#if !defined(HEADLESS) && !defined(NO_XRANDR)
+#if !defined(NO_XRANDR)
     jboolean success = JNI_FALSE;
     XRRScreenConfiguration *config;
     Drawable root;
@@ -2074,7 +1908,7 @@ Java_sun_awt_X11GraphicsDevice_configDisplayMode
     if (!success && !(*env)->ExceptionCheck(env)) {
         JNU_ThrowInternalError(env, "Could not set display mode");
     }
-#endif /* !HEADLESS */
+#endif /* !NO_XRANDR */
 }
 
 /*
@@ -2087,14 +1921,12 @@ Java_sun_awt_X11GraphicsDevice_enterFullScreenExclusive
     (JNIEnv* env, jclass x11gd,
      jlong window)
 {
-#ifndef HEADLESS
     Window win = (Window)window;
 
     AWT_LOCK();
     XSync(awt_display, False); /* ensures window is visible first */
     X11GD_SetFullscreenMode(win, JNI_TRUE);
     AWT_UNLOCK();
-#endif /* !HEADLESS */
 }
 
 /*
@@ -2107,54 +1939,16 @@ Java_sun_awt_X11GraphicsDevice_exitFullScreenExclusive
     (JNIEnv* env, jclass x11gd,
      jlong window)
 {
-#ifndef HEADLESS
     Window win = (Window)window;
 
     AWT_LOCK();
     X11GD_SetFullscreenMode(win, JNI_FALSE);
     AWT_UNLOCK();
-#endif /* !HEADLESS */
 }
 
 /**
  * End DisplayMode/FullScreen support
  */
-
-static char *get_output_screen_name(JNIEnv *env, int screen) {
-#ifdef NO_XRANDR
-    return NULL;
-#else
-    if (!awt_XRRGetScreenResources || !awt_XRRGetOutputInfo) {
-        return NULL;
-    }
-    char *name = NULL;
-    AWT_LOCK();
-    int scr = 0, out = 0;
-    if (usingXinerama && XScreenCount(awt_display) > 0) {
-        out = screen;
-    } else {
-        scr = screen;
-    }
-
-    XRRScreenResources *res = awt_XRRGetScreenResources(awt_display,
-                                                  RootWindow(awt_display, scr));
-    if (res) {
-       if (res->noutput > out) {
-            XRROutputInfo *output_info = awt_XRRGetOutputInfo(awt_display,
-                                                        res, res->outputs[out]);
-            if (output_info) {
-                if (output_info->name) {
-                    name = strdup(output_info->name);
-                }
-                awt_XRRFreeOutputInfo(output_info);
-            }
-        }
-        awt_XRRFreeScreenResources(res);
-    }
-    AWT_UNLOCK();
-    return name;
-#endif /* NO_XRANDR */
-}
 
 /*
  * Class:     sun_awt_X11GraphicsDevice
@@ -2164,11 +1958,6 @@ static char *get_output_screen_name(JNIEnv *env, int screen) {
 JNIEXPORT jdouble JNICALL
 Java_sun_awt_X11GraphicsDevice_getNativeScaleFactor
     (JNIEnv *env, jobject this, jint screen) {
-    // in case of Xinerama individual screen scales are not supported
-    char *name = get_output_screen_name(env, usingXinerama ? 0 : screen);
-    double scale = getNativeScaleFactor(name);
-    if (name) {
-        free(name);
-    }
-    return scale;
+
+    return getNativeScaleFactor();
 }

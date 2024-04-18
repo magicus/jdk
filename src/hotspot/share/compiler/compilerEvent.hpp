@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,12 +24,11 @@
 #ifndef SHARE_COMPILER_COMPILEREVENT_HPP
 #define SHARE_COMPILER_COMPILEREVENT_HPP
 
-#include "jni.h"
 #include "compiler/compilerDefinitions.hpp"
-#include "memory/allocation.hpp"
+#include "jni.h"
+#include "memory/allStatic.hpp"
 #include "utilities/macros.hpp"
 #include "utilities/ticks.hpp"
-
 #if INCLUDE_JFR
 #include "jfr/utilities/jfrTime.hpp"
 #endif
@@ -64,15 +63,13 @@ class CompilerEvent : AllStatic {
   class PhaseEvent : AllStatic {
     friend class CompilerPhaseTypeConstant;
    public:
-    /**
-     * Register compiler phases for JFR type CompilerPhaseType serialization purposes.
-     * This method is called during compiler creation or during compilation.
-     * Registration will serialize the passed in phase constants, supporting bulk and/or incremental registrations.
-     * This method returns start index of new list that just got appended to phase_names.
-     * Param new_phases may contain duplicates.
-     * Return value could be used for mapping purpose at caller site, or caller can assume explicit order of registration.
-     */
-    static int register_phases(GrowableArray<const char*>* new_phases) NOT_JFR_RETURN_(-1);
+
+    // Gets a unique identifier for `phase_name`, computing and registering it first if necessary.
+    // If `may_exist` is true, then current registrations are searched first. If false, then
+    // there must not be an existing registration for `phase_name`.
+    // If `use_strdup` is true, then `phase_name` is strdup'ed before registration.
+    // If `sync` is true, then access to the registration table is synchronized.
+    static int get_phase_id(const char* phase_name, bool may_exist, bool use_strdup, bool sync) NOT_JFR_RETURN_(-1);
 
     static void post(EventCompilerPhase& event, const Ticks& start_time, int phase, int compile_id, int level) NOT_JFR_RETURN();
     static void post(EventCompilerPhase& event, jlong start_time, int phase, int compile_id, int level) {

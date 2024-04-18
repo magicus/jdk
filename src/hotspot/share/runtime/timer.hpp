@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,8 +37,8 @@ class elapsedTimer {
   bool  _active;
  public:
   elapsedTimer()             { _active = false; reset(); }
-  elapsedTimer(jlong time, jlong timeUnitsPerSecond);
   void add(elapsedTimer t);
+  void add_nanoseconds(jlong ns);
   void start();
   void stop();
   void reset()               { _counter = 0; }
@@ -55,7 +55,6 @@ class TimeStamp {
   jlong _counter;
  public:
   TimeStamp()  { _counter = 0; }
-  void clear() { _counter = 0; }
   // has the timestamp been updated since being created or cleared?
   bool is_updated() const { return _counter != 0; }
   // update to current elapsed time
@@ -77,6 +76,7 @@ class TimeHelper {
   static double counter_to_seconds(jlong counter);
   static double counter_to_millis(jlong counter);
   static jlong millis_to_counter(jlong millis);
+  static jlong micros_to_counter(jlong micros);
 };
 
 #endif // SHARE_RUNTIME_TIMER_HPP

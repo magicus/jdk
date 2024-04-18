@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,23 +38,14 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * {@preview Associated with records, a preview feature of the Java language.
- *
- *           This class is associated with <i>records</i>, a preview
- *           feature of the Java language. Preview features
- *           may be removed in a future release, or upgraded to permanent
- *           features of the Java language.}
- *
  * A {@code RecordComponent} provides information about, and dynamic access to, a
  * component of a record class.
  *
  * @see Class#getRecordComponents()
  * @see java.lang.Record
- * @jls 8.10 Record Types
- * @since 14
+ * @jls 8.10 Record Classes
+ * @since 16
  */
-@jdk.internal.PreviewFeature(feature=jdk.internal.PreviewFeature.Feature.RECORDS,
-                             essentialAPI=false)
 public final class RecordComponent implements AnnotatedElement {
     // declaring class
     private Class<?> clazz;
@@ -63,10 +54,9 @@ public final class RecordComponent implements AnnotatedElement {
     private Method accessor;
     private String signature;
     // generic info repository; lazily initialized
-    private transient FieldRepository genericInfo;
+    private transient volatile FieldRepository genericInfo;
     private byte[] annotations;
     private byte[] typeAnnotations;
-    @SuppressWarnings("preview")
     private RecordComponent root;
 
     // only the JVM can create record components
@@ -93,7 +83,7 @@ public final class RecordComponent implements AnnotatedElement {
     }
 
     /**
-     * Returns a {@code String} that describes the  generic type signature for
+     * Returns a {@code String} that describes the generic type signature for
      * this record component.
      *
      * @return a {@code String} that describes the generic type signature for
@@ -120,7 +110,7 @@ public final class RecordComponent implements AnnotatedElement {
      *         this record component
      * @throws GenericSignatureFormatError if the generic record component
      *         signature does not conform to the format specified in
-     *         <cite>The Java&trade; Virtual Machine Specification</cite>
+     *         <cite>The Java Virtual Machine Specification</cite>
      * @throws TypeNotPresentException if the generic type
      *         signature of the underlying record component refers to a non-existent
      *         type declaration
@@ -137,10 +127,12 @@ public final class RecordComponent implements AnnotatedElement {
 
     // Accessor for generic info repository
     private FieldRepository getGenericInfo() {
+        var genericInfo = this.genericInfo;
         // lazily initialize repository if necessary
         if (genericInfo == null) {
             // create and cache generic info repository
             genericInfo = FieldRepository.make(getGenericSignature(), getFactory());
+            this.genericInfo = genericInfo;
         }
         return genericInfo; //return cached repository
     }
@@ -198,7 +190,6 @@ public final class RecordComponent implements AnnotatedElement {
         if ((declAnnos = declaredAnnotations) == null) {
             synchronized (this) {
                 if ((declAnnos = declaredAnnotations) == null) {
-                    @SuppressWarnings("preview")
                     RecordComponent root = this.root;
                     if (root != null) {
                         declAnnos = root.declaredAnnotations();

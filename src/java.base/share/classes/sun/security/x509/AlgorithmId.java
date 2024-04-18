@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,18 +26,10 @@
 package sun.security.x509;
 
 import java.io.*;
-import java.security.interfaces.RSAKey;
-import java.security.spec.AlgorithmParameterSpec;
-import java.security.spec.EdDSAParameterSpec;
-import java.security.spec.InvalidParameterSpecException;
-import java.security.spec.MGF1ParameterSpec;
-import java.security.spec.PSSParameterSpec;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.security.*;
-import java.security.interfaces.*;
 
-import sun.security.rsa.PSSParameters;
 import sun.security.util.*;
 
 
@@ -71,23 +63,20 @@ public class AlgorithmId implements Serializable, DerEncoder {
     private static final long serialVersionUID = 7205873507486557157L;
 
     /**
-     * The object identitifer being used for this algorithm.
+     * The object identifier being used for this algorithm.
      */
     private ObjectIdentifier algid;
 
     // The (parsed) parameters
     @SuppressWarnings("serial") // Not statically typed as Serializable
     private AlgorithmParameters algParams;
-    private boolean constructedFromDer = true;
 
     /**
      * Parameters for this algorithm.  These are stored in unparsed
-     * DER-encoded form; subclasses can be made to automaticaly parse
+     * DER-encoded form; subclasses can be made to automatically parse
      * them so there is fast access to these parameters.
      */
-    @SuppressWarnings("serial") // Not statically typed as Serializable
-    protected DerValue          params;
-
+    protected transient byte[] encodedParams;
 
     /**
      * Constructs an algorithm ID which will be initialized
@@ -110,19 +99,36 @@ public class AlgorithmId implements Serializable, DerEncoder {
      * Constructs an algorithm ID with algorithm parameters.
      *
      * @param oid the identifier for the algorithm.
-     * @param algparams the associated algorithm parameters.
+     * @param algparams the associated algorithm parameters, can be null.
+     * @exception IllegalStateException if algparams is not initialized
+     *                                  or cannot be encoded
      */
     public AlgorithmId(ObjectIdentifier oid, AlgorithmParameters algparams) {
         algid = oid;
-        algParams = algparams;
-        constructedFromDer = false;
+        this.algParams = algparams;
+        if (algParams != null) {
+            try {
+                encodedParams = algParams.getEncoded();
+            } catch (IOException ioe) {
+                throw new IllegalStateException(
+                        "AlgorithmParameters not initialized or cannot be decoded",
+                        ioe);
+            }
+        }
     }
 
-    private AlgorithmId(ObjectIdentifier oid, DerValue params)
+    /**
+     * Constructs an algorithm ID with algorithm parameters as a DerValue.
+     *
+     * @param oid the identifier for the algorithm.
+     * @param params the associated algorithm parameters, can be null.
+     */
+    @SuppressWarnings("this-escape")
+    public AlgorithmId(ObjectIdentifier oid, DerValue params)
             throws IOException {
         this.algid = oid;
-        this.params = params;
-        if (this.params != null) {
+        if (params != null) {
+            encodedParams = params.toByteArray();
             decodeParams();
         }
     }
@@ -141,88 +147,68 @@ public class AlgorithmId implements Serializable, DerEncoder {
         }
 
         // Decode (parse) the parameters
-        algParams.init(params.toByteArray());
-    }
-
-    /**
-     * Marshal a DER-encoded "AlgorithmID" sequence on the DER stream.
-     */
-    public final void encode(DerOutputStream out) throws IOException {
-        derEncode(out);
+        algParams.init(encodedParams.clone());
     }
 
     /**
      * DER encode this object onto an output stream.
      * Implements the <code>DerEncoder</code> interface.
      *
-     * @param out
-     * the output stream on which to write the DER encoding.
-     *
-     * @exception IOException on encoding error.
+     * @param out the output stream on which to write the DER encoding.
      */
-    public void derEncode (OutputStream out) throws IOException {
+    @Override
+    public void encode(DerOutputStream out) {
         DerOutputStream bytes = new DerOutputStream();
-        DerOutputStream tmp = new DerOutputStream();
 
         bytes.putOID(algid);
-        // Setup params from algParams since no DER encoding is given
-        if (constructedFromDer == false) {
-            if (algParams != null) {
-                params = new DerValue(algParams.getEncoded());
-            } else {
-                params = null;
-            }
-        }
-        if (params == null) {
-            // Changes backed out for compatibility with Solaris
 
-            // Several AlgorithmId should omit the whole parameter part when
-            // it's NULL. They are ---
-            // RFC 3370 2.1: Implementations SHOULD generate SHA-1
-            // AlgorithmIdentifiers with absent parameters.
-            // RFC 3447 C1: When id-sha1, id-sha224, id-sha256, id-sha384 and
-            // id-sha512 are used in an AlgorithmIdentifier the parameters
-            // (which are optional) SHOULD be omitted.
-            // RFC 3279 2.3.2: The id-dsa algorithm syntax includes optional
-            // domain parameters... When omitted, the parameters component
-            // MUST be omitted entirely
-            // RFC 3370 3.1: When the id-dsa-with-sha1 algorithm identifier
-            // is used, the AlgorithmIdentifier parameters field MUST be absent.
-            /*if (
-                algid.equals((Object)SHA_oid) ||
-                algid.equals((Object)SHA224_oid) ||
-                algid.equals((Object)SHA256_oid) ||
-                algid.equals((Object)SHA384_oid) ||
-                algid.equals((Object)SHA512_oid) ||
-                algid.equals((Object)SHA512_224_oid) ||
-                algid.equals((Object)SHA512_256_oid) ||
-                algid.equals((Object)DSA_oid) ||
-                algid.equals((Object)sha1WithDSA_oid)) {
-                ; // no parameter part encoded
-            } else {
-                bytes.putNull();
-            }*/
-            if (algid.equals(RSASSA_PSS_oid) || algid.equals(ed448_oid)
-                    || algid.equals(ed25519_oid)) {
-                // RFC 4055 3.3: when an RSASSA-PSS key does not require
-                // parameter validation, field is absent.
-            } else {
+        if (encodedParams == null) {
+            // MessageDigest algorithms usually have a NULL parameters even
+            // if most RFCs suggested absent.
+            // RSA key and signature algorithms requires the NULL parameters
+            // to be present, see A.1 and A.2.4 of RFC 8017.
+            if (algid.equals(RSAEncryption_oid)
+                    || algid.equals(MD2_oid)
+                    || algid.equals(MD5_oid)
+                    || algid.equals(SHA_oid)
+                    || algid.equals(SHA224_oid)
+                    || algid.equals(SHA256_oid)
+                    || algid.equals(SHA384_oid)
+                    || algid.equals(SHA512_oid)
+                    || algid.equals(SHA512_224_oid)
+                    || algid.equals(SHA512_256_oid)
+                    || algid.equals(SHA3_224_oid)
+                    || algid.equals(SHA3_256_oid)
+                    || algid.equals(SHA3_384_oid)
+                    || algid.equals(SHA3_512_oid)
+                    || algid.equals(SHA1withRSA_oid)
+                    || algid.equals(SHA224withRSA_oid)
+                    || algid.equals(SHA256withRSA_oid)
+                    || algid.equals(SHA384withRSA_oid)
+                    || algid.equals(SHA512withRSA_oid)
+                    || algid.equals(SHA512$224withRSA_oid)
+                    || algid.equals(SHA512$256withRSA_oid)
+                    || algid.equals(MD2withRSA_oid)
+                    || algid.equals(MD5withRSA_oid)
+                    || algid.equals(SHA3_224withRSA_oid)
+                    || algid.equals(SHA3_256withRSA_oid)
+                    || algid.equals(SHA3_384withRSA_oid)
+                    || algid.equals(SHA3_512withRSA_oid)) {
                 bytes.putNull();
             }
         } else {
-            bytes.putDerValue(params);
+            bytes.writeBytes(encodedParams);
         }
-        tmp.write(DerValue.tag_Sequence, bytes);
-        out.write(tmp.toByteArray());
+        out.write(DerValue.tag_Sequence, bytes);
     }
 
 
     /**
      * Returns the DER-encoded X.509 AlgorithmId as a byte array.
      */
-    public final byte[] encode() throws IOException {
+    public final byte[] encode() {
         DerOutputStream out = new DerOutputStream();
-        derEncode(out);
+        encode(out);
         return out.toByteArray();
     }
 
@@ -231,48 +217,62 @@ public class AlgorithmId implements Serializable, DerEncoder {
      * to a string and used as part of an algorithm name, for example
      * "OID.1.3.14.3.2.13" style notation.  Use the <code>getName</code>
      * call when you do not need to ensure cross-system portability
-     * of algorithm names, or need a user friendly name.
+     * of algorithm names, or need a user-friendly name.
      */
     public final ObjectIdentifier getOID () {
         return algid;
     }
 
     /**
-     * Returns a name for the algorithm which may be more intelligible
+     * Returns a name for the algorithm which can be used by getInstance()
+     * call of a crypto primitive. The name is usually more intelligible
      * to humans than the algorithm's OID, but which won't necessarily
      * be comprehensible on other systems.  For example, this might
      * return a name such as "MD5withRSA" for a signature algorithm on
-     * some systems.  It also returns names like "OID.1.2.3.4", when
-     * no particular name for the algorithm is known.
+     * some systems.  It also returns OID names like "1.2.3.4", when
+     * no particular name for the algorithm is known. The OID may also be
+     * recognized by getInstance() calls since an OID is usually defined
+     * as an alias for an algorithm by the security provider.
      *
-     * Note: for ecdsa-with-SHA2 plus hash algorithm (Ex: SHA-256), this method
+     * In some special cases where the OID does not include enough info
+     * to return a Java standard algorithm name, an algorithm name
+     * that includes info on the params is returned:
+     *
+     * 1. For ecdsa-with-SHA2 plus hash algorithm (Ex: SHA-256), this method
      * returns the "full" signature algorithm (Ex: SHA256withECDSA) directly.
+     *
+     * 2. For PBES2, this method returns the "full" cipher name containing the
+     * KDF and Enc algorithms (Ex: PBEWithHmacSHA256AndAES_256) directly.
      */
     public String getName() {
         String oidStr = algid.toString();
         // first check the list of support oids
         KnownOIDs o = KnownOIDs.findMatch(oidStr);
         if (o == KnownOIDs.SpecifiedSHA2withECDSA) {
-            if (params != null) {
+            if (encodedParams != null) {
                 try {
-                    AlgorithmId paramsId =
-                        AlgorithmId.parse(new DerValue(params.toByteArray()));
-                    String paramsName = paramsId.getName();
-                    return makeSigAlg(paramsName, "EC");
+                    AlgorithmId digestParams =
+                        AlgorithmId.parse(new DerValue(encodedParams));
+                    String digestAlg = digestParams.getName();
+                    return digestAlg.replace("-", "") + "withECDSA";
                 } catch (IOException e) {
                     // ignore
                 }
+            }
+        } else if (o == KnownOIDs.PBES2) {
+            if (algParams != null) {
+                return algParams.toString();
+            } else {
+                // when getName() is called in decodeParams(), algParams is
+                // null, where AlgorithmParameters.getInstance("PBES2") will
+                // be used to initialize it.
             }
         }
         if (o != null) {
             return o.stdName();
         } else {
             String n = aliasOidsTable().get(oidStr);
-            if (n != null) {
-                return n;
-            } else {
-                return algid.toString();
-            }
+            return (n != null) ? n : algid.toString();
         }
     }
 
@@ -284,17 +284,21 @@ public class AlgorithmId implements Serializable, DerEncoder {
      * Returns the DER encoded parameter, which can then be
      * used to initialize java.security.AlgorithmParameters.
      *
+     * Note that this* method should always return a new array as it is called
+     * directly by the JDK implementation of X509Certificate.getSigAlgParams()
+     * and X509CRL.getSigAlgParams().
+     *
      * Note: for ecdsa-with-SHA2 plus hash algorithm (Ex: SHA-256), this method
      * returns null because {@link #getName()} has already returned the "full"
      * signature algorithm (Ex: SHA256withECDSA).
      *
      * @return DER encoded parameters, or null not present.
      */
-    public byte[] getEncodedParams() throws IOException {
-        return (params == null ||
+    public byte[] getEncodedParams() {
+        return (encodedParams == null ||
             algid.toString().equals(KnownOIDs.SpecifiedSHA2withECDSA.value()))
                 ? null
-                : params.toByteArray();
+                : encodedParams.clone();
     }
 
     /**
@@ -302,8 +306,8 @@ public class AlgorithmId implements Serializable, DerEncoder {
      * with the same parameters.
      */
     public boolean equals(AlgorithmId other) {
-        boolean paramsEqual = Objects.equals(other.params, params);
-        return (algid.equals((Object)other.algid) && paramsEqual);
+        return algid.equals(other.algid) &&
+            Arrays.equals(encodedParams, other.encodedParams);
     }
 
     /**
@@ -313,6 +317,7 @@ public class AlgorithmId implements Serializable, DerEncoder {
      *
      * @param other preferably an AlgorithmId, else an ObjectIdentifier
      */
+    @Override
     public boolean equals(Object other) {
         if (this == other) {
             return true;
@@ -335,15 +340,13 @@ public class AlgorithmId implements Serializable, DerEncoder {
     }
 
     /**
-     * Returns a hashcode for this AlgorithmId.
-     *
-     * @return a hashcode for this AlgorithmId.
+     * {@return a hashcode for this AlgorithmId}
      */
+    @Override
     public int hashCode() {
-        StringBuilder sbuf = new StringBuilder();
-        sbuf.append(algid.toString());
-        sbuf.append(paramsToString());
-        return sbuf.toString().hashCode();
+        int hashCode = algid.hashCode();
+        hashCode = 31 * hashCode + Arrays.hashCode(encodedParams);
+        return hashCode;
     }
 
     /**
@@ -351,10 +354,10 @@ public class AlgorithmId implements Serializable, DerEncoder {
      * This may be redefined by subclasses which parse those parameters.
      */
     protected String paramsToString() {
-        if (params == null) {
+        if (encodedParams == null) {
             return "";
         } else if (algParams != null) {
-            return algParams.toString();
+            return ", " + algParams.toString();
         } else {
             return ", params unparsed";
         }
@@ -363,6 +366,7 @@ public class AlgorithmId implements Serializable, DerEncoder {
     /**
      * Returns a string describing the algorithm and its parameters.
      */
+    @Override
     public String toString() {
         return getName() + paramsToString();
     }
@@ -455,6 +459,8 @@ public class AlgorithmId implements Serializable, DerEncoder {
      *
      * @param algparams the associated algorithm parameters.
      * @exception NoSuchAlgorithmException on error.
+     * @exception IllegalStateException if algparams is not initialized
+     *                                  or cannot be encoded
      */
     public static AlgorithmId get(AlgorithmParameters algparams)
             throws NoSuchAlgorithmException {
@@ -496,7 +502,7 @@ public class AlgorithmId implements Serializable, DerEncoder {
         }
 
         // unknown algorithm oids
-        if (name.indexOf(".") == -1) {
+        if (!name.contains(".")) {
             // see if there is a matching oid string alias mapping from
             // 3rd party providers
             name = name.toUpperCase(Locale.ENGLISH);
@@ -509,12 +515,17 @@ public class AlgorithmId implements Serializable, DerEncoder {
         }
     }
 
-    // oid string cache index'ed by algorithm name and oid strings
+    // oid string cache indexed by algorithm name and oid strings
     private static volatile Map<String,String> aliasOidsTable;
+
+    // called by sun.security.jca.Providers whenever provider list is changed
+    public static void clearAliasOidsTable() {
+        aliasOidsTable = null;
+    }
 
     // returns the aliasOidsTable, lazily initializing it on first access.
     private static Map<String,String> aliasOidsTable() {
-        // Double checked locking; safe because aliasOidsTable is volatile
+        // Double-checked locking; safe because aliasOidsTable is volatile
         Map<String,String> tab = aliasOidsTable;
         if (tab == null) {
             synchronized (AlgorithmId.class) {
@@ -532,8 +543,8 @@ public class AlgorithmId implements Serializable, DerEncoder {
         if (pn != null && mn != null) {
             return ((mn.equals("java.base") &&
                     (pn.equals("SUN") || pn.equals("SunRsaSign") ||
-                    pn.equals("SunJCE") || pn.equals("SunJSSE"))) ||
-                (mn.equals("jdk.crypto.ec") && pn.equals("SunEC")) ||
+                    pn.equals("SunJCE") || pn.equals("SunJSSE") ||
+                    pn.equals("SunEC"))) ||
                 (mn.equals("jdk.crypto.mscapi") && pn.equals("SunMSCAPI")) ||
                 (mn.equals("jdk.crypto.cryptoki") &&
                     pn.startsWith("SunPKCS11")));
@@ -555,7 +566,7 @@ public class AlgorithmId implements Serializable, DerEncoder {
                 String upperCaseAlias = alias.toUpperCase(Locale.ENGLISH);
                 int index;
                 if (upperCaseAlias.startsWith("ALG.ALIAS") &&
-                    (index = upperCaseAlias.indexOf("OID.", 0)) != -1) {
+                    (index = upperCaseAlias.indexOf("OID.")) != -1) {
                     index += "OID.".length();
                     if (index == alias.length()) {
                         // invalid alias entry
@@ -564,16 +575,16 @@ public class AlgorithmId implements Serializable, DerEncoder {
                     String ostr = alias.substring(index);
                     String stdAlgName = provider.getProperty(alias);
                     if (stdAlgName != null) {
-                        stdAlgName = stdAlgName.toUpperCase(Locale.ENGLISH);
-                    }
-                    // add the name->oid and oid->name mappings if none exists
-                    if (KnownOIDs.findMatch(stdAlgName) == null) {
-                        // not override earlier entries if it exists
-                        t.putIfAbsent(stdAlgName, ostr);
-                    }
-                    if (KnownOIDs.findMatch(ostr) == null) {
-                        // not override earlier entries if it exists
-                        t.putIfAbsent(ostr, stdAlgName);
+                        String upperStdAlgName = stdAlgName.toUpperCase(Locale.ENGLISH);
+                        // add the name->oid and oid->name mappings if none exists
+                        if (KnownOIDs.findMatch(upperStdAlgName) == null) {
+                            // do not override earlier entries if it exists
+                            t.putIfAbsent(upperStdAlgName, ostr);
+                        }
+                        if (KnownOIDs.findMatch(ostr) == null) {
+                            // do not override earlier entries if it exists
+                            t.putIfAbsent(ostr, stdAlgName);
+                        }
                     }
                 }
             }
@@ -608,6 +619,18 @@ public class AlgorithmId implements Serializable, DerEncoder {
     public static final ObjectIdentifier SHA512_256_oid =
             ObjectIdentifier.of(KnownOIDs.SHA_512$256);
 
+    public static final ObjectIdentifier SHA3_224_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA3_224);
+
+    public static final ObjectIdentifier SHA3_256_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA3_256);
+
+    public static final ObjectIdentifier SHA3_384_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA3_384);
+
+    public static final ObjectIdentifier SHA3_512_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA3_512);
+
     public static final ObjectIdentifier DSA_oid =
             ObjectIdentifier.of(KnownOIDs.DSA);
 
@@ -623,214 +646,30 @@ public class AlgorithmId implements Serializable, DerEncoder {
     public static final ObjectIdentifier MGF1_oid =
             ObjectIdentifier.of(KnownOIDs.MGF1);
 
-    public static final ObjectIdentifier ed25519_oid =
-            ObjectIdentifier.of(KnownOIDs.Ed25519);
-    public static final ObjectIdentifier ed448_oid =
-            ObjectIdentifier.of(KnownOIDs.Ed448);
-
-    /**
-     * Creates a signature algorithm name from a digest algorithm
-     * name and a encryption algorithm name.
-     */
-    public static String makeSigAlg(String digAlg, String encAlg) {
-        digAlg = digAlg.replace("-", "");
-        if (encAlg.equalsIgnoreCase("EC")) encAlg = "ECDSA";
-
-        return digAlg + "with" + encAlg;
-    }
-
-    /**
-     * Extracts the encryption algorithm name from a signature
-     * algorithm name.
-     */
-    public static String getEncAlgFromSigAlg(String signatureAlgorithm) {
-        signatureAlgorithm = signatureAlgorithm.toUpperCase(Locale.ENGLISH);
-        int with = signatureAlgorithm.indexOf("WITH");
-        String keyAlgorithm = null;
-        if (with > 0) {
-            int and = signatureAlgorithm.indexOf("AND", with + 4);
-            if (and > 0) {
-                keyAlgorithm = signatureAlgorithm.substring(with + 4, and);
-            } else {
-                keyAlgorithm = signatureAlgorithm.substring(with + 4);
-            }
-            if (keyAlgorithm.equalsIgnoreCase("ECDSA")) {
-                keyAlgorithm = "EC";
-            }
-        }
-        return keyAlgorithm;
-    }
-
-    /**
-     * Extracts the digest algorithm name from a signature
-     * algorithm name.
-     */
-    public static String getDigAlgFromSigAlg(String signatureAlgorithm) {
-        signatureAlgorithm = signatureAlgorithm.toUpperCase(Locale.ENGLISH);
-        int with = signatureAlgorithm.indexOf("WITH");
-        if (with > 0) {
-            return signatureAlgorithm.substring(0, with);
-        }
-        return null;
-    }
-
-    /**
-     * Checks if a signature algorithm matches a key algorithm, i.e. a
-     * signature can be initialized with a key.
-     *
-     * @param kAlg must not be null
-     * @param sAlg must not be null
-     * @throws IllegalArgumentException if they do not match
-     */
-    public static void checkKeyAndSigAlgMatch(String kAlg, String sAlg) {
-        String sAlgUp = sAlg.toUpperCase(Locale.US);
-        if ((sAlgUp.endsWith("WITHRSA") && !kAlg.equalsIgnoreCase("RSA")) ||
-                (sAlgUp.endsWith("WITHECDSA") && !kAlg.equalsIgnoreCase("EC")) ||
-                (sAlgUp.endsWith("WITHDSA") && !kAlg.equalsIgnoreCase("DSA"))) {
-            throw new IllegalArgumentException(
-                    "key algorithm not compatible with signature algorithm");
-        }
-    }
-
-    /**
-     * Returns the default signature algorithm for a private key. The digest
-     * part might evolve with time. Remember to update the spec of
-     * {@link jdk.security.jarsigner.JarSigner.Builder#getDefaultSignatureAlgorithm(PrivateKey)}
-     * if updated.
-     *
-     * @param k cannot be null
-     * @return the default alg, might be null if unsupported
-     */
-    public static String getDefaultSigAlgForKey(PrivateKey k) {
-        switch (k.getAlgorithm().toUpperCase(Locale.ENGLISH)) {
-            case "EC":
-                return ecStrength(KeyUtil.getKeySize(k))
-                    + "withECDSA";
-            case "DSA":
-                return ifcFfcStrength(KeyUtil.getKeySize(k))
-                    + "withDSA";
-            case "RSA":
-                return ifcFfcStrength(KeyUtil.getKeySize(k))
-                    + "withRSA";
-            case "RSASSA-PSS":
-                return "RSASSA-PSS";
-            case "EDDSA":
-                return edAlgFromKey(k);
-            default:
-                return null;
-        }
-    }
-
-    // Most commonly used PSSParameterSpec and AlgorithmId
-    private static class PSSParamsHolder {
-
-        final static PSSParameterSpec PSS_256_SPEC = new PSSParameterSpec(
-                "SHA-256", "MGF1",
-                new MGF1ParameterSpec("SHA-256"),
-                32, PSSParameterSpec.TRAILER_FIELD_BC);
-        final static PSSParameterSpec PSS_384_SPEC = new PSSParameterSpec(
-                "SHA-384", "MGF1",
-                new MGF1ParameterSpec("SHA-384"),
-                48, PSSParameterSpec.TRAILER_FIELD_BC);
-        final static PSSParameterSpec PSS_512_SPEC = new PSSParameterSpec(
-                "SHA-512", "MGF1",
-                new MGF1ParameterSpec("SHA-512"),
-                64, PSSParameterSpec.TRAILER_FIELD_BC);
-
-        final static AlgorithmId PSS_256_ID;
-        final static AlgorithmId PSS_384_ID;
-        final static AlgorithmId PSS_512_ID;
-
-        static {
-            try {
-                PSS_256_ID = new AlgorithmId(RSASSA_PSS_oid,
-                        new DerValue(PSSParameters.getEncoded(PSS_256_SPEC)));
-                PSS_384_ID = new AlgorithmId(RSASSA_PSS_oid,
-                        new DerValue(PSSParameters.getEncoded(PSS_384_SPEC)));
-                PSS_512_ID = new AlgorithmId(RSASSA_PSS_oid,
-                        new DerValue(PSSParameters.getEncoded(PSS_512_SPEC)));
-            } catch (IOException e) {
-                throw new AssertionError("Should not happen", e);
-            }
-        }
-    }
-
-    public static AlgorithmId getWithParameterSpec(String algName,
-            AlgorithmParameterSpec spec) throws NoSuchAlgorithmException {
-
-        if (spec == null) {
-            return AlgorithmId.get(algName);
-        } else if (spec == PSSParamsHolder.PSS_256_SPEC) {
-            return PSSParamsHolder.PSS_256_ID;
-        } else if (spec == PSSParamsHolder.PSS_384_SPEC) {
-            return PSSParamsHolder.PSS_384_ID;
-        } else if (spec == PSSParamsHolder.PSS_512_SPEC) {
-            return PSSParamsHolder.PSS_512_ID;
-        } else if (spec instanceof EdDSAParameterSpec) {
-            return AlgorithmId.get(algName);
-        } else {
-            try {
-                AlgorithmParameters result =
-                        AlgorithmParameters.getInstance(algName);
-                result.init(spec);
-                return get(result);
-            } catch (InvalidParameterSpecException | NoSuchAlgorithmException e) {
-                throw new ProviderException(e);
-            }
-        }
-    }
-
-    public static AlgorithmParameterSpec getDefaultAlgorithmParameterSpec(
-            String sigAlg, PrivateKey k) {
-        if (sigAlg.equalsIgnoreCase("RSASSA-PSS")) {
-            if (k instanceof RSAKey) {
-                AlgorithmParameterSpec spec = ((RSAKey) k).getParams();
-                if (spec instanceof PSSParameterSpec) {
-                    return spec;
-                }
-            }
-            switch (ifcFfcStrength(KeyUtil.getKeySize(k))) {
-                case "SHA256":
-                    return PSSParamsHolder.PSS_256_SPEC;
-                case "SHA384":
-                    return PSSParamsHolder.PSS_384_SPEC;
-                case "SHA512":
-                    return PSSParamsHolder.PSS_512_SPEC;
-                default:
-                    throw new AssertionError("Should not happen");
-            }
-        } else {
-            return null;
-        }
-    }
-
-    private static String edAlgFromKey(PrivateKey k) {
-        if (k instanceof EdECPrivateKey) {
-            EdECPrivateKey edKey = (EdECPrivateKey) k;
-            return edKey.getParams().getName();
-        }
-        return "EdDSA";
-    }
-
-    // Values from SP800-57 part 1 rev 4 tables 2 and 3
-    private static String ecStrength (int bitLength) {
-        if (bitLength >= 512) { // 256 bits of strength
-            return "SHA512";
-        } else if (bitLength >= 384) {  // 192 bits of strength
-            return "SHA384";
-        } else { // 128 bits of strength and less
-            return "SHA256";
-        }
-    }
-
-    // Same values for RSA and DSA
-    private static String ifcFfcStrength (int bitLength) {
-        if (bitLength > 7680) { // 256 bits
-            return "SHA512";
-        } else if (bitLength > 3072) {  // 192 bits
-            return "SHA384";
-        } else  { // 128 bits and less
-            return "SHA256";
-        }
-    }
+    public static final ObjectIdentifier SHA1withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA1withRSA);
+    public static final ObjectIdentifier SHA224withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA224withRSA);
+    public static final ObjectIdentifier SHA256withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA256withRSA);
+    public static final ObjectIdentifier SHA384withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA384withRSA);
+    public static final ObjectIdentifier SHA512withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA512withRSA);
+    public static final ObjectIdentifier SHA512$224withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA512$224withRSA);
+    public static final ObjectIdentifier SHA512$256withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA512$256withRSA);
+    public static final ObjectIdentifier MD2withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.MD2withRSA);
+    public static final ObjectIdentifier MD5withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.MD5withRSA);
+    public static final ObjectIdentifier SHA3_224withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA3_224withRSA);
+    public static final ObjectIdentifier SHA3_256withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA3_256withRSA);
+    public static final ObjectIdentifier SHA3_384withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA3_384withRSA);
+    public static final ObjectIdentifier SHA3_512withRSA_oid =
+            ObjectIdentifier.of(KnownOIDs.SHA3_512withRSA);
 }

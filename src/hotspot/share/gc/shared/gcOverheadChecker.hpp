@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2019, Google and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -28,6 +28,7 @@
 
 #include "memory/allocation.hpp"
 #include "gc/shared/gcCause.hpp"
+#include "gc/shared/gc_globals.hpp"
 #include "runtime/globals.hpp"
 
 class SoftRefPolicy;
@@ -41,9 +42,6 @@ class GCOverheadChecker: public CHeapObj<mtGC> {
   // This is a hint for the heap:  we've detected that GC times
   // are taking longer than GCTimeLimit allows.
   bool _gc_overhead_limit_exceeded;
-  // Use for diagnostics only.  If UseGCOverheadLimit is false,
-  // this variable is still set.
-  bool _print_gc_overhead_limit_would_be_exceeded;
   // Count of consecutive GC that have exceeded the
   // GC time limit criterion
   uint _gc_overhead_limit_count;

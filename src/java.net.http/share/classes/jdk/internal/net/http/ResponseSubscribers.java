@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,9 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.security.AccessControlContext;
 import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -61,6 +63,7 @@ import jdk.internal.net.http.common.Log;
 import jdk.internal.net.http.common.Logger;
 import jdk.internal.net.http.common.MinimalFuture;
 import jdk.internal.net.http.common.Utils;
+import jdk.internal.net.http.HttpClientImpl.DelegatingExecutor;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ResponseSubscribers {
@@ -75,7 +78,7 @@ public class ResponseSubscribers {
      * might be called and might block before the last bit is
      * received (for instance, if a mapping subscriber is used with
      * a mapper function that maps an InputStream to a GZIPInputStream,
-     * as the the constructor of GZIPInputStream calls read()).
+     * as the constructor of GZIPInputStream calls read()).
      * @param <T> The response type.
      */
     public interface TrustedSubscriber<T> extends BodySubscriber<T> {
@@ -172,7 +175,10 @@ public class ResponseSubscribers {
 
         private final Path file;
         private final OpenOption[] options;
+        @SuppressWarnings("removal")
+        private final AccessControlContext acc;
         private final FilePermission[] filePermissions;
+        private final boolean isDefaultFS;
         private final CompletableFuture<Path> result = new MinimalFuture<>();
 
         private final AtomicBoolean subscribed = new AtomicBoolean();
@@ -192,27 +198,49 @@ public class ResponseSubscribers {
          */
         public static PathSubscriber create(Path file,
                                             List<OpenOption> options) {
-            FilePermission filePermission = null;
+            @SuppressWarnings("removal")
             SecurityManager sm = System.getSecurityManager();
+            FilePermission filePermission = null;
             if (sm != null) {
-                String fn = pathForSecurityCheck(file);
-                FilePermission writePermission = new FilePermission(fn, "write");
-                sm.checkPermission(writePermission);
-                filePermission = writePermission;
+                try {
+                    String fn = pathForSecurityCheck(file);
+                    FilePermission writePermission = new FilePermission(fn, "write");
+                    sm.checkPermission(writePermission);
+                    filePermission = writePermission;
+                } catch (UnsupportedOperationException ignored) {
+                    // path not associated with the default file system provider
+                }
             }
-            return new PathSubscriber(file, options, filePermission);
+
+            assert filePermission == null || filePermission.getActions().equals("write");
+            @SuppressWarnings("removal")
+            AccessControlContext acc = sm != null ? AccessController.getContext() : null;
+            return new PathSubscriber(file, options, acc, filePermission);
         }
 
         // pp so handler implementations in the same package can construct
         /*package-private*/ PathSubscriber(Path file,
                                            List<OpenOption> options,
+                                           @SuppressWarnings("removal") AccessControlContext acc,
                                            FilePermission... filePermissions) {
             this.file = file;
             this.options = options.stream().toArray(OpenOption[]::new);
-            this.filePermissions =
-                    filePermissions == null ? EMPTY_FILE_PERMISSIONS : filePermissions;
+            this.acc = acc;
+            this.filePermissions = filePermissions == null || filePermissions[0] == null
+                            ? EMPTY_FILE_PERMISSIONS : filePermissions;
+            this.isDefaultFS = isDefaultFS(file);
         }
 
+        private static boolean isDefaultFS(Path file) {
+            try {
+                file.toFile();
+                return true;
+            } catch (UnsupportedOperationException uoe) {
+                return false;
+            }
+        }
+
+        @SuppressWarnings("removal")
         @Override
         public void onSubscribe(Flow.Subscription subscription) {
             Objects.requireNonNull(subscription);
@@ -222,21 +250,28 @@ public class ResponseSubscribers {
             }
 
             this.subscription = subscription;
-            if (System.getSecurityManager() == null) {
+            if (acc == null) {
                 try {
                     out = FileChannel.open(file, options);
                 } catch (IOException ioe) {
                     result.completeExceptionally(ioe);
+                    subscription.cancel();
                     return;
                 }
             } else {
                 try {
                     PrivilegedExceptionAction<FileChannel> pa =
                             () -> FileChannel.open(file, options);
-                    out = AccessController.doPrivileged(pa, null, filePermissions);
+                    out = isDefaultFS
+                            ? AccessController.doPrivileged(pa, acc, filePermissions)
+                            : AccessController.doPrivileged(pa, acc);
                 } catch (PrivilegedActionException pae) {
                     Throwable t = pae.getCause() != null ? pae.getCause() : pae;
                     result.completeExceptionally(t);
+                    subscription.cancel();
+                    return;
+                } catch (Exception e) {
+                    result.completeExceptionally(e);
                     subscription.cancel();
                     return;
                 }
@@ -247,9 +282,12 @@ public class ResponseSubscribers {
         @Override
         public void onNext(List<ByteBuffer> items) {
             try {
-                out.write(items.toArray(Utils.EMPTY_BB_ARRAY));
+                ByteBuffer[] buffers = items.toArray(Utils.EMPTY_BB_ARRAY);
+                do {
+                    out.write(buffers);
+                } while (Utils.hasRemaining(buffers));
             } catch (IOException ex) {
-                Utils.close(out);
+                close();
                 subscription.cancel();
                 result.completeExceptionally(ex);
             }
@@ -259,18 +297,35 @@ public class ResponseSubscribers {
         @Override
         public void onError(Throwable e) {
             result.completeExceptionally(e);
-            Utils.close(out);
+            close();
         }
 
         @Override
         public void onComplete() {
-            Utils.close(out);
+            close();
             result.complete(file);
         }
 
         @Override
         public CompletionStage<Path> getBody() {
             return result;
+        }
+
+        @SuppressWarnings("removal")
+        private void close() {
+            if (acc == null) {
+                Utils.close(out);
+            } else {
+                PrivilegedAction<Void> pa = () -> {
+                    Utils.close(out);
+                    return null;
+                };
+                if (isDefaultFS) {
+                    AccessController.doPrivileged(pa, acc, filePermissions);
+                } else {
+                    AccessController.doPrivileged(pa, acc);
+                }
+            }
         }
     }
 
@@ -311,7 +366,7 @@ public class ResponseSubscribers {
             result.completeExceptionally(throwable);
         }
 
-        static private byte[] join(List<ByteBuffer> bytes) {
+        private static byte[] join(List<ByteBuffer> bytes) {
             int size = Utils.remaining(bytes, Integer.MAX_VALUE);
             byte[] res = new byte[size];
             int from = 0;
@@ -345,7 +400,7 @@ public class ResponseSubscribers {
     public static class HttpResponseInputStream extends InputStream
         implements TrustedSubscriber<InputStream>
     {
-        final static int MAX_BUFFERS_IN_QUEUE = 1;  // lock-step with the producer
+        static final int MAX_BUFFERS_IN_QUEUE = 1;  // lock-step with the producer
 
         // An immutable ByteBuffer sentinel to mark that the last byte was received.
         private static final ByteBuffer LAST_BUFFER = ByteBuffer.wrap(new byte[0]);
@@ -429,7 +484,12 @@ public class ResponseSubscribers {
                     if (debug.on()) debug.log("Next Buffer");
                     currentBuffer = currentListItr.next();
                 } catch (InterruptedException ex) {
-                    // continue
+                    try {
+                        close();
+                    } catch (IOException ignored) {
+                    }
+                    Thread.currentThread().interrupt();
+                    throw new IOException(ex);
                 }
             }
             assert currentBuffer == LAST_BUFFER || currentBuffer.hasRemaining();
@@ -478,15 +538,17 @@ public class ResponseSubscribers {
             if (available != 0) return available;
             Iterator<?> iterator = currentListItr;
             if (iterator != null && iterator.hasNext()) return 1;
-            if (buffers.isEmpty()) return 0;
-            return 1;
+            if (!buffers.isEmpty() && buffers.peek() != LAST_LIST ) return 1;
+            return available;
         }
 
         @Override
         public void onSubscribe(Flow.Subscription s) {
             Objects.requireNonNull(s);
+            if (debug.on()) debug.log("onSubscribe called");
             try {
                 if (!subscribed.compareAndSet(false, true)) {
+                    if (debug.on()) debug.log("Already subscribed: canceling");
                     s.cancel();
                 } else {
                     // check whether the stream is already closed.
@@ -497,13 +559,19 @@ public class ResponseSubscribers {
                         closed = this.closed;
                         if (!closed) {
                             this.subscription = s;
+                            // should contain at least 2, unless closed or failed.
+                            assert buffers.remainingCapacity() > 1 || failed != null
+                                    : "buffers capacity: " + buffers.remainingCapacity()
+                                    + ", closed: " + closed + ", terminated: "
+                                    + buffers.contains(LAST_LIST)
+                                    + ", failed: " + failed;
                         }
                     }
                     if (closed) {
+                        if (debug.on()) debug.log("Already closed: canceling");
                         s.cancel();
                         return;
                     }
-                    assert buffers.remainingCapacity() > 1; // should contain at least 2
                     if (debug.on())
                         debug.log("onSubscribe: requesting "
                                   + Math.max(1, buffers.remainingCapacity() - 1));
@@ -511,6 +579,8 @@ public class ResponseSubscribers {
                 }
             } catch (Throwable t) {
                 failed = t;
+                if (debug.on())
+                    debug.log("onSubscribe failed", t);
                 try {
                     close();
                 } catch (IOException x) {
@@ -544,6 +614,8 @@ public class ResponseSubscribers {
 
         @Override
         public void onError(Throwable thrwbl) {
+            if (debug.on())
+                debug.log("onError called: " + thrwbl);
             subscription = null;
             failed = Objects.requireNonNull(thrwbl);
             // The client process that reads the input stream might
@@ -558,6 +630,8 @@ public class ResponseSubscribers {
 
         @Override
         public void onComplete() {
+            if (debug.on())
+                debug.log("onComplete called");
             subscription = null;
             onNext(LAST_LIST);
         }
@@ -571,6 +645,8 @@ public class ResponseSubscribers {
                 s = subscription;
                 subscription = null;
             }
+            if (debug.on())
+                debug.log("close called");
             // s will be null if already completed
             try {
                 if (s != null) {
@@ -704,7 +780,7 @@ public class ResponseSubscribers {
                 subscriber.onComplete();
             } finally {
                 try {
-                    cf.complete(finisher.apply(subscriber));
+                    cf.completeAsync(() -> finisher.apply(subscriber));
                 } catch (Throwable throwable) {
                     cf.completeExceptionally(throwable);
                 }
@@ -831,7 +907,7 @@ public class ResponseSubscribers {
         // A subscription that wraps an upstream subscription and
         // holds a reference to a subscriber. The subscriber reference
         // is cleared when the subscription is cancelled
-        final static class SubscriptionRef implements Flow.Subscription {
+        static final class SubscriptionRef implements Flow.Subscription {
             final Flow.Subscription subscription;
             final SubscriberRef subscriberRef;
             SubscriptionRef(Flow.Subscription subscription,
@@ -1035,7 +1111,7 @@ public class ResponseSubscribers {
      * Invokes bs::getBody using the provided executor.
      * If invoking bs::getBody requires an executor, and the given executor
      * is a {@link HttpClientImpl.DelegatingExecutor}, then the executor's
-     * delegate is used. If an error occurs anywhere then the given {code cf}
+     * delegate is used. If an error occurs anywhere then the given {@code cf}
      * is completed exceptionally (this method does not throw).
      * @param e   The executor that should be used to call bs::getBody
      * @param bs  The BodySubscriber
@@ -1090,8 +1166,8 @@ public class ResponseSubscribers {
             assert cf != null;
 
             if (TrustedSubscriber.needsExecutor(bs)) {
-                e = (e instanceof HttpClientImpl.DelegatingExecutor)
-                        ? ((HttpClientImpl.DelegatingExecutor) e).delegate() : e;
+                e = (e instanceof DelegatingExecutor exec)
+                        ? exec::ensureExecutedAsync : e;
             }
 
             e.execute(() -> {
@@ -1104,12 +1180,14 @@ public class ResponseSubscribers {
                         }
                     });
                 } catch (Throwable t) {
+                    // the errorHandler will complete the CF
                     errorHandler.accept(t);
                 }
             });
             return cf;
 
         } catch (Throwable t) {
+            // the errorHandler will complete the CF
             errorHandler.accept(t);
         }
         return cf;

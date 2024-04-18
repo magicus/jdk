@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,7 +44,7 @@ public class SpecifySysLoaderProp {
     String jarFileName = "sysloader.jar";
     String appJar = TestCommon.getTestJar(jarFileName);
     TestCommon.testDump(appJar, TestCommon.list("ReportMyLoader"));
-    String warning = "VM warning: Archived non-system classes are disabled because the java.system.class.loader property is specified";
+    String warning = "Archived non-system classes are disabled because the java.system.class.loader property is specified";
 
 
     // (0) Baseline. Do not specify -Djava.system.class.loader
@@ -72,6 +72,7 @@ public class SpecifySysLoaderProp {
     TestCommon.run(
         "-verbose:class",
         "-cp", appJar,
+        "-Xlog:cds",
         "-Djava.system.class.loader=TestClassLoader",
         "ReportMyLoader")
       .assertNormalExit("ReportMyLoader's loader = jdk.internal.loader.ClassLoaders$AppClassLoader@", //<-this is still printed because TestClassLoader simply delegates to Launcher$AppLoader, but ...
@@ -80,6 +81,7 @@ public class SpecifySysLoaderProp {
       .assertNormalExit(output -> {
         output.shouldMatch(".class,load. TestClassLoader source: file:");
         output.shouldMatch(".class,load. ReportMyLoader source: file:.*" + jarFileName);
+        output.shouldContain("full module graph: disabled due to incompatible property: java.system.class.loader=");
         });
 
     // (3) Try to change the java.system.class.loader programmatically after

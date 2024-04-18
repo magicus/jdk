@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -91,11 +89,12 @@ public class TestShutdownEvent {
     }
 
     private static void runSubtest(int subTestIndex) throws Exception {
-        ProcessBuilder pb = ProcessTools.createTestJvm(
+        ProcessBuilder pb = ProcessTools.createTestJavaProcessBuilder(
                                 "-Xlog:jfr=debug",
                                 "-XX:-CreateCoredumpOnCrash",
+                                "-XX:-TieredCompilation",
                                 "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
-                                "-XX:StartFlightRecording=filename=./dumped.jfr,dumponexit=true,settings=default",
+                                "-XX:StartFlightRecording:filename=./dumped.jfr,dumponexit=true,settings=default",
                                 "jdk.jfr.event.runtime.TestShutdownEvent$TestMain",
                                 String.valueOf(subTestIndex));
         OutputAnalyzer output = ProcessTools.executeProcess(pb);
@@ -115,7 +114,7 @@ public class TestShutdownEvent {
             .collect(Collectors.toList());
 
         Asserts.assertEquals(filteredEvents.size(), 1);
-        RecordedEvent event = filteredEvents.get(0);
+        RecordedEvent event = filteredEvents.getFirst();
         subTests[subTestIndex].verifyEvents(event, exitCode);
     }
 
@@ -228,9 +227,6 @@ public class TestShutdownEvent {
         @Override
         public int  attempts() {
             if (Platform.isWindows()) {
-                return 0;
-            }
-            if (signalName.equals("HUP") && Platform.isSolaris()) {
                 return 0;
             }
             return 1;

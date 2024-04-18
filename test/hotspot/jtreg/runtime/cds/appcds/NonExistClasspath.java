@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,9 +36,17 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import jdk.test.lib.cds.CDSTestUtils;
 import jdk.test.lib.process.OutputAnalyzer;
 
 public class NonExistClasspath {
+    static final String outDir = CDSTestUtils.getOutputDir();
+    static final String newFile = "non-exist.jar";
+    static final String nonExistPath = outDir + File.separator + newFile;
+    static final String emptyJarPath = outDir + File.separator + "empty.jar";
+    static final String errorMessage1 = "Unable to use shared archive";
+    static final String errorMessage2 = "shared class paths mismatch";
+
     public static void main(String[] args) throws Exception {
         String appJar = JarBuilder.getOrCreateHelloJar();
         doTest(appJar, false);
@@ -46,13 +54,7 @@ public class NonExistClasspath {
     }
 
     static void doTest(String appJar, boolean bootcp) throws Exception {
-        String classDir = System.getProperty("test.classes");
-        String newFile = "non-exist.jar";
-        String nonExistPath = classDir + File.separator + newFile;
-        final String errorMessage1 = "Unable to use shared archive";
-        final String errorMessage2 = "shared class paths mismatch";
         final String errorMessage3 = (bootcp ? "BOOT" : "APP") + " classpath mismatch";
-
         (new File(nonExistPath)).delete();
 
         String classPath = nonExistPath + File.pathSeparator + appJar;
@@ -90,12 +92,87 @@ public class NonExistClasspath {
             .assertNormalExit();
 
         // Now make nonExistPath exist. CDS will fail to load.
-        Files.copy(Paths.get(classDir, "hello.jar"),
-                   Paths.get(classDir, newFile),
+        Files.copy(Paths.get(outDir, "hello.jar"),
+                   Paths.get(outDir, newFile),
                    StandardCopyOption.REPLACE_EXISTING);
 
         TestCommon.run(make_args(bootcp,
                                  classPath,
+                                 "-Xlog:class+path=trace",
+                                 "Hello"))
+            .assertAbnormalExit(errorMessage1, errorMessage2, errorMessage3);
+
+        if (bootcp) {
+            doMoreBCPTests(appJar, errorMessage3);
+        }
+    }
+
+    static void doMoreBCPTests(String appJar, String errorMessage3) throws Exception {
+
+        // Dump an archive with non-existent boot class path.
+        (new File(nonExistPath)).delete();
+        TestCommon.testDump("foobar", TestCommon.list("Hello"), make_args(true, nonExistPath, "-cp", appJar));
+
+        // Run with non-existent boot class path, test should pass.
+        TestCommon.run(make_args(true,
+                                 nonExistPath,
+                                 "-cp", appJar,
+                                 "-Xlog:class+path=trace",
+                                 "Hello"))
+            .assertNormalExit();
+
+        // Run with existent boot class path, test should fail.
+        TestCommon.run(make_args(true,
+                                 appJar,
+                                 "-cp", appJar,
+                                 "-Xlog:class+path=trace",
+                                 "Hello"))
+            .assertAbnormalExit(errorMessage1, errorMessage2, errorMessage3);
+
+        // Dump an archive with existent boot class path.
+        TestCommon.testDump("foobar", TestCommon.list("Hello"), make_args(true, appJar));
+
+        // Run with non-existent boot class path, test should fail.
+        TestCommon.run(make_args(true,
+                                 nonExistPath,
+                                 "-Xlog:class+path=trace",
+                                 "Hello"))
+            .assertAbnormalExit(errorMessage1, errorMessage2, errorMessage3);
+
+        // Run with existent boot class path, test should pass.
+        TestCommon.run(make_args(true,
+                                 appJar,
+                                 "-Xlog:class+path=trace",
+                                 "Hello"))
+            .assertNormalExit();
+
+        // Test with empty jar file.
+        (new File(emptyJarPath)).delete();
+        (new File(emptyJarPath)).createNewFile();
+
+        // Dump an archive with an empty jar in the boot class path.
+        TestCommon.testDump("foobar", TestCommon.list("Hello"), make_args(true, emptyJarPath, "-cp", appJar));
+
+        // Run with an empty jar in boot class path, test should pass.
+        TestCommon.run(make_args(true,
+                                 emptyJarPath,
+                                 "-cp", appJar,
+                                 "-Xlog:class+path=trace",
+                                 "Hello"))
+            .assertNormalExit();
+
+        // Run with non-existent boot class path, test should pass.
+        TestCommon.run(make_args(true,
+                                 nonExistPath,
+                                 "-cp", appJar,
+                                 "-Xlog:class+path=trace",
+                                 "Hello"))
+            .assertNormalExit();
+
+        // Run with existent boot class path, test should fail.
+        TestCommon.run(make_args(true,
+                                 appJar,
+                                 "-cp", appJar,
                                  "-Xlog:class+path=trace",
                                  "Hello"))
             .assertAbnormalExit(errorMessage1, errorMessage2, errorMessage3);

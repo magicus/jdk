@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -24,7 +22,6 @@
  */
 package jdk.jfr.event.runtime;
 
-import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -87,7 +84,7 @@ public class TestRetransformClasses {
     public static void main(String[] args) throws Throwable {
         List<RecordedEvent> events = RecordingFile.readAllEvents(DUMP_PATH);
         Asserts.assertEquals(events.size(), 1, "Expected one RetransformClasses event");
-        RecordedEvent event = events.get(0);
+        RecordedEvent event = events.getFirst();
 
         System.out.println(event);
 

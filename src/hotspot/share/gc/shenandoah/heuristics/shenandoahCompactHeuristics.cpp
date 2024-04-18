@@ -32,7 +32,8 @@
 #include "logging/log.hpp"
 #include "logging/logTag.hpp"
 
-ShenandoahCompactHeuristics::ShenandoahCompactHeuristics() : ShenandoahHeuristics() {
+ShenandoahCompactHeuristics::ShenandoahCompactHeuristics(ShenandoahSpaceInfo* space_info) :
+  ShenandoahHeuristics(space_info) {
   SHENANDOAH_ERGO_ENABLE_FLAG(ExplicitGCInvokesConcurrent);
   SHENANDOAH_ERGO_ENABLE_FLAG(ShenandoahImplicitGCInvokesConcurrent);
   SHENANDOAH_ERGO_ENABLE_FLAG(ShenandoahUncommit);
@@ -44,11 +45,14 @@ ShenandoahCompactHeuristics::ShenandoahCompactHeuristics() : ShenandoahHeuristic
   SHENANDOAH_ERGO_OVERRIDE_DEFAULT(ShenandoahGarbageThreshold,     10);
 }
 
-bool ShenandoahCompactHeuristics::should_start_gc() const {
-  ShenandoahHeap* heap = ShenandoahHeap::heap();
+bool ShenandoahCompactHeuristics::should_start_gc() {
+  size_t max_capacity = _space_info->max_capacity();
+  size_t capacity = _space_info->soft_max_capacity();
+  size_t available = _space_info->available();
 
-  size_t capacity = heap->max_capacity();
-  size_t available = heap->free_set()->available();
+  // Make sure the code below treats available without the soft tail.
+  size_t soft_tail = max_capacity - capacity;
+  available = (available > soft_tail) ? (available - soft_tail) : 0;
 
   size_t threshold_bytes_allocated = capacity / 100 * ShenandoahAllocationThreshold;
   size_t min_threshold = capacity / 100 * ShenandoahMinFreeThreshold;
@@ -60,7 +64,7 @@ bool ShenandoahCompactHeuristics::should_start_gc() const {
     return true;
   }
 
-  size_t bytes_allocated = heap->bytes_allocated_since_gc_start();
+  size_t bytes_allocated = _space_info->bytes_allocated_since_gc_start();
   if (bytes_allocated > threshold_bytes_allocated) {
     log_info(gc)("Trigger: Allocated since last cycle (" SIZE_FORMAT "%s) is larger than allocation threshold (" SIZE_FORMAT "%s)",
                  byte_size_in_proper_unit(bytes_allocated),           proper_unit_for_byte_size(bytes_allocated),
@@ -92,16 +96,4 @@ void ShenandoahCompactHeuristics::choose_collection_set_from_regiondata(Shenando
       cset->add_region(r);
     }
   }
-}
-
-const char* ShenandoahCompactHeuristics::name() {
-  return "compact";
-}
-
-bool ShenandoahCompactHeuristics::is_diagnostic() {
-  return false;
-}
-
-bool ShenandoahCompactHeuristics::is_experimental() {
-  return false;
 }

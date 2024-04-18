@@ -25,10 +25,10 @@
 #ifndef SHARE_JFR_LEAKPROFILER_CHAINS_DFSCLOSURE_HPP
 #define SHARE_JFR_LEAKPROFILER_CHAINS_DFSCLOSURE_HPP
 
+#include "jfr/leakprofiler/chains/jfrbitset.hpp"
 #include "jfr/leakprofiler/utilities/unifiedOopRef.hpp"
 #include "memory/iterator.hpp"
 
-class BitSet;
 class Edge;
 class EdgeStore;
 class EdgeQueue;
@@ -36,30 +36,27 @@ class EdgeQueue;
 // Class responsible for iterating the heap depth-first
 class DFSClosure : public BasicOopIterateClosure {
  private:
-  static EdgeStore* _edge_store;
-  static BitSet*    _mark_bits;
-  static const Edge*_start_edge;
-  static size_t _max_depth;
-  static bool _ignore_root_set;
-  DFSClosure* _parent;
-  UnifiedOopRef _reference;
+  // max dfs depth should not exceed size of stack
+  static const size_t max_dfs_depth = 4000;
+  static UnifiedOopRef _reference_stack[max_dfs_depth];
+
+  EdgeStore* _edge_store;
+  JFRBitSet* _mark_bits;
+  const Edge*_start_edge;
+  size_t _max_depth;
   size_t _depth;
+  bool _ignore_root_set;
+
+  DFSClosure(EdgeStore* edge_store, JFRBitSet* mark_bits, const Edge* start_edge);
 
   void add_chain();
   void closure_impl(UnifiedOopRef reference, const oop pointee);
 
-  DFSClosure* parent() const { return _parent; }
-  UnifiedOopRef reference() const { return _reference; }
-
-  DFSClosure(DFSClosure* parent, size_t depth);
-  DFSClosure();
-
  public:
   virtual ReferenceIterationMode reference_iteration_mode() { return DO_FIELDS_EXCEPT_REFERENT; }
-  virtual bool should_verify_oops() { return false; }
 
-  static void find_leaks_from_edge(EdgeStore* edge_store, BitSet* mark_bits, const Edge* start_edge);
-  static void find_leaks_from_root_set(EdgeStore* edge_store, BitSet* mark_bits);
+  static void find_leaks_from_edge(EdgeStore* edge_store, JFRBitSet* mark_bits, const Edge* start_edge);
+  static void find_leaks_from_root_set(EdgeStore* edge_store, JFRBitSet* mark_bits);
   void do_root(UnifiedOopRef ref);
 
   virtual void do_oop(oop* ref);

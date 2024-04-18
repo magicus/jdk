@@ -23,10 +23,9 @@
  */
 
 /*
- * @test TestModeUnlock
+ * @test
  * @summary Test that Shenandoah modes are unlocked properly
- * @key gc
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -51,15 +50,15 @@ public class TestModeUnlock {
     }
 
     private static void testWith(String h, Mode mode) throws Exception {
-        if (false) { // When ShenandoahGC is experimental flag, this makes no sense to test
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+        {
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                    "-Xmx128m",
                     "-XX:-UnlockDiagnosticVMOptions",
                     "-XX:-UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     h,
                     "-version"
             );
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             switch (mode) {
                 case PRODUCT:
                     output.shouldHaveExitValue(0);
@@ -71,15 +70,15 @@ public class TestModeUnlock {
             }
         }
 
-        if (false) { // When ShenandoahGC is experimental flag, this makes no sense to test
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+        {
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                    "-Xmx128m",
                     "-XX:+UnlockDiagnosticVMOptions",
                     "-XX:-UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     h,
                     "-version"
             );
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             switch (mode) {
                 case PRODUCT:
                 case DIAGNOSTIC:
@@ -92,14 +91,14 @@ public class TestModeUnlock {
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                    "-Xmx128m",
                     "-XX:-UnlockDiagnosticVMOptions",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     h,
                     "-version"
             );
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             switch (mode) {
                 case PRODUCT:
                 case EXPERIMENTAL:

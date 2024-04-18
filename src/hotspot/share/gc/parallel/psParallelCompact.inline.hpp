@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,10 +25,12 @@
 #ifndef SHARE_GC_PARALLEL_PSPARALLELCOMPACT_INLINE_HPP
 #define SHARE_GC_PARALLEL_PSPARALLELCOMPACT_INLINE_HPP
 
+#include "gc/parallel/psParallelCompact.hpp"
+
 #include "gc/parallel/parallelScavengeHeap.hpp"
 #include "gc/parallel/parMarkBitMap.inline.hpp"
-#include "gc/parallel/psParallelCompact.hpp"
 #include "gc/shared/collectedHeap.hpp"
+#include "gc/shared/continuationGCSupport.inline.hpp"
 #include "oops/access.inline.hpp"
 #include "oops/compressedOops.inline.hpp"
 #include "oops/klass.hpp"
@@ -36,26 +38,6 @@
 
 inline bool PSParallelCompact::is_marked(oop obj) {
   return mark_bitmap()->is_marked(obj);
-}
-
-inline double PSParallelCompact::normal_distribution(double density) {
-  assert(_dwl_initialized, "uninitialized");
-  const double squared_term = (density - _dwl_mean) / _dwl_std_dev;
-  return _dwl_first_term * exp(-0.5 * squared_term * squared_term);
-}
-
-inline bool PSParallelCompact::dead_space_crosses_boundary(const RegionData* region,
-                                                           idx_t bit) {
-  assert(bit > 0, "cannot call this for the first bit/region");
-  assert(_summary_data.region_to_addr(region) == _mark_bitmap.bit_to_addr(bit),
-         "sanity check");
-
-  // Dead space crosses the boundary if (1) a partial object does not extend
-  // onto the region, (2) an object does not start at the beginning of the
-  // region, and (3) an object does not end at the end of the prior region.
-  return region->partial_obj_size() == 0 &&
-    !_mark_bitmap.is_obj_beg(bit) &&
-    !_mark_bitmap.is_obj_end(bit - 1);
 }
 
 inline bool PSParallelCompact::is_in(HeapWord* p, HeapWord* beg_addr, HeapWord* end_addr) {
@@ -96,9 +78,9 @@ inline void PSParallelCompact::check_new_location(HeapWord* old_addr, HeapWord* 
 #endif // ASSERT
 
 inline bool PSParallelCompact::mark_obj(oop obj) {
-  const int obj_size = obj->size();
+  const size_t obj_size = obj->size();
   if (mark_bitmap()->mark_obj(obj, obj_size)) {
-    _summary_data.add_obj(obj, obj_size);
+    ContinuationGCSupport::transform_stack_chunk(obj);
     return true;
   } else {
     return false;
@@ -112,11 +94,10 @@ inline void PSParallelCompact::adjust_pointer(T* p, ParCompactionManager* cm) {
     oop obj = CompressedOops::decode_not_null(heap_oop);
     assert(ParallelScavengeHeap::heap()->is_in(obj), "should be in heap");
 
-    oop new_obj = (oop)summary_data().calc_new_pointer(obj, cm);
-    assert(new_obj != NULL,                    // is forwarding ptr?
-           "should be forwarded");
-    // Just always do the update unconditionally?
-    if (new_obj != NULL) {
+    oop new_obj = cast_to_oop(summary_data().calc_new_pointer(obj, cm));
+    assert(new_obj != nullptr, "non-null address for live objects");
+    // Is it actually relocated at all?
+    if (new_obj != obj) {
       assert(ParallelScavengeHeap::heap()->is_in_reserved(new_obj),
              "should be in object space");
       RawAccess<IS_NOT_NULL>::oop_store(p, new_obj);
@@ -126,16 +107,12 @@ inline void PSParallelCompact::adjust_pointer(T* p, ParCompactionManager* cm) {
 
 class PCAdjustPointerClosure: public BasicOopIterateClosure {
 public:
-  PCAdjustPointerClosure(ParCompactionManager* cm) {
-    assert(cm != NULL, "associate ParCompactionManage should not be NULL");
-    _cm = cm;
+  PCAdjustPointerClosure(ParCompactionManager* cm) : _cm(cm) {
   }
-  template <typename T> void do_oop_nv(T* p) { PSParallelCompact::adjust_pointer(p, _cm); }
-  virtual void do_oop(oop* p)                { do_oop_nv(p); }
-  virtual void do_oop(narrowOop* p)          { do_oop_nv(p); }
+  template <typename T> void do_oop_work(T* p) { PSParallelCompact::adjust_pointer(p, _cm); }
+  virtual void do_oop(oop* p)                { do_oop_work(p); }
+  virtual void do_oop(narrowOop* p)          { do_oop_work(p); }
 
-  // This closure provides its own oop verification code.
-  debug_only(virtual bool should_verify_oops() { return false; })
   virtual ReferenceIterationMode reference_iteration_mode() { return DO_FIELDS; }
 private:
   ParCompactionManager* _cm;

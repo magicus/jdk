@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,10 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import jdk.tools.jlink.internal.Platform;
-import jdk.tools.jlink.plugin.Plugin;
 import jdk.tools.jlink.plugin.PluginException;
 import jdk.tools.jlink.plugin.ResourcePool;
 import jdk.tools.jlink.plugin.ResourcePoolBuilder;
@@ -48,7 +46,7 @@ import jdk.tools.jlink.plugin.ResourcePoolModule;
  *
  * Exclude VM plugin
  */
-public final class ExcludeVMPlugin implements Plugin {
+public final class ExcludeVMPlugin extends AbstractPlugin {
 
     private static final class JvmComparator implements Comparator<Jvm> {
 
@@ -80,7 +78,6 @@ public final class ExcludeVMPlugin implements Plugin {
 
     private static final String JVM_CFG = "jvm.cfg";
 
-    public static final String NAME = "vm";
     private static final String ALL = "all";
     private static final String CLIENT = "client";
     private static final String SERVER = "server";
@@ -90,9 +87,8 @@ public final class ExcludeVMPlugin implements Plugin {
     private Jvm target;
     private boolean keepAll;
 
-    @Override
-    public String getName() {
-        return NAME;
+    public ExcludeVMPlugin() {
+        super("vm");
     }
 
     /**
@@ -109,7 +105,7 @@ public final class ExcludeVMPlugin implements Plugin {
                 }
             }
             return false;
-        }).collect(Collectors.toList());
+        }).toList();
         return ret;
     }
 
@@ -173,23 +169,13 @@ public final class ExcludeVMPlugin implements Plugin {
     }
 
     @Override
-    public String getDescription() {
-        return PluginsResourceBundle.getDescription(NAME);
-    }
-
-    @Override
     public boolean hasArguments() {
         return true;
     }
 
     @Override
-    public String getArgumentsDescription() {
-       return PluginsResourceBundle.getArgument(NAME);
-    }
-
-    @Override
     public void configure(Map<String, String> config) {
-        String value = config.get(NAME);
+        String value = config.get(getName());
         String exclude = "";
         switch (value) {
             case ALL: {
@@ -259,14 +245,17 @@ public final class ExcludeVMPlugin implements Plugin {
     }
 
     private static String[] jvmlibs(ResourcePoolModule module) {
-        Platform platform = Platform.getTargetPlatform(module);
-        switch (platform) {
-            case WINDOWS:
-                return new String[] { "jvm.dll" };
-            case MACOS:
-                return new String[] { "libjvm.dylib", "libjvm.a" };
-            default:
-                return new String[] { "libjvm.so", "libjvm.a" };
+        try {
+            String targetPlatform = module.targetPlatform();
+            Platform platform = Platform.parsePlatform(targetPlatform);
+            return switch (platform.os()) {
+                case WINDOWS -> new String[]{"jvm.dll"};
+                case MACOS   -> new String[]{"libjvm.dylib", "libjvm.a"};
+                default      -> new String[]{"libjvm.so", "libjvm.a"};
+            };
+        } catch (IllegalArgumentException iae) {
+            // For unknown or malformed targetPlatform
+            return new String[]{"libjvm.so", "libjvm.a"};
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,9 +27,8 @@
 
 #include "ci/ciBaseObject.hpp"
 #include "ci/ciObject.hpp"
-#include "ci/ciObjectFactory.hpp"
-#include "classfile/vmSymbols.hpp"
 #include "oops/symbol.hpp"
+#include "utilities/vmEnums.hpp"
 
 // ciSymbol
 //
@@ -48,13 +47,11 @@ class ciSymbol : public ciBaseObject {
   friend class ciObjArrayKlass;
 
 private:
-  const vmSymbols::SID _sid;
-  DEBUG_ONLY( bool sid_ok() { return vmSymbols::find_sid(get_symbol()) == _sid; } )
+  const vmSymbolID _sid;
 
-  ciSymbol(Symbol* s);  // normal case, for symbols not mentioned in vmSymbols
-  ciSymbol(Symbol* s, vmSymbols::SID sid);   // for use with vmSymbols
+  ciSymbol(Symbol* s, vmSymbolID sid);
 
-  Symbol* get_symbol() const { return _symbol; }
+  DEBUG_ONLY(bool sid_ok();)
 
   const char* type_string() { return "ciSymbol"; }
 
@@ -67,8 +64,8 @@ private:
   static ciSymbol* make_impl(const char* s);
 
 public:
-  // The enumeration ID from vmSymbols, or vmSymbols::NO_SID if none.
-  vmSymbols::SID sid() const { return _sid; }
+  // The enumeration ID from vmSymbols, or vmSymbolID::NO_SID if none.
+  vmSymbolID sid() const { return _sid; }
 
   // The text of the symbol as a null-terminated utf8 string.
   const char* as_utf8();
@@ -97,11 +94,6 @@ public:
   // (Your code will be less subject to typographical bugs.)
   static ciSymbol* make(const char* s);
 
-#define CI_SYMBOL_DECLARE(name, ignore_def) \
-  static ciSymbol* name() { return ciObjectFactory::vm_symbol_at(vmSymbols::VM_SYMBOL_ENUM_NAME(name)); }
-  VM_SYMBOLS_DO(CI_SYMBOL_DECLARE, CI_SYMBOL_DECLARE)
-#undef CI_SYMBOL_DECLARE
-
   void print() {
     _symbol->print();
   }
@@ -112,6 +104,9 @@ public:
   bool equals(ciSymbol* obj) { return this->_symbol == obj->get_symbol(); }
 
   bool is_signature_polymorphic_name() const;
+
+  Symbol* get_symbol() const { return _symbol; }
+
 };
 
 #endif // SHARE_CI_CISYMBOL_HPP

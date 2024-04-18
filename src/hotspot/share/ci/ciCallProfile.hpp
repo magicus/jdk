@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -43,7 +43,6 @@ private:
   int  _morphism;             // determined call site's morphism
   int  _count;                // # times has this call been executed
   int  _receiver_count[MorphismLimit + 1]; // # times receivers have been seen
-  ciMethod* _method[MorphismLimit + 1];    // receivers methods
   ciKlass*  _receiver[MorphismLimit + 1];  // receivers (exact)
 
   ciCallProfile() {
@@ -51,8 +50,7 @@ private:
     _morphism    = 0;
     _count = -1;
     _receiver_count[0] = -1;
-    _method[0]   = NULL;
-    _receiver[0] = NULL;
+    _receiver[0] = nullptr;
   }
 
   void add_receiver(ciKlass* receiver, int receiver_count);
@@ -70,10 +68,6 @@ public:
   float     receiver_prob(int i)  {
     assert(i < _limit, "out of Call Profile MorphismLimit");
     return (float)_receiver_count[i]/(float)_count;
-  }
-  ciMethod* method(int i)          {
-    assert(i < _limit, "out of Call Profile MorphismLimit");
-    return _method[i];
   }
   ciKlass*  receiver(int i)        {
     assert(i < _limit, "out of Call Profile MorphismLimit");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,7 +50,7 @@ class JfrBlob : public JfrCHeapObj {
   static JfrBlobHandle make(const u1* data, size_t size);
   template <typename Writer>
   void write(Writer& writer) const {
-    writer.bytes(_data, _size);
+    writer.write_bytes(_data, _size);
     if (_next.valid()) {
       _next->write(writer);
     }
@@ -60,11 +60,14 @@ class JfrBlob : public JfrCHeapObj {
     if (_written) {
       return;
     }
-    writer.bytes(_data, _size);
+    writer.write_bytes(_data, _size);
     _written = true;
     if (_next.valid()) {
       _next->exclusive_write(writer);
     }
+  }
+  size_t size() const {
+    return _size;
   }
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  *  DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  *  This code is free software; you can redistribute it and/or modify it
@@ -24,123 +24,178 @@
 
 /*
  * @test
- * @run testng TestArrays
+ * @run testng/othervm --enable-native-access=ALL-UNNAMED TestArrays
  */
 
-import jdk.incubator.foreign.MemoryAddress;
-import jdk.incubator.foreign.MemoryLayout;
-import jdk.incubator.foreign.MemoryLayout.PathElement;
-import jdk.incubator.foreign.MemoryLayouts;
-import jdk.incubator.foreign.MemorySegment;
-import jdk.incubator.foreign.SequenceLayout;
+import java.lang.foreign.*;
+import java.lang.foreign.MemoryLayout.PathElement;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.testng.annotations.*;
+
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_CHAR;
+import static java.lang.foreign.ValueLayout.JAVA_DOUBLE;
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.JAVA_LONG;
+import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 import static org.testng.Assert.*;
 
 public class TestArrays {
 
-    static SequenceLayout bytes = MemoryLayout.ofSequence(100,
-            MemoryLayouts.JAVA_BYTE
+    static SequenceLayout bytes = MemoryLayout.sequenceLayout(100,
+            JAVA_BYTE
     );
 
-    static SequenceLayout chars = MemoryLayout.ofSequence(100,
-            MemoryLayouts.JAVA_CHAR
+    static SequenceLayout chars = MemoryLayout.sequenceLayout(100,
+            JAVA_CHAR
     );
 
-    static SequenceLayout shorts = MemoryLayout.ofSequence(100,
-            MemoryLayouts.JAVA_SHORT
+    static SequenceLayout shorts = MemoryLayout.sequenceLayout(100,
+            JAVA_SHORT
     );
 
-    static SequenceLayout ints = MemoryLayout.ofSequence(100,
-            MemoryLayouts.JAVA_INT
+    static SequenceLayout ints = MemoryLayout.sequenceLayout(100,
+            JAVA_INT
     );
 
-    static SequenceLayout floats = MemoryLayout.ofSequence(100,
-            MemoryLayouts.JAVA_FLOAT
+    static SequenceLayout floats = MemoryLayout.sequenceLayout(100,
+            JAVA_FLOAT
     );
 
-    static SequenceLayout longs = MemoryLayout.ofSequence(100,
-            MemoryLayouts.JAVA_LONG
+    static SequenceLayout longs = MemoryLayout.sequenceLayout(100,
+            JAVA_LONG
     );
 
-    static SequenceLayout doubles = MemoryLayout.ofSequence(100,
-            MemoryLayouts.JAVA_DOUBLE
+    static SequenceLayout doubles = MemoryLayout.sequenceLayout(100,
+            JAVA_DOUBLE
     );
 
-    static VarHandle byteHandle = bytes.varHandle(byte.class, PathElement.sequenceElement());
-    static VarHandle charHandle = chars.varHandle(char.class, PathElement.sequenceElement());
-    static VarHandle shortHandle = shorts.varHandle(short.class, PathElement.sequenceElement());
-    static VarHandle intHandle = ints.varHandle(int.class, PathElement.sequenceElement());
-    static VarHandle floatHandle = floats.varHandle(float.class, PathElement.sequenceElement());
-    static VarHandle longHandle = longs.varHandle(long.class, PathElement.sequenceElement());
-    static VarHandle doubleHandle = doubles.varHandle(double.class, PathElement.sequenceElement());
+    static VarHandle byteHandle = bytes.varHandle(PathElement.sequenceElement());
+    static VarHandle charHandle = chars.varHandle(PathElement.sequenceElement());
+    static VarHandle shortHandle = shorts.varHandle(PathElement.sequenceElement());
+    static VarHandle intHandle = ints.varHandle(PathElement.sequenceElement());
+    static VarHandle floatHandle = floats.varHandle(PathElement.sequenceElement());
+    static VarHandle longHandle = longs.varHandle(PathElement.sequenceElement());
+    static VarHandle doubleHandle = doubles.varHandle(PathElement.sequenceElement());
 
-    static void initBytes(MemoryAddress base, SequenceLayout seq, BiConsumer<MemoryAddress, Long> handleSetter) {
-        for (long i = 0; i < seq.elementCount().getAsLong() ; i++) {
+    static void initBytes(MemorySegment base, SequenceLayout seq, BiConsumer<MemorySegment, Long> handleSetter) {
+        for (long i = 0; i < seq.elementCount() ; i++) {
             handleSetter.accept(base, i);
         }
     }
 
-    static void checkBytes(MemoryAddress base, SequenceLayout layout) {
-        long nBytes = layout.elementCount().getAsLong() * layout.elementLayout().byteSize();
-        byte[] arr = base.segment().toByteArray();
-        for (long i = 0 ; i < nBytes ; i++) {
-            byte expected = (byte)byteHandle.get(base, i);
-            byte found = arr[(int)i];
+    static void checkBytes(MemorySegment base, SequenceLayout layout, Function<MemorySegment, Object> arrayFactory, BiFunction<MemorySegment, Long, Object> handleGetter) {
+        int nelems = (int)layout.elementCount();
+        Object arr = arrayFactory.apply(base);
+        for (int i = 0; i < nelems; i++) {
+            Object found = handleGetter.apply(base, (long) i);
+            Object expected = java.lang.reflect.Array.get(arr, i);
             assertEquals(expected, found);
         }
     }
 
     @Test(dataProvider = "arrays")
-    public void testArrays(Consumer<MemoryAddress> init, SequenceLayout layout) {
-        try (MemorySegment segment = MemorySegment.allocateNative(layout)) {
-            init.accept(segment.baseAddress());
-            checkBytes(segment.baseAddress(), layout);
+    public void testArrays(Consumer<MemorySegment> init, Consumer<MemorySegment> checker, MemoryLayout layout) {
+        Arena scope = Arena.ofAuto();
+        MemorySegment segment = scope.allocate(layout);
+        init.accept(segment);
+        assertFalse(segment.isReadOnly());
+        checker.accept(segment);
+    }
+
+    @Test(dataProvider = "elemLayouts",
+            expectedExceptions = IllegalStateException.class)
+    public void testTooBigForArray(MemoryLayout layout, Function<MemorySegment, Object> arrayFactory) {
+        MemoryLayout seq = MemoryLayout.sequenceLayout((Integer.MAX_VALUE * layout.byteSize()) + 1, layout);
+        //do not really allocate here, as it's way too much memory
+        MemorySegment segment = MemorySegment.NULL.reinterpret(seq.byteSize());
+        arrayFactory.apply(segment);
+    }
+
+    @Test(dataProvider = "elemLayouts",
+            expectedExceptions = IllegalStateException.class)
+    public void testBadSize(MemoryLayout layout, Function<MemorySegment, Object> arrayFactory) {
+        if (layout.byteSize() == 1) throw new IllegalStateException(); //make it fail
+        try (Arena arena = Arena.ofConfined()) {
+            long byteSize = layout.byteSize() + 1;
+            long byteAlignment = layout.byteSize();
+            MemorySegment segment = arena.allocate(byteSize, byteAlignment);
+            arrayFactory.apply(segment);
         }
     }
 
-    @Test(expectedExceptions = { UnsupportedOperationException.class,
-                                 IllegalArgumentException.class })
-    public void testTooBigForArray() {
-        MemorySegment.allocateNative((long) Integer.MAX_VALUE * 2).toByteArray();
-    }
-
-    @Test(expectedExceptions = IllegalStateException.class)
-    public void testArrayFromClosedSegment() {
-        MemorySegment segment = MemorySegment.allocateNative(8);
-        segment.close();
-        segment.toByteArray();
+    @Test(dataProvider = "elemLayouts",
+            expectedExceptions = IllegalStateException.class)
+    public void testArrayFromClosedSegment(MemoryLayout layout, Function<MemorySegment, Object> arrayFactory) {
+        Arena arena = Arena.ofConfined();
+        MemorySegment segment = arena.allocate(layout);
+        arena.close();
+        arrayFactory.apply(segment);
     }
 
     @DataProvider(name = "arrays")
     public Object[][] nativeAccessOps() {
-        Consumer<MemoryAddress> byteInitializer =
-                (base) -> initBytes(base, bytes, (addr, pos) -> byteHandle.set(addr, pos, (byte)(long)pos));
-        Consumer<MemoryAddress> charInitializer =
-                (base) -> initBytes(base, chars, (addr, pos) -> charHandle.set(addr, pos, (char)(long)pos));
-        Consumer<MemoryAddress> shortInitializer =
-                (base) -> initBytes(base, shorts, (addr, pos) -> shortHandle.set(addr, pos, (short)(long)pos));
-        Consumer<MemoryAddress> intInitializer =
-                (base) -> initBytes(base, ints, (addr, pos) -> intHandle.set(addr, pos, (int)(long)pos));
-        Consumer<MemoryAddress> floatInitializer =
-                (base) -> initBytes(base, floats, (addr, pos) -> floatHandle.set(addr, pos, (float)(long)pos));
-        Consumer<MemoryAddress> longInitializer =
-                (base) -> initBytes(base, longs, (addr, pos) -> longHandle.set(addr, pos, (long)pos));
-        Consumer<MemoryAddress> doubleInitializer =
-                (base) -> initBytes(base, doubles, (addr, pos) -> doubleHandle.set(addr, pos, (double)(long)pos));
+        Consumer<MemorySegment> byteInitializer =
+                (base) -> initBytes(base, bytes, (addr, pos) -> byteHandle.set(addr, 0L, pos, (byte)(long)pos));
+        Consumer<MemorySegment> charInitializer =
+                (base) -> initBytes(base, chars, (addr, pos) -> charHandle.set(addr, 0L, pos, (char)(long)pos));
+        Consumer<MemorySegment> shortInitializer =
+                (base) -> initBytes(base, shorts, (addr, pos) -> shortHandle.set(addr, 0L, pos, (short)(long)pos));
+        Consumer<MemorySegment> intInitializer =
+                (base) -> initBytes(base, ints, (addr, pos) -> intHandle.set(addr, 0L, pos, (int)(long)pos));
+        Consumer<MemorySegment> floatInitializer =
+                (base) -> initBytes(base, floats, (addr, pos) -> floatHandle.set(addr, 0L, pos, (float)(long)pos));
+        Consumer<MemorySegment> longInitializer =
+                (base) -> initBytes(base, longs, (addr, pos) -> longHandle.set(addr, 0L, pos, (long)pos));
+        Consumer<MemorySegment> doubleInitializer =
+                (base) -> initBytes(base, doubles, (addr, pos) -> doubleHandle.set(addr, 0L, pos, (double)(long)pos));
+
+        Consumer<MemorySegment> byteChecker =
+                (base) -> checkBytes(base, bytes, s -> s.toArray(JAVA_BYTE), (addr, pos) -> (byte)byteHandle.get(addr, 0L, pos));
+        Consumer<MemorySegment> shortChecker =
+                (base) -> checkBytes(base, shorts, s -> s.toArray(JAVA_SHORT), (addr, pos) -> (short)shortHandle.get(addr, 0L, pos));
+        Consumer<MemorySegment> charChecker =
+                (base) -> checkBytes(base, chars, s -> s.toArray(JAVA_CHAR), (addr, pos) -> (char)charHandle.get(addr, 0L, pos));
+        Consumer<MemorySegment> intChecker =
+                (base) -> checkBytes(base, ints, s -> s.toArray(JAVA_INT), (addr, pos) -> (int)intHandle.get(addr, 0L, pos));
+        Consumer<MemorySegment> floatChecker =
+                (base) -> checkBytes(base, floats, s -> s.toArray(JAVA_FLOAT), (addr, pos) -> (float)floatHandle.get(addr, 0L, pos));
+        Consumer<MemorySegment> longChecker =
+                (base) -> checkBytes(base, longs, s -> s.toArray(JAVA_LONG), (addr, pos) -> (long)longHandle.get(addr, 0L, pos));
+        Consumer<MemorySegment> doubleChecker =
+                (base) -> checkBytes(base, doubles, s -> s.toArray(JAVA_DOUBLE), (addr, pos) -> (double)doubleHandle.get(addr, 0L, pos));
 
         return new Object[][]{
-                {byteInitializer, bytes},
-                {charInitializer, chars},
-                {shortInitializer, shorts},
-                {intInitializer, ints},
-                {floatInitializer, floats},
-                {longInitializer, longs},
-                {doubleInitializer, doubles}
+                {byteInitializer, byteChecker, bytes},
+                {charInitializer, charChecker, chars},
+                {shortInitializer, shortChecker, shorts},
+                {intInitializer, intChecker, ints},
+                {floatInitializer, floatChecker, floats},
+                {longInitializer, longChecker, longs},
+                {doubleInitializer, doubleChecker, doubles}
+        };
+    }
+
+    @DataProvider(name = "elemLayouts")
+    public Object[][] elemLayouts() {
+        return new Object[][] {
+                { JAVA_BYTE, (Function<MemorySegment, Object>)s -> s.toArray(JAVA_BYTE)},
+                { JAVA_SHORT, (Function<MemorySegment, Object>) s -> s.toArray(JAVA_SHORT)},
+                { JAVA_CHAR, (Function<MemorySegment, Object>) s -> s.toArray(JAVA_CHAR)},
+                { JAVA_INT, (Function<MemorySegment, Object>)s -> s.toArray(JAVA_INT)},
+                { JAVA_FLOAT, (Function<MemorySegment, Object>)s -> s.toArray(JAVA_FLOAT)},
+                { JAVA_LONG, (Function<MemorySegment, Object>)s -> s.toArray(JAVA_LONG)},
+                { JAVA_DOUBLE, (Function<MemorySegment, Object>)s -> s.toArray(JAVA_DOUBLE)}
         };
     }
 }

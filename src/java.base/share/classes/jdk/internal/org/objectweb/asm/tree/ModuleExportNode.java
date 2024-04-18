@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.tree;
 
 import java.util.List;
@@ -68,7 +69,10 @@ import jdk.internal.org.objectweb.asm.ModuleVisitor;
  */
 public class ModuleExportNode {
 
-    /** The internal name of the exported package. */
+    /**
+      * The internal name of the exported package (see {@link
+      * jdk.internal.org.objectweb.asm.Type#getInternalName()}).
+      */
     public String packaze;
 
     /**
@@ -86,7 +90,8 @@ public class ModuleExportNode {
     /**
       * Constructs a new {@link ModuleExportNode}.
       *
-      * @param packaze the internal name of the exported package.
+      * @param packaze the internal name of the exported package (see {@link
+      *     jdk.internal.org.objectweb.asm.Type#getInternalName()}).
       * @param access the package access flags, one or more of {@code ACC_SYNTHETIC} and {@code
       *     ACC_MANDATED}.
       * @param modules a list of modules that can access this exported package, specified with fully

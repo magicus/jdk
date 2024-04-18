@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,15 +25,43 @@
 package javax.swing.text.html;
 
 import java.awt.font.TextAttribute;
-import java.util.*;
-import java.net.URL;
+import java.io.IOException;
+import java.io.StringReader;
 import java.net.MalformedURLException;
-import java.io.*;
-import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.text.*;
-import javax.swing.undo.*;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Stack;
+import java.util.Vector;
+
+import javax.swing.ButtonGroup;
+import javax.swing.DefaultButtonModel;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.DefaultListModel;
+import javax.swing.JToggleButton;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.EventListenerList;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultEditorKit;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.Document;
+import javax.swing.text.Element;
+import javax.swing.text.ElementIterator;
+import javax.swing.text.GapContent;
+import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.PlainDocument;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.undo.UndoableEdit;
+
 import sun.swing.SwingUtilities2;
+
 import static sun.swing.SwingUtilities2.IMPLIED_CR;
 
 /**
@@ -194,7 +222,7 @@ import static sun.swing.SwingUtilities2.IMPLIED_CR;
  *     <th><code>setInnerHTML</code></th>
  *     <th><code>setOuterHTML</code></th>
  *   </tr>
- *   <tr valign="top">
+ *   <tr style="vertical-align:top">
  *     <td style="white-space:nowrap">
  *       <div style="background-color: silver;">
  *         <p>Paragraph 1</p>
@@ -262,7 +290,7 @@ import static sun.swing.SwingUtilities2.IMPLIED_CR;
  * not be compatible with future Swing releases. The current
  * serialization support is appropriate for short term storage or RMI
  * between applications running the same version of Swing.  As of 1.4,
- * support for long term storage of all JavaBeans&trade;
+ * support for long term storage of all JavaBeans
  * has been added to the
  * <code>java.beans</code> package.  Please see {@link
  * java.beans.XMLEncoder}.</p>
@@ -427,7 +455,7 @@ public class HTMLDocument extends DefaultStyledDocument {
      *
      * @param offset the starting offset
      * @param data the element data
-     * @exception BadLocationException  if the given position does not
+     * @throws BadLocationException  if the given position does not
      *   represent a valid location in the associated document.
      */
     protected void insert(int offset, ElementSpec[] data) throws BadLocationException {
@@ -797,9 +825,7 @@ public class HTMLDocument extends DefaultStyledDocument {
             html += ">";
             installParserIfNecessary();
             setOuterHTML(element, html);
-        } catch (BadLocationException e1) {
-            // Should handle this better
-        } catch (IOException ioe) {
+        } catch (BadLocationException | IOException e) {
             // Should handle this better
         }
     }
@@ -901,8 +927,8 @@ public class HTMLDocument extends DefaultStyledDocument {
         if (name != null) {
             Object     maps = getProperty(MAP_PROPERTY);
 
-            if (maps != null && (maps instanceof Hashtable)) {
-                return (Map)((Hashtable)maps).get(name);
+            if (maps instanceof Hashtable<?, ?> hashtable) {
+                return (Map) hashtable.get(name);
             }
         }
         return null;
@@ -1402,7 +1428,7 @@ public class HTMLDocument extends DefaultStyledDocument {
 
             if (parent != null) {
                 // If we are going to insert the string into the body
-                // section, it is necessary to set the corrsponding flag.
+                // section, it is necessary to set the corresponding flag.
                 if (HTML.Tag.BODY.name.equals(parent.getName())) {
                     insertInBody = true;
                 }
@@ -1643,7 +1669,7 @@ public class HTMLDocument extends DefaultStyledDocument {
             // e.getElement(index - 1) should represent the newline.
             index--;
             if (endE.getParentElement() != e) {
-                // The hiearchies don't match, we'll have to manually
+                // The hierarchies don't match, we'll have to manually
                 // recreate the leaf at e.getElement(index - 1)
                 replace(dde, e, index, ++count, start, end, true, true);
             }
@@ -1887,6 +1913,11 @@ public class HTMLDocument extends DefaultStyledDocument {
      * Document.render.
      */
     public abstract static class Iterator {
+
+        /**
+         * Constructor for subclasses to call.
+         */
+        protected Iterator() {}
 
         /**
          * Return the attributes for this tag.
@@ -2387,7 +2418,7 @@ public class HTMLDocument extends DefaultStyledDocument {
 
         /**
          * Generates a RuntimeException (will eventually generate
-         * a BadLocationException when API changes are alloced) if inserting
+         * a BadLocationException when API changes are allocated) if inserting
          * into non empty document, <code>insertTag</code> is
          * non-<code>null</code>, and <code>offset</code> is not in the body.
          */
@@ -2470,7 +2501,7 @@ public class HTMLDocument extends DefaultStyledDocument {
             tagMap.put(HTML.Tag.SMALL, ca);
             tagMap.put(HTML.Tag.SPAN, ca);
             tagMap.put(HTML.Tag.STRIKE, conv);
-            tagMap.put(HTML.Tag.S, ca);
+            tagMap.put(HTML.Tag.S, conv);
             tagMap.put(HTML.Tag.STRONG, ca);
             tagMap.put(HTML.Tag.STYLE, new StyleAction());
             tagMap.put(HTML.Tag.SUB, conv);
@@ -2703,15 +2734,14 @@ public class HTMLDocument extends DefaultStyledDocument {
         }
 
         private Element[] getPathTo(int offset) {
-            Stack<Element> elements = new Stack<Element>();
+            ArrayList<Element> elements = new ArrayList<Element>();
             Element e = getDefaultRootElement();
             int index;
             while (!e.isLeaf()) {
-                elements.push(e);
+                elements.add(e);
                 e = e.getElement(e.getElementIndex(offset));
             }
-            Element[] retValue = new Element[elements.size()];
-            elements.copyInto(retValue);
+            Element[] retValue = elements.toArray(new Element[0]);
             return retValue;
         }
 
@@ -2799,7 +2829,7 @@ public class HTMLDocument extends DefaultStyledDocument {
                 if (t == HTML.Tag.BODY) {
                     inBody = true;
                     // Increment inBlock since we know we are in the body,
-                    // this is needed incase an implied-p is needed. If
+                    // this is needed in case an implied-p is needed. If
                     // inBlock isn't incremented, and an implied-p is
                     // encountered, addContent won't be called!
                     inBlock++;
@@ -2966,6 +2996,10 @@ public class HTMLDocument extends DefaultStyledDocument {
          * switch statement.
          */
         public class TagAction {
+            /**
+             * Constructs a {@code TagAction}.
+             */
+            public TagAction() {}
 
             /**
              * Called when a start tag is seen for the
@@ -3000,6 +3034,10 @@ public class HTMLDocument extends DefaultStyledDocument {
          * Action assigned by default to handle the Block task of the reader.
          */
         public class BlockAction extends TagAction {
+            /**
+             * Constructs a {@code BlockAction}.
+             */
+            public BlockAction() {}
 
             public void start(HTML.Tag t, MutableAttributeSet attr) {
                 blockOpen(t, attr);
@@ -3041,6 +3079,11 @@ public class HTMLDocument extends DefaultStyledDocument {
          */
         public class ParagraphAction extends BlockAction {
 
+            /**
+             * Constructs a {@code ParagraphAction}.
+             */
+            public ParagraphAction() {}
+
             public void start(HTML.Tag t, MutableAttributeSet a) {
                 super.start(t, a);
                 inParagraph = true;
@@ -3056,6 +3099,10 @@ public class HTMLDocument extends DefaultStyledDocument {
          * Action assigned by default to handle the Special task of the reader.
          */
         public class SpecialAction extends TagAction {
+            /**
+             * Constructs a {@code SpecialAction}.
+             */
+            public SpecialAction() {}
 
             public void start(HTML.Tag t, MutableAttributeSet a) {
                 addSpecialElement(t, a);
@@ -3067,6 +3114,11 @@ public class HTMLDocument extends DefaultStyledDocument {
          * Action assigned by default to handle the Isindex task of the reader.
          */
         public class IsindexAction extends TagAction {
+
+            /**
+             * Constructs a {@code IsindexAction}.
+             */
+            public IsindexAction() {}
 
             public void start(HTML.Tag t, MutableAttributeSet a) {
                 blockOpen(HTML.Tag.IMPLIED, new SimpleAttributeSet());
@@ -3081,6 +3133,11 @@ public class HTMLDocument extends DefaultStyledDocument {
          * Action assigned by default to handle the Hidden task of the reader.
          */
         public class HiddenAction extends TagAction {
+
+            /**
+             * Constructs a {@code HiddenAction}.
+             */
+            public HiddenAction() {}
 
             public void start(HTML.Tag t, MutableAttributeSet a) {
                 addSpecialElement(t, a);
@@ -3221,8 +3278,8 @@ public class HTMLDocument extends DefaultStyledDocument {
                     }
                     if (rel != null) {
                         rel = rel.toLowerCase();
-                        if ((media.indexOf("all") != -1 ||
-                             media.indexOf("screen") != -1) &&
+                        if ((media.contains("all") ||
+                             media.contains("screen")) &&
                             (rel.equals("stylesheet") ||
                              (rel.equals("alternate stylesheet") &&
                               title.equals(defaultStyle)))) {
@@ -3311,6 +3368,11 @@ public class HTMLDocument extends DefaultStyledDocument {
          */
         public class PreAction extends BlockAction {
 
+            /**
+             * Constructs a {@code PreAction}.
+             */
+            public PreAction() {}
+
             public void start(HTML.Tag t, MutableAttributeSet attr) {
                 inPre = true;
                 blockOpen(t, attr);
@@ -3331,6 +3393,11 @@ public class HTMLDocument extends DefaultStyledDocument {
          * Action assigned by default to handle the Character task of the reader.
          */
         public class CharacterAction extends TagAction {
+
+            /**
+             * Constructs a {@code CharacterAction}.
+             */
+            public CharacterAction() {}
 
             public void start(HTML.Tag t, MutableAttributeSet attr) {
                 pushCharacterStyle();
@@ -3407,7 +3474,7 @@ public class HTMLDocument extends DefaultStyledDocument {
                     String value = "underline";
                     value = (v != null) ? value + "," + v.toString() : value;
                     sheet.addCSSAttribute(charAttr, CSS.Attribute.TEXT_DECORATION, value);
-                } else if (t == HTML.Tag.STRIKE) {
+                } else if (t == HTML.Tag.STRIKE || t == HTML.Tag.S) {
                     Object v = charAttr.getAttribute(CSS.Attribute.TEXT_DECORATION);
                     String value = "line-through";
                     value = (v != null) ? value + "," + v.toString() : value;
@@ -3489,6 +3556,7 @@ public class HTMLDocument extends DefaultStyledDocument {
                 String href = (String) attr.getAttribute(HTML.Attribute.HREF);
                 if (href != null) {
                     try {
+                        @SuppressWarnings("deprecation")
                         URL newBase = new URL(base, href);
                         setBase(newBase);
                         hasBaseTag = true;
@@ -3583,6 +3651,11 @@ public class HTMLDocument extends DefaultStyledDocument {
          * </table>
          */
         public class FormAction extends SpecialAction {
+
+            /**
+             * Constructs a {@code FormAction}.
+             */
+            public FormAction() {}
 
             public void start(HTML.Tag t, MutableAttributeSet attr) {
                 if (t == HTML.Tag.INPUT) {
@@ -3994,7 +4067,7 @@ public class HTMLDocument extends DefaultStyledDocument {
             if (insertTagDepthDelta < 0) {
                 // When inserting via an insertTag, the depths (of the tree
                 // being read in, and existing hierarchy) may not match up.
-                // This attemps to clean it up.
+                // This attempts to clean it up.
                 int removeCounter = insertTagDepthDelta;
                 while (removeCounter < 0 && size >= 0 &&
                         parseBuffer.elementAt(size - 1).
@@ -4078,10 +4151,12 @@ public class HTMLDocument extends DefaultStyledDocument {
         void linkCSSStyleSheet(String href) {
             URL url;
             try {
-                url = new URL(base, href);
+                @SuppressWarnings("deprecation")
+                var _unused = url = new URL(base, href);
             } catch (MalformedURLException mfe) {
                 try {
-                    url = new URL(href);
+                    @SuppressWarnings("deprecation")
+                    var _unused = url = new URL(href);
                 } catch (MalformedURLException mfe2) {
                     url = null;
                 }
@@ -4149,7 +4224,7 @@ public class HTMLDocument extends DefaultStyledDocument {
                 try {
                     if (offset == 0 || !getText(offset - 1, 1).equals("\n")) {
                         // Need to insert a newline.
-                        AttributeSet newAttrs = null;
+                        SimpleAttributeSet newAttrs = null;
                         boolean joinP = true;
 
                         if (offset != 0) {
@@ -4183,9 +4258,8 @@ public class HTMLDocument extends DefaultStyledDocument {
                             // sure and set the name (otherwise it will be
                             // inherited).
                             newAttrs = new SimpleAttributeSet();
-                            ((SimpleAttributeSet)newAttrs).addAttribute
-                                              (StyleConstants.NameAttribute,
-                                               HTML.Tag.CONTENT);
+                            newAttrs.addAttribute(StyleConstants.NameAttribute,
+                                                  HTML.Tag.CONTENT);
                         }
                         ElementSpec es = new ElementSpec(newAttrs,
                                      ElementSpec.ContentType, NEWLINE, 0,
@@ -4294,7 +4368,7 @@ public class HTMLDocument extends DefaultStyledDocument {
         /** True if inside the head tag. */
         boolean inHead = false;
         /** Set to true if the style language is text/css. Since this is
-         * used alot, it is cached. */
+         * used a lot, it is cached. */
         boolean isStyleCSS;
         /** True if inserting into an empty document. */
         boolean emptyDocument;

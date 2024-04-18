@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@
 
 #include "memory/allocation.hpp"
 #include "runtime/atomic.hpp"
+#include "utilities/sizes.hpp"
 
 //
 // Represents a piece of committed memory.
@@ -44,6 +45,10 @@
 // e.g. the delta must always be fully parsable.
 // _top can move concurrently by other threads but is always <= _pos.
 //
+// The _flags field holds generic tags applicable to all subsystems.
+//
+// The _context field can be used to set subsystem specific tags onto a buffer.
+//
 // Memory ordering:
 //
 //  Method                 Owner thread             Other threads
@@ -60,38 +65,24 @@
 //
 
 class JfrBuffer {
+ public:
+  JfrBuffer* _next; // list support
  private:
-  JfrBuffer* _next;
-  JfrBuffer* _prev;
   const void* _identity;
   u1* _pos;
   mutable const u1* _top;
-  u2 _flags;
+  size_t _size;
   u2 _header_size;
-  u4 _size;
+  u1 _flags;
+  u1 _context;
+  LP64_ONLY(const u4 _pad;)
 
   const u1* stable_top() const;
 
  public:
   JfrBuffer();
-  bool initialize(size_t header_size, size_t size);
-  void reinitialize(bool exclusion = false);
-
-  JfrBuffer* next() const {
-    return _next;
-  }
-
-  JfrBuffer* prev() const {
-    return _prev;
-  }
-
-  void set_next(JfrBuffer* next) {
-    _next = next;
-  }
-
-  void set_prev(JfrBuffer* prev) {
-    _prev = prev;
-  }
+  void initialize(size_t header_size, size_t size);
+  void reinitialize();
 
   const u1* start() const {
     return ((const u1*)this) + _header_size;
@@ -136,7 +127,7 @@ class JfrBuffer {
   void release_critical_section_top(const u1* new_top);
 
   size_t size() const {
-    return _size * BytesPerWord;
+    return _size;
   }
 
   size_t total_size() const {
@@ -156,6 +147,9 @@ class JfrBuffer {
   const void* identity() const {
     return Atomic::load_acquire(&_identity);
   }
+
+  // use only if implied owner already
+  void set_identity(const void* id);
 
   void acquire(const void* id);
   bool try_acquire(const void* id);
@@ -178,22 +172,14 @@ class JfrBuffer {
   void set_retired();
   void clear_retired();
 
-  bool excluded() const;
-  void set_excluded();
-  void clear_excluded();
-};
+  u1 context() const;
+  void set_context(u1 context);
+  void clear_context();
 
-class JfrAgeNode : public JfrBuffer {
- private:
-  JfrBuffer* _retired;
- public:
-  JfrAgeNode() : _retired(NULL) {}
-  void set_retired_buffer(JfrBuffer* retired) {
-    _retired = retired;
-  }
-  JfrBuffer* retired_buffer() const {
-    return _retired;
-  }
+  // Code generation
+  static ByteSize pos_offset();
+  static ByteSize flags_offset();
+
 };
 
 #endif // SHARE_JFR_RECORDER_STORAGE_JFRBUFFER_HPP

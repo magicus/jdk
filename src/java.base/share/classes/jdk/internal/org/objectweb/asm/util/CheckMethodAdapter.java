@@ -56,12 +56,12 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.util;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -69,6 +69,7 @@ import java.util.Map;
 import java.util.Set;
 import jdk.internal.org.objectweb.asm.AnnotationVisitor;
 import jdk.internal.org.objectweb.asm.Attribute;
+import jdk.internal.org.objectweb.asm.ClassWriter;
 import jdk.internal.org.objectweb.asm.ConstantDynamic;
 import jdk.internal.org.objectweb.asm.Handle;
 import jdk.internal.org.objectweb.asm.Label;
@@ -382,7 +383,7 @@ public class CheckMethodAdapter extends MethodVisitor {
       * @param methodvisitor the method visitor to which this adapter must delegate calls.
       */
     public CheckMethodAdapter(final MethodVisitor methodvisitor) {
-        this(methodvisitor, new HashMap<Label, Integer>());
+        this(methodvisitor, new HashMap<>());
     }
 
     /**
@@ -398,7 +399,7 @@ public class CheckMethodAdapter extends MethodVisitor {
       */
     public CheckMethodAdapter(
             final MethodVisitor methodVisitor, final Map<Label, Integer> labelInsnIndices) {
-        this(/* latest api = */ Opcodes.ASM8, methodVisitor, labelInsnIndices);
+        this(/* latest api = */ Opcodes.ASM9, methodVisitor, labelInsnIndices);
         if (getClass() != CheckMethodAdapter.class) {
             throw new IllegalStateException();
         }
@@ -408,9 +409,8 @@ public class CheckMethodAdapter extends MethodVisitor {
       * Constructs a new {@link CheckMethodAdapter} object. This method adapter will not perform any
       * data flow check (see {@link #CheckMethodAdapter(int,String,String,MethodVisitor,Map)}).
       *
-      * @param api the ASM API version implemented by this CheckMethodAdapter. Must be one of {@link
-      *     Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6}, {@link Opcodes#ASM7} or {@link
-      *     Opcodes#ASM8}.
+      * @param api the ASM API version implemented by this CheckMethodAdapter. Must be one of the
+      *     {@code ASM}<i>x</i> values in {@link Opcodes}.
       * @param methodVisitor the method visitor to which this adapter must delegate calls.
       * @param labelInsnIndices the index of the instruction designated by each visited label so far
       *     (in other methods). This map is updated with the labels from the visited method.
@@ -446,7 +446,7 @@ public class CheckMethodAdapter extends MethodVisitor {
             final MethodVisitor methodVisitor,
             final Map<Label, Integer> labelInsnIndices) {
         this(
-                /* latest api = */ Opcodes.ASM8, access, name, descriptor, methodVisitor, labelInsnIndices);
+                /* latest api = */ Opcodes.ASM9, access, name, descriptor, methodVisitor, labelInsnIndices);
         if (getClass() != CheckMethodAdapter.class) {
             throw new IllegalStateException();
         }
@@ -457,9 +457,8 @@ public class CheckMethodAdapter extends MethodVisitor {
       * flow checks. For instance in a method whose signature is {@code void m ()}, the invalid
       * instruction IRETURN, or the invalid sequence IADD L2I will be detected.
       *
-      * @param api the ASM API version implemented by this CheckMethodAdapter. Must be one of {@link
-      *     Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6}, {@link Opcodes#ASM7} or {@link
-      *     Opcodes#ASM8}.
+      * @param api the ASM API version implemented by this CheckMethodAdapter. Must be one of the
+      *     {@code ASM}<i>x</i> values in {@link Opcodes}.
       * @param access the method's access flags.
       * @param name the method's name.
       * @param descriptor the method's descriptor (see {@link Type}).
@@ -479,20 +478,37 @@ public class CheckMethodAdapter extends MethodVisitor {
                 new MethodNode(api, access, name, descriptor, null, null) {
                     @Override
                     public void visitEnd() {
-                        Analyzer<BasicValue> analyzer = new Analyzer<>(new BasicVerifier());
+                        int originalMaxLocals = maxLocals;
+                        int originalMaxStack = maxStack;
+                        boolean checkMaxStackAndLocals = false;
+                        boolean checkFrames = false;
+                        if (methodVisitor instanceof MethodWriterWrapper) {
+                            MethodWriterWrapper methodWriter = (MethodWriterWrapper) methodVisitor;
+                            // If 'methodVisitor' is a MethodWriter of a ClassWriter with no flags to compute the
+                            // max stack and locals nor the stack map frames, we know that valid max stack and
+                            // locals must be provided. Otherwise we assume they are not needed at this stage.
+                            checkMaxStackAndLocals = !methodWriter.computesMaxs();
+                            // If 'methodVisitor' is a MethodWriter of a ClassWriter with no flags to compute the
+                            // stack map frames, we know that valid frames must be provided. Otherwise we assume
+                            // they are not needed at this stage.
+                            checkFrames = methodWriter.requiresFrames() && !methodWriter.computesFrames();
+                        }
+                        Analyzer<BasicValue> analyzer =
+                                checkFrames
+                                        ? new CheckFrameAnalyzer<>(new BasicVerifier())
+                                        : new Analyzer<>(new BasicVerifier());
                         try {
-                            analyzer.analyze("dummy", this);
-                        } catch (IndexOutOfBoundsException e) {
-                            if (maxLocals == 0 && maxStack == 0) {
-                                throw new IllegalArgumentException(
-                                        "Data flow checking option requires valid, non zero maxLocals and maxStack.",
-                                        e);
+                            if (checkMaxStackAndLocals) {
+                                analyzer.analyze("dummy", this);
+                            } else {
+                                analyzer.analyzeAndComputeMaxs("dummy", this);
                             }
-                            throwError(analyzer, e);
-                        } catch (AnalyzerException e) {
+                        } catch (IndexOutOfBoundsException | AnalyzerException e) {
                             throwError(analyzer, e);
                         }
                         if (methodVisitor != null) {
+                            maxLocals = originalMaxLocals;
+                            maxStack = originalMaxStack;
                             accept(methodVisitor);
                         }
                     }
@@ -515,7 +531,7 @@ public class CheckMethodAdapter extends MethodVisitor {
             checkUnqualifiedName(version, name, "name");
         }
         CheckClassAdapter.checkAccess(
-                access, Opcodes.ACC_FINAL + Opcodes.ACC_MANDATED + Opcodes.ACC_SYNTHETIC);
+                access, Opcodes.ACC_FINAL | Opcodes.ACC_MANDATED | Opcodes.ACC_SYNTHETIC);
         super.visitParameter(name, access);
     }
 
@@ -706,12 +722,12 @@ public class CheckMethodAdapter extends MethodVisitor {
     }
 
     @Override
-    public void visitVarInsn(final int opcode, final int var) {
+    public void visitVarInsn(final int opcode, final int varIndex) {
         checkVisitCodeCalled();
         checkVisitMaxsNotCalled();
         checkOpcodeMethod(opcode, Method.VISIT_VAR_INSN);
-        checkUnsignedShort(var, INVALID_LOCAL_VARIABLE_INDEX);
-        super.visitVarInsn(opcode, var);
+        checkUnsignedShort(varIndex, INVALID_LOCAL_VARIABLE_INDEX);
+        super.visitVarInsn(opcode, varIndex);
         ++insnCount;
     }
 
@@ -803,9 +819,8 @@ public class CheckMethodAdapter extends MethodVisitor {
         checkVisitCodeCalled();
         checkVisitMaxsNotCalled();
         checkOpcodeMethod(opcode, Method.VISIT_JUMP_INSN);
-        checkLabel(label, false, "label");
+        checkLabel(label, /* checkVisited = */ false, "label");
         super.visitJumpInsn(opcode, label);
-        referencedLabels.add(label);
         ++insnCount;
     }
 
@@ -813,9 +828,9 @@ public class CheckMethodAdapter extends MethodVisitor {
     public void visitLabel(final Label label) {
         checkVisitCodeCalled();
         checkVisitMaxsNotCalled();
-        checkLabel(label, false, "label");
+        checkLabel(label, /* checkVisited = */ false, "label");
         if (labelInsnIndices.get(label) != null) {
-            throw new IllegalArgumentException("Already visited label");
+            throw new IllegalStateException("Already visited label");
         }
         labelInsnIndices.put(label, insnCount);
         super.visitLabel(label);
@@ -831,12 +846,12 @@ public class CheckMethodAdapter extends MethodVisitor {
     }
 
     @Override
-    public void visitIincInsn(final int var, final int increment) {
+    public void visitIincInsn(final int varIndex, final int increment) {
         checkVisitCodeCalled();
         checkVisitMaxsNotCalled();
-        checkUnsignedShort(var, INVALID_LOCAL_VARIABLE_INDEX);
+        checkUnsignedShort(varIndex, INVALID_LOCAL_VARIABLE_INDEX);
         checkSignedShort(increment, "Invalid increment");
-        super.visitIincInsn(var, increment);
+        super.visitIincInsn(varIndex, increment);
         ++insnCount;
     }
 
@@ -849,15 +864,14 @@ public class CheckMethodAdapter extends MethodVisitor {
             throw new IllegalArgumentException(
                     "Max = " + max + " must be greater than or equal to min = " + min);
         }
-        checkLabel(dflt, false, "default label");
+        checkLabel(dflt, /* checkVisited = */ false, "default label");
         if (labels == null || labels.length != max - min + 1) {
             throw new IllegalArgumentException("There must be max - min + 1 labels");
         }
         for (int i = 0; i < labels.length; ++i) {
-            checkLabel(labels[i], false, "label at index " + i);
+            checkLabel(labels[i], /* checkVisited = */ false, "label at index " + i);
         }
         super.visitTableSwitchInsn(min, max, dflt, labels);
-        Collections.addAll(referencedLabels, labels);
         ++insnCount;
     }
 
@@ -865,16 +879,14 @@ public class CheckMethodAdapter extends MethodVisitor {
     public void visitLookupSwitchInsn(final Label dflt, final int[] keys, final Label[] labels) {
         checkVisitMaxsNotCalled();
         checkVisitCodeCalled();
-        checkLabel(dflt, false, "default label");
+        checkLabel(dflt, /* checkVisited = */ false, "default label");
         if (keys == null || labels == null || keys.length != labels.length) {
             throw new IllegalArgumentException("There must be the same number of keys and labels");
         }
         for (int i = 0; i < labels.length; ++i) {
-            checkLabel(labels[i], false, "label at index " + i);
+            checkLabel(labels[i], /* checkVisited = */ false, "label at index " + i);
         }
         super.visitLookupSwitchInsn(dflt, keys, labels);
-        referencedLabels.add(dflt);
-        Collections.addAll(referencedLabels, labels);
         ++insnCount;
     }
 
@@ -928,9 +940,9 @@ public class CheckMethodAdapter extends MethodVisitor {
             final Label start, final Label end, final Label handler, final String type) {
         checkVisitCodeCalled();
         checkVisitMaxsNotCalled();
-        checkLabel(start, false, START_LABEL);
-        checkLabel(end, false, END_LABEL);
-        checkLabel(handler, false, "handler label");
+        checkLabel(start, /* checkVisited = */ false, START_LABEL);
+        checkLabel(end, /* checkVisited = */ false, END_LABEL);
+        checkLabel(handler, /* checkVisited = */ false, "handler label");
         if (labelInsnIndices.get(start) != null
                 || labelInsnIndices.get(end) != null
                 || labelInsnIndices.get(handler) != null) {
@@ -974,8 +986,8 @@ public class CheckMethodAdapter extends MethodVisitor {
         if (signature != null) {
             CheckClassAdapter.checkFieldSignature(signature);
         }
-        checkLabel(start, true, START_LABEL);
-        checkLabel(end, true, END_LABEL);
+        checkLabel(start, /* checkVisited = */ true, START_LABEL);
+        checkLabel(end, /* checkVisited = */ true, END_LABEL);
         checkUnsignedShort(index, INVALID_LOCAL_VARIABLE_INDEX);
         int startInsnIndex = labelInsnIndices.get(start).intValue();
         int endInsnIndex = labelInsnIndices.get(end).intValue();
@@ -1012,8 +1024,8 @@ public class CheckMethodAdapter extends MethodVisitor {
                     "Invalid start, end and index arrays (must be non null and of identical length");
         }
         for (int i = 0; i < start.length; ++i) {
-            checkLabel(start[i], true, START_LABEL);
-            checkLabel(end[i], true, END_LABEL);
+            checkLabel(start[i], /* checkVisited = */ true, START_LABEL);
+            checkLabel(end[i], /* checkVisited = */ true, END_LABEL);
             checkUnsignedShort(index[i], INVALID_LOCAL_VARIABLE_INDEX);
             int startInsnIndex = labelInsnIndices.get(start[i]).intValue();
             int endInsnIndex = labelInsnIndices.get(end[i]).intValue();
@@ -1031,7 +1043,7 @@ public class CheckMethodAdapter extends MethodVisitor {
         checkVisitCodeCalled();
         checkVisitMaxsNotCalled();
         checkUnsignedShort(line, "Invalid line number");
-        checkLabel(start, true, START_LABEL);
+        checkLabel(start, /* checkVisited = */ true, START_LABEL);
         super.visitLineNumber(line, start);
     }
 
@@ -1048,11 +1060,8 @@ public class CheckMethodAdapter extends MethodVisitor {
         for (int i = 0; i < handlers.size(); i += 2) {
             Integer startInsnIndex = labelInsnIndices.get(handlers.get(i));
             Integer endInsnIndex = labelInsnIndices.get(handlers.get(i + 1));
-            if (startInsnIndex == null || endInsnIndex == null) {
-                throw new IllegalStateException("Undefined try catch block labels");
-            }
             if (endInsnIndex.intValue() <= startInsnIndex.intValue()) {
-                throw new IllegalStateException("Emty try catch block handler range");
+                throw new IllegalStateException("Empty try catch block handler range");
             }
         }
         checkUnsignedShort(maxStack, "Invalid max stack");
@@ -1111,7 +1120,7 @@ public class CheckMethodAdapter extends MethodVisitor {
         if (value instanceof String) {
             checkInternalName(version, (String) value, "Invalid stack frame value");
         } else if (value instanceof Label) {
-            referencedLabels.add((Label) value);
+            checkLabel((Label) value, /* checkVisited = */ false, "label");
         } else {
             throw new IllegalArgumentException("Invalid stack frame value: " + value);
         }
@@ -1124,8 +1133,12 @@ public class CheckMethodAdapter extends MethodVisitor {
       * @param method the expected visit method.
       */
     private static void checkOpcodeMethod(final int opcode, final Method method) {
-        if (opcode < Opcodes.NOP || opcode > Opcodes.IFNONNULL || OPCODE_METHODS[opcode] != method) {
+        if (opcode < Opcodes.NOP || opcode > Opcodes.IFNONNULL) {
             throw new IllegalArgumentException("Invalid opcode: " + opcode);
+        }
+        if (OPCODE_METHODS[opcode] != method) {
+            throw new IllegalArgumentException(
+                    "Invalid combination of opcode and method: " + opcode + ", " + method);
         }
     }
 
@@ -1373,7 +1386,7 @@ public class CheckMethodAdapter extends MethodVisitor {
     }
 
     /**
-      * Checks that a the given substring is a valid type descriptor.
+      * Checks that the given substring is a valid type descriptor.
       *
       * @param version the class version.
       * @param descriptor the string to be checked.
@@ -1470,6 +1483,37 @@ public class CheckMethodAdapter extends MethodVisitor {
         }
         if (checkVisited && labelInsnIndices.get(label) == null) {
             throw new IllegalArgumentException(INVALID + message + " (must be visited first)");
+        }
+        referencedLabels.add(label);
+    }
+
+    static class MethodWriterWrapper extends MethodVisitor {
+
+        /** The class version number. */
+        private final int version;
+
+        private final ClassWriter owner;
+
+        MethodWriterWrapper(
+                final int api,
+                final int version,
+                final ClassWriter owner,
+                final MethodVisitor methodWriter) {
+            super(api, methodWriter);
+            this.version = version;
+            this.owner = owner;
+        }
+
+        boolean computesMaxs() {
+            return owner.hasFlags(ClassWriter.COMPUTE_MAXS) || owner.hasFlags(ClassWriter.COMPUTE_FRAMES);
+        }
+
+        boolean computesFrames() {
+            return owner.hasFlags(ClassWriter.COMPUTE_FRAMES);
+        }
+
+        boolean requiresFrames() {
+            return (version & 0xFFFF) >= Opcodes.V1_7;
         }
     }
 }

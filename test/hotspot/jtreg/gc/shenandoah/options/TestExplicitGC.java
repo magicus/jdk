@@ -23,10 +23,9 @@
  */
 
 /*
- * @test TestExplicitGC
+ * @test
  * @summary Test that Shenandoah reacts to explicit GC flags appropriately
- * @key gc
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -61,13 +60,13 @@ public class TestExplicitGC {
         };
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                    "-Xmx128m",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     "-Xlog:gc",
                     TestExplicitGC.class.getName(),
                     "test");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             for (String p : full) {
                 output.shouldNotContain(p);
             }
@@ -77,14 +76,14 @@ public class TestExplicitGC {
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                    "-Xmx128m",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     "-Xlog:gc",
                     "-XX:+DisableExplicitGC",
                     TestExplicitGC.class.getName(),
                     "test");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             for (String p : full) {
                 output.shouldNotContain(p);
             }
@@ -94,14 +93,14 @@ public class TestExplicitGC {
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                    "-Xmx128m",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     "-Xlog:gc",
                     "-XX:+ExplicitGCInvokesConcurrent",
                     TestExplicitGC.class.getName(),
                     "test");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             for (String p : full) {
                 output.shouldNotContain(p);
             }
@@ -111,14 +110,14 @@ public class TestExplicitGC {
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                    "-Xmx128m",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     "-Xlog:gc",
                     "-XX:-ExplicitGCInvokesConcurrent",
                     TestExplicitGC.class.getName(),
                     "test");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             for (String p : full) {
                 output.shouldContain(p);
             }
@@ -128,7 +127,8 @@ public class TestExplicitGC {
         }
 
         {
-            ProcessBuilder pb = ProcessTools.createJavaProcessBuilder(
+            OutputAnalyzer output = ProcessTools.executeLimitedTestJava(
+                    "-Xmx128m",
                     "-XX:+UnlockExperimentalVMOptions",
                     "-XX:+UseShenandoahGC",
                     "-Xlog:gc",
@@ -136,7 +136,6 @@ public class TestExplicitGC {
                     "-XX:ShenandoahGCMode=iu",
                     TestExplicitGC.class.getName(),
                     "test");
-            OutputAnalyzer output = new OutputAnalyzer(pb.start());
             for (String p : full) {
                 output.shouldNotContain(p);
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,46 +31,76 @@ import java.security.AccessControlContext;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
+import jdk.jfr.Configuration;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.internal.JVM;
+import jdk.jfr.internal.LogLevel;
+import jdk.jfr.internal.LogTag;
+import jdk.jfr.internal.Logger;
 import jdk.jfr.internal.PlatformRecording;
-import jdk.jfr.internal.Utils;
-import jdk.jfr.internal.consumer.ChunkParser.ParserConfiguration;
+import jdk.jfr.internal.SecuritySupport;
+import jdk.jfr.internal.util.Utils;
+import jdk.jfr.internal.management.StreamBarrier;
 
 /**
  * Implementation of an {@code EventStream}} that operates against a directory
  * with chunk files.
  *
  */
-public class EventDirectoryStream extends AbstractEventStream {
+public final class EventDirectoryStream extends AbstractEventStream {
 
-    private final static Comparator<? super RecordedEvent> EVENT_COMPARATOR = JdkJfrConsumer.instance().eventComparator();
+    private static final Comparator<? super RecordedEvent> EVENT_COMPARATOR = JdkJfrConsumer.instance().eventComparator();
 
     private final RepositoryFiles repositoryFiles;
-    private final PlatformRecording recording;
     private final FileAccess fileAccess;
-
+    private final PlatformRecording recording;
+    private final StreamBarrier barrier = new StreamBarrier();
     private ChunkParser currentParser;
     private long currentChunkStartNanos;
     private RecordedEvent[] sortedCache;
     private int threadExclusionLevel = 0;
+    private volatile Consumer<Long> onCompleteHandler;
 
-    public EventDirectoryStream(AccessControlContext acc, Path p, FileAccess fileAccess, PlatformRecording recording) throws IOException {
-        super(acc, recording);
-        this.fileAccess = Objects.requireNonNull(fileAccess);
+    public EventDirectoryStream(
+            @SuppressWarnings("removal")
+            AccessControlContext acc,
+            Path p,
+            FileAccess fileAccess,
+            PlatformRecording recording,
+            List<Configuration> configurations,
+            boolean allowSubDirectories) throws IOException {
+        super(acc, configurations);
         this.recording = recording;
-        this.repositoryFiles = new RepositoryFiles(fileAccess, p);
+        if (p != null && SecuritySupport.PRIVILEGED == fileAccess) {
+            throw new SecurityException("Priviliged file access not allowed with potentially malicious Path implementation");
+        }
+        this.fileAccess = Objects.requireNonNull(fileAccess);
+        this.repositoryFiles = new RepositoryFiles(fileAccess, p, allowSubDirectories);
     }
 
     @Override
     public void close() {
-        setClosed(true);
+        closeParser();
         dispatcher().runCloseActions();
         repositoryFiles.close();
         if (currentParser != null) {
             currentParser.close();
+            onComplete(currentParser.getEndNanos());
+        }
+    }
+
+    public void setChunkCompleteHandler(Consumer<Long> handler) {
+        onCompleteHandler = handler;
+    }
+
+    private void onComplete(long epochNanos) {
+        Consumer<Long> handler = onCompleteHandler;
+        if (handler != null) {
+            handler.accept(epochNanos);
         }
     }
 
@@ -86,20 +116,19 @@ public class EventDirectoryStream extends AbstractEventStream {
 
     @Override
     protected void process() throws IOException {
-        JVM jvm = JVM.getJVM();
         Thread t = Thread.currentThread();
         try {
-            if (jvm.isExcluded(t)) {
+            if (JVM.isExcluded(t)) {
                 threadExclusionLevel++;
             } else {
-                jvm.exclude(t);
+                JVM.exclude(t);
             }
             processRecursionSafe();
         } finally {
             if (threadExclusionLevel > 0) {
                 threadExclusionLevel--;
             } else {
-                jvm.include(t);
+                JVM.include(t);
             }
         }
     }
@@ -108,44 +137,50 @@ public class EventDirectoryStream extends AbstractEventStream {
         Dispatcher lastDisp = null;
         Dispatcher disp = dispatcher();
         Path path;
-        boolean validStartTime = recording != null || disp.startTime != null;
+        boolean validStartTime = isRecording() || disp.startTime != null;
         if (validStartTime) {
-            path = repositoryFiles.firstPath(disp.startNanos);
+            path = repositoryFiles.firstPath(disp.startNanos, true);
         } else {
-            path = repositoryFiles.lastPath();
+            path = repositoryFiles.lastPath(true);
         }
         if (path == null) { // closed
             return;
         }
         currentChunkStartNanos = repositoryFiles.getTimestamp(path);
         try (RecordingInput input = new RecordingInput(path.toFile(), fileAccess)) {
-            currentParser = new ChunkParser(input, disp.parserConfiguration);
+            input.setStreamed();
+            currentParser = new ChunkParser(input, disp.parserConfiguration, parserState());
             long segmentStart = currentParser.getStartNanos() + currentParser.getChunkDuration();
             long filterStart = validStartTime ? disp.startNanos : segmentStart;
-            long filterEnd = disp.endTime != null ? disp.endNanos: Long.MAX_VALUE;
-
+            long filterEnd = disp.endTime != null ? disp.endNanos : Long.MAX_VALUE;
             while (!isClosed()) {
+                onMetadata(currentParser);
                 while (!isClosed() && !currentParser.isChunkFinished()) {
                     disp = dispatcher();
                     if (disp != lastDisp) {
-                        ParserConfiguration pc = disp.parserConfiguration;
-                        pc.filterStart = filterStart;
-                        pc.filterEnd = filterEnd;
-                        currentParser.updateConfiguration(pc, true);
-                        currentParser.setFlushOperation(getFlushOperation());
+                        var ranged = disp.parserConfiguration.withRange(filterStart, filterEnd);
+                        currentParser.updateConfiguration(ranged, true);
                         lastDisp = disp;
                     }
-                    if (disp.parserConfiguration.isOrdered()) {
+                    if (disp.parserConfiguration.ordered()) {
                         processOrdered(disp);
                     } else {
                         processUnordered(disp);
                     }
-                    if (currentParser.getStartNanos() + currentParser.getChunkDuration() > filterEnd) {
-                        close();
+                    currentParser.resetCache();
+                    if (currentParser.getLastFlush() > filterEnd) {
                         return;
                     }
                 }
-                if (isLastChunk()) {
+                long endNanos = currentParser.getStartNanos() + currentParser.getChunkDuration();
+                long endMillis = Instant.ofEpochSecond(0, endNanos).toEpochMilli();
+
+                barrier.check(); // block if recording is being stopped
+                if (barrier.getStreamEnd() <= endMillis) {
+                    return;
+                }
+
+                if (!barrier.hasStreamEnd() && isLastChunk()) {
                     // Recording was stopped/closed externally, and no more data to process.
                     return;
                 }
@@ -159,17 +194,22 @@ public class EventDirectoryStream extends AbstractEventStream {
                     return;
                 }
                 long durationNanos = currentParser.getChunkDuration();
+                long endChunkNanos = currentParser.getEndNanos();
                 if (durationNanos == 0) {
                     // Avoid reading the same chunk again and again if
                     // duration is 0 ns
                     durationNanos++;
+                    if (Logger.shouldLog(LogTag.JFR_SYSTEM_PARSER, LogLevel.INFO)) {
+                        Logger.log(LogTag.JFR_SYSTEM_PARSER, LogLevel.INFO, "Unexpected chunk with 0 ns duration");
+                    }
                 }
-                path = repositoryFiles.nextPath(currentChunkStartNanos + durationNanos);
+                path = repositoryFiles.nextPath(currentChunkStartNanos + durationNanos, true);
                 if (path == null) {
                     return; // stream closed
                 }
                 currentChunkStartNanos = repositoryFiles.getTimestamp(path);
                 input.setFile(path);
+                onComplete(endChunkNanos);
                 currentParser = currentParser.newChunkParser();
                 // TODO: Optimization. No need filter when we reach new chunk
                 // Could set start = 0;
@@ -177,11 +217,16 @@ public class EventDirectoryStream extends AbstractEventStream {
         }
     }
 
+
     private boolean isLastChunk() {
-        if (recording == null) {
+        if (!isRecording()) {
             return false;
         }
         return recording.getFinalChunkStartNanos() >= currentParser.getStartNanos();
+    }
+
+    protected boolean isRecording() {
+        return recording != null;
     }
 
     private void processOrdered(Dispatcher c) throws IOException {
@@ -199,8 +244,10 @@ public class EventDirectoryStream extends AbstractEventStream {
             }
             sortedCache[index++] = e;
         }
+        onMetadata(currentParser);
         // no events found
         if (index == 0 && currentParser.isChunkFinished()) {
+            onFlush();
             return;
         }
         // at least 2 events, sort them
@@ -210,6 +257,7 @@ public class EventDirectoryStream extends AbstractEventStream {
         for (int i = 0; i < index; i++) {
             c.dispatch(sortedCache[i]);
         }
+        onFlush();
         return;
     }
 
@@ -217,11 +265,16 @@ public class EventDirectoryStream extends AbstractEventStream {
         while (true) {
             RecordedEvent e = currentParser.readStreamingEvent();
             if (e == null) {
+                onFlush();
                 return true;
-            } else {
-                c.dispatch(e);
             }
+            onMetadata(currentParser);
+            c.dispatch(e);
         }
     }
 
+    public StreamBarrier activateStreamBarrier() {
+        barrier.activate();
+        return barrier;
+    }
 }

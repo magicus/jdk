@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@ import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Objects;
 
+import static sun.net.httpserver.Utils.isQuotedStringContent;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -36,52 +37,70 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * authentication. It is an abstract class and must be extended
  * to provide an implementation of {@link #checkCredentials(String,String)}
  * which is called to verify each incoming request.
+ *
+ * @since 1.6
  */
 public abstract class BasicAuthenticator extends Authenticator {
 
+    /** The HTTP Basic authentication realm. */
     protected final String realm;
     private final Charset charset;
     private final boolean isUTF8;
 
     /**
-     * Creates a BasicAuthenticator for the given HTTP realm.
+     * Creates a {@code BasicAuthenticator} for the given HTTP realm.
      * The Basic authentication credentials (username and password) are decoded
      * using the platform's {@link Charset#defaultCharset() default character set}.
      *
-     * @param realm The HTTP Basic authentication realm
+     * @apiNote The value of the {@code realm} parameter will be embedded in a
+     * quoted string.
+     *
+     * @param realm the HTTP Basic authentication realm
      * @throws NullPointerException if realm is {@code null}
-     * @throws IllegalArgumentException if realm is an empty string
+     * @throws IllegalArgumentException if realm is an empty string or is not
+     *         correctly quoted, as specified in <a href="https://tools.ietf.org/html/rfc7230#section-3.2">
+     *         RFC 7230 section-3.2</a>. Note, any {@code \} character used for
+     *         quoting must itself be quoted in source code.
+
      */
-    public BasicAuthenticator (String realm) {
+    public BasicAuthenticator(String realm) {
         this(realm, Charset.defaultCharset());
     }
 
     /**
-     * Creates a BasicAuthenticator for the given HTTP realm and using the
+     * Creates a {@code BasicAuthenticator} for the given HTTP realm and using the
      * given {@link Charset} to decode the Basic authentication credentials
      * (username and password).
      *
      * @apiNote {@code UTF-8} is the recommended charset because its usage is
      * communicated to the client, and therefore more likely to be used also
      * by the client.
+     * <p>The value of the {@code realm} parameter will be embedded in a quoted
+     * string.
      *
-     * @param realm The HTTP Basic authentication realm
-     * @param charset The Charset to decode incoming credentials from the client
+     * @param realm the HTTP Basic authentication realm
+     * @param charset the {@code Charset} to decode incoming credentials from the client
      * @throws NullPointerException if realm or charset are {@code null}
-     * @throws IllegalArgumentException if realm is an empty string
+     * @throws IllegalArgumentException if realm is an empty string or is not
+     *         correctly quoted, as specified in <a href="https://tools.ietf.org/html/rfc7230#section-3.2">
+     *         RFC 7230 section-3.2</a>. Note, any {@code \} character used for
+     *         quoting must itself be quoted in source code.
      */
-    public BasicAuthenticator (String realm, Charset charset) {
+    public BasicAuthenticator(String realm, Charset charset) {
         Objects.requireNonNull(charset);
         if (realm.isEmpty()) // implicit NPE check
             throw new IllegalArgumentException("realm must not be empty");
+        if (!isQuotedStringContent(realm))
+            throw new IllegalArgumentException("realm invalid: " + realm);
         this.realm = realm;
         this.charset = charset;
         this.isUTF8 = charset.equals(UTF_8);
     }
 
     /**
-     * returns the realm this BasicAuthenticator was created with
-     * @return the authenticator's realm string.
+     * Returns the realm this {@code BasicAuthenticator} was created with.
+     *
+     * @return the authenticator's realm string
      */
     public String getRealm () {
         return realm;
@@ -129,14 +148,14 @@ public abstract class BasicAuthenticator extends Authenticator {
     }
 
     /**
-     * called for each incoming request to verify the
+     * Called for each incoming request to verify the
      * given name and password in the context of this
-     * Authenticator's realm. Any caching of credentials
-     * must be done by the implementation of this method
+     * authenticator's realm. Any caching of credentials
+     * must be done by the implementation of this method.
+     *
      * @param username the username from the request
      * @param password the password from the request
-     * @return <code>true</code> if the credentials are valid,
-     *    <code>false</code> otherwise.
+     * @return {@code true} if the credentials are valid, {@code false} otherwise
      */
     public abstract boolean checkCredentials (String username, String password);
 }

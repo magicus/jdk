@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 
 #include "precompiled.hpp"
 #include "compiler/compilerDefinitions.hpp"
+#include "jvm_io.h"
 #include "runtime/arguments.hpp"
 #include "runtime/vm_version.hpp"
 #include "utilities/globalDefinitions.hpp"
@@ -33,8 +34,11 @@ const char* Abstract_VM_Version::_s_internal_vm_info_string = Abstract_VM_Versio
 
 uint64_t Abstract_VM_Version::_features = 0;
 const char* Abstract_VM_Version::_features_string = "";
+uint64_t Abstract_VM_Version::_cpu_features = 0;
 
+#ifndef SUPPORTS_NATIVE_CX8
 bool Abstract_VM_Version::_supports_cx8 = false;
+#endif
 bool Abstract_VM_Version::_supports_atomic_getset4 = false;
 bool Abstract_VM_Version::_supports_atomic_getset8 = false;
 bool Abstract_VM_Version::_supports_atomic_getadd4 = false;
@@ -73,6 +77,10 @@ VirtualizationType Abstract_VM_Version::_detected_virtualization = NoDetectedVir
   #error DEBUG_LEVEL must be defined
 #endif
 
+#ifndef HOTSPOT_BUILD_TIME
+  #error HOTSPOT_BUILD_TIME must be defined
+#endif
+
 #define VM_RELEASE HOTSPOT_VERSION_STRING
 
 // HOTSPOT_VERSION_STRING equals the JDK VERSION_STRING (unless overridden
@@ -90,16 +98,16 @@ int Abstract_VM_Version::_vm_build_number = VERSION_BUILD;
 #endif
 
 #ifndef VMTYPE
-  #ifdef TIERED
+  #if COMPILER1_AND_COMPILER2
     #define VMTYPE "Server"
-  #else // TIERED
+  #else // COMPILER1_AND_COMPILER2
   #ifdef ZERO
     #define VMTYPE "Zero"
   #else // ZERO
      #define VMTYPE COMPILER1_PRESENT("Client")   \
                     COMPILER2_PRESENT("Server")
   #endif // ZERO
-  #endif // TIERED
+  #endif // COMPILER1_AND_COMPILER2
 #endif
 
 #ifndef HOTSPOT_VM_DISTRO
@@ -111,13 +119,17 @@ const char* Abstract_VM_Version::vm_name() {
   return VMNAME;
 }
 
+#ifndef VENDOR_PADDING
+# define VENDOR_PADDING 64
+#endif
+#ifndef VENDOR
+# define VENDOR  "Oracle Corporation"
+#endif
+
+static const char vm_vendor_string[sizeof(VENDOR) < VENDOR_PADDING ? VENDOR_PADDING : sizeof(VENDOR)] = VENDOR;
 
 const char* Abstract_VM_Version::vm_vendor() {
-#ifdef VENDOR
-  return VENDOR;
-#else
-  return "Oracle Corporation";
-#endif
+  return vm_vendor_string;
 }
 
 
@@ -127,34 +139,24 @@ const char* Abstract_VM_Version::vm_info_string() {
       return UseSharedSpaces ? "interpreted mode, sharing" : "interpreted mode";
     case Arguments::_mixed:
       if (UseSharedSpaces) {
-        if (UseAOT) {
-          return "mixed mode, aot, sharing";
-#ifdef TIERED
-        } else if(is_client_compilation_mode_vm()) {
+        if (CompilationModeFlag::quick_only()) {
           return "mixed mode, emulated-client, sharing";
-#endif
         } else {
           return "mixed mode, sharing";
          }
       } else {
-        if (UseAOT) {
-          return "mixed mode, aot";
-#ifdef TIERED
-        } else if(is_client_compilation_mode_vm()) {
+        if (CompilationModeFlag::quick_only()) {
           return "mixed mode, emulated-client";
-#endif
         } else {
           return "mixed mode";
         }
       }
     case Arguments::_comp:
-#ifdef TIERED
-      if (is_client_compilation_mode_vm()) {
+      if (CompilationModeFlag::quick_only()) {
          return UseSharedSpaces ? "compiled mode, emulated-client, sharing" : "compiled mode, emulated-client";
       }
-#endif
-      return UseSharedSpaces ? "compiled mode, sharing"    : "compiled mode";
-  };
+      return UseSharedSpaces ? "compiled mode, sharing" : "compiled mode";
+  }
   ShouldNotReachHere();
   return "";
 }
@@ -166,16 +168,8 @@ const char* Abstract_VM_Version::vm_release() {
   return VM_RELEASE;
 }
 
-// NOTE: do *not* use stringStream. this function is called by
-//       fatal error handlers. if the crash is in native thread,
-//       stringStream cannot get resource allocated and will SEGV.
-const char* Abstract_VM_Version::jre_release_version() {
-  return VERSION_STRING;
-}
-
 #define OS       LINUX_ONLY("linux")             \
                  WINDOWS_ONLY("windows")         \
-                 SOLARIS_ONLY("solaris")         \
                  AIX_ONLY("aix")                 \
                  BSD_ONLY("bsd")
 
@@ -194,7 +188,7 @@ const char* Abstract_VM_Version::jre_release_version() {
                  IA32_ONLY("x86")                \
                  IA64_ONLY("ia64")               \
                  S390_ONLY("s390")               \
-                 SPARC_ONLY("sparc")
+                 RISCV64_ONLY("riscv64")
 #endif // !ZERO
 #endif // !CPU
 
@@ -203,21 +197,9 @@ const char *Abstract_VM_Version::vm_platform_string() {
 }
 
 const char* Abstract_VM_Version::internal_vm_info_string() {
-  #ifndef HOTSPOT_BUILD_USER
-    #define HOTSPOT_BUILD_USER unknown
-  #endif
-
   #ifndef HOTSPOT_BUILD_COMPILER
     #ifdef _MSC_VER
-      #if _MSC_VER == 1600
-        #define HOTSPOT_BUILD_COMPILER "MS VC++ 10.0 (VS2010)"
-      #elif _MSC_VER == 1700
-        #define HOTSPOT_BUILD_COMPILER "MS VC++ 11.0 (VS2012)"
-      #elif _MSC_VER == 1800
-        #define HOTSPOT_BUILD_COMPILER "MS VC++ 12.0 (VS2013)"
-      #elif _MSC_VER == 1900
-        #define HOTSPOT_BUILD_COMPILER "MS VC++ 14.0 (VS2015)"
-      #elif _MSC_VER == 1911
+      #if _MSC_VER == 1911
         #define HOTSPOT_BUILD_COMPILER "MS VC++ 15.3 (VS2017)"
       #elif _MSC_VER == 1912
         #define HOTSPOT_BUILD_COMPILER "MS VC++ 15.5 (VS2017)"
@@ -237,22 +219,38 @@ const char* Abstract_VM_Version::internal_vm_info_string() {
         #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.2 (VS2019)"
       #elif _MSC_VER == 1923
         #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.3 (VS2019)"
+      #elif _MSC_VER == 1924
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.4 (VS2019)"
+      #elif _MSC_VER == 1925
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.5 (VS2019)"
+      #elif _MSC_VER == 1926
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.6 (VS2019)"
+      #elif _MSC_VER == 1927
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.7 (VS2019)"
+      #elif _MSC_VER == 1928
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.8 / 16.9 (VS2019)"
+      #elif _MSC_VER == 1929
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.10 / 16.11 (VS2019)"
+      #elif _MSC_VER == 1930
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 17.0 (VS2022)"
+      #elif _MSC_VER == 1931
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 17.1 (VS2022)"
+      #elif _MSC_VER == 1932
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 17.2 (VS2022)"
+      #elif _MSC_VER == 1933
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 17.3 (VS2022)"
+      #elif _MSC_VER == 1934
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 17.4 (VS2022)"
+      #elif _MSC_VER == 1935
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 17.5 (VS2022)"
+      #elif _MSC_VER == 1936
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 17.6 (VS2022)"
+      #elif _MSC_VER == 1937
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 17.7 (VS2022)"
+      #elif _MSC_VER == 1938
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 17.8 (VS2022)"
       #else
         #define HOTSPOT_BUILD_COMPILER "unknown MS VC++:" XSTR(_MSC_VER)
-      #endif
-    #elif defined(__SUNPRO_CC)
-      #if __SUNPRO_CC == 0x580
-        #define HOTSPOT_BUILD_COMPILER "Workshop 5.8"
-      #elif __SUNPRO_CC == 0x590
-        #define HOTSPOT_BUILD_COMPILER "Workshop 5.9"
-      #elif __SUNPRO_CC == 0x5100
-        #define HOTSPOT_BUILD_COMPILER "Sun Studio 12u1"
-      #elif __SUNPRO_CC == 0x5120
-        #define HOTSPOT_BUILD_COMPILER "Sun Studio 12u3"
-      #elif __SUNPRO_CC == 0x5130
-        #define HOTSPOT_BUILD_COMPILER "Sun Studio 12u4"
-      #else
-        #define HOTSPOT_BUILD_COMPILER "unknown Workshop:" XSTR(__SUNPRO_CC)
       #endif
     #elif defined(__clang_version__)
         #define HOTSPOT_BUILD_COMPILER "clang " __VERSION__
@@ -273,22 +271,20 @@ const char* Abstract_VM_Version::internal_vm_info_string() {
     #define FLOAT_ARCH_STR XSTR(FLOAT_ARCH)
   #endif
 
-  #ifndef HOTSPOT_BUILD_TIME
-    #define HOTSPOT_BUILD_TIME __DATE__ " " __TIME__
+  #ifdef MUSL_LIBC
+    #define LIBC_STR "-" XSTR(LIBC)
+  #else
+    #define LIBC_STR ""
   #endif
 
   #define INTERNAL_VERSION_SUFFIX VM_RELEASE ")" \
-         " for " OS "-" CPU FLOAT_ARCH_STR \
+         " for " OS "-" CPU FLOAT_ARCH_STR LIBC_STR \
          " JRE (" VERSION_STRING "), built on " HOTSPOT_BUILD_TIME \
-         " by " XSTR(HOTSPOT_BUILD_USER) " with " HOTSPOT_BUILD_COMPILER
+         " with " HOTSPOT_BUILD_COMPILER
 
   return strcmp(DEBUG_LEVEL, "release") == 0
       ? VMNAME " (" INTERNAL_VERSION_SUFFIX
       : VMNAME " (" DEBUG_LEVEL " " INTERNAL_VERSION_SUFFIX;
-}
-
-const char *Abstract_VM_Version::vm_build_user() {
-  return HOTSPOT_BUILD_USER;
 }
 
 const char *Abstract_VM_Version::jdk_debug_level() {
@@ -307,17 +303,33 @@ unsigned int Abstract_VM_Version::jvm_version() {
          (Abstract_VM_Version::vm_build_number() & 0xFF);
 }
 
+void Abstract_VM_Version::insert_features_names(char* buf, size_t buflen, const char* features_names[]) {
+  uint64_t features = _features;
+  uint features_names_index = 0;
+
+  while (features != 0) {
+    if (features & 1) {
+      int res = jio_snprintf(buf, buflen, ", %s", features_names[features_names_index]);
+      assert(res > 0, "not enough temporary space allocated");
+      buf += res;
+      buflen -= res;
+    }
+    features >>= 1;
+    ++features_names_index;
+  }
+}
+
 bool Abstract_VM_Version::print_matching_lines_from_file(const char* filename, outputStream* st, const char* keywords_to_match[]) {
   char line[500];
-  FILE* fp = fopen(filename, "r");
-  if (fp == NULL) {
+  FILE* fp = os::fopen(filename, "r");
+  if (fp == nullptr) {
     return false;
   }
 
   st->print_cr("Virtualization information:");
-  while (fgets(line, sizeof(line), fp) != NULL) {
+  while (fgets(line, sizeof(line), fp) != nullptr) {
     int i = 0;
-    while (keywords_to_match[i] != NULL) {
+    while (keywords_to_match[i] != nullptr) {
       if (strncmp(line, keywords_to_match[i], strlen(keywords_to_match[i])) == 0) {
         st->print("%s", line);
         break;
@@ -327,4 +339,47 @@ bool Abstract_VM_Version::print_matching_lines_from_file(const char* filename, o
   }
   fclose(fp);
   return true;
+}
+
+// Abstract_VM_Version statics
+int   Abstract_VM_Version::_no_of_threads = 0;
+int   Abstract_VM_Version::_no_of_cores = 0;
+int   Abstract_VM_Version::_no_of_sockets = 0;
+bool  Abstract_VM_Version::_initialized = false;
+char  Abstract_VM_Version::_cpu_name[CPU_TYPE_DESC_BUF_SIZE] = {0};
+char  Abstract_VM_Version::_cpu_desc[CPU_DETAILED_DESC_BUF_SIZE] = {0};
+
+int Abstract_VM_Version::number_of_threads(void) {
+  assert(_initialized, "should be initialized");
+  return _no_of_threads;
+}
+
+int Abstract_VM_Version::number_of_cores(void) {
+  assert(_initialized, "should be initialized");
+  return _no_of_cores;
+}
+
+int Abstract_VM_Version::number_of_sockets(void) {
+  assert(_initialized, "should be initialized");
+  return _no_of_sockets;
+}
+
+const char* Abstract_VM_Version::cpu_name(void) {
+  assert(_initialized, "should be initialized");
+  char* tmp = NEW_C_HEAP_ARRAY_RETURN_NULL(char, CPU_TYPE_DESC_BUF_SIZE, mtTracing);
+  if (nullptr == tmp) {
+    return nullptr;
+  }
+  strncpy(tmp, _cpu_name, CPU_TYPE_DESC_BUF_SIZE);
+  return tmp;
+}
+
+const char* Abstract_VM_Version::cpu_description(void) {
+  assert(_initialized, "should be initialized");
+  char* tmp = NEW_C_HEAP_ARRAY_RETURN_NULL(char, CPU_DETAILED_DESC_BUF_SIZE, mtTracing);
+  if (nullptr == tmp) {
+    return nullptr;
+  }
+  strncpy(tmp, _cpu_desc, CPU_DETAILED_DESC_BUF_SIZE);
+  return tmp;
 }

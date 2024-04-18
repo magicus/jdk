@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,19 +27,18 @@ package gc.logging;
  * @test TestGCId
  * @bug 8043607
  * @summary Ensure that the GCId is logged
- * @key gc
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
- * @build sun.hotspot.WhiteBox
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @build jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI gc.logging.TestGCId
  */
 
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
 import jtreg.SkippedException;
-import sun.hotspot.gc.GC;
+import jdk.test.whitebox.gc.GC;
 
 public class TestGCId {
   public static void main(String[] args) throws Exception {
@@ -74,9 +73,9 @@ public class TestGCId {
   }
 
   private static void testGCId(String gcFlag) throws Exception {
-    ProcessBuilder pb_default =
-      ProcessTools.createJavaProcessBuilder("-XX:+UnlockExperimentalVMOptions", "-XX:+" + gcFlag, "-Xlog:gc", "-Xmx10M", GCTest.class.getName());
-    verifyContainsGCIDs(new OutputAnalyzer(pb_default.start()));
+    OutputAnalyzer output =
+      ProcessTools.executeLimitedTestJava("-XX:+UnlockExperimentalVMOptions", "-XX:+" + gcFlag, "-Xlog:gc", "-Xmx10M", GCTest.class.getName());
+    verifyContainsGCIDs(output);
   }
 
   static class GCTest {

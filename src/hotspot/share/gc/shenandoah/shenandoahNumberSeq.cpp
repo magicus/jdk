@@ -30,14 +30,14 @@
 HdrSeq::HdrSeq() {
   _hdr = NEW_C_HEAP_ARRAY(int*, MagBuckets, mtInternal);
   for (int c = 0; c < MagBuckets; c++) {
-    _hdr[c] = NULL;
+    _hdr[c] = nullptr;
   }
 }
 
 HdrSeq::~HdrSeq() {
   for (int c = 0; c < MagBuckets; c++) {
     int* sub = _hdr[c];
-    if (sub != NULL) {
+    if (sub != nullptr) {
       FREE_C_HEAP_ARRAY(int, sub);
     }
   }
@@ -56,7 +56,7 @@ void HdrSeq::add(double val) {
   int mag;
   if (v > 0) {
     mag = 0;
-    while (v > 1) {
+    while (v >= 1) {
       mag++;
       v /= 10;
     }
@@ -71,7 +71,7 @@ void HdrSeq::add(double val) {
   int bucket = -MagMinimum + mag;
   int sub_bucket = (int) (v * ValBuckets);
 
-  // Defensively saturate for product bits:
+  // Defensively saturate for product bits
   if (bucket < 0) {
     assert (false, "bucket index (%d) underflow for value (%8.2f)", bucket, val);
     bucket = 0;
@@ -93,7 +93,7 @@ void HdrSeq::add(double val) {
   }
 
   int* b = _hdr[bucket];
-  if (b == NULL) {
+  if (b == nullptr) {
     b = NEW_C_HEAP_ARRAY(int, ValBuckets, mtInternal);
     for (int c = 0; c < ValBuckets; c++) {
       b[c] = 0;
@@ -108,7 +108,7 @@ double HdrSeq::percentile(double level) const {
   int target = MAX2(1, (int) (level * num() / 100));
   int cnt = 0;
   for (int mag = 0; mag < MagBuckets; mag++) {
-    if (_hdr[mag] != NULL) {
+    if (_hdr[mag] != nullptr) {
       for (int val = 0; val < ValBuckets; val++) {
         cnt += _hdr[mag][val];
         if (cnt >= target) {
@@ -122,20 +122,24 @@ double HdrSeq::percentile(double level) const {
 
 BinaryMagnitudeSeq::BinaryMagnitudeSeq() {
   _mags = NEW_C_HEAP_ARRAY(size_t, BitsPerSize_t, mtInternal);
-  for (int c = 0; c < BitsPerSize_t; c++) {
-    _mags[c] = 0;
-  }
-  _sum = 0;
+  clear();
 }
 
 BinaryMagnitudeSeq::~BinaryMagnitudeSeq() {
   FREE_C_HEAP_ARRAY(size_t, _mags);
 }
 
+void BinaryMagnitudeSeq::clear() {
+  for (int c = 0; c < BitsPerSize_t; c++) {
+    _mags[c] = 0;
+  }
+  _sum = 0;
+}
+
 void BinaryMagnitudeSeq::add(size_t val) {
   Atomic::add(&_sum, val);
 
-  int mag = log2_intptr(val) + 1;
+  int mag = log2i_graceful(val) + 1;
 
   // Defensively saturate for product bits:
   if (mag < 0) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -95,7 +95,7 @@ import javax.accessibility.*;
  * <PRE>
  *     layeredPane.add(child, JLayeredPane.DEFAULT_LAYER);
  * or
- *     layeredPane.add(child, Integer.valueOf.valueOf(10));
+ *     layeredPane.add(child, Integer.valueOf(10));
  * </PRE>
  * The layer attribute can also be set on a Component by calling<PRE>
  *     layeredPaneParent.setLayer(child, 10)</PRE>
@@ -148,7 +148,7 @@ import javax.accessibility.*;
  * future Swing releases. The current serialization support is
  * appropriate for short term storage or RMI between applications running
  * the same version of Swing.  As of 1.4, support for long term storage
- * of all JavaBeans&trade;
+ * of all JavaBeans
  * has been added to the <code>java.beans</code> package.
  * Please see {@link java.beans.XMLEncoder}.
  *
@@ -205,7 +205,7 @@ public class JLayeredPane extends JComponent implements Accessible {
                         (layer = (Integer)((JComponent)c).
                                      getClientProperty(LAYER_PROPERTY)) != null))
                 {
-                    if(layer != null && layer.equals(FRAME_CONTENT_LAYER))
+                    if (FRAME_CONTENT_LAYER.equals(layer))
                         continue;
                     layeredComponentFound = true;
                     break;
@@ -465,7 +465,7 @@ public class JLayeredPane extends JComponent implements Accessible {
      * @param c  the Component to check
      * @return an int giving the component's position, where 0 is the
      *         topmost position and the highest index value = the count
-     *         count of components at that layer, minus 1
+     *         of components at that layer minus 1
      *
      * @see #getComponentCountInLayer
      */
@@ -529,7 +529,7 @@ public class JLayeredPane extends JComponent implements Accessible {
             curLayer = getLayer(getComponent(i));
             if(curLayer == layer) {
                 layerCount++;
-            /// Short circut the counting when we have them all
+            // Short-circuit the counting when we have them all
             } else if(layerCount > 0 || curLayer < layer) {
                 break;
             }
@@ -555,7 +555,7 @@ public class JLayeredPane extends JComponent implements Accessible {
             curLayer = getLayer(getComponent(i));
             if(curLayer == layer) {
                 results[layerCount++] = getComponent(i);
-            /// Short circut the counting when we have them all
+            // Short-circuit the counting when we have them all
             } else if(layerCount > 0 || curLayer < layer) {
                 break;
             }
@@ -759,12 +759,17 @@ public class JLayeredPane extends JComponent implements Accessible {
      * future Swing releases. The current serialization support is
      * appropriate for short term storage or RMI between applications running
      * the same version of Swing.  As of 1.4, support for long term storage
-     * of all JavaBeans&trade;
+     * of all JavaBeans
      * has been added to the <code>java.beans</code> package.
      * Please see {@link java.beans.XMLEncoder}.
      */
     @SuppressWarnings("serial")
     protected class AccessibleJLayeredPane extends AccessibleJComponent {
+
+        /**
+         * Constructs an {@code AccessibleJLayeredPane}.
+         */
+        protected AccessibleJLayeredPane() {}
 
         /**
          * Get the role of this object.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,19 +23,14 @@
 
 /*
  * @test
- * @bug 8215694 8222987 8225257
+ * @bug 8215694 8222987 8225257 8267319
  * @summary keytool cannot generate RSASSA-PSS certificates
  * @library /test/lib
  * @build java.base/sun.security.rsa.RSAKeyPairGenerator
  * @modules java.base/sun.security.util
  *          java.base/sun.security.x509
- * @requires os.family != "solaris"
  * @run main PSS
  */
-
-// This test is excluded from Solaris because the 8192-bit RSA key pair
-// generator is extremely slow there. Please note the fake
-// KeyPairGenerator will not be used because of provider preferences.
 
 import jdk.test.lib.Asserts;
 import jdk.test.lib.SecurityTools;
@@ -68,10 +63,10 @@ public class PSS {
                 new File("ks"), "changeit".toCharArray());
 
         check((X509Certificate)ks.getCertificate("p"), "RSASSA-PSS",
-                AlgorithmId.SHA256_oid);
+                AlgorithmId.SHA384_oid);
 
         check((X509Certificate)ks.getCertificate("a"), "RSA",
-                AlgorithmId.SHA256_oid);
+                AlgorithmId.SHA384_oid);
 
         check((X509Certificate)ks.getCertificate("b"), "RSA",
                 AlgorithmId.SHA384_oid);

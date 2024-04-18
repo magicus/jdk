@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,6 @@
 package gc;
 
 /* @test TestAllocateHeapAtError.java
- * @key gc
  * @summary Test to check correct handling of non-existent directory passed to AllocateHeapAt option
  * @requires vm.gc != "Z" & os.family != "aix"
  * @library /test/lib
@@ -46,13 +45,12 @@ public class TestAllocateHeapAtError {
       f = new File(test_dir, UUID.randomUUID().toString());
     } while(f.exists());
 
-    ProcessBuilder pb = ProcessTools.createTestJvm(
+    OutputAnalyzer output = ProcessTools.executeTestJava(
         "-XX:AllocateHeapAt=" + f.getName(),
         "-Xlog:gc+heap=info",
         "-Xmx32m",
         "-Xms32m",
         "-version");
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
 
     System.out.println("Output:\n" + output.getOutput());
 

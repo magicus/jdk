@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
  * @test
  * @bug 8178870 8010319
  * @summary Redefine class with CFLH twice to test deleting the cached_class_file
+ * @requires vm.jvmti
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  * @modules java.compiler
@@ -45,15 +46,17 @@ class RedefineDoubleDelete_B {
 public class RedefineDoubleDelete {
 
     // Class gets a redefinition error because it adds a data member
-    public static String newB =
-                "class RedefineDoubleDelete_B {" +
-                "   int count1 = 0;" +
-                "}";
+    public static String newB = """
+                class RedefineDoubleDelete_B {
+                   int count1 = 0;
+                }
+                """;
 
-    public static String newerB =
-                "class RedefineDoubleDelete_B { " +
-                "   int faa() { System.out.println(\"baa\"); return 2; }" +
-                "}";
+    public static String newerB = """
+                class RedefineDoubleDelete_B {
+                   int faa() { System.out.println("baa"); return 2; }
+                }
+                """;
 
     public static void main(String args[]) throws Exception {
 

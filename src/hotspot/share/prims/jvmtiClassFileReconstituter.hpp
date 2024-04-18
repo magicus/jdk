@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,13 +26,14 @@
 #define SHARE_PRIMS_JVMTICLASSFILERECONSTITUTER_HPP
 
 #include "jvmtifiles/jvmtiEnv.hpp"
+#include "oops/constantPool.hpp"
 
 
 class JvmtiConstantPoolReconstituter : public StackObj {
  private:
   int                  _cpool_size;
-  SymbolHashMap*       _symmap;
-  SymbolHashMap*       _classmap;
+  ConstantPool::SymbolHash*  _symmap;
+  ConstantPool::SymbolHash*  _classmap;
   constantPoolHandle   _cpool;
   InstanceKlass*       _ik;
   jvmtiError           _err;
@@ -55,13 +56,13 @@ class JvmtiConstantPoolReconstituter : public StackObj {
   JvmtiConstantPoolReconstituter(InstanceKlass* ik);
 
   ~JvmtiConstantPoolReconstituter() {
-    if (_symmap != NULL) {
+    if (_symmap != nullptr) {
       delete _symmap;
-      _symmap = NULL;
+      _symmap = nullptr;
     }
-    if (_classmap != NULL) {
+    if (_classmap != nullptr) {
       delete _classmap;
-      _classmap = NULL;
+      _classmap = nullptr;
     }
   }
 
@@ -72,8 +73,8 @@ class JvmtiConstantPoolReconstituter : public StackObj {
   int cpool_size()                        { return _cpool_size; }
 
   void copy_cpool_bytes(unsigned char *cpool_bytes) {
-    if (cpool_bytes == NULL) {
-      assert(cpool_bytes != NULL, "cpool_bytes pointer must not be NULL");
+    if (cpool_bytes == nullptr) {
+      assert(cpool_bytes != nullptr, "cpool_bytes pointer must not be null");
       return;
     }
     cpool()->copy_cpool_bytes(cpool_size(), _symmap, cpool_bytes);
@@ -101,6 +102,7 @@ class JvmtiClassFileReconstituter : public JvmtiConstantPoolReconstituter {
   void write_method_info(const methodHandle& method);
   void write_code_attribute(const methodHandle& method);
   void write_exceptions_attribute(ConstMethod* const_method);
+  void write_method_parameter_attribute(const ConstMethod* const_method);
   void write_synthetic_attribute();
   void write_class_attributes();
   void write_source_file_attribute();
@@ -115,9 +117,17 @@ class JvmtiClassFileReconstituter : public JvmtiConstantPoolReconstituter {
   void write_signature_attribute(u2 generic_signaure_index);
   void write_attribute_name_index(const char* name);
   void write_annotations_attribute(const char* attr_name, AnnotationArray* annos);
+  // With PreserveAllAnnotations option "runtime invisible" annotations
+  // (RuntimeInvisibleAnnotations/RuntimeInvisibleTypeAnnotations/RuntimeInvisibleParameterAnnotations)
+  // are considered "runtime visible" and ClassFileReconstituter writes them as
+  // RuntimeVisibleAnnotations/RuntimeVisibleTypeAnnotations/RuntimeVisibleParameterAnnotations.
+  // This helper method is for the corner case when "runtime visible" attribute name is not presents
+  // in the class constant pool and the annotations are written with fallback "runtime invisible" name.
+  void write_annotations_attribute(const char* attr_name, const char* fallback_attr_name, AnnotationArray* annos);
   void write_bootstrapmethod_attribute();
   void write_nest_host_attribute();
   void write_nest_members_attribute();
+  void write_permitted_subclasses_attribute();
   void write_record_attribute();
 
   address writeable_address(size_t size);

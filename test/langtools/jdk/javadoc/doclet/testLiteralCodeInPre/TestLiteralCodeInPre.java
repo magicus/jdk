@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,7 +36,7 @@ import javadoc.tester.JavadocTester;
 public class TestLiteralCodeInPre extends JavadocTester {
 
     public static void main(String... args) throws Exception {
-        TestLiteralCodeInPre tester = new TestLiteralCodeInPre();
+        var tester = new TestLiteralCodeInPre();
         tester.runTests();
     }
 
@@ -103,8 +103,8 @@ public class TestLiteralCodeInPre extends JavadocTester {
                      </PRE></div>""",
                 """
                     <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span c\
-                    lass="return-type">void</span>&nbsp;<span class="member-name">htmlAttrInPre1</sp\
-                    an>()</div>
+                    lass="return-type">void</span>&nbsp;<span class="element-name">htmlAttrInPre1</span>()</\
+                    div>
                     <div class="block">More html tag outliers.
                      <pre>
                      @Override

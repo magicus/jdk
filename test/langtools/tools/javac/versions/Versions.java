@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,9 @@
 
 /*
  * @test
- * @bug 4981566 5028634 5094412 6304984 7025786 7025789 8001112 8028545 8000961 8030610 8028546 8188870 8173382 8173382 8193290 8205619 8028563
+ * @bug 4981566 5028634 5094412 6304984 7025786 7025789 8001112 8028545
+ * 8000961 8030610 8028546 8188870 8173382 8173382 8193290 8205619 8028563
+ * 8245147 8245586 8257453 8286035 8306586 8320806 8306586
  * @summary Check interpretation of -target and -source options
  * @modules java.compiler
  *          jdk.compiler
@@ -40,9 +42,8 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Set;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /*
  * If not explicitly specified the latest source and latest target
@@ -66,39 +67,60 @@ public class Versions {
     }
 
     public static final Set<String> RETIRED_SOURCES =
-        Set.of("1.2", "1.3", "1.4", "1.5", "1.6");
+        Set.of("1.2", "1.3", "1.4", "1.5", "1.6", "1.7");
 
     public static final Set<String> VALID_SOURCES =
-        Set.of("1.7", "1.8", "1.9", "1.10", "11", "12", "13", "14", "15");
+        Set.of("1.8", "1.9", "1.10", "11", "12", "13", "14",
+               "15", "16", "17", "18", "19", "20", "21", "22",
+               "23");
 
-    public static final String LATEST_MAJOR_VERSION = "59.0";
+    public static final String LATEST_MAJOR_VERSION = "67.0";
 
     static enum SourceTarget {
-        SEVEN(true,   "51.0",  "7", Versions::checksrc17),
-        EIGHT(true,   "52.0",  "8", Versions::checksrc18),
-        NINE(true,    "53.0",  "9", Versions::checksrc19),
-        TEN(true,     "54.0", "10", Versions::checksrc110),
-        ELEVEN(false, "55.0", "11", Versions::checksrc111),
-        TWELVE(false, "56.0", "12", Versions::checksrc112),
-        THIRTEEN(false, "57.0", "13", Versions::checksrc113),
-        FOURTEEN(false, "58.0", "14", Versions::checksrc114),
-        FIFTEEN(false,  "59.0", "15", Versions::checksrc115);
+        EIGHT(true,      "52.0",  "8"),
+        NINE(true,       "53.0",  "9"),
+        TEN(true,        "54.0", "10"),
+        ELEVEN(false,    "55.0", "11"),
+        TWELVE(false,    "56.0", "12"),
+        THIRTEEN(false,  "57.0", "13"),
+        FOURTEEN(false,  "58.0", "14"),
+        FIFTEEN(false,   "59.0", "15"),
+        SIXTEEN(false,   "60.0", "16"),
+        SEVENTEEN(false, "61.0", "17"),
+        EIGHTEEN(false,  "62.0", "18"),
+        NINETEEN(false,  "63.0", "19"),
+        TWENTY(false,    "64.0", "20"),
+        TWENTY_ONE(false,"65.0", "21"),
+        TWENTY_TWO(false,"66.0", "22"),
+        TWENTY_THREE(false,"67.0", "23"),
+        ; // Reduce code churn when appending new constants
 
         private final boolean dotOne;
         private final String classFileVer;
         private final String target;
-        private final BiConsumer<Versions, String[]> checker;
+        private final int intTarget;
 
-        private SourceTarget(boolean dotOne, String classFileVer, String target,
-                             BiConsumer<Versions, String[]> checker) {
+        private SourceTarget(boolean dotOne, String classFileVer, String target) {
             this.dotOne = dotOne;
             this.classFileVer = classFileVer;
             this.target = target;
-            this.checker = checker;
+            this.intTarget = Integer.parseInt(target);
         }
 
-        public void checksrc(Versions version, String... args) {
-            checker.accept(version, args);
+        public void checksrc(Versions versions, List<String> args) {
+            // checker.accept(version, args);
+            versions.printargs("checksrc" + target, args);
+            List<String> expectedPassFiles = new ArrayList<>();
+            List<String> expectedFailFiles = new ArrayList<>();
+
+            for (SourceExample srcEg : SourceExample.values()) {
+                var x = (srcEg.sourceLevel <= this.intTarget) ?
+                    expectedPassFiles.add(srcEg.fileName()):
+                    expectedFailFiles.add(srcEg.fileName());
+            }
+
+            versions.expectedPass(args, expectedPassFiles);
+            versions.expectedFail(args, expectedFailFiles);
         }
 
         public boolean dotOne() {
@@ -112,6 +134,10 @@ public class Versions {
         public String target() {
             return target;
         }
+
+        public int intTarget() {
+            return intTarget;
+        }
     }
 
     void run() {
@@ -120,7 +146,7 @@ public class Versions {
 
         check(LATEST_MAJOR_VERSION);
         for (String source : VALID_SOURCES) {
-            check(LATEST_MAJOR_VERSION, "-source " + source);
+            check(LATEST_MAJOR_VERSION, List.of("-source " + source));
         }
 
         // Verify that a -source value less than a -target value is
@@ -132,10 +158,10 @@ public class Versions {
             String classFileVer = st.classFileVer();
             String target = st.target();
             boolean dotOne = st.dotOne();
-            check_source_target(dotOne, classFileVer, target, target);
-            for (int j = i; j > 0; j--) {
+            check_source_target(dotOne, List.of(classFileVer, target, target));
+            for (int j = i - 1; j >= 0; j--) {
                 String source = sourceTargets[j].target();
-                check_source_target(dotOne, classFileVer, source, target);
+                check_source_target(dotOne, List.of(classFileVer, source, target));
             }
         }
 
@@ -144,19 +170,19 @@ public class Versions {
         for (int i = 0; i < sourceTargets.length; i++) {
             SourceTarget st = sourceTargets[i];
 
-            st.checksrc(this, "-source " + st.target());
-            st.checksrc(this, "-source " + st.target(), "-target " + st.target());
+            st.checksrc(this, List.of("-source " + st.target()));
+            st.checksrc(this, List.of("-source " + st.target(), "-target " + st.target()));
 
             if (st.dotOne()) {
-                st.checksrc(this, "-source 1." + st.target());
-                st.checksrc(this, "-source 1." + st.target(), "-target 1." + st.target());
+                st.checksrc(this, List.of("-source 1." + st.target()));
+                st.checksrc(this, List.of("-source 1." + st.target(), "-target 1." + st.target()));
             }
 
-            if (i == sourceTargets.length) {
+            if (i == sourceTargets.length - 1) {
                 // Can use -target without -source setting only for
                 // most recent target since the most recent source is
                 // the default.
-                st.checksrc(this, "-target " + st.target());
+                st.checksrc(this, List.of("-target " + st.target()));
 
                 if (!st.classFileVer().equals(LATEST_MAJOR_VERSION)) {
                     throw new RuntimeException(st +
@@ -168,14 +194,14 @@ public class Versions {
 
         // Verify that -source N -target (N-1) is rejected
         for (int i = 1 /* Skip zeroth value */; i < sourceTargets.length; i++) {
-            fail("-source " + sourceTargets[i].target(),
+            fail(List.of("-source " + sourceTargets[i].target(),
                  "-target " + sourceTargets[i-1].target(),
-                 "Base.java");
+                         "Base.java"));
         }
 
         // Previously supported source/target values
         for (String source  : RETIRED_SOURCES) {
-            fail("-source " + source, "-target " + source, "Base.java");
+            fail(List.of("-source " + source, "-target " + source, "Base.java"));
         }
 
         if (failedCases > 0) {
@@ -185,7 +211,7 @@ public class Versions {
 
     }
 
-    protected void printargs(String fname,String... args) {
+    protected void printargs(String fname, List<String> args) {
         System.out.printf("test: %s", fname);
         for (String onearg : args) {
             System.out.printf(" %s", onearg);
@@ -193,33 +219,29 @@ public class Versions {
         System.out.printf("\n", fname);
     }
 
-    protected void check_source_target(boolean dotOne, String... args) {
+    protected void check_source_target(boolean dotOne, List<String> args) {
         printargs("check_source_target", args);
-        check_target(dotOne, args[0], args[1], args[2]);
+        check_target(dotOne, List.of(args.get(0), args.get(1), args.get(2)));
         if (dotOne) {
-            check_target(dotOne, args[0], "1." + args[1], args[2]);
+            check_target(dotOne, List.of(args.get(0), "1." + args.get(1), args.get(2)));
         }
     }
 
-    protected void check_target(boolean dotOne, String... args) {
-        check(args[0], "-source " + args[1], "-target " + args[2]);
+    protected void check_target(boolean dotOne, List<String> args) {
+        check(args.get(0), List.of("-source " + args.get(1), "-target " + args.get(2)));
         if (dotOne) {
-            check(args[0], "-source " + args[1], "-target 1." + args[2]);
+            check(args.get(0), List.of("-source " + args.get(1), "-target 1." + args.get(2)));
         }
     }
 
-    protected void check(String major, String... args) {
+    protected void check(String major) {
+        check(major, List.of());
+    }
+
+    protected void check(String major, List<String> args) {
         printargs("check", args);
-        List<String> jcargs = new ArrayList<>();
-        jcargs.add("-Xlint:-options");
 
-        // add in args conforming to List requrements of JavaCompiler
-        for (String onearg : args) {
-            String[] fields = onearg.split(" ");
-            for (String onefield : fields) {
-                jcargs.add(onefield);
-            }
-        }
+        List<String> jcargs = javaCompilerOptions(args);
 
         boolean creturn = compile("Base.java", jcargs);
         if (!creturn) {
@@ -234,96 +256,189 @@ public class Versions {
         }
     }
 
-    protected void checksrc17(String... args) {
-        printargs("checksrc17", args);
-        int asize = args.length;
-        String[] newargs = new String[asize+1];
-        System.arraycopy(args, 0, newargs,0 , asize);
-        newargs[asize] = "New17.java";
-        pass(newargs);
-        newargs[asize] = "New18.java";
-        fail(newargs);
-    }
-
-    protected void checksrc18(String... args) {
-        printargs("checksrc18", args);
-        int asize = args.length;
-        String[] newargs = new String[asize+1];
-        System.arraycopy(args, 0, newargs,0 , asize);
-        newargs[asize] = "New17.java";
-        pass(newargs);
-        newargs[asize] = "New18.java";
-        pass(newargs);
-        newargs[asize] = "New110.java";
-        fail(newargs);
-    }
-
-    protected void checksrc19(String... args) {
-        printargs("checksrc19", args);
-        checksrc18(args);
-    }
-
-    protected void checksrc110(String... args) {
-        printargs("checksrc110", args);
-        int asize = args.length;
-        String[] newargs = new String[asize+1];
-        System.arraycopy(args, 0, newargs,0 , asize);
-        newargs[asize] = "New17.java";
-        pass(newargs);
-        newargs[asize] = "New18.java";
-        pass(newargs);
-        newargs[asize] = "New110.java";
-        pass(newargs);
-    }
-
-    protected void checksrc111(String... args) {
-        printargs("checksrc111", args);
-        int asize = args.length;
-        String[] newargs = new String[asize+1];
-        System.arraycopy(args, 0, newargs,0 , asize);
-        newargs[asize] = "New17.java";
-        pass(newargs);
-        newargs[asize] = "New18.java";
-        pass(newargs);
-        newargs[asize] = "New110.java";
-        pass(newargs);
-        newargs[asize] = "New111.java";
-        pass(newargs);
-    }
-
-    protected void checksrc112(String... args) {
-        printargs("checksrc112", args);
-        checksrc111(args);
-    }
-
-    protected void checksrc113(String... args) {
-        printargs("checksrc113", args);
-        checksrc111(args);
-    }
-
-    protected void checksrc114(String... args) {
-        printargs("checksrc114", args);
-        checksrc111(args);
-    }
-
-    protected void checksrc115(String... args) {
-        printargs("checksrc115", args);
-        checksrc111(args);
-    }
-
-    protected void pass(String... args) {
-        printargs("pass", args);
-
-        List<String> jcargs = new ArrayList<String>();
+    /**
+     * Create a list of options suitable for use with {@link JavaCompiler}
+     * @param args a list of space-delimited options, such as "-source 11"
+     * @return a list of arguments suitable for use with {@link JavaCompiler}
+     */
+    private static List<String> javaCompilerOptions(List<String> args) {
+        List<String> jcargs = new ArrayList<>();
         jcargs.add("-Xlint:-options");
 
-        // add in args conforming to List requrements of JavaCompiler
+        // add in args conforming to List requirements of JavaCompiler
         for (String onearg : args) {
             String[] fields = onearg.split(" ");
             for (String onefield : fields) {
                 jcargs.add(onefield);
             }
         }
+        return jcargs;
+    }
+
+    /**
+     * The BASE source example is expected to compile on all source
+     * levels. Otherwise, an example is expected to compile on its
+     * declared source level and later, but to _not_ compile on
+     * earlier source levels. (This enum is _not_ intended to capture
+     * the uncommon program that is accepted in one version of the
+     * language and rejected in a later version.)
+     *
+     * When a version of the language gets a new, non-preview feature,
+     * a new source example enum constant should be added.
+     */
+    enum SourceExample {
+        BASE(7, "Base.java", "public class Base { }\n"),
+
+
+        SOURCE_8(8, "New8.java",
+            // New feature in 8: lambda
+            """
+            public class New8 {
+                void m() {
+                    new Thread(() -> { });
+                }
+            }
+             """),
+
+        SOURCE_10(10, "New10.java",
+            // New feature in 10: var
+            """
+            public class New10 {
+                void m() {
+                    var tmp = new Thread(() -> { });
+                }
+            }
+            """),
+
+        SOURCE_11(11, "New11.java",
+            // New feature in 11: var for lambda parameters
+            """
+            public class New11 {
+                static java.util.function.Function<String,String> f = (var x) -> x.substring(0);
+                void m(String name) {
+                    var tmp = new Thread(() -> { }, f.apply(name));
+                }
+            }
+            """),
+
+         SOURCE_14(14, "New14.java",
+             // New feature in 14: switch expressions
+             """
+             public class New14 {
+                 static {
+                     int i = 5;
+                     System.out.println(
+                         switch(i) {
+                             case 0 -> false;
+                             default -> true;
+                         }
+                     );
+                 }
+             }
+             """),
+
+         SOURCE_15(15, "New15.java",
+             // New feature in 15: text blocks
+             """
+             public class New15 {
+                 public static final String s =
+                 \"\"\"
+                 Hello, World.
+                 \"\"\"
+                 ;
+             }
+             """),
+
+         SOURCE_16(16, "New16.java",
+             // New feature in 16: records
+             """
+             public class New16 {
+                 public record Record(double rpm) {
+                     public static final Record LONG_PLAY = new Record(100.0/3.0);
+                 }
+             }
+             """),
+
+         SOURCE_17(17, "New17.java",
+             // New feature in 17: sealed classes
+             """
+             public class New17 {
+                 public static sealed class Seal {}
+
+                 public static final class Pinniped extends Seal {}
+                 public static final class TaperedThread extends Seal {}
+                 public static final class Wax extends Seal {}
+             }
+             """),
+
+         SOURCE_21(21, "New21.java",
+             // New feature in 21: pattern matching for switch
+             """
+             public class New21 {
+                 public static void main(String... args) {
+                     Object o = new Object(){};
+
+                     System.out.println(switch (o) {
+                                        case Integer i -> String.format("%d", i);
+                                        default        -> o.toString();
+                                        });
+                 }
+             }
+             """),
+
+         SOURCE_22(22, "New22.java",
+             // New feature in 22: Unnamed Variables & Patterns
+             """
+             public class New22 {
+                 public static void main(String... args) {
+                     Object o = new Object(){};
+
+                     System.out.println(switch (o) {
+                                        case Integer _ -> "Hello world.";
+                                        default        -> o.toString();
+                                        });
+                 }
+             }
+             """),
+            ; // Reduce code churn when appending new constants
+
+        private int sourceLevel;
+        private String fileName;
+        private String fileContents;
+
+        private SourceExample(int sourceLevel, String fileName, String fileContents) {
+            this.sourceLevel = sourceLevel;
+            this.fileName = fileName;
+            this.fileContents = fileContents;
+        }
+
+        public String fileName() {return fileName;}
+        public String fileContents() {return fileContents;}
+    }
+
+    protected void expected(List<String> args, List<String> fileNames,
+                            Consumer<List<String>> passOrFail) {
+        ArrayList<String> fullArguments = new ArrayList<>(args);
+        // Issue compile with each filename in turn.
+        for(String fileName : fileNames) {
+            fullArguments.add(fileName);
+            passOrFail.accept(fullArguments);
+            fullArguments.remove(fullArguments.size() - 1);
+        }
+    }
+
+    protected void expectedPass(List<String> args, List<String> fileNames) {
+        expected(args, fileNames, this::pass);
+    }
+
+    protected void expectedFail(List<String> args, List<String> fileNames) {
+        expected(args, fileNames, this::fail);
+    }
+
+    protected void pass(List<String> args) {
+        printargs("pass", args);
+
+        List<String> jcargs = javaCompilerOptions(args);
 
         // empty list is error
         if (jcargs.isEmpty()) {
@@ -346,22 +461,12 @@ public class Versions {
             failedCases++;
 
         }
-
     }
 
-    protected void fail(String... args) {
+    protected void fail(List<String> args) {
         printargs("fail", args);
 
-        List<String> jcargs = new ArrayList<String>();
-        jcargs.add("-Xlint:-options");
-
-        // add in args conforming to List requrements of JavaCompiler
-        for (String onearg : args) {
-            String[] fields = onearg.split(" ");
-            for (String onefield : fields) {
-                jcargs.add(onefield);
-            }
-        }
+        List<String> jcargs = javaCompilerOptions(args);
 
         // empty list is error
         if (jcargs.isEmpty()) {
@@ -385,7 +490,7 @@ public class Versions {
         }
     }
 
-    protected boolean compile(String sourceFile, List<String>options) {
+    protected boolean compile(String sourceFile, List<String> options) {
         JavaCompiler.CompilationTask jctask;
         try (StandardJavaFileManager fm = javacompiler.getStandardFileManager(null, null, null)) {
             Iterable<? extends JavaFileObject> files = fm.getJavaFileObjects(sourceFile);
@@ -416,51 +521,9 @@ public class Versions {
     }
 
     protected void genSourceFiles() throws IOException{
-        /* Create a file that executes with all supported versions. */
-        writeSourceFile("Base.java","public class Base { }\n");
-
-        /*
-         * Create a file with a new feature in 1.7, not in 1.6 : "<>"
-         */
-        writeSourceFile("New17.java",
-            "import java.util.List;\n" +
-            "import java.util.ArrayList;\n" +
-            "class New17 { List<String> s = new ArrayList<>(); }\n"
-        );
-
-        /*
-         * Create a file with a new feature in 1.8, not in 1.7 : lambda
-         */
-        writeSourceFile("New18.java",
-            "public class New18 { \n" +
-            "    void m() { \n" +
-            "    new Thread(() -> { }); \n" +
-            "    } \n" +
-            "} \n"
-        );
-
-        /*
-         * Create a file with a new feature in 1.10, not in 1.9 : var
-         */
-        writeSourceFile("New110.java",
-            "public class New110 { \n" +
-            "    void m() { \n" +
-            "    var tmp = new Thread(() -> { }); \n" +
-            "    } \n" +
-            "} \n"
-        );
-
-        /*
-         * Create a file with a new feature in 11, not in 10 : var for lambda parameters
-         */
-        writeSourceFile("New111.java",
-            "public class New111 { \n" +
-            "    static java.util.function.Function<String,String> f = (var x) -> x.substring(0);\n" +
-            "    void m(String name) { \n" +
-            "    var tmp = new Thread(() -> { }, f.apply(name)); \n" +
-            "    } \n" +
-            "} \n"
-        );
+        for (SourceExample srcEg : SourceExample.values()) {
+            writeSourceFile(srcEg.fileName(), srcEg.fileContents());
+        }
     }
 
     protected boolean checkClassFileVersion

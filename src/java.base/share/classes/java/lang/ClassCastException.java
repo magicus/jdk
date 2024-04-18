@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1994, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,11 +30,10 @@ package java.lang;
  * to a subclass of which it is not an instance. For example, the
  * following code generates a {@code ClassCastException}:
  * <blockquote><pre>
- *     Object x = new Integer(0);
+ *     Object x = Integer.valueOf(0);
  *     System.out.println((String)x);
  * </pre></blockquote>
  *
- * @author  unascribed
  * @since   1.0
  */
 public class ClassCastException extends RuntimeException {

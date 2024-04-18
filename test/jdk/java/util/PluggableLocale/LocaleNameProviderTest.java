@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug 4052440 8000273 8062588 8210406
+ * @bug 4052440 8000273 8062588 8210406 8174269
  * @summary LocaleNameProvider tests
  * @library providersrc/foobarutils
  *          providersrc/barprovider
@@ -31,7 +31,7 @@
  *          java.base/sun.util.resources
  * @build com.foobar.Utils
  *        com.bar.*
- * @run main/othervm -Djava.locale.providers=JRE,SPI LocaleNameProviderTest
+ * @run main/othervm -Djava.locale.providers=CLDR,SPI LocaleNameProviderTest
  */
 
 import java.util.Arrays;
@@ -60,12 +60,12 @@ public class LocaleNameProviderTest extends ProviderTest {
         LocaleNameProviderImpl lnp = new LocaleNameProviderImpl();
         Locale[] availloc = Locale.getAvailableLocales();
         Locale[] testloc = availloc.clone();
-        List<Locale> jreimplloc = Arrays.asList(LocaleProviderAdapter.forJRE().getLocaleNameProvider().getAvailableLocales());
+        List<Locale> jreimplloc = Arrays.asList(LocaleProviderAdapter.forType(LocaleProviderAdapter.Type.CLDR).getLocaleNameProvider().getAvailableLocales());
         List<Locale> providerloc = Arrays.asList(lnp.getAvailableLocales());
 
         for (Locale target: availloc) {
             // pure JRE implementation
-            OpenListResourceBundle rb = ((ResourceBundleBasedAdapter)LocaleProviderAdapter.forJRE()).getLocaleData().getLocaleNames(target);
+            OpenListResourceBundle rb = ((ResourceBundleBasedAdapter)LocaleProviderAdapter.forType(LocaleProviderAdapter.Type.CLDR)).getLocaleData().getLocaleNames(target);
             boolean jreSupportsTarget = jreimplloc.contains(target);
 
             for (Locale test: testloc) {
@@ -123,8 +123,8 @@ public class LocaleNameProviderTest extends ProviderTest {
     }
 
     void variantFallbackTest() {
-        Locale YY = new Locale("yy", "YY", "YYYY");
-        Locale YY_suffix = new Locale("yy", "YY", "YYYY_suffix");
+        Locale YY = Locale.of("yy", "YY", "YYYY");
+        Locale YY_suffix = Locale.of("yy", "YY", "YYYY_suffix");
         String retVrnt = null;
         String message = "variantFallbackTest() succeeded.";
 

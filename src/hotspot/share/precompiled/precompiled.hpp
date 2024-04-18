@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,8 +22,8 @@
  *
  */
 
-// Precompiled headers are turned off for Solaris Studio,
-// or if the user passes --disable-precompiled-headers to configure.
+// Precompiled headers are turned off if the user passes
+// --disable-precompiled-headers to configure.
 
 #ifndef DONT_USE_PRECOMPILED_HEADER
 
@@ -42,6 +42,7 @@
 #include "memory/memRegion.hpp"
 #include "memory/resourceArea.hpp"
 #include "memory/universe.hpp"
+#include "nmt/memTracker.hpp"
 #include "oops/instanceKlass.hpp"
 #include "oops/klass.hpp"
 #include "oops/method.hpp"
@@ -52,12 +53,11 @@
 #include "runtime/atomic.hpp"
 #include "runtime/globals.hpp"
 #include "runtime/handles.hpp"
+#include "runtime/javaThread.hpp"
 #include "runtime/mutex.hpp"
 #include "runtime/orderAccess.hpp"
 #include "runtime/os.hpp"
-#include "runtime/thread.hpp"
 #include "runtime/timer.hpp"
-#include "services/memTracker.hpp"
 #include "utilities/align.hpp"
 #include "utilities/bitMap.hpp"
 #include "utilities/copy.hpp"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -59,6 +59,7 @@ public:
     Ideal_Loop,                       // Find idealized trip-counted loops
     Macro_Expand,                     // Expand macro nodes
     Peephole,                         // Apply peephole optimizations
+    Vector,
     Output,
     last_phase
   };
@@ -75,8 +76,13 @@ public:
         _t_incrInline_igvn,
         _t_incrInline_pru,
         _t_incrInline_inline,
+      _t_vector,
+        _t_vector_elimination,
+          _t_vector_igvn,
+          _t_vector_pru,
       _t_renumberLive,
       _t_idealLoop,
+        _t_autoVectorize,
       _t_idealLoopVerify,
       _t_ccp,
       _t_iterGVN2,
@@ -106,9 +112,11 @@ public:
     _t_peephole,
     _t_postalloc_expand,
     _t_output,
-       _t_instrSched,
-       _t_buildOopMaps,
-    _t_registerMethod,
+      _t_instrSched,
+      _t_shortenBranches,
+      _t_buildOopMaps,
+      _t_fillBuffer,
+      _t_registerMethod,
     _t_temporaryTimer1,
     _t_temporaryTimer2,
     max_phase_timers
@@ -133,11 +141,12 @@ protected:
   // Object; if you wish to check an Object you need to load the Object's
   // class prior to coming here.
   // Used in GraphKit and PhaseMacroExpand
-  static Node* gen_subtype_check(Node* subklass, Node* superklass, Node** ctrl, Node* mem, PhaseGVN& gvn);
+  static Node* gen_subtype_check(Node* subklass, Node* superklass, Node** ctrl, Node* mem, PhaseGVN& gvn, ciMethod* method, int bci);
 
 public:
   Compile * C;
   Phase( PhaseNumber pnum );
+  NONCOPYABLE(Phase);
 
   static void print_timers();
 };

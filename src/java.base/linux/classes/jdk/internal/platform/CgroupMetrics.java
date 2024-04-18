@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Red Hat Inc.
+ * Copyright (c) 2020, 2021, Red Hat Inc.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -121,7 +121,15 @@ public class CgroupMetrics implements Metrics {
 
     @Override
     public long getMemoryLimit() {
-        return subsystem.getMemoryLimit();
+        long subsMem = subsystem.getMemoryLimit();
+        long systemTotal = getTotalMemorySize0();
+        assert(systemTotal > 0);
+        // Catch the cgroup memory limit exceeding host physical memory.
+        // Treat this as unlimited.
+        if (subsMem >= systemTotal) {
+            return CgroupSubsystem.LONG_RETVAL_UNLIMITED;
+        }
+        return subsMem;
     }
 
     @Override
@@ -136,7 +144,15 @@ public class CgroupMetrics implements Metrics {
 
     @Override
     public long getMemoryAndSwapLimit() {
-        return subsystem.getMemoryAndSwapLimit();
+        long totalSystemMemSwap = getTotalMemorySize0() + getTotalSwapSize0();
+        assert(totalSystemMemSwap > 0);
+        // Catch the cgroup memory and swap limit exceeding host physical swap
+        // and memory. Treat this case as unlimited.
+        long subsSwapMem = subsystem.getMemoryAndSwapLimit();
+        if (subsSwapMem >= totalSystemMemSwap) {
+            return CgroupSubsystem.LONG_RETVAL_UNLIMITED;
+        }
+        return subsSwapMem;
     }
 
     @Override
@@ -150,6 +166,16 @@ public class CgroupMetrics implements Metrics {
     }
 
     @Override
+    public long getPidsMax() {
+        return subsystem.getPidsMax();
+    }
+
+    @Override
+    public long getPidsCurrent() {
+        return subsystem.getPidsCurrent();
+    }
+
+    @Override
     public long getBlkIOServiceCount() {
         return subsystem.getBlkIOServiceCount();
     }
@@ -160,7 +186,15 @@ public class CgroupMetrics implements Metrics {
     }
 
     public static Metrics getInstance() {
+        if (!isUseContainerSupport()) {
+            // Return null on -XX:-UseContainerSupport
+            return null;
+        }
         return CgroupSubsystemFactory.create();
     }
+
+    private static native boolean isUseContainerSupport();
+    private static native long getTotalMemorySize0();
+    private static native long getTotalSwapSize0();
 
 }

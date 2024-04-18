@@ -56,6 +56,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package jdk.internal.org.objectweb.asm.util;
 
 import java.io.PrintWriter;
@@ -148,10 +149,9 @@ public final class TraceClassVisitor extends ClassVisitor {
       * @param printer the printer to convert the visited class into text.
       * @param printWriter the print writer to be used to print the class. May be {@literal null}.
       */
-    @SuppressWarnings("deprecation")
     public TraceClassVisitor(
             final ClassVisitor classVisitor, final Printer printer, final PrintWriter printWriter) {
-        super(/* latest api = */ Opcodes.ASM9_EXPERIMENTAL, classVisitor);
+        super(/* latest api = */ Opcodes.ASM9, classVisitor);
         this.printWriter = printWriter;
         this.p = printer;
     }
@@ -219,17 +219,10 @@ public final class TraceClassVisitor extends ClassVisitor {
         super.visitNestMember(nestMember);
     }
 
-    /**
-      * <b>Experimental, use at your own risk.</b>.
-      *
-      * @param permittedSubtype the internal name of a permitted subtype.
-      * @deprecated this API is experimental.
-      */
     @Override
-    @Deprecated
-    public void visitPermittedSubtypeExperimental(final String permittedSubtype) {
-        p.visitPermittedSubtypeExperimental(permittedSubtype);
-        super.visitPermittedSubtypeExperimental(permittedSubtype);
+    public void visitPermittedSubclass(final String permittedSubclass) {
+        p.visitPermittedSubclass(permittedSubclass);
+        super.visitPermittedSubclass(permittedSubclass);
     }
 
     @Override

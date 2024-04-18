@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug 8218998 8219946 8219060 8241190 8242056
+ * @bug 8218998 8219946 8219060 8241190 8242056 8254627
  * @summary Add metadata to generated API documentation files
  * @library /tools/lib ../../lib
  * @modules jdk.javadoc/jdk.javadoc.internal.tool
@@ -53,7 +53,7 @@ import javadoc.tester.JavadocTester;
 
 public class TestMetadata extends JavadocTester {
     public static void main(String... args) throws Exception {
-        TestMetadata tester = new TestMetadata();
+        var tester = new TestMetadata();
         tester.runTests();
     }
 
@@ -149,7 +149,9 @@ public class TestMetadata extends JavadocTester {
         "constants-summary-page",
         "deprecated-list-page",
         "doc-file-page",
+        "external-specs-page",
         "help-page",
+        "index-page",
         "index-redirect-page",
         "module-declaration-page",
         "module-index-page",
@@ -157,18 +159,16 @@ public class TestMetadata extends JavadocTester {
         "package-index-page",
         "package-tree-page",
         "package-use-page",
+        "search-page",
         "serialized-form-page",
-        "single-index-page",
         "source-page",
-        "split-index-page",
         "system-properties-page",
         "tree-page"
     );
 
     void checkBodyClasses() throws IOException {
-        Path outputDirPath = outputDir.toPath();
-        for (Path p : tb.findFiles(".html", outputDirPath)) {
-            checkBodyClass(outputDirPath.relativize(p));
+        for (Path p : tb.findFiles(".html", outputDir)) {
+            checkBodyClass(outputDir.relativize(p));
         }
     }
 
@@ -212,30 +212,30 @@ public class TestMetadata extends JavadocTester {
             "AllClassesIndexWriter",
             "AllPackagesIndexWriter",
             "ClassUseWriter",
-            "ClassWriterImpl",
-            "ConstantsSummaryWriterImpl",
+            "ClassWriter",
+            "ConstantsSummaryWriter",
             "DeprecatedListWriter",
             "DocFileWriter",
+            "ExternalSpecsWriter",
             "HelpWriter",
             "IndexRedirectWriter",
+            "IndexWriter",
             "ModuleIndexWriter",
-            "ModuleWriterImpl",
+            "ModuleWriter",
             "PackageIndexWriter",
             "PackageTreeWriter",
             "PackageUseWriter",
-            "PackageWriterImpl",
-            "SerializedFormWriterImpl",
-            "SingleIndexWriter",
+            "PackageWriter",
+            "SearchWriter",
+            "SerializedFormWriter",
             "SourceToHTMLConverter",
-            "SplitIndexWriter",
             "SystemPropertiesWriter",
             "TreeWriter"
             );
 
     void checkMetadata() throws IOException {
-        Path outputDirPath = outputDir.toPath();
-        for (Path p : tb.findFiles(".html", outputDirPath)) {
-            checkMetadata(outputDirPath.relativize(p));
+        for (Path p : tb.findFiles(".html", outputDir)) {
+            checkMetadata(outputDir.relativize(p));
         }
     }
 
@@ -321,10 +321,10 @@ public class TestMetadata extends JavadocTester {
                 break;
 
 
-            case "AnnotationTypeWriterImpl":
-            case "ClassWriterImpl":
-            case "ModuleWriterImpl":
-            case "PackageWriterImpl":
+            case "AnnotationTypeWriter":
+            case "ClassWriter":
+            case "ModuleWriter":
+            case "PackageWriter":
                 check(generator, content, content.startsWith("declaration: "));
                 break;
 
@@ -333,7 +333,7 @@ public class TestMetadata extends JavadocTester {
                 check(generator, content, content.startsWith("use: "));
                 break;
 
-            case "ConstantsSummaryWriterImpl":
+            case "ConstantsSummaryWriter":
                 check(generator, content, content.contains("constants"));
                 break;
 
@@ -345,6 +345,10 @@ public class TestMetadata extends JavadocTester {
                 passed("no constraint for user-provided doc-files");
                 break;
 
+            case "ExternalSpecsWriter":
+                check(generator, content, content.startsWith("external specifications"));
+                break;
+
             case "HelpWriter":
                 check(generator, content, content.contains("help"));
                 break;
@@ -353,18 +357,21 @@ public class TestMetadata extends JavadocTester {
                 check(generator, content, content.contains("redirect"));
                 break;
 
+            case "IndexWriter":
+                check(generator, content, content.startsWith("index"));
+                break;
+
             case "PackageTreeWriter":
             case "TreeWriter":
                 check(generator, content, content.contains("tree"));
                 break;
 
-            case "SerializedFormWriterImpl":
-                check(generator, content, content.contains("serialized"));
+            case "SearchWriter":
+                check(generator, content, content.contains("search"));
                 break;
 
-            case "SingleIndexWriter":
-            case "SplitIndexWriter":
-                check(generator, content, content.startsWith("index"));
+            case "SerializedFormWriter":
+                check(generator, content, content.contains("serialized"));
                 break;
 
             case "SourceToHTMLConverter":
@@ -395,7 +402,16 @@ public class TestMetadata extends JavadocTester {
             case PACKAGES:
                 tb.writeJavaFiles(src,
                     "/** Package pA. {@systemProperty exampleProperty} */ package pA;",
-                    "/** Class pA.CA. */ package pA; public class CA { }",
+                    """
+                        /** Class pA.CA. */
+                        package pA; public class CA {
+                            /**
+                             * First sentence.
+                             * @spec http://example.com example reference
+                             */
+                            @Deprecated public static final int ZERO = 0;
+                        }
+                        """,
                     "/** Anno pA.Anno, */ package pA; public @interface Anno { }",
                     "/** Serializable pA.Ser, */ package pA; public class Ser implements java.io.Serializable { }",
                     "/** Package pB. */ package pB;",
@@ -410,7 +426,17 @@ public class TestMetadata extends JavadocTester {
                 new ModuleBuilder(tb, "mA")
                         .exports("pA")
                         .classes("/** Package mA/pA. */ package pA;")
-                        .classes("/** Class mA/pA.CA. */ package pA; public class CA { }")
+                        .classes("""
+                            /** Class mA/pA.CA. */
+                            package pA;
+                            public class CA {
+                                /**
+                                 * First sentence.
+                                 * @spec http://example.com example reference
+                                 */
+                                @Deprecated public static int ZERO = 0;
+                            }
+                        """)
                         .write(src);
                 new ModuleBuilder(tb, "mB")
                         .exports("pB")

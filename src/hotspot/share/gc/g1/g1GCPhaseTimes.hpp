@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,10 +25,12 @@
 #ifndef SHARE_GC_G1_G1GCPHASETIMES_HPP
 #define SHARE_GC_G1_G1GCPHASETIMES_HPP
 
+#include "gc/shared/oopStorageSet.hpp"
 #include "gc/shared/referenceProcessorPhaseTimes.hpp"
-#include "gc/shared/weakProcessorPhaseTimes.hpp"
+#include "gc/shared/weakProcessorTimes.hpp"
 #include "logging/logLevel.hpp"
 #include "memory/allocation.hpp"
+#include "utilities/enumIterator.hpp"
 #include "utilities/macros.hpp"
 
 class LineBuffer;
@@ -44,23 +46,20 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
 
  public:
   enum GCParPhases {
+    RetireTLABsAndFlushLogs,
+    NonJavaThreadFlushLogs,
     GCWorkerStart,
     ExtRootScan,
     ThreadRoots,
-    UniverseRoots,
-    JNIRoots,
-    ObjectSynchronizerRoots,
-    ManagementRoots,
-    SystemDictionaryRoots,
     CLDGRoots,
-    JVMTIRoots,
-    AOT_ONLY(AOTCodeRoots COMMA)
     CMRefRoots,
-    MergeER,
+    // For every strong OopStorage there will be one element in this enum,
+    // starting with StrongOopStorageSetRoots.
+    StrongOopStorageSetRoots,
+    MergeER = StrongOopStorageSetRoots + EnumRange<OopStorageSet::StrongId>().size(),
     MergeRS,
     OptMergeRS,
     MergeLB,
-    MergeHCC,
     ScanHR,
     OptScanHR,
     CodeRoots,
@@ -72,38 +71,62 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
     Other,
     GCWorkerTotal,
     GCWorkerEnd,
-    StringDedupQueueFixup,
-    StringDedupTableFixup,
     RedirtyCards,
-    ParFreeCSet,
+    FreeCollectionSet,
     YoungFreeCSet,
     NonYoungFreeCSet,
+    ResizeThreadLABs,
     RebuildFreeList,
+    SampleCollectionSetCandidates,
     MergePSS,
+    RestoreEvacuationFailedRegions,
+    RemoveSelfForwards,
+    ClearCardTable,
+    RecalculateUsed,
+#if COMPILER2_OR_JVMCI
+    UpdateDerivedPointers,
+#endif
+    EagerlyReclaimHumongousObjects,
+    RestorePreservedMarks,
+    ProcessEvacuationFailedRegions,
+    ResetMarkingState,
+    NoteStartOfMark,
     GCParPhasesSentinel
   };
 
   static const GCParPhases ExtRootScanSubPhasesFirst = ThreadRoots;
-  static const GCParPhases ExtRootScanSubPhasesLast = CMRefRoots;
+  static const GCParPhases ExtRootScanSubPhasesLast = GCParPhases(MergeER - 1);
 
-  enum GCMergeRSWorkTimes {
-    MergeRSMergedSparse,
-    MergeRSMergedFine,
-    MergeRSMergedCoarse,
-    MergeRSDirtyCards
+  static constexpr GCParPhases strong_oopstorage_phase(OopStorageSet::StrongId id) {
+    size_t index = EnumRange<OopStorageSet::StrongId>().index(id);
+    return GCParPhases(StrongOopStorageSetRoots + index);
+  }
+
+  enum GCMergeRSWorkItems : uint {
+    MergeRSMergedInline = 0,
+    MergeRSMergedArrayOfCards,
+    MergeRSMergedHowl,
+    MergeRSMergedFull,
+    MergeRSHowlInline,
+    MergeRSHowlArrayOfCards,
+    MergeRSHowlBitmap,
+    MergeRSHowlFull,
+    MergeRSCards,
+    MergeRSContainersSentinel
   };
+
+  static constexpr const char* GCMergeRSWorkItemsStrings[MergeRSContainersSentinel] =
+    { "Merged Inline:", "Merged ArrayOfCards:", "Merged Howl:", "Merged Full:",
+      "Merged Howl Inline:", "Merged Howl ArrayOfCards:", "Merged Howl BitMap:", "Merged Howl Full:",
+      "Merged Cards:" };
 
   enum GCScanHRWorkItems {
     ScanHRScannedCards,
     ScanHRScannedBlocks,
     ScanHRClaimedChunks,
+    ScanHRFoundRoots,
     ScanHRScannedOptRefs,
     ScanHRUsedMemory
-  };
-
-  enum GCMergeHCCWorkItems {
-    MergeHCCDirtyCards,
-    MergeHCCSkippedCards
   };
 
   enum GCMergeLBWorkItems {
@@ -111,10 +134,35 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
     MergeLBSkippedCards
   };
 
+  enum GCCodeRootsWorkItems {
+    CodeRootsScannedNMethods
+  };
+
   enum GCMergePSSWorkItems {
     MergePSSCopiedBytes,
+    MergePSSLABSize,
     MergePSSLABWasteBytes,
-    MergePSSLABUndoWasteBytes
+    MergePSSLABUndoWasteBytes,
+    MergePSSEvacFailExtra
+  };
+
+  enum RestoreEvacFailureRegionsWorkItems {
+    RestoreEvacFailureRegionsEvacFailedNum,       // How many regions experienced an evacuation failure (pinned or allocation failure)
+    RestoreEvacFailureRegionsPinnedNum,           // How many regions were found as pinned.
+    RestoreEvacFailureRegionsAllocFailedNum       // How many regions were found experiencing an allocation failure.
+  };
+
+  enum RemoveSelfForwardsWorkItems {
+    RemoveSelfForwardChunksNum,
+    RemoveSelfForwardEmptyChunksNum,
+    RemoveSelfForwardObjectsNum,
+    RemoveSelfForwardObjectsBytes,
+  };
+
+  enum GCEagerlyReclaimHumongousObjectsItems {
+    EagerlyReclaimNumTotal,
+    EagerlyReclaimNumCandidates,
+    EagerlyReclaimNumReclaimed
   };
 
  private:
@@ -125,13 +173,7 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
 
   double _cur_collection_initial_evac_time_ms;
   double _cur_optional_evac_time_ms;
-  double _cur_collection_code_root_fixup_time_ms;
-  double _cur_strong_code_root_purge_time_ms;
-
-  double _cur_evac_fail_recalc_used;
-  double _cur_evac_fail_remove_self_forwards;
-
-  double _cur_string_deduplication_time_ms;
+  double _cur_collection_nmethod_list_cleanup_time_ms;
 
   double _cur_merge_heap_roots_time_ms;
   double _cur_optional_merge_heap_roots_time_ms;
@@ -139,14 +181,13 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
   double _cur_prepare_merge_heap_roots_time_ms;
   double _cur_optional_prepare_merge_heap_roots_time_ms;
 
-  double _cur_prepare_tlab_time_ms;
-  double _cur_resize_tlab_time_ms;
+  double _cur_distribute_log_buffers_time_ms;
 
-  double _cur_concatenate_dirty_card_logs_time_ms;
+  double _cur_pre_evacuate_prepare_time_ms;
 
-  double _cur_derived_pointer_table_update_time_ms;
+  double _cur_post_evacuate_cleanup_1_time_ms;
+  double _cur_post_evacuate_cleanup_2_time_ms;
 
-  double _cur_clear_ct_time_ms;
   double _cur_expand_heap_time_ms;
   double _cur_ref_proc_time_ms;
 
@@ -157,20 +198,10 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
 
   double _recorded_prepare_heap_roots_time_ms;
 
-  double _recorded_clear_claimed_marks_time_ms;
-
   double _recorded_young_cset_choice_time_ms;
   double _recorded_non_young_cset_choice_time_ms;
 
-  double _recorded_redirty_logged_cards_time_ms;
-
-  double _recorded_preserve_cm_referents_time_ms;
-
-  double _recorded_merge_pss_time_ms;
-
-  double _recorded_start_new_cset_time_ms;
-
-  double _recorded_total_free_cset_time_ms;
+  double _recorded_prepare_for_mutator_time_ms;
 
   double _recorded_serial_free_cset_time_ms;
 
@@ -180,23 +211,20 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
 
   double _cur_region_register_time;
 
-  double _cur_fast_reclaim_humongous_time_ms;
-  size_t _cur_fast_reclaim_humongous_total;
-  size_t _cur_fast_reclaim_humongous_candidates;
-  size_t _cur_fast_reclaim_humongous_reclaimed;
-
   double _cur_verify_before_time_ms;
   double _cur_verify_after_time_ms;
 
   ReferenceProcessorPhaseTimes _ref_phase_times;
-  WeakProcessorPhaseTimes _weak_phase_times;
+  WeakProcessorTimes _weak_phase_times;
 
   double worker_time(GCParPhases phase, uint worker);
-  void note_gc_end();
   void reset();
 
   template <class T>
-  void details(T* phase, const char* indent_str) const;
+  void details(T* phase, uint indent_level) const;
+
+  void print_thread_work_items(WorkerDataArray<double>* phase, uint indent_level, outputStream* out) const;
+  void debug_phase_merge_remset() const;
 
   void log_work_items(WorkerDataArray<double>* phase, uint indent, outputStream* out) const;
   void log_phase(WorkerDataArray<double>* phase, uint indent_level, outputStream* out, bool print_sum) const;
@@ -215,13 +243,14 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
   double print_merge_heap_roots_time() const;
   double print_evacuate_initial_collection_set() const;
   double print_evacuate_optional_collection_set() const;
-  double print_post_evacuate_collection_set() const;
+  double print_post_evacuate_collection_set(bool evacuation_failed) const;
   void print_other(double accounted_ms) const;
 
  public:
   G1GCPhaseTimes(STWGCTimer* gc_timer, uint max_gc_threads);
-  void note_gc_start();
-  void print();
+  void record_gc_pause_start();
+  void record_gc_pause_end();
+  void print(bool evacuation_failed);
   static const char* phase_name(GCParPhases phase);
 
   // record the time a phase took in seconds
@@ -241,28 +270,12 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
   size_t get_thread_work_item(GCParPhases phase, uint worker_id, uint index = 0);
 
   // return the average time for a phase in milliseconds
-  double average_time_ms(GCParPhases phase);
+  double average_time_ms(GCParPhases phase) const;
 
   size_t sum_thread_work_items(GCParPhases phase, uint index = 0);
 
-  void record_prepare_tlab_time_ms(double ms) {
-    _cur_prepare_tlab_time_ms = ms;
-  }
-
-  void record_resize_tlab_time_ms(double ms) {
-    _cur_resize_tlab_time_ms = ms;
-  }
-
-  void record_concatenate_dirty_card_logs_time_ms(double ms) {
-    _cur_concatenate_dirty_card_logs_time_ms = ms;
-  }
-
-  void record_derived_pointer_table_update_time(double ms) {
-    _cur_derived_pointer_table_update_time_ms = ms;
-  }
-
-  void record_clear_ct_time(double ms) {
-    _cur_clear_ct_time_ms = ms;
+  void record_pre_evacuate_prepare_time_ms(double ms) {
+    _cur_pre_evacuate_prepare_time_ms = ms;
   }
 
   void record_expand_heap_time(double ms) {
@@ -277,12 +290,8 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
     _cur_optional_evac_time_ms += ms;
   }
 
-  void record_or_add_code_root_fixup_time(double ms) {
-    _cur_collection_code_root_fixup_time_ms += ms;
-  }
-
-  void record_strong_code_root_purge_time(double ms) {
-    _cur_strong_code_root_purge_time_ms = ms;
+  void record_or_add_nmethod_list_cleanup_time(double ms) {
+    _cur_collection_nmethod_list_cleanup_time_ms += ms;
   }
 
   void record_merge_heap_roots_time(double ms) {
@@ -297,20 +306,12 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
     _cur_prepare_merge_heap_roots_time_ms += ms;
   }
 
+  void record_distribute_log_buffers_time_ms(double ms) {
+    _cur_distribute_log_buffers_time_ms += ms;
+  }
+
   void record_or_add_optional_prepare_merge_heap_roots_time(double ms) {
     _cur_optional_prepare_merge_heap_roots_time_ms += ms;
-  }
-
-  void record_evac_fail_recalc_used_time(double ms) {
-    _cur_evac_fail_recalc_used = ms;
-  }
-
-  void record_evac_fail_remove_self_forwards(double ms) {
-    _cur_evac_fail_remove_self_forwards = ms;
-  }
-
-  void record_string_deduplication_time(double ms) {
-    _cur_string_deduplication_time_ms = ms;
   }
 
   void record_ref_proc_time(double ms) {
@@ -319,10 +320,6 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
 
   void record_root_region_scan_wait_time(double time_ms) {
     _root_region_scan_wait_time_ms = time_ms;
-  }
-
-  void record_total_free_cset_time_ms(double time_ms) {
-    _recorded_total_free_cset_time_ms = time_ms;
   }
 
   void record_serial_free_cset_time_ms(double time_ms) {
@@ -337,15 +334,16 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
     _recorded_serial_rebuild_freelist_time_ms = time_ms;
   }
 
-  void record_register_regions(double time_ms, size_t total, size_t candidates) {
+  void record_register_regions(double time_ms) {
     _cur_region_register_time = time_ms;
-    _cur_fast_reclaim_humongous_total = total;
-    _cur_fast_reclaim_humongous_candidates = candidates;
   }
 
-  void record_fast_reclaim_humongous_time_ms(double value, size_t reclaimed) {
-    _cur_fast_reclaim_humongous_time_ms = value;
-    _cur_fast_reclaim_humongous_reclaimed = reclaimed;
+  void record_post_evacuate_cleanup_task_1_time(double time_ms) {
+    _cur_post_evacuate_cleanup_1_time_ms = time_ms;
+  }
+
+  void record_post_evacuate_cleanup_task_2_time(double time_ms) {
+    _cur_post_evacuate_cleanup_2_time_ms = time_ms;
   }
 
   void record_young_cset_choice_time_ms(double time_ms) {
@@ -356,16 +354,8 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
     _recorded_non_young_cset_choice_time_ms = time_ms;
   }
 
-  void record_redirty_logged_cards_time_ms(double time_ms) {
-    _recorded_redirty_logged_cards_time_ms = time_ms;
-  }
-
-  void record_preserve_cm_referents_time_ms(double time_ms) {
-    _recorded_preserve_cm_referents_time_ms = time_ms;
-  }
-
-  void record_start_new_cset_time_ms(double time_ms) {
-    _recorded_start_new_cset_time_ms = time_ms;
+  void record_prepare_for_mutator_time_ms(double time_ms) {
+    _recorded_prepare_for_mutator_time_ms = time_ms;
   }
 
   void record_cur_collection_start_sec(double time_ms) {
@@ -388,20 +378,19 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
     _recorded_prepare_heap_roots_time_ms = recorded_prepare_heap_roots_time_ms;
   }
 
-  void record_clear_claimed_marks_time_ms(double recorded_clear_claimed_marks_time_ms) {
-    _recorded_clear_claimed_marks_time_ms = recorded_clear_claimed_marks_time_ms;
-  }
-
   double cur_collection_start_sec() {
     return _cur_collection_start_sec;
   }
 
-  double cur_collection_par_time_ms() {
-    return _cur_collection_initial_evac_time_ms + _cur_optional_evac_time_ms;
+  double cur_distribute_log_buffers_time_ms() {
+    return _cur_distribute_log_buffers_time_ms;
   }
 
-  double cur_clear_ct_time_ms() {
-    return _cur_clear_ct_time_ms;
+  double cur_collection_par_time_ms() {
+    return _cur_collection_initial_evac_time_ms +
+           _cur_optional_evac_time_ms +
+           _cur_merge_heap_roots_time_ms +
+           _cur_optional_merge_heap_roots_time_ms;
   }
 
   double cur_expand_heap_time_ms() {
@@ -416,10 +405,6 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
     return _recorded_young_cset_choice_time_ms;
   }
 
-  double total_free_cset_time_ms() {
-    return _recorded_total_free_cset_time_ms;
-  }
-
   double total_rebuild_freelist_time_ms() {
     return _recorded_total_rebuild_freelist_time_ms;
   }
@@ -428,17 +413,9 @@ class G1GCPhaseTimes : public CHeapObj<mtGC> {
     return _recorded_non_young_cset_choice_time_ms;
   }
 
-  double fast_reclaim_humongous_time_ms() {
-    return _cur_fast_reclaim_humongous_time_ms;
-  }
-
-  size_t fast_reclaim_humongous_candidates() const {
-    return _cur_fast_reclaim_humongous_candidates;
-  }
-
   ReferenceProcessorPhaseTimes* ref_phase_times() { return &_ref_phase_times; }
 
-  WeakProcessorPhaseTimes* weak_phase_times() { return &_weak_phase_times; }
+  WeakProcessorTimes* weak_phase_times() { return &_weak_phase_times; }
 };
 
 class G1EvacPhaseWithTrimTimeTracker : public StackObj {

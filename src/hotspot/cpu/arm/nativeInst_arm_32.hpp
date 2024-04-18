@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,9 +28,9 @@
 #include "asm/macroAssembler.hpp"
 #include "code/codeCache.hpp"
 #include "runtime/icache.hpp"
+#include "runtime/javaThread.hpp"
 #include "runtime/orderAccess.hpp"
 #include "runtime/os.hpp"
-#include "runtime/thread.hpp"
 #include "register_arm.hpp"
 
 // -------------------------------------------------------------------
@@ -63,7 +63,7 @@ class RawNativeInstruction {
 
   // illegal instruction used by NativeJump::patch_verified_entry
   // permanently undefined (UDF): 0xe << 28 | 0b1111111 << 20 | 0b1111 << 4
-  static const int zombie_illegal_instruction = 0xe7f000f0;
+  static const int not_entrant_illegal_instruction = 0xe7f000f0;
 
   static int decode_rotated_imm12(int encoding) {
     int base = encoding & 0xff;
@@ -77,9 +77,12 @@ class RawNativeInstruction {
   address instruction_address()      const { return addr_at(0); }
   address next_raw_instruction_address() const { return addr_at(instruction_size); }
 
+  static int size() { return instruction_size; }
+
   static RawNativeInstruction* at(address address) {
     return (RawNativeInstruction*)address;
   }
+
   RawNativeInstruction* next_raw() const {
     return at(next_raw_instruction_address());
   }
@@ -145,9 +148,6 @@ class RawNativeInstruction {
   bool is_movt()           const { return (encoding() & 0x0ff00000) == 0x03400000; }
   // c2 doesn't use fixed registers for safepoint poll address
   bool is_safepoint_poll() const { return (encoding() & 0xfff0ffff) == 0xe590c000; }
-  // For unit tests
-  static void test() {}
-
 };
 
 inline RawNativeInstruction* rawNativeInstruction_at(address address) {
@@ -385,7 +385,7 @@ class NativeMovConstReg: public NativeInstruction {
   }
   void set_pc_relative_offset(address addr, address pc);
   address next_instruction_address() const {
-    // NOTE: CompiledStaticCall::set_to_interpreted() calls this but
+    // NOTE: CompiledDirectCall::set_to_interpreted() calls this but
     // are restricted to single-instruction ldr. No need to jump over
     // several instructions.
     assert(is_ldr_literal(), "Should only use single-instructions load");
@@ -396,7 +396,7 @@ class NativeMovConstReg: public NativeInstruction {
 inline NativeMovConstReg* nativeMovConstReg_at(address address) {
   NativeInstruction* ni = nativeInstruction_at(address);
   assert(ni->is_ldr_literal() || ni->is_pc_rel() ||
-         ni->is_movw() && VM_Version::supports_movw(), "must be");
+         (ni->is_movw() && VM_Version::supports_movw()), "must be");
   return (NativeMovConstReg*)address;
 }
 
@@ -434,5 +434,43 @@ inline NativeCall* nativeCall_at(address address) {
 inline NativeCall* nativeCall_before(address return_address) {
   return (NativeCall *) rawNativeCall_before(return_address);
 }
+
+class NativePostCallNop: public NativeInstruction {
+public:
+  bool check() const { return is_nop(); }
+  bool decode(int32_t& oopmap_slot, int32_t& cb_offset) const { return false; }
+  bool patch(int32_t oopmap_slot, int32_t cb_offset) { return false; }
+  void make_deopt();
+};
+
+inline NativePostCallNop* nativePostCallNop_at(address address) {
+  NativePostCallNop* nop = (NativePostCallNop*) address;
+  if (nop->check()) {
+    return nop;
+  }
+  return nullptr;
+}
+
+class NativeDeoptInstruction: public NativeInstruction {
+public:
+  enum {
+    instruction_size            =    4,
+    instruction_offset          =    0,
+  };
+
+  address instruction_address() const       { return addr_at(instruction_offset); }
+  address next_instruction_address() const  { return addr_at(instruction_size); }
+
+  void  verify();
+
+  static bool is_deopt_at(address instr) {
+    assert(instr != nullptr, "");
+    uint32_t value = *(uint32_t *) instr;
+    return value == 0xe7fdecfa;
+  }
+
+  // MT-safe patching
+  static void insert(address code_pos);
+};
 
 #endif // CPU_ARM_NATIVEINST_ARM_32_HPP

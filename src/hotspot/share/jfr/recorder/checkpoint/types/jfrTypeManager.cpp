@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,51 +23,36 @@
  */
 
 #include "precompiled.hpp"
+#include "classfile/systemDictionary.hpp"
+#include "classfile/vmSymbols.hpp"
 #include "jfr/metadata/jfrSerializer.hpp"
 #include "jfr/recorder/checkpoint/jfrCheckpointWriter.hpp"
 #include "jfr/recorder/checkpoint/types/jfrType.hpp"
 #include "jfr/recorder/checkpoint/types/jfrTypeManager.hpp"
 #include "jfr/recorder/jfrRecorder.hpp"
-#include "jfr/utilities/jfrDoublyLinkedList.hpp"
+#include "jfr/support/jfrThreadLocal.hpp"
 #include "jfr/utilities/jfrIterator.hpp"
+#include "jfr/utilities/jfrLinkedList.inline.hpp"
 #include "memory/resourceArea.hpp"
-#include "runtime/handles.inline.hpp"
-#include "runtime/safepoint.hpp"
+#include "nmt/memTracker.hpp"
+#include "runtime/javaThread.hpp"
 #include "runtime/semaphore.hpp"
 #include "runtime/thread.inline.hpp"
-#include "utilities/exceptions.hpp"
+#include "utilities/macros.hpp"
 
 class JfrSerializerRegistration : public JfrCHeapObj {
+ public:
+  JfrSerializerRegistration* _next; // list support
  private:
-  JfrSerializerRegistration* _next;
-  JfrSerializerRegistration* _prev;
   JfrSerializer* _serializer;
   mutable JfrBlobHandle _cache;
   JfrTypeId _id;
   bool _permit_cache;
-
  public:
   JfrSerializerRegistration(JfrTypeId id, bool permit_cache, JfrSerializer* serializer) :
-    _next(NULL), _prev(NULL), _serializer(serializer), _cache(), _id(id), _permit_cache(permit_cache) {}
-
+    _next(nullptr), _serializer(serializer), _cache(), _id(id), _permit_cache(permit_cache) {}
   ~JfrSerializerRegistration() {
     delete _serializer;
-  }
-
-  JfrSerializerRegistration* next() const {
-    return _next;
-  }
-
-  void set_next(JfrSerializerRegistration* next) {
-    _next = next;
-  }
-
-  JfrSerializerRegistration* prev() const {
-    return _prev;
-  }
-
-  void set_prev(JfrSerializerRegistration* prev) {
-    _prev = prev;
   }
 
   JfrTypeId id() const {
@@ -118,26 +103,33 @@ void JfrTypeManager::write_threads(JfrCheckpointWriter& writer) {
   serialize_thread_groups(writer);
 }
 
-void JfrTypeManager::create_thread_blob(Thread* t) {
-  assert(t != NULL, "invariant");
-  ResourceMark rm(t);
-  HandleMark hm(t);
-  JfrThreadConstant type_thread(t);
-  JfrCheckpointWriter writer(t, true, THREADS);
+JfrBlobHandle JfrTypeManager::create_thread_blob(JavaThread* jt, traceid tid /* 0 */, oop vthread /* nullptr */) {
+  assert(jt != nullptr, "invariant");
+  ResourceMark rm(jt);
+  JfrCheckpointWriter writer(jt, true, THREADS, JFR_THREADLOCAL); // Thread local lease for blob creation.
+  // TYPE_THREAD and count is written unconditionally for blobs, also for vthreads.
   writer.write_type(TYPE_THREAD);
+  writer.write_count(1);
+  JfrThreadConstant type_thread(jt, tid, vthread);
   type_thread.serialize(writer);
-  // create and install a checkpoint blob
-  t->jfr_thread_local()->set_thread_blob(writer.move());
-  assert(t->jfr_thread_local()->has_thread_blob(), "invariant");
+  return writer.move();
 }
 
-void JfrTypeManager::write_thread_checkpoint(Thread* t) {
-  assert(t != NULL, "invariant");
-  ResourceMark rm(t);
-  HandleMark hm(t);
-  JfrThreadConstant type_thread(t);
-  JfrCheckpointWriter writer(t, true, THREADS);
-  writer.write_type(TYPE_THREAD);
+void JfrTypeManager::write_checkpoint(Thread* t, traceid tid /* 0 */, oop vthread /* nullptr */) {
+  assert(t != nullptr, "invariant");
+  Thread* const current = Thread::current(); // not necessarily the same as t
+  assert(current != nullptr, "invariant");
+  const bool is_vthread = vthread != nullptr;
+  ResourceMark rm(current);
+  JfrCheckpointWriter writer(current, true, THREADS, is_vthread ? JFR_VIRTUAL_THREADLOCAL : JFR_THREADLOCAL);
+  if (is_vthread) {
+    // TYPE_THREAD and count is written later as part of vthread bulk serialization.
+    writer.set_count(1); // Only a logical marker for the checkpoint header.
+  } else {
+    writer.write_type(TYPE_THREAD);
+    writer.write_count(1);
+  }
+  JfrThreadConstant type_thread(t, tid, vthread);
   type_thread.serialize(writer);
 }
 
@@ -155,51 +147,77 @@ class SerializerRegistrationGuard : public StackObj {
 
 Semaphore SerializerRegistrationGuard::_mutex_semaphore(1);
 
-typedef JfrDoublyLinkedList<JfrSerializerRegistration> List;
-typedef StopOnNullIterator<const List> Iterator;
+typedef JfrLinkedList<JfrSerializerRegistration> List;
 static List types;
 
 void JfrTypeManager::destroy() {
   SerializerRegistrationGuard guard;
-  Iterator iter(types);
   JfrSerializerRegistration* registration;
-  while (iter.has_next()) {
-    registration = types.remove(iter.next());
-    assert(registration != NULL, "invariant");
+  while (types.is_nonempty()) {
+    registration = types.remove();
+    assert(registration != nullptr, "invariant");
     delete registration;
   }
 }
 
-void JfrTypeManager::on_rotation() {
-  const Iterator iter(types);
-  while (iter.has_next()) {
-    iter.next()->on_rotation();
+class InvokeOnRotation {
+ public:
+  bool process(const JfrSerializerRegistration* r) {
+    assert(r != nullptr, "invariant");
+    r->on_rotation();
+    return true;
   }
+};
+
+void JfrTypeManager::on_rotation() {
+  InvokeOnRotation ior;
+  types.iterate(ior);
 }
 
 #ifdef ASSERT
-static void assert_not_registered_twice(JfrTypeId id, List& list) {
-  const Iterator iter(list);
-  while (iter.has_next()) {
-    assert(iter.next()->id() != id, "invariant");
+
+class Diversity {
+ private:
+  const JfrTypeId _id;
+ public:
+  Diversity(JfrTypeId id) : _id(id) {}
+  bool process(const JfrSerializerRegistration* r) {
+    assert(r != nullptr, "invariant");
+    assert(r->id() != _id, "invariant");
+    return true;
   }
+};
+
+static void assert_not_registered_twice(JfrTypeId id, List& list) {
+  Diversity d(id);
+  types.iterate(d);
 }
 #endif
 
 static bool register_static_type(JfrTypeId id, bool permit_cache, JfrSerializer* serializer) {
-  assert(serializer != NULL, "invariant");
+  assert(serializer != nullptr, "invariant");
   JfrSerializerRegistration* const registration = new JfrSerializerRegistration(id, permit_cache, serializer);
-  if (registration == NULL) {
+  if (registration == nullptr) {
     delete serializer;
     return false;
   }
   assert(!types.in_list(registration), "invariant");
   DEBUG_ONLY(assert_not_registered_twice(id, types);)
   if (JfrRecorder::is_recording()) {
-    JfrCheckpointWriter writer(STATICS);
+    JfrCheckpointWriter writer(Thread::current(), true, STATICS);
     registration->invoke(writer);
   }
-  types.prepend(registration);
+  types.add(registration);
+  return true;
+}
+
+// This klass is explicitly loaded to ensure the thread group for virtual threads is available.
+static bool load_thread_constants(TRAPS) {
+  Symbol* const thread_constants_sym = vmSymbols::java_lang_Thread_Constants();
+  assert(thread_constants_sym != nullptr, "invariant");
+  Klass* const k_thread_constants = SystemDictionary::resolve_or_fail(thread_constants_sym, false, CHECK_false);
+  assert(k_thread_constants != nullptr, "invariant");
+  k_thread_constants->initialize(THREAD);
   return true;
 }
 
@@ -220,7 +238,10 @@ bool JfrTypeManager::initialize() {
   register_static_type(TYPE_THREADSTATE, true, new ThreadStateConstant());
   register_static_type(TYPE_BYTECODE, true, new BytecodeConstant());
   register_static_type(TYPE_COMPILERTYPE, true, new CompilerTypeConstant());
-  return true;
+  if (MemTracker::enabled()) {
+    register_static_type(TYPE_NMTTYPE, true, new NMTTypeConstant());
+  }
+  return load_thread_constants(JavaThread::current());
 }
 
 // implementation for the static registration function exposed in the JfrSerializer api
@@ -229,11 +250,20 @@ bool JfrSerializer::register_serializer(JfrTypeId id, bool permit_cache, JfrSeri
   return register_static_type(id, permit_cache, serializer);
 }
 
+class InvokeSerializer {
+ private:
+   JfrCheckpointWriter& _writer;
+ public:
+  InvokeSerializer(JfrCheckpointWriter& writer) : _writer(writer) {}
+  bool process(const JfrSerializerRegistration* r) {
+    assert(r != nullptr, "invariant");
+    r->invoke(_writer);
+    return true;
+  }
+};
 
 void JfrTypeManager::write_static_types(JfrCheckpointWriter& writer) {
+  InvokeSerializer is(writer);
   SerializerRegistrationGuard guard;
-  const Iterator iter(types);
-  while (iter.has_next()) {
-    iter.next()->invoke(writer);
-  }
+  types.iterate(is);
 }

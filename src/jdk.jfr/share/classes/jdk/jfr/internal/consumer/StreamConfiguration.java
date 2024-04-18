@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,8 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import jdk.jfr.consumer.MetadataEvent;
 import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.internal.Utils;
+import jdk.jfr.internal.util.Utils;
 import jdk.jfr.internal.consumer.Dispatcher.EventDispatcher;
 
 final class StreamConfiguration {
@@ -39,6 +40,7 @@ final class StreamConfiguration {
     final List<Runnable> flushActions = new ArrayList<>();
     final List<EventDispatcher> eventActions = new ArrayList<>();
     final List<Consumer<Throwable>> errorActions = new ArrayList<>();
+    final List<Consumer<MetadataEvent>> metadataActions = new ArrayList<>();
 
     boolean reuse = true;
     boolean ordered = true;
@@ -56,6 +58,7 @@ final class StreamConfiguration {
         removed |= closeActions.removeIf(e -> e == action);
         removed |= errorActions.removeIf(e -> e == action);
         removed |= eventActions.removeIf(e -> e.getAction() == action);
+        removed |= metadataActions.removeIf(e -> e == action);
         if (removed) {
             changed = true;
         }
@@ -83,6 +86,11 @@ final class StreamConfiguration {
 
     public synchronized void addErrorAction(Consumer<Throwable> action) {
         errorActions.add(action);
+        changed = true;
+    }
+
+    public synchronized void addMetadataAction(Consumer<MetadataEvent> action) {
+        metadataActions.add(action);
         changed = true;
     }
 

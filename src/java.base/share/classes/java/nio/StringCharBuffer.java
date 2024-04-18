@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,7 @@ import java.util.Objects;
 
 // ## If the sequence is a string, use reflection to share its array
 
-class StringCharBuffer                                  // package-private
+final class StringCharBuffer                                  // package-private
     extends CharBuffer
 {
     CharSequence str;
@@ -145,26 +145,40 @@ class StringCharBuffer                                  // package-private
         return null;
     }
 
+    boolean isAddressable() {
+        return false;
+    }
+
     public boolean equals(Object ob) {
         if (this == ob)
             return true;
-        if (!(ob instanceof CharBuffer))
+        if (!(ob instanceof CharBuffer that))
             return false;
-        CharBuffer that = (CharBuffer)ob;
-        if (this.remaining() != that.remaining())
+        int thisPos = this.position();
+        int thisRem = this.limit() - thisPos;
+        int thatPos = that.position();
+        int thatRem = that.limit() - thatPos;
+        if (thisRem < 0 || thisRem != thatRem)
             return false;
-        return BufferMismatch.mismatch(this, this.position(),
-                                       that, that.position(),
-                                       this.remaining()) < 0;
+        return BufferMismatch.mismatch(this, thisPos,
+                                       that, thatPos,
+                                       thisRem) < 0;
     }
 
     public int compareTo(CharBuffer that) {
-        int i = BufferMismatch.mismatch(this, this.position(),
-                                        that, that.position(),
-                                        Math.min(this.remaining(), that.remaining()));
+        int thisPos = this.position();
+        int thisRem = this.limit() - thisPos;
+        int thatPos = that.position();
+        int thatRem = that.limit() - thatPos;
+        int length = Math.min(thisRem, thatRem);
+        if (length < 0)
+            return -1;
+        int i = BufferMismatch.mismatch(this, thisPos,
+                                        that, thatPos,
+                                        length);
         if (i >= 0) {
-            return Character.compare(this.get(this.position() + i), that.get(that.position() + i));
+            return Character.compare(this.get(thisPos + i), that.get(thatPos + i));
         }
-        return this.remaining() - that.remaining();
+        return thisRem - thatRem;
     }
 }

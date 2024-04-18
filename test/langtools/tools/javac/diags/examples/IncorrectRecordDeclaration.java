@@ -21,9 +21,7 @@
  * questions.
  */
 
-// key: compiler.err.record.header.expected
-// key: compiler.note.preview.filename
-// key: compiler.note.preview.recompile
-// options: --enable-preview -source ${jdk.version}
+// key: compiler.err.expected
+// key: compiler.err.illegal.start.of.type
 
 record R {}

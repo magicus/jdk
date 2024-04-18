@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,7 @@
 #include "oops/klass.hpp"
 #include "oops/oop.hpp"
 #include "oops/oopsHierarchy.hpp"
-#include "runtime/vmOperations.hpp"
+#include "runtime/vmOperation.hpp"
 #include "services/diagnosticCommand.hpp"
 #include "utilities/resourceHash.hpp"
 
@@ -61,7 +61,7 @@ public:
 
   static const JavaPermission permission() {
     JavaPermission p = {"java.lang.management.ManagementPermission",
-                        "monitor", NULL};
+                        "monitor", nullptr};
     return p;
   }
 };
@@ -97,10 +97,6 @@ public:
 
 class ClassLoaderStatsClosure : public CLDClosure {
 protected:
-  static bool oop_equals(oop const& s1, oop const& s2) {
-    return s1 == s2;
-  }
-
   static unsigned oop_hash(oop const& s1) {
     // Robert Jenkins 1996 & Thomas Wang 1997
     // http://web.archive.org/web/20071223173210/http://www.concentric.net/~Ttwang/tech/inthash.htm
@@ -115,8 +111,9 @@ protected:
     return hash;
   }
 
-  typedef ResourceHashtable<oop, ClassLoaderStats*,
-      ClassLoaderStatsClosure::oop_hash, ClassLoaderStatsClosure::oop_equals> StatsTable;
+  typedef ResourceHashtable<oop, ClassLoaderStats,
+                            256, AnyObj::C_HEAP, mtStatistics,
+                            ClassLoaderStatsClosure::oop_hash> StatsTable;
 
   outputStream* _out;
   StatsTable* _stats;
@@ -128,15 +125,19 @@ protected:
 public:
   ClassLoaderStatsClosure(outputStream* out) :
     _out(out),
-    _stats(new StatsTable()),
+    _stats(new (mtStatistics)StatsTable()),
     _total_loaders(0),
     _total_classes(0),
     _total_chunk_sz(0),
     _total_block_sz(0) {
   }
 
+  ~ClassLoaderStatsClosure() {
+    delete _stats;
+  }
+
   virtual void do_cld(ClassLoaderData* cld);
-  virtual bool do_entry(oop const& key, ClassLoaderStats* const& cls);
+  virtual bool do_entry(oop const& key, ClassLoaderStats const& cls);
   void print();
 
 private:

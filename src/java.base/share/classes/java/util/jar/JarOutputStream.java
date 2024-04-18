@@ -35,7 +35,9 @@ import java.io.*;
  * for writing an optional {@code Manifest} entry. The
  * {@code Manifest} can be used to specify meta-information about
  * the JAR file and its entries.
- *
+ * <p> Unless otherwise noted, passing a {@code null} argument to a constructor
+ * or method in this class will cause a {@link NullPointerException} to be
+ * thrown.
  * @author  David Connelly
  * @see     Manifest
  * @see     java.util.zip.ZipOutputStream
@@ -53,6 +55,7 @@ public class JarOutputStream extends ZipOutputStream {
      * @param man the optional {@code Manifest}
      * @throws    IOException if an I/O error has occurred
      */
+    @SuppressWarnings("this-escape")
     public JarOutputStream(OutputStream out, Manifest man) throws IOException {
         super(out);
         if (man == null) {
@@ -76,8 +79,15 @@ public class JarOutputStream extends ZipOutputStream {
     /**
      * Begins writing a new JAR file entry and positions the stream
      * to the start of the entry data. This method will also close
-     * any previous entry. The default compression method will be
-     * used if no compression method was specified for the entry.
+     * any previous entry.
+     * <p>
+     * The default compression method will be used if no compression
+     * method was specified for the entry. When writing a compressed
+     * (DEFLATED) entry, and the compressed size has not been explicitly
+     * set with the {@link ZipEntry#setCompressedSize(long)} method,
+     * then the compressed size will be set to the actual compressed
+     * size after deflation.
+     * <p>
      * The current time will be used if the entry has no set modification
      * time.
      *

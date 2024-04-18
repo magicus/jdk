@@ -55,7 +55,7 @@ public:
 // Binary magnitude sequence stores the power-of-two histogram.
 // It has very low memory requirements, and is thread-safe. When accuracy
 // is not needed, it is preferred over HdrSeq.
-class BinaryMagnitudeSeq {
+class BinaryMagnitudeSeq : public CHeapObj<mtGC> {
 private:
   size_t  _sum;
   size_t* _mags;
@@ -70,6 +70,7 @@ public:
   size_t sum() const;
   int min_level() const;
   int max_level() const;
+  void clear();
 };
 
 #endif // SHARE_GC_SHENANDOAH_SHENANDOAHNUMBERSEQ_HPP

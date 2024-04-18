@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,8 +25,9 @@
 
 package java.lang;
 
-import jdk.internal.HotSpotIntrinsicCandidate;
-import jdk.internal.misc.VM;
+import jdk.internal.misc.CDS;
+import jdk.internal.vm.annotation.IntrinsicCandidate;
+import jdk.internal.vm.annotation.Stable;
 
 import java.lang.constant.Constable;
 import java.lang.constant.DynamicConstantDesc;
@@ -48,11 +49,18 @@ import static java.lang.constant.ConstantDescs.DEFAULT_NAME;
  * byte}, as well as other constants and methods useful when dealing
  * with a {@code byte}.
  *
+ * <p>This is a <a href="{@docRoot}/java.base/java/lang/doc-files/ValueBased.html">value-based</a>
+ * class; programmers should treat instances that are
+ * {@linkplain #equals(Object) equal} as interchangeable and should not
+ * use instances for synchronization, or unpredictable behavior may
+ * occur. For example, in a future release, synchronization may fail.
+ *
  * @author  Nakul Saraiya
  * @author  Joseph D. Darcy
  * @see     java.lang.Number
  * @since   1.1
  */
+@jdk.internal.ValueBased
 public final class Byte extends Number implements Comparable<Byte>, Constable {
 
     /**
@@ -83,7 +91,7 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * @see java.lang.Integer#toString(int)
      */
     public static String toString(byte b) {
-        return Integer.toString((int)b, 10);
+        return Integer.toString(b);
     }
 
     /**
@@ -98,9 +106,10 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
         return Optional.of(DynamicConstantDesc.ofNamed(BSM_EXPLICIT_CAST, DEFAULT_NAME, CD_byte, intValue()));
     }
 
-    private static class ByteCache {
+    private static final class ByteCache {
         private ByteCache() {}
 
+        @Stable
         static final Byte[] cache;
         static Byte[] archivedCache;
 
@@ -108,7 +117,7 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
             final int size = -(-128) + 127 + 1;
 
             // Load and use the archived cache if it exists
-            VM.initializeFromArchive(ByteCache.class);
+            CDS.initializeFromArchive(ByteCache.class);
             if (archivedCache == null || archivedCache.length != size) {
                 Byte[] c = new Byte[size];
                 byte value = (byte)-128;
@@ -134,7 +143,7 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * @return a {@code Byte} instance representing {@code b}.
      * @since  1.5
      */
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static Byte valueOf(byte b) {
         final int offset = 128;
         return ByteCache.cache[(int)b + offset];
@@ -226,7 +235,7 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * equal to the value of:
      *
      * <blockquote>
-     * {@code new Byte(Byte.parseByte(s, radix))}
+     * {@code Byte.valueOf(Byte.parseByte(s, radix))}
      * </blockquote>
      *
      * @param s         the string to be parsed
@@ -255,7 +264,7 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * equal to the value of:
      *
      * <blockquote>
-     * {@code new Byte(Byte.parseByte(s))}
+     * {@code Byte.valueOf(Byte.parseByte(s))}
      * </blockquote>
      *
      * @param s         the string to be parsed
@@ -289,8 +298,8 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * </blockquote>
      *
      * <i>DecimalNumeral</i>, <i>HexDigits</i>, and <i>OctalDigits</i>
-     * are as defined in section 3.10.1 of
-     * <cite>The Java&trade; Language Specification</cite>,
+     * are as defined in section {@jls 3.10.1} of
+     * <cite>The Java Language Specification</cite>,
      * except that underscores are not accepted between digits.
      *
      * <p>The sequence of characters following an optional
@@ -337,7 +346,7 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * {@link #valueOf(byte)} is generally a better choice, as it is
      * likely to yield significantly better space and time performance.
      */
-    @Deprecated(since="9")
+    @Deprecated(since="9", forRemoval = true)
     public Byte(byte value) {
         this.value = value;
     }
@@ -360,7 +369,7 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * {@code byte} primitive, or use {@link #valueOf(String)}
      * to convert a string to a {@code Byte} object.
      */
-    @Deprecated(since="9")
+    @Deprecated(since="9", forRemoval = true)
     public Byte(String s) throws NumberFormatException {
         this.value = parseByte(s, 10);
     }
@@ -369,7 +378,7 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * Returns the value of this {@code Byte} as a
      * {@code byte}.
      */
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public byte byteValue() {
         return value;
     }
@@ -429,8 +438,9 @@ public final class Byte extends Number implements Comparable<Byte>, Constable {
      * @return  a string representation of the value of this object in
      *          base&nbsp;10.
      */
+    @Override
     public String toString() {
-        return Integer.toString((int)value);
+        return Integer.toString(value);
     }
 
     /**

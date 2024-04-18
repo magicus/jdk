@@ -22,10 +22,10 @@
  *
  */
 
-/* @test TestC1VectorizedMismatch
+/* @test
  * @summary test C1 vectorized mismatch intrinsic
- * @key gc randomness
- * @requires vm.gc.Shenandoah & !vm.graal.enabled
+ * @key randomness
+ * @requires vm.gc.Shenandoah
  * @library /test/lib
  *
  * @run main/othervm -XX:TieredStopAtLevel=1 -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=aggressive TestC1VectorizedMismatch

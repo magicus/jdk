@@ -25,21 +25,32 @@ package gc.epsilon;
 
 /**
  * @test TestElasticTLABDecay
- * @key gc randomness
- * @requires vm.gc.Epsilon & !vm.graal.enabled
- * @summary Epsilon is able to work with/without elastic TLABs
+ * @key randomness
+ * @requires vm.gc.Epsilon
+ * @summary Epsilon is able to work with/without elastic TLABs decay
  * @library /test/lib
  *
- * @run main/othervm -Xmx1g -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC -XX:+EpsilonElasticTLAB -XX:-EpsilonElasticTLABDecay                               gc.epsilon.TestElasticTLABDecay
- * @run main/othervm -Xmx1g -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC -XX:+EpsilonElasticTLAB -XX:+EpsilonElasticTLABDecay -XX:EpsilonTLABDecayTime=1    gc.epsilon.TestElasticTLABDecay
- * @run main/othervm -Xmx1g -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC -XX:+EpsilonElasticTLAB -XX:+EpsilonElasticTLABDecay -XX:EpsilonTLABDecayTime=100  gc.epsilon.TestElasticTLABDecay
+ * @run main/othervm -Xmx256m
+ *                   -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC
+ *                   -XX:+EpsilonElasticTLAB -XX:-EpsilonElasticTLABDecay
+ *                   gc.epsilon.TestElasticTLABDecay
+ *
+ * @run main/othervm -Xmx256m
+ *                   -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC
+ *                   -XX:+EpsilonElasticTLAB -XX:+EpsilonElasticTLABDecay -XX:EpsilonTLABDecayTime=1
+ *                   gc.epsilon.TestElasticTLABDecay
+ *
+ * @run main/othervm -Xmx256m
+ *                   -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC
+ *                   -XX:+EpsilonElasticTLAB -XX:+EpsilonElasticTLABDecay -XX:EpsilonTLABDecayTime=100
+ *                   gc.epsilon.TestElasticTLABDecay
  */
 
 import java.util.Random;
 import jdk.test.lib.Utils;
 
 public class TestElasticTLABDecay {
-  static int COUNT = Integer.getInteger("count", 3000); // ~500 MB allocation
+  static int COUNT = Integer.getInteger("count", 500); // ~100 MB allocation
 
   static byte[][] arr;
 

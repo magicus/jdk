@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,55 +21,49 @@
  * questions.
  */
 
-import com.sun.net.httpserver.*;
-
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigInteger;
-import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.Signature;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import com.sun.net.httpserver.HttpExchange;
+
 import jdk.test.lib.SecurityTools;
 import jdk.test.lib.process.OutputAnalyzer;
+import jdk.test.lib.security.KeyStoreUtils;
+import jdk.test.lib.security.timestamp.*;
 import jdk.test.lib.util.JarUtils;
-import sun.security.pkcs.ContentInfo;
+import jdk.security.jarsigner.JarSigner;
 import sun.security.pkcs.PKCS7;
 import sun.security.pkcs.PKCS9Attribute;
 import sun.security.pkcs.SignerInfo;
 import sun.security.timestamp.TimestampToken;
-import sun.security.util.DerOutputStream;
-import sun.security.util.DerValue;
-import sun.security.util.ObjectIdentifier;
-import sun.security.x509.AlgorithmId;
-import sun.security.x509.X500Name;
 
 /*
  * @test
  * @bug 6543842 6543440 6939248 8009636 8024302 8163304 8169911 8180289 8172404
- *          8242151
+ *      8247960 8242068 8269039 8275887 8267319
  * @summary checking response of timestamp
  * @modules java.base/sun.security.pkcs
  *          java.base/sun.security.timestamp
  *          java.base/sun.security.x509
  *          java.base/sun.security.util
  *          java.base/sun.security.tools.keytool
+ *          jdk.jartool/jdk.security.jarsigner
  * @library /lib/testlibrary
  * @library /test/lib
  * @build jdk.test.lib.util.JarUtils
@@ -85,240 +79,125 @@ import sun.security.x509.X500Name;
  */
 public class TimestampCheck {
 
-    static final String defaultPolicyId = "2.3.4";
-    static String host = null;
+    private static final String PASSWORD = "changeit";
+    private static final String defaultPolicyId = "2.3.4";
+    private static String host = null;
+    private static final String getDefaultSigAlg(String keyAlg) {
+        switch(keyAlg) {
+            case "DSA":
+                return "SHA256withDSA";
+            case "RSA":
+                return "SHA384withRSA";
+            case "EC":
+                return "SHA384withECDSA";
+            default:
+                throw new RuntimeException("Error: unsupported algo " + keyAlg);
+        }
+    }
 
-    static class Handler implements HttpHandler, AutoCloseable {
+    private static class Interceptor implements RespInterceptor {
 
-        private final HttpServer httpServer;
-        private final String keystore;
+        private final String path;
 
-        @Override
-        public void handle(HttpExchange t) throws IOException {
-            int len = 0;
-            for (String h: t.getRequestHeaders().keySet()) {
-                if (h.equalsIgnoreCase("Content-length")) {
-                    len = Integer.valueOf(t.getRequestHeaders().get(h).get(0));
-                }
-            }
-            byte[] input = new byte[len];
-            t.getRequestBody().read(input);
-
-            try {
-                String path = t.getRequestURI().getPath().substring(1);
-                byte[] output = sign(input, path);
-                Headers out = t.getResponseHeaders();
-                out.set("Content-Type", "application/timestamp-reply");
-
-                t.sendResponseHeaders(200, output.length);
-                OutputStream os = t.getResponseBody();
-                os.write(output);
-            } catch (Exception e) {
-                e.printStackTrace();
-                t.sendResponseHeaders(500, 0);
-            }
-            t.close();
+        Interceptor(String path) {
+            this.path = path;
         }
 
-        /**
-         * @param input The data to sign
-         * @param path different cases to simulate, impl on URL path
-         * @returns the signed
-         */
-        byte[] sign(byte[] input, String path) throws Exception {
-
-            DerValue value = new DerValue(input);
-            System.out.println("#\n# Incoming Request\n===================");
-            System.out.println("# Version: " + value.data.getInteger());
-            DerValue messageImprint = value.data.getDerValue();
-            AlgorithmId aid = AlgorithmId.parse(
-                    messageImprint.data.getDerValue());
-            System.out.println("# AlgorithmId: " + aid);
-
-            ObjectIdentifier policyId = ObjectIdentifier.of(defaultPolicyId);
-            BigInteger nonce = null;
-            while (value.data.available() > 0) {
-                DerValue v = value.data.getDerValue();
-                if (v.tag == DerValue.tag_Integer) {
-                    nonce = v.getBigInteger();
-                    System.out.println("# nonce: " + nonce);
-                } else if (v.tag == DerValue.tag_Boolean) {
-                    System.out.println("# certReq: " + v.getBoolean());
-                } else if (v.tag == DerValue.tag_ObjectId) {
-                    policyId = v.getOID();
-                    System.out.println("# PolicyID: " + policyId);
-                }
-            }
-
-            System.out.println("#\n# Response\n===================");
-            KeyStore ks = KeyStore.getInstance(
-                    new File(keystore), "changeit".toCharArray());
-
-            // If path starts with "ts", use the TSA it points to.
-            // Otherwise, always use "ts".
-            String alias = path.startsWith("ts") ? path : "ts";
-
-            if (path.equals("diffpolicy")) {
-                policyId = ObjectIdentifier.of(defaultPolicyId);
-            }
-
-            DerOutputStream statusInfo = new DerOutputStream();
-            statusInfo.putInteger(0);
-
-            AlgorithmId[] algorithms = {aid};
-            Certificate[] chain = ks.getCertificateChain(alias);
-            X509Certificate[] signerCertificateChain;
-            X509Certificate signer = (X509Certificate)chain[0];
-
-            if (path.equals("fullchain")) {   // Only case 5 uses full chain
-                signerCertificateChain = new X509Certificate[chain.length];
-                for (int i=0; i<chain.length; i++) {
-                    signerCertificateChain[i] = (X509Certificate)chain[i];
-                }
+        @Override
+        public X509Certificate[] getSignerCertChain(
+                X509Certificate[] signerCertChain, boolean certReq)
+                throws Exception {
+            if (path.equals("fullchain")) { // Only case 5 uses full chain
+                return signerCertChain;
             } else if (path.equals("nocert")) {
-                signerCertificateChain = new X509Certificate[0];
+                return new X509Certificate[0];
             } else {
-                signerCertificateChain = new X509Certificate[1];
-                signerCertificateChain[0] = (X509Certificate)chain[0];
+                return new X509Certificate[] { signerCertChain[0] };
             }
+        }
 
-            DerOutputStream tst = new DerOutputStream();
+        @Override
+        public String getSigAlgo(String sigAlgo) throws Exception {
+            return "SHA256withRSA";
+        }
 
-            tst.putInteger(1);
-            tst.putOID(policyId);
+        @Override
+        public TsaParam getRespParam(TsaParam reqParam) {
+            TsaParam respParam = RespInterceptor.super.getRespParam(reqParam);
 
-            if (!path.equals("baddigest") && !path.equals("diffalg")) {
-                tst.putDerValue(messageImprint);
-            } else {
-                byte[] data = messageImprint.toByteArray();
-                if (path.equals("diffalg")) {
-                    data[6] = (byte)0x01;
-                } else {
-                    data[data.length-1] = (byte)0x01;
-                    data[data.length-2] = (byte)0x02;
-                    data[data.length-3] = (byte)0x03;
-                }
-                tst.write(data);
+            String policyId
+                    = respParam.policyId() == null || path.equals("diffpolicy")
+                    ? TimestampCheck.defaultPolicyId
+                    : respParam.policyId();
+            respParam.policyId(policyId);
+
+            String digestAlgo = respParam.digestAlgo();
+            if (path.equals("diffalg")) {
+                digestAlgo = digestAlgo.contains("256")
+                        ? "SHA-1" : "SHA-256";
             }
+            respParam.digestAlgo(digestAlgo);
 
-            tst.putInteger(1);
+            byte[] hashedMessage = respParam.hashedMessage();
+            if (path.equals("baddigest")) {
+                hashedMessage[hashedMessage.length - 1] = (byte) 0x01;
+                hashedMessage[hashedMessage.length - 2] = (byte) 0x02;
+                hashedMessage[hashedMessage.length - 3] = (byte) 0x03;
+            }
+            respParam.hashedMessage(hashedMessage);
 
             Instant instant = Instant.now();
             if (path.equals("tsold")) {
                 instant = instant.minus(20, ChronoUnit.DAYS);
+            } else if (path.equals("tsbefore2019")) {
+                // Saturday, August 18, 2018 7:04:58 PM
+                instant = Instant.ofEpochSecond(1534619098l);
             }
-            tst.putGeneralizedTime(Date.from(instant));
+            respParam.genTime(Date.from(instant));
 
+            BigInteger nonce = respParam.nonce();
             if (path.equals("diffnonce")) {
-                tst.putInteger(1234);
+                nonce = BigInteger.valueOf(1234);
             } else if (path.equals("nononce")) {
-                // no noce
-            } else {
-                tst.putInteger(nonce);
+                nonce = null;
             }
+            respParam.nonce(nonce);
 
-            DerOutputStream tstInfo = new DerOutputStream();
-            tstInfo.write(DerValue.tag_Sequence, tst);
-
-            DerOutputStream tstInfo2 = new DerOutputStream();
-            tstInfo2.putOctetString(tstInfo.toByteArray());
-
-            // Always use the same algorithm at timestamp signing
-            // so it is different from the hash algorithm.
-            String sigAlg = "SHA256withRSA";
-            Signature sig = Signature.getInstance(sigAlg);
-            sig.initSign((PrivateKey)(ks.getKey(
-                    alias, "changeit".toCharArray())));
-            sig.update(tstInfo.toByteArray());
-
-            ContentInfo contentInfo = new ContentInfo(ObjectIdentifier.of(
-                    "1.2.840.113549.1.9.16.1.4"),
-                    new DerValue(tstInfo2.toByteArray()));
-
-            System.out.println("# Signing...");
-            System.out.println("# " + new X500Name(signer
-                    .getIssuerX500Principal().getName()));
-            System.out.println("# " + signer.getSerialNumber());
-
-            SignerInfo signerInfo = new SignerInfo(
-                    new X500Name(signer.getIssuerX500Principal().getName()),
-                    signer.getSerialNumber(),
-                    AlgorithmId.get(AlgorithmId.getDigAlgFromSigAlg(sigAlg)),
-                    AlgorithmId.get(AlgorithmId.getEncAlgFromSigAlg(sigAlg)),
-                    sig.sign());
-
-            SignerInfo[] signerInfos = {signerInfo};
-            PKCS7 p7 = new PKCS7(algorithms, contentInfo,
-                    signerCertificateChain, signerInfos);
-            ByteArrayOutputStream p7out = new ByteArrayOutputStream();
-            p7.encodeSignedData(p7out);
-
-            DerOutputStream response = new DerOutputStream();
-            response.write(DerValue.tag_Sequence, statusInfo);
-            response.putDerValue(new DerValue(p7out.toByteArray()));
-
-            DerOutputStream out = new DerOutputStream();
-            out.write(DerValue.tag_Sequence, response);
-
-            return out.toByteArray();
-        }
-
-        private Handler(HttpServer httpServer, String keystore) {
-            this.httpServer = httpServer;
-            this.keystore = keystore;
-        }
-
-        /**
-         * Initialize TSA instance.
-         *
-         * Extended Key Info extension of certificate that is used for
-         * signing TSA responses should contain timeStamping value.
-         */
-        static Handler init(int port, String keystore) throws IOException {
-            HttpServer httpServer = HttpServer.create(
-                    new InetSocketAddress(port), 0);
-            Handler tsa = new Handler(httpServer, keystore);
-            httpServer.createContext("/", tsa);
-            return tsa;
-        }
-
-        /**
-         * Start TSA service.
-         */
-        void start() {
-            httpServer.start();
-        }
-
-        /**
-         * Stop TSA service.
-         */
-        void stop() {
-            httpServer.stop(0);
-        }
-
-        /**
-         * Return server port number.
-         */
-        int getPort() {
-            return httpServer.getAddress().getPort();
-        }
-
-        @Override
-        public void close() throws Exception {
-            stop();
+            return respParam;
         }
     }
 
-    public static void main(String[] args) throws Throwable {
+    private static class Handler extends TsaHandler {
 
-        try (Handler tsa = Handler.init(0, "ks");) {
+        Handler(String keystore) throws Exception {
+            super(KeyStoreUtils.loadKeyStore(keystore, PASSWORD), PASSWORD);
+        }
+
+        public TsaSigner createSigner(HttpExchange exchange)
+                throws Exception {
+            String path = exchange.getRequestURI().getPath().substring(1);
+
+            SignerEntry signerEntry = createSignerEntry(
+                    path.startsWith("ts") ? path : "ts");
+            byte[] requestData = exchange.getRequestBody().readAllBytes();
+            RespInterceptor interceptor = new Interceptor(path);
+            return new TsaSigner(signerEntry, requestData, interceptor);
+        }
+    }
+
+    private static TsaServer initServer(String keystore) throws Exception {
+        return new TsaServer(0, new Handler(keystore));
+    }
+
+    public static void main(String[] args) throws Throwable {
+        prepare();
+
+        try (TsaServer tsa = initServer("ks");) {
             tsa.start();
             int port = tsa.getPort();
             host = "http://localhost:" + port + "/";
 
             if (args.length == 0) {         // Run this test
-
-                prepare();
 
                 sign("normal")
                         .shouldNotContain("Warning")
@@ -351,6 +230,17 @@ public class TimestampCheck {
                         .shouldMatch("signer certificate expired on .*. "
                                 + "However, the JAR will be valid")
                         .shouldHaveExitValue(0);
+
+                // should not be disabled because timestamped before 2019
+                signVerbose("tsbefore2019", "unsigned.jar", "tsbefore2019.jar", "pre2019signer",
+                        "-digestalg", "SHA-1")
+                        .shouldHaveExitValue(4);
+
+                verify("tsbefore2019.jar", "-verbose")
+                        .shouldHaveExitValue(0)
+                        .shouldMatch("Digest.*SHA-1.*(weak)")
+                        .shouldMatch("signer certificate expired on .*. "
+                                + "However, the JAR will be valid");
 
                 // No timestamp
                 signVerbose(null, "unsigned.jar", "none.jar", "signer")
@@ -415,7 +305,8 @@ public class TimestampCheck {
 
                 sign("policy", "-tsapolicyid",  "1.2.3")
                         .shouldHaveExitValue(0);
-                checkTimestamp("policy.jar", "1.2.3", "SHA-256");
+                checkTimestamp("policy.jar", "1.2.3",
+                        JarSigner.Builder.getDefaultDigestAlgorithm());
 
                 sign("diffpolicy", "-tsapolicyid", "1.2.3")
                         .shouldContain("TSAPolicyID changed in timestamp token")
@@ -425,35 +316,32 @@ public class TimestampCheck {
                         .shouldHaveExitValue(0);
                 checkTimestamp("sha384alg.jar", defaultPolicyId, "SHA-384");
 
-                // Legacy algorithms
+                // Disabled algorithms
                 signVerbose(null, "unsigned.jar", "sha1alg.jar", "signer",
-                        "-strict", "-digestalg", "SHA-1")
-                        .shouldHaveExitValue(0)
-                        .shouldContain("jar signed, with signer errors")
-                        .shouldMatch("SHA-1.*-digestalg.*will be disabled");
-                verify("sha1alg.jar", "-strict")
-                        .shouldHaveExitValue(0)
-                        .shouldContain("jar verified, with signer errors")
-                        .shouldContain("SHA-1 digest algorithm is considered a security risk")
-                        .shouldContain("This algorithm will be disabled in a future update")
-                        .shouldNotContain("is disabled");
+                        "-digestalg", "SHA-1")
+                        .shouldHaveExitValue(4)
+                        .shouldContain("jar signed")
+                        .shouldContain("with signer errors")
+                        .shouldMatch("SHA-1.*-digestalg.*is disabled");
+                verify("sha1alg.jar", "-verbose")
+                        .shouldHaveExitValue(16)
+                        .shouldContain("treated as unsigned")
+                        .shouldMatch("Digest.*SHA-1.*(disabled)");
 
                 sign("sha1tsaalg", "-tsadigestalg", "SHA-1", "-strict")
-                        .shouldHaveExitValue(0)
-                        .shouldContain("jar signed, with signer errors")
-                        .shouldMatch("SHA-1.*-tsadigestalg.*will be disabled")
-                        .shouldNotContain("is disabled");
-                verify("sha1tsaalg.jar", "-strict")
-                        .shouldHaveExitValue(0)
-                        .shouldContain("jar verified, with signer errors")
-                        .shouldContain("SHA-1 timestamp digest algorithm is considered a security risk")
-                        .shouldNotContain("is disabled");
+                        .shouldHaveExitValue(4)
+                        .shouldContain("jar signed")
+                        .shouldContain("with signer errors")
+                        .shouldMatch("SHA-1.*-tsadigestalg.*is disabled");
+                verify("sha1tsaalg.jar", "-verbose")
+                        .shouldHaveExitValue(16)
+                        .shouldContain("treated as unsigned")
+                        .shouldMatch("Timestamp.*digest.*SHA-1.*(disabled)");
 
-                // Disabled algorithms
                 sign("tsdisabled", "-digestalg", "MD5",
                                 "-sigalg", "MD5withRSA", "-tsadigestalg", "MD5")
                         .shouldHaveExitValue(68)
-                        .shouldContain("The timestamp is invalid. Without a valid timestamp")
+                        .shouldContain("TSA certificate chain is invalid")
                         .shouldMatch("MD5.*-digestalg.*is disabled")
                         .shouldMatch("MD5.*-tsadigestalg.*is disabled")
                         .shouldMatch("MD5withRSA.*-sigalg.*is disabled");
@@ -461,13 +349,13 @@ public class TimestampCheck {
 
                 signVerbose("tsdisabled", "unsigned.jar", "tsdisabled2.jar", "signer")
                         .shouldHaveExitValue(64)
-                        .shouldContain("The timestamp is invalid. Without a valid timestamp")
                         .shouldContain("TSA certificate chain is invalid");
 
                 // Disabled timestamp is an error and jar treated unsigned
                 verify("tsdisabled2.jar", "-verbose")
                         .shouldHaveExitValue(16)
                         .shouldContain("treated as unsigned")
+                        .shouldNotMatch("Signature.*(disabled)")
                         .shouldMatch("Timestamp.*512.*(disabled)");
 
                 // Algorithm used in signing is disabled
@@ -484,18 +372,48 @@ public class TimestampCheck {
                 // sign with RSAkeysize < 1024
                 signVerbose("normal", "sign1.jar", "sign2.jar", "disabledkeysize")
                         .shouldContain("Algorithm constraints check failed on keysize")
+                        .shouldNotContain("option is considered a security " +
+                            "risk and is disabled")
                         .shouldHaveExitValue(4);
                 checkMultiple("sign2.jar");
 
-                // Legacy algorithms
+                // signed with everyone
+                signVerbose("normal", "unsigned.jar", "signall.jar", "signer",
+                        "-sigalg", "SHA3-256withRSA")
+                        .shouldHaveExitValue(0);
+                signVerbose("normal", "signall.jar", "signall.jar", "dsakey")
+                        .shouldHaveExitValue(0);
+                signVerbose("normal", "signall.jar", "signall.jar", "eckey")
+                        .shouldHaveExitValue(0);
+                signVerbose("normal", "signall.jar", "signall.jar", "psskey")
+                        .shouldHaveExitValue(0);
+                signVerbose("normal", "signall.jar", "signall.jar", "edkey")
+                        .shouldHaveExitValue(0);
+                verify("signall.jar", "-verbose")
+                        .shouldHaveExitValue(0)
+                        .shouldContain("Signature algorithm: SHA3-256withRSA")
+                        .shouldContain("Signature algorithm: RSASSA-PSS")
+                        .shouldContain("Signature algorithm: " +
+                                getDefaultSigAlg("EC"))
+                        .shouldContain("Signature algorithm: Ed25519")
+                        .shouldContain("Signature algorithm: " +
+                                getDefaultSigAlg("DSA"));
+
+                // Disabled algorithms
                 sign("tsweak", "-digestalg", "SHA1",
                                 "-sigalg", "SHA1withRSA", "-tsadigestalg", "SHA1")
-                        .shouldHaveExitValue(0)
-                        .shouldMatch("SHA1.*-digestalg.*will be disabled")
-                        .shouldMatch("SHA1.*-tsadigestalg.*will be disabled")
-                        .shouldMatch("SHA1withRSA.*-sigalg.*will be disabled");
-                checkWeak("tsweak.jar");
+                        .shouldHaveExitValue(4)
+                        .shouldMatch("SHA1.*-digestalg.*is disabled")
+                        .shouldMatch("SHA1.*-tsadigestalg.*is disabled")
+                        .shouldMatch("SHA1withRSA.*-sigalg.*is disabled");
+                verify("tsweak.jar", "-verbose")
+                        .shouldHaveExitValue(16)
+                        .shouldContain("treated as unsigned")
+                        .shouldMatch("Digest algorithm: .*(disabled)")
+                        .shouldMatch("Signature algorithm: .*(disabled)")
+                        .shouldMatch("Timestamp digest algorithm: .*(disabled)");
 
+                // Legacy algorithms (1024-bit key)
                 signVerbose("tsweak", "unsigned.jar", "tsweak2.jar", "signer")
                         .shouldHaveExitValue(0);
 
@@ -504,13 +422,15 @@ public class TimestampCheck {
                         .shouldContain("jar verified")
                         .shouldMatch("Timestamp.*1024.*(weak)");
 
-                // Algorithm used in signing is weak
+                // Algorithm used in signing is disabled
                 signVerbose("normal", "unsigned.jar", "halfWeak.jar", "signer",
                         "-digestalg", "SHA1")
-                        .shouldContain("-digestalg option is considered a security risk.")
-                        .shouldContain("This algorithm will be disabled in a future update.")
-                        .shouldHaveExitValue(0);
-                checkHalfWeak("halfWeak.jar");
+                        .shouldContain("-digestalg option is considered a security risk and is disabled.")
+                        .shouldHaveExitValue(4);
+                verify("halfWeak.jar", "-verbose")
+                        .shouldHaveExitValue(16)
+                        .shouldContain("treated as unsigned")
+                        .shouldMatch("Digest algorithm: .*(disabled)");
 
                 // sign with DSA key
                 signVerbose("normal", "unsigned.jar", "sign1.jar", "dsakey")
@@ -519,6 +439,17 @@ public class TimestampCheck {
                 // sign with RSAkeysize < 2048
                 signVerbose("normal", "sign1.jar", "sign2.jar", "weakkeysize")
                         .shouldNotContain("Algorithm constraints check failed on keysize")
+                        .shouldNotContain("The SHA-256 algorithm specified " +
+                            "for the -digestalg option is considered a " +
+                            "security risk")
+                        .shouldNotContain("The SHA256withRSA algorithm " +
+                            "specified for the -sigalg option is considered " +
+                            "a security risk")
+                        .shouldNotContain("The SHA-256 algorithm specified " +
+                            "for the -tsadigestalg option is considered a " +
+                            "security risk")
+                        .shouldContain("The RSA signing key has a keysize " +
+                            "of 1024 which is considered a security risk")
                         .shouldHaveExitValue(0);
                 checkMultipleWeak("sign2.jar");
 
@@ -773,7 +704,7 @@ public class TimestampCheck {
                 .shouldMatch("Timestamp signature algorithm: .*key.*(disabled)");
         verify(file, "-J-Djava.security.debug=jar")
                 .shouldHaveExitValue(16)
-                .shouldMatch("SignatureException:.*disabled");
+                .shouldMatch("SignatureException:.*MD5");
 
         // For 8171319: keytool should print out warnings when reading or
         //              generating cert/cert req using disabled algorithms.
@@ -820,51 +751,6 @@ public class TimestampCheck {
                 .shouldMatch("Signed by .*CN=dsakey")
                 .shouldMatch("Signed by .*CN=disabledkeysize")
                 .shouldMatch("Signature algorithm: .*key.*(disabled)");
-    }
-
-    static void checkWeak(String file) throws Exception {
-        verify(file)
-                .shouldHaveExitValue(0)
-                .shouldNotContain("treated as unsigned");
-        verify(file, "-verbose")
-                .shouldHaveExitValue(0)
-                .shouldNotContain("treated as unsigned")
-                .shouldMatch("Digest algorithm: .*(weak)")
-                .shouldMatch("Signature algorithm: .*(weak)")
-                .shouldMatch("Timestamp digest algorithm: .*(weak)")
-                .shouldNotMatch("Timestamp signature algorithm: .*(weak).*(weak)")
-                .shouldMatch("Timestamp signature algorithm: .*key.*(weak)");
-        verify(file, "-J-Djava.security.debug=jar")
-                .shouldHaveExitValue(0)
-                .shouldNotMatch("SignatureException:.*disabled");
-
-        // keytool should print out warnings when reading or
-        // generating cert/cert req using legacy algorithms.
-        String sout = SecurityTools.keytool("-printcert -jarfile " + file)
-                .stderrShouldContain("The TSA certificate uses a 1024-bit RSA key" +
-                        " which is considered a security risk." +
-                        " This key size will be disabled in a future update.")
-                .getStdout();
-        if (sout.indexOf("weak", sout.indexOf("Timestamp:")) < 0) {
-            throw new RuntimeException("timestamp not weak: " + sout);
-        }
-    }
-
-    static void checkHalfWeak(String file) throws Exception {
-        verify(file)
-                .shouldHaveExitValue(0)
-                .shouldNotContain("treated as unsigned");
-        verify(file, "-verbose")
-                .shouldHaveExitValue(0)
-                .shouldNotContain("treated as unsigned")
-                .shouldMatch("Digest algorithm: .*(weak)")
-                .shouldNotMatch("Signature algorithm: .*(weak)")
-                .shouldNotMatch("Signature algorithm: .*(disabled)")
-                .shouldNotMatch("Timestamp digest algorithm: .*(weak)")
-                .shouldNotMatch("Timestamp signature algorithm: .*(weak).*(weak)")
-                .shouldNotMatch("Timestamp signature algorithm: .*(disabled).*(disabled)")
-                .shouldNotMatch("Timestamp signature algorithm: .*key.*(weak)")
-                .shouldNotMatch("Timestamp signature algorithm: .*key.*(disabled)");
     }
 
     static void checkMultipleWeak(String file) throws Exception {
@@ -948,12 +834,17 @@ public class TimestampCheck {
         Files.deleteIfExists(Paths.get("ks"));
         keytool("-alias signer -genkeypair -ext bc -dname CN=signer");
         keytool("-alias oldsigner -genkeypair -dname CN=oldsigner");
+        keytool("-alias pre2019signer -genkeypair -dname CN=pre2019signer");
         keytool("-alias dsakey -genkeypair -keyalg DSA -dname CN=dsakey");
+        keytool("-alias eckey -genkeypair -keyalg EC -dname CN=eckey");
+        keytool("-alias psskey -genkeypair -keyalg RSASSA-PSS -dname CN=psskey");
+        keytool("-alias edkey -genkeypair -keyalg Ed25519 -dname CN=edkey");
         keytool("-alias weakkeysize -genkeypair -keysize 1024 -dname CN=weakkeysize");
         keytool("-alias disabledkeysize -genkeypair -keysize 512 -dname CN=disabledkeysize");
         keytool("-alias badku -genkeypair -dname CN=badku");
         keytool("-alias ts -genkeypair -dname CN=ts");
         keytool("-alias tsold -genkeypair -dname CN=tsold");
+        keytool("-alias tsbefore2019 -genkeypair -dname CN=tsbefore2019");
         keytool("-alias tsweak -genkeypair -keysize 1024 -dname CN=tsweak");
         keytool("-alias tsdisabled -genkeypair -keysize 512 -dname CN=tsdisabled");
         keytool("-alias tsbad1 -genkeypair -dname CN=tsbad1");
@@ -977,11 +868,15 @@ public class TimestampCheck {
 
         gencert("signer");
         gencert("oldsigner", "-startdate -30d -validity 20");
+        gencert("pre2019signer", "-startdate 2018/06/01 -validity 365");
         gencert("dsakey");
+        gencert("eckey");
+        gencert("psskey");
+        gencert("edkey");
         gencert("weakkeysize");
         gencert("disabledkeysize");
         gencert("badku", "-ext ku:critical=keyAgreement");
-        gencert("ts", "-ext eku:critical=ts -validity 500");
+        gencert("ts", "-ext eku:critical=ts -ext ku=nonrep -validity 500");
 
         gencert("expired", "-validity 10 -startdate -12d");
         gencert("expiring", "-validity 178");
@@ -1010,6 +905,7 @@ public class TimestampCheck {
         }
 
         gencert("tsold", "-ext eku:critical=ts -startdate -40d -validity 500");
+        gencert("tsbefore2019", "-ext eku:critical=ts -startdate 2018/01/01 -validity 3000");
 
         gencert("tsweak", "-ext eku:critical=ts");
         gencert("tsdisabled", "-ext eku:critical=ts");

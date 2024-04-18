@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -239,14 +239,14 @@ final class CertStatusExtension {
         }
     }
 
-    static enum CertStatusRequestType {
+    enum CertStatusRequestType {
         OCSP        ((byte)0x01,    "ocsp"),        // RFC 6066/6961
         OCSP_MULTI  ((byte)0x02,    "ocsp_multi");  // RFC 6961
 
         final byte id;
         final String name;
 
-        private CertStatusRequestType(byte id, String name) {
+        CertStatusRequestType(byte id, String name) {
             this.id = id;
             this.name = name;
         }
@@ -287,10 +287,11 @@ final class CertStatusExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                "\"certificate status type\": {0}\n" +
-                "\"encoded certificate status\": '{'\n" +
-                "{1}\n" +
-                "'}'",
+                    """
+                            "certificate status type": {0}
+                            "encoded certificate status": '{'
+                            {1}
+                            '}'""",
                 Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -323,8 +324,6 @@ final class CertStatusExtension {
 
         final List<ResponderId> responderIds;
         final List<Extension> extensions;
-        private final int ridListLen;
-        private final int extListLen;
 
         static {
             OCSPStatusRequest ocspReq = null;
@@ -360,7 +359,7 @@ final class CertStatusExtension {
             List<Extension> exts = new ArrayList<>();
             ByteBuffer m = ByteBuffer.wrap(encoded);
 
-            this.ridListLen = Record.getInt16(m);
+            int ridListLen = Record.getInt16(m);
             if (m.remaining() < (ridListLen + 2)) {
                 throw new SSLProtocolException(
                         "Invalid OCSP status request: insufficient data");
@@ -384,7 +383,7 @@ final class CertStatusExtension {
             }
 
             byte[] extListBytes = Record.getBytes16(m);
-            this.extListLen = extListBytes.length;
+            int extListLen = extListBytes.length;
             if (extListLen > 0) {
                 try {
                     DerInputStream dis = new DerInputStream(extListBytes);
@@ -406,17 +405,19 @@ final class CertStatusExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                "\"certificate status type\": {0}\n" +
-                "\"OCSP status request\": '{'\n" +
-                "{1}\n" +
-                "'}'",
+                    """
+                            "certificate status type": {0}
+                            "OCSP status request": '{'
+                            {1}
+                            '}'""",
                 Locale.ENGLISH);
 
             MessageFormat requestFormat = new MessageFormat(
-                "\"responder_id\": {0}\n" +
-                "\"request extensions\": '{'\n" +
-                "{1}\n" +
-                "'}'",
+                    """
+                            "responder_id": {0}
+                            "request extensions": '{'
+                            {1}
+                            '}'""",
                 Locale.ENGLISH);
 
             String ridStr = "<empty>";
@@ -479,10 +480,11 @@ final class CertStatusExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                "\"certificate status response type\": {0}\n" +
-                "\"encoded certificate status\": '{'\n" +
-                "{1}\n" +
-                "'}'",
+                    """
+                            "certificate status response type": {0}
+                            "encoded certificate status": '{'
+                            {1}
+                            '}'""",
                 Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -517,10 +519,11 @@ final class CertStatusExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                "\"certificate status response type\": {0}\n" +
-                "\"OCSP status response\": '{'\n" +
-                "{1}\n" +
-                "'}'",
+                    """
+                            "certificate status response type": {0}
+                            "OCSP status response": '{'
+                            {1}
+                            '}'""",
                 Locale.ENGLISH);
 
             Object[] messageFields = {
@@ -812,7 +815,7 @@ final class CertStatusExtension {
                                 new SSLProtocolException(
                             "Invalid status_request_v2 extension: " +
                             "insufficient data (request_length=" + requestLen +
-                            ", remining=" + message.remaining() + ")"));
+                            ", remaining=" + message.remaining() + ")"));
                 }
 
                 byte[] encoded = new byte[requestLen];
@@ -1105,7 +1108,7 @@ final class CertStatusExtension {
         public byte[] produce(ConnectionContext context,
                 HandshakeMessage message) throws IOException {
             ServerHandshakeContext shc = (ServerHandshakeContext)context;
-            byte[] producedData = null;
+            byte[] producedData;
 
             // Stapling needs to be active and have valid data to proceed
             if (shc.stapleParams == null) {

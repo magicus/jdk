@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@ import java.util.ArrayList;
 
 import jdk.test.lib.cds.CDSTestUtils;
 import jdk.test.lib.cds.CDSOptions;
-import jdk.test.lib.process.OutputAnalyzer;
 
 /*
  * @test
@@ -41,18 +40,19 @@ public class LotsOfClasses {
 
     public static void main(String[] args) throws Exception {
         ArrayList<String> list = new ArrayList<>();
+        long start = System.currentTimeMillis();
         TestCommon.findAllClasses(list);
-
+        System.out.println("findAllClasses = " + (System.currentTimeMillis() - start) + "ms");
         CDSOptions opts = new CDSOptions();
         opts.setClassList(list);
         opts.addSuffix("--add-modules");
         opts.addSuffix("ALL-SYSTEM");
         opts.addSuffix("-Xlog:hashtables");
         opts.addSuffix("-Xmx500m");
+        opts.addSuffix("-XX:MetaspaceSize=500M"); // avoid heap fragmentation by avoiding metaspace-limit induced GCs
         opts.addSuffix("-Xlog:gc+region+cds");
-        opts.addSuffix("-Xlog:gc+region=trace");
+        opts.addSuffix("-Xlog:cds=debug");  // test detailed metadata info printing
 
-        OutputAnalyzer out = CDSTestUtils.createArchive(opts);
-        CDSTestUtils.checkDump(out);
+        CDSTestUtils.createArchiveAndCheck(opts);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,18 +53,20 @@
  * @requires vm.opt.final.ClassUnloading
  * @library /vmTestbase
  *          /test/lib
- * @run driver jdk.test.lib.FileInstaller . .
  * @build nsk.jdi.ObjectReference.referringObjects.referringObjects002.referringObjects002
  *        nsk.jdi.ObjectReference.referringObjects.referringObjects002.referringObjects002a
  *        nsk.share.jdi.TestClass1
- * @run main/othervm/native PropertyResolvingWrapper
+ * @build jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @run main/othervm/native
  *      nsk.jdi.ObjectReference.referringObjects.referringObjects002.referringObjects002
  *      -verbose
  *      -arch=${os.family}-${os.simpleArch}
  *      -waittime=5
  *      -debugee.vmkind=java
  *      -transport.address=dynamic
- *      "-debugee.vmkeys=-Xmx256M ${test.vm.opts} ${test.java.opts}"
+ *      -debugee.vmkeys="-Xmx256M -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions
+ *                       -XX:+WhiteBoxAPI  ${test.vm.opts} ${test.java.opts}"
  *      -testClassPath ${test.class.path}
  */
 
@@ -80,7 +82,10 @@ import nsk.share.jdi.HeapwalkingDebugger;
 public class referringObjects002 extends HeapwalkingDebugger {
 
     public static void main(String argv[]) {
-        System.exit(run(argv, System.out) + Consts.JCK_STATUS_BASE);
+        int result = run(argv,System.out);
+        if (result != 0) {
+            throw new RuntimeException("TEST FAILED with result " + result);
+        }
     }
 
     public static int run(String argv[], PrintStream out) {
@@ -98,6 +103,10 @@ public class referringObjects002 extends HeapwalkingDebugger {
 
     public void checkClassObjectReferrersCount(ClassObjectReference classObjectReference, int expectedCount) {
         int referrersCount = classObjectReference.referringObjects(0).size();
+        log.display("References:");
+        for (ObjectReference ref: classObjectReference.referringObjects(0)) {
+            log.display(ref);
+        }
 
         if (referrersCount != expectedCount) {
             setSuccess(false);
@@ -138,7 +147,6 @@ public class referringObjects002 extends HeapwalkingDebugger {
         expectedReferrersCount = 3;
 
         checkClassObjectReferrersCount(classObjectReference, expectedReferrersCount);
-
         // disable collection and try unload class object
         classObjectReference.disableCollection();
 

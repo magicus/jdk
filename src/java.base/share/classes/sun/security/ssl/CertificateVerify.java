@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,6 +32,7 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
+
 import sun.security.ssl.SSLHandshake.HandshakeMessage;
 import sun.security.ssl.X509Authentication.X509Credentials;
 import sun.security.ssl.X509Authentication.X509Possession;
@@ -74,7 +75,7 @@ final class CertificateVerify {
 
             // This happens in client side only.
             ClientHandshakeContext chc = (ClientHandshakeContext)context;
-            byte[] temproary = null;
+            byte[] temporary;
             String algorithm = x509Possession.popPrivateKey.getAlgorithm();
             try {
                 Signature signer =
@@ -82,7 +83,7 @@ final class CertificateVerify {
                 byte[] hashes = chc.handshakeHash.digest(algorithm,
                         chc.handshakeSession.getMasterSecret());
                 signer.update(hashes);
-                temproary = signer.sign();
+                temporary = signer.sign();
             } catch (NoSuchAlgorithmException nsae) {
                 throw chc.conContext.fatal(Alert.INTERNAL_ERROR,
                         "Unsupported signature algorithm (" + algorithm +
@@ -92,7 +93,7 @@ final class CertificateVerify {
                         "Cannot produce CertificateVerify signature", gse);
             }
 
-            this.signature = temproary;
+            this.signature = temporary;
         }
 
         S30CertificateVerifyMessage(HandshakeContext context,
@@ -172,11 +173,12 @@ final class CertificateVerify {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    "\"CertificateVerify\": '{'\n" +
-                    "  \"signature\": '{'\n" +
-                    "{0}\n" +
-                    "  '}'\n" +
-                    "'}'",
+                    """
+                            "CertificateVerify": '{'
+                              "signature": '{'
+                            {0}
+                              '}'
+                            '}'""",
                     Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -194,7 +196,7 @@ final class CertificateVerify {
          */
         private static Signature getSignature(String algorithm,
                 Key key) throws GeneralSecurityException {
-            Signature signer = null;
+            Signature signer;
             switch (algorithm) {
                 case "RSA":
                     signer = Signature.getInstance(JsseJce.SIGNATURE_RAWRSA);
@@ -210,12 +212,10 @@ final class CertificateVerify {
                         + algorithm);
             }
 
-            if (signer != null) {
-                if (key instanceof PublicKey) {
-                    signer.initVerify((PublicKey)(key));
-                } else {
-                    signer.initSign((PrivateKey)key);
-                }
+            if (key instanceof PublicKey) {
+                signer.initVerify((PublicKey)(key));
+            } else {
+                signer.initSign((PrivateKey)key);
             }
 
             return signer;
@@ -330,14 +330,14 @@ final class CertificateVerify {
 
             // This happens in client side only.
             ClientHandshakeContext chc = (ClientHandshakeContext)context;
-            byte[] temproary = null;
+            byte[] temporary;
             String algorithm = x509Possession.popPrivateKey.getAlgorithm();
             try {
                 Signature signer =
                         getSignature(algorithm, x509Possession.popPrivateKey);
                 byte[] hashes = chc.handshakeHash.digest(algorithm);
                 signer.update(hashes);
-                temproary = signer.sign();
+                temporary = signer.sign();
             } catch (NoSuchAlgorithmException nsae) {
                 throw chc.conContext.fatal(Alert.INTERNAL_ERROR,
                         "Unsupported signature algorithm (" + algorithm +
@@ -347,7 +347,7 @@ final class CertificateVerify {
                     "Cannot produce CertificateVerify signature", gse);
             }
 
-            this.signature = temproary;
+            this.signature = temporary;
         }
 
         T10CertificateVerifyMessage(HandshakeContext context,
@@ -426,11 +426,12 @@ final class CertificateVerify {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    "\"CertificateVerify\": '{'\n" +
-                    "  \"signature\": '{'\n" +
-                    "{0}\n" +
-                    "  '}'\n" +
-                    "'}'",
+                    """
+                            "CertificateVerify": '{'
+                              "signature": '{'
+                            {0}
+                              '}'
+                            '}'""",
                     Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -448,7 +449,7 @@ final class CertificateVerify {
          */
         private static Signature getSignature(String algorithm,
                 Key key) throws GeneralSecurityException {
-            Signature signer = null;
+            Signature signer;
             switch (algorithm) {
                 case "RSA":
                     signer = Signature.getInstance(JsseJce.SIGNATURE_RAWRSA);
@@ -459,17 +460,18 @@ final class CertificateVerify {
                 case "EC":
                     signer = Signature.getInstance(JsseJce.SIGNATURE_RAWECDSA);
                     break;
+                case "EdDSA":
+                    signer = Signature.getInstance(JsseJce.SIGNATURE_EDDSA);
+                    break;
                 default:
                     throw new SignatureException("Unrecognized algorithm: "
                         + algorithm);
             }
 
-            if (signer != null) {
-                if (key instanceof PublicKey) {
-                    signer.initVerify((PublicKey)(key));
-                } else {
-                    signer.initSign((PrivateKey)key);
-                }
+            if (key instanceof PublicKey) {
+                signer.initVerify((PublicKey)(key));
+            } else {
+                signer.initSign((PrivateKey)key);
             }
 
             return signer;
@@ -588,12 +590,13 @@ final class CertificateVerify {
             ClientHandshakeContext chc = (ClientHandshakeContext)context;
             Map.Entry<SignatureScheme, Signature> schemeAndSigner =
                     SignatureScheme.getSignerOfPreferableAlgorithm(
+                    chc.sslConfig,
                     chc.algorithmConstraints,
                     chc.peerRequestedSignatureSchemes,
                     x509Possession,
                     chc.negotiatedProtocol);
             if (schemeAndSigner == null) {
-                // Unlikely, the credentials generator should have
+                // Unlikely, the credential's generator should have
                 // selected the preferable signature algorithm properly.
                 throw chc.conContext.fatal(Alert.INTERNAL_ERROR,
                     "No supported CertificateVerify signature algorithm for " +
@@ -602,17 +605,17 @@ final class CertificateVerify {
             }
 
             this.signatureScheme = schemeAndSigner.getKey();
-            byte[] temproary = null;
+            byte[] temporary;
             try {
                 Signature signer = schemeAndSigner.getValue();
                 signer.update(chc.handshakeHash.archived());
-                temproary = signer.sign();
+                temporary = signer.sign();
             } catch (SignatureException ikse) {
                 throw chc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
                         "Cannot produce CertificateVerify signature", ikse);
             }
 
-            this.signature = temproary;
+            this.signature = temporary;
         }
 
         T12CertificateVerifyMessage(HandshakeContext handshakeContext,
@@ -705,12 +708,13 @@ final class CertificateVerify {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    "\"CertificateVerify\": '{'\n" +
-                    "  \"signature algorithm\": {0}\n" +
-                    "  \"signature\": '{'\n" +
-                    "{1}\n" +
-                    "  '}'\n" +
-                    "'}'",
+                    """
+                            "CertificateVerify": '{'
+                              "signature algorithm": {0}
+                              "signature": '{'
+                            {1}
+                              '}'
+                            '}'""",
                     Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -898,12 +902,13 @@ final class CertificateVerify {
 
             Map.Entry<SignatureScheme, Signature> schemeAndSigner =
                     SignatureScheme.getSignerOfPreferableAlgorithm(
+                    context.sslConfig,
                     context.algorithmConstraints,
                     context.peerRequestedSignatureSchemes,
                     x509Possession,
                     context.negotiatedProtocol);
             if (schemeAndSigner == null) {
-                // Unlikely, the credentials generator should have
+                // Unlikely, the credential's generator should have
                 // selected the preferable signature algorithm properly.
                 throw context.conContext.fatal(Alert.INTERNAL_ERROR,
                     "No supported CertificateVerify signature algorithm for " +
@@ -927,17 +932,17 @@ final class CertificateVerify {
                         serverSignHead.length, hashValue.length);
             }
 
-            byte[] temproary = null;
+            byte[] temporary;
             try {
                 Signature signer = schemeAndSigner.getValue();
                 signer.update(contentCovered);
-                temproary = signer.sign();
+                temporary = signer.sign();
             } catch (SignatureException ikse) {
                 throw context.conContext.fatal(Alert.HANDSHAKE_FAILURE,
                         "Cannot produce CertificateVerify signature", ikse);
             }
 
-            this.signature = temproary;
+            this.signature = temporary;
         }
 
         T13CertificateVerifyMessage(HandshakeContext context,
@@ -1041,12 +1046,13 @@ final class CertificateVerify {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    "\"CertificateVerify\": '{'\n" +
-                    "  \"signature algorithm\": {0}\n" +
-                    "  \"signature\": '{'\n" +
-                    "{1}\n" +
-                    "  '}'\n" +
-                    "'}'",
+                    """
+                            "CertificateVerify": '{'
+                              "signature algorithm": {0}
+                              "signature": '{'
+                            {1}
+                              '}'
+                            '}'""",
                     Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();

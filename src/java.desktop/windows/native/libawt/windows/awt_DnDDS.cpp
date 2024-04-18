@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,10 +39,15 @@ void * operator new(size_t size) {return operator new(size, "stl", 1);}
 #pragma pop_macro("bad_alloc")
 //"bad_alloc" is undefined from here
 
-#include <awt.h>
 #include <shlobj.h>
 
+// These files must be included before awt.h, since the latter redefines malloc
+// to Do_Not_Use_Malloc, etc, and that will break these files.
+#include "awt_ole.h"
+#include "awt_DCHolder.h"
+
 #include "jlong.h"
+#include "awt.h"
 #include "awt_DataTransferer.h"
 #include "awt_DnDDS.h"
 #include "awt_DnDDT.h"
@@ -53,9 +58,6 @@ void * operator new(size_t size) {return operator new(size, "stl", 1);}
 #include "java_awt_event_InputEvent.h"
 #include "java_awt_dnd_DnDConstants.h"
 #include "sun_awt_windows_WDragSourceContextPeer.h"
-
-#include "awt_ole.h"
-#include "awt_DCHolder.h"
 
 bool operator < (const FORMATETC &fr, const FORMATETC &fl) {
     return memcmp(&fr, &fl, sizeof(FORMATETC)) < 0;
@@ -154,7 +156,6 @@ public:
     }
     static const FORMATETC *FindFormat(const FORMATETC &format)
     {
-        static FORMATETC fm = {0};
         CDataMap::iterator i = st.find(format);
         if (st.end() != i) {
             return &i->first;
@@ -267,13 +268,13 @@ void AwtDragSource::_DoDragDrop(void* param) {
     dragSource->Signal();
 
     AwtToolkit &toolkit = AwtToolkit::GetInstance();
-    toolkit.isInDoDragDropLoop = TRUE;
+    toolkit.isDnDSourceActive = TRUE;
     res = ::DoDragDrop(dragSource,
                        dragSource,
                        convertActionsToDROPEFFECT(dragSource->m_actions),
                        &effects
           );
-    toolkit.isInDoDragDropLoop = FALSE;
+    toolkit.isDnDSourceActive = FALSE;
 
     if (effects == DROPEFFECT_NONE && dragSource->m_dwPerformedDropEffect != DROPEFFECT_NONE) {
         effects = dragSource->m_dwPerformedDropEffect;
@@ -1174,14 +1175,14 @@ HRESULT __stdcall AwtDragSource::GetProcessId(FORMATETC __RPC_FAR *pFormatEtc, S
     return S_OK;
 }
 
-static void ScaleDown(POINT &pt) {
+static void ScaleDownAbs(POINT &pt) {
     HMONITOR monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
     int screen = AwtWin32GraphicsDevice::GetScreenFromHMONITOR(monitor);
     Devices::InstanceAccess devices;
     AwtWin32GraphicsDevice *device = devices->GetDevice(screen);
     if (device) {
-        pt.x = device->ScaleDownX(pt.x);
-        pt.y = device->ScaleDownY(pt.y);
+        pt.x = device->ScaleDownAbsX(pt.x);
+        pt.y = device->ScaleDownAbsY(pt.y);
     }
 }
 
@@ -1190,7 +1191,7 @@ DECLARE_JAVA_CLASS(dSCClazz, "sun/awt/windows/WDragSourceContextPeer")
 void
 AwtDragSource::call_dSCenter(JNIEnv* env, jobject self, jint targetActions,
                              jint modifiers, POINT pt) {
-    ScaleDown(pt);
+    ScaleDownAbs(pt);
     DECLARE_VOID_JAVA_METHOD(dSCenter, dSCClazz, "dragEnter", "(IIII)V");
     DASSERT(!JNU_IsNull(env, self));
     env->CallVoidMethod(self, dSCenter, targetActions, modifiers, pt.x, pt.y);
@@ -1203,7 +1204,7 @@ AwtDragSource::call_dSCenter(JNIEnv* env, jobject self, jint targetActions,
 void
 AwtDragSource::call_dSCmotion(JNIEnv* env, jobject self, jint targetActions,
                               jint modifiers, POINT pt) {
-    ScaleDown(pt);
+    ScaleDownAbs(pt);
     DECLARE_VOID_JAVA_METHOD(dSCmotion, dSCClazz, "dragMotion", "(IIII)V");
     DASSERT(!JNU_IsNull(env, self));
     env->CallVoidMethod(self, dSCmotion, targetActions, modifiers, pt.x, pt.y);
@@ -1216,7 +1217,7 @@ AwtDragSource::call_dSCmotion(JNIEnv* env, jobject self, jint targetActions,
 void
 AwtDragSource::call_dSCchanged(JNIEnv* env, jobject self, jint targetActions,
                                jint modifiers, POINT pt) {
-    ScaleDown(pt);
+    ScaleDownAbs(pt);
     DECLARE_VOID_JAVA_METHOD(dSCchanged, dSCClazz, "operationChanged",
                              "(IIII)V");
     DASSERT(!JNU_IsNull(env, self));
@@ -1229,7 +1230,7 @@ AwtDragSource::call_dSCchanged(JNIEnv* env, jobject self, jint targetActions,
 
 void
 AwtDragSource::call_dSCexit(JNIEnv* env, jobject self, POINT pt) {
-    ScaleDown(pt);
+    ScaleDownAbs(pt);
     DECLARE_VOID_JAVA_METHOD(dSCexit, dSCClazz, "dragExit", "(II)V");
     DASSERT(!JNU_IsNull(env, self));
     env->CallVoidMethod(self, dSCexit, pt.x, pt.y);
@@ -1242,7 +1243,7 @@ AwtDragSource::call_dSCexit(JNIEnv* env, jobject self, POINT pt) {
 void
 AwtDragSource::call_dSCddfinished(JNIEnv* env, jobject self, jboolean success,
                                   jint operations, POINT pt) {
-    ScaleDown(pt);
+    ScaleDownAbs(pt);
     DECLARE_VOID_JAVA_METHOD(dSCddfinished, dSCClazz, "dragDropFinished", "(ZIII)V");
     DASSERT(!JNU_IsNull(env, self));
     env->CallVoidMethod(self, dSCddfinished, success, operations, pt.x, pt.y);
@@ -1255,7 +1256,7 @@ AwtDragSource::call_dSCddfinished(JNIEnv* env, jobject self, jboolean success,
 void
 AwtDragSource::call_dSCmouseMoved(JNIEnv* env, jobject self, jint targetActions,
                                   jint modifiers, POINT pt) {
-    ScaleDown(pt);
+    ScaleDownAbs(pt);
     DECLARE_VOID_JAVA_METHOD(dSCmouseMoved, dSCClazz, "dragMouseMoved",
                              "(IIII)V");
     DASSERT(!JNU_IsNull(env, self));
@@ -1265,8 +1266,6 @@ AwtDragSource::call_dSCmouseMoved(JNIEnv* env, jobject self, jint targetActions,
         env->ExceptionClear();
     }
 }
-
-DECLARE_JAVA_CLASS(awtIEClazz, "java/awt/event/InputEvent")
 
 /**
  * Constructor

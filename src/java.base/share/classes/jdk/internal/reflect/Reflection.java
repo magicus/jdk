@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,8 +30,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import jdk.internal.HotSpotIntrinsicCandidate;
+
+import jdk.internal.access.JavaLangAccess;
+import jdk.internal.access.SharedSecrets;
 import jdk.internal.misc.VM;
+import jdk.internal.module.ModuleBootstrap;
+import jdk.internal.vm.annotation.ForceInline;
+import jdk.internal.vm.annotation.IntrinsicCandidate;
 
 /** Common utility routines used by both java.lang and
     java.lang.reflect */
@@ -66,7 +71,7 @@ public class Reflection {
         ignoring frames associated with java.lang.reflect.Method.invoke()
         and its implementation. */
     @CallerSensitive
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static native Class<?> getCallerClass();
 
     /** Retrieves the access flags written to the class file. For
@@ -77,7 +82,7 @@ public class Reflection {
         to compatibility reasons; see 4471811. Only the values of the
         low 13 bits (i.e., a mask of 0x1FFF) are guaranteed to be
         valid. */
-    @HotSpotIntrinsicCandidate
+    @IntrinsicCandidate
     public static native int getClassAccessFlags(Class<?> c);
 
 
@@ -103,6 +108,18 @@ public class Reflection {
         if (!verifyMemberAccess(currentClass, memberClass, targetClass, modifiers)) {
             throw newIllegalAccessException(currentClass, memberClass, targetClass, modifiers);
         }
+    }
+
+    @ForceInline
+    public static void ensureNativeAccess(Class<?> currentClass, Class<?> owner, String methodName) {
+        // if there is no caller class, act as if the call came from unnamed module of system class loader
+        Module module = currentClass != null ?
+                currentClass.getModule() :
+                ClassLoader.getSystemClassLoader().getUnnamedModule();
+        class Holder {
+            static final JavaLangAccess JLA = SharedSecrets.getJavaLangAccess();
+        }
+        Holder.JLA.ensureNativeAccess(module, owner, methodName, currentClass);
     }
 
     /**
@@ -336,6 +353,14 @@ public class Reflection {
         return false;
     }
 
+    /*
+     * Tests if the given Field is a trusted final field and it cannot be
+     * modified reflectively regardless of the value of its accessible flag.
+     */
+    public static boolean isTrustedFinalField(Field field) {
+        return SharedSecrets.getJavaLangReflectAccess().isTrustedFinalField(field);
+    }
+
     /**
      * Returns an IllegalAccessException with an exception message based on
      * the access that is denied.
@@ -361,11 +386,8 @@ public class Reflection {
 
         String msg = currentClass + currentSuffix + " cannot access ";
         if (m2.isExported(memberPackageName, m1)) {
-
             // module access okay so include the modifiers in the message
-            msg += "a member of " + memberClass + memberSuffix +
-                    " with modifiers \"" + Modifier.toString(modifiers) + "\"";
-
+            msg += "a member of " + memberClass + memberSuffix + msgSuffix(modifiers);
         } else {
             // module access failed
             msg += memberClass + memberSuffix+ " because "
@@ -392,11 +414,8 @@ public class Reflection {
 
         String msg = "JNI attached native thread (null caller frame) cannot access ";
         if (m2.isExported(memberPackageName)) {
-
             // module access okay so include the modifiers in the message
-            msg += "a member of " + memberClass + memberSuffix +
-                " with modifiers \"" + Modifier.toString(modifiers) + "\"";
-
+            msg += "a member of " + memberClass + memberSuffix + msgSuffix(modifiers);
         } else {
             // module access failed
             msg += memberClass + memberSuffix+ " because "
@@ -404,6 +423,16 @@ public class Reflection {
         }
 
         return new IllegalAccessException(msg);
+    }
+
+    private static String msgSuffix(int modifiers) {
+        boolean packageAccess =
+            ((Modifier.PRIVATE |
+              Modifier.PROTECTED |
+              Modifier.PUBLIC) & modifiers) == 0;
+        return packageAccess ?
+            " with package access" :
+            " with modifiers \"" + Modifier.toString(modifiers) + "\"";
     }
 
     /**

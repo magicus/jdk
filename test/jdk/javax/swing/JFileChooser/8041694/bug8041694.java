@@ -57,6 +57,7 @@ public class bug8041694 {
             // Set Metal L&F to make the test compatible with OS X.
             UIManager.setLookAndFeel(new MetalLookAndFeel());
             Robot robot = new Robot();
+            robot.setAutoDelay(100);
 
             dir1 = Files.createTempDirectory("bug8041694").toFile();
             if (Platform.isWindows()) {
@@ -83,15 +84,17 @@ public class bug8041694 {
                 }
             });
 
-            robot.setAutoDelay(50);
             robot.delay(1000);
             robot.waitForIdle();
             robot.keyPress(KeyEvent.VK_D);
             robot.keyRelease(KeyEvent.VK_D);
+            robot.waitForIdle();
             robot.keyPress(KeyEvent.VK_SPACE);
             robot.keyRelease(KeyEvent.VK_SPACE);
+            robot.waitForIdle();
             robot.keyPress(KeyEvent.VK_ENTER);
             robot.keyRelease(KeyEvent.VK_ENTER);
+            robot.waitForIdle();
 
             fChooserClosedSignal.await();
             if (selectedDir == null) {
@@ -99,11 +102,11 @@ public class bug8041694 {
             }
             System.out.println(String.format(
                 "The selected directory is '%s'.", selectedDir.getAbsolutePath()));
-            if (selectedDir.getName().equals("d")) {
+            if (selectedDir.getName().toLowerCase().equals("d")) {
                 throw new RuntimeException(
                     "JFileChooser removed trailing spaces in the selected directory name. " +
                     "Expected 'd ' got '" + selectedDir.getName() + "'.");
-            } else if (!selectedDir.getName().equals("d ")) {
+            } else if (!selectedDir.getName().toLowerCase().equals("d ")) {
                 throw new RuntimeException("The selected directory name is not "
                     + "the expected 'd ' but '" + selectedDir.getName() + "'.");
             }

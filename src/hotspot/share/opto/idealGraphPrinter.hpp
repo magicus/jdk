@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -57,6 +57,8 @@ class IdealGraphPrinter : public CHeapObj<mtCompiler> {
   static const char *CONTROL_FLOW_ELEMENT;
   static const char *REMOVE_EDGE_ELEMENT;
   static const char *REMOVE_NODE_ELEMENT;
+  static const char *COMPILATION_ID_PROPERTY;
+  static const char *COMPILATION_OSR_PROPERTY;
   static const char *METHOD_NAME_PROPERTY;
   static const char *BLOCK_NAME_PROPERTY;
   static const char *BLOCK_DOMINATOR_PROPERTY;
@@ -87,15 +89,20 @@ class IdealGraphPrinter : public CHeapObj<mtCompiler> {
   outputStream *_output;
   ciMethod *_current_method;
   int _depth;
-  char buffer[128];
+  char buffer[512];
   bool _should_send_method;
   PhaseChaitin* _chaitin;
   bool _traverse_outs;
   Compile *C;
+  double _max_freq;
 
   void print_method(ciMethod *method, int bci, InlineTree *tree);
   void print_inline_tree(InlineTree *tree);
   void visit_node(Node *n, bool edges, VectorSet* temp_set);
+  void print_field(const Node* node);
+  ciField* get_field(const Node* node);
+  ciField* find_source_field_of_array_access(const Node* node, uint& depth);
+  static Node* get_load_node(const Node* node);
   void walk_nodes(Node *start, bool edges, VectorSet* temp_set);
   void begin_elem(const char *s);
   void end_elem();
@@ -115,7 +122,7 @@ class IdealGraphPrinter : public CHeapObj<mtCompiler> {
   ~IdealGraphPrinter();
 
  public:
-  IdealGraphPrinter(Compile* compile, const char* file_name = NULL, bool append = false);
+  IdealGraphPrinter(Compile* compile, const char* file_name = nullptr, bool append = false);
   static void clean_up();
   static IdealGraphPrinter *printer();
 
@@ -126,7 +133,6 @@ class IdealGraphPrinter : public CHeapObj<mtCompiler> {
   void end_method();
   void print_method(const char *name, int level = 0);
   void print(const char *name, Node *root);
-  bool should_print(int level);
   void set_compile(Compile* compile) {C = compile; }
   void update_compiled_method(ciMethod* current_method);
 };

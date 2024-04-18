@@ -29,8 +29,8 @@
  * @summary On ppc64, C1 erroneously emits a 32-bit compare instruction for oop compares.
  * @modules java.base/jdk.internal.misc:+open
  * @library /test/lib /
- * @build sun.hotspot.WhiteBox
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @build jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run main/othervm -Xbatch -XX:-UseTLAB -Xmx4m -XX:+UseSerialGC -XX:HeapBaseMinAddress=0x700000000
  *      -XX:CompileCommand=compileonly,compiler.codegen.TestOopCmp::nullTest
  *      -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -Xbootclasspath/a:.
@@ -40,7 +40,7 @@
 
 package compiler.codegen;
 
-import sun.hotspot.WhiteBox;
+import jdk.test.whitebox.WhiteBox;
 
 public class TestOopCmp {
 
@@ -60,7 +60,7 @@ public class TestOopCmp {
 
         // The test is started with -XX:HeapBaseMinAddress=0x700000000 and a
         // small heap of only 4mb. This works pretty reliable and at least on
-        // Linux/Windows/Solaris we will get a heap starting at 0x700000000.
+        // Linux/Windows we will get a heap starting at 0x700000000.
         // The test also runs with -XX:+UseSerialGC which means that we'll get
         // eden starting at 0x700000000.
         // Calling 'System.gc()' will clean up all the objects from eden, so if
