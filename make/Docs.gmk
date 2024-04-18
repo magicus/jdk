@@ -74,19 +74,19 @@ JAVADOC_TAGS := \
     -tag param \
     -tag return \
     -tag throws \
-    -taglet build.tools.taglet.JSpec\$$JLS \
-    -taglet build.tools.taglet.JSpec\$$JVMS \
-    -taglet build.tools.taglet.ModuleGraph \
-    -taglet build.tools.taglet.SealedGraph \
-    -taglet build.tools.taglet.ToolGuide \
+    -taglet org.openjdk.buildtools.taglet.JSpec\$$JLS \
+    -taglet org.openjdk.buildtools.taglet.JSpec\$$JVMS \
+    -taglet org.openjdk.buildtools.taglet.ModuleGraph \
+    -taglet org.openjdk.buildtools.taglet.SealedGraph \
+    -taglet org.openjdk.buildtools.taglet.ToolGuide \
     -tag since \
     -tag serialData \
     -tag factory \
     -tag spec \
     -tag see \
-    -taglet build.tools.taglet.ExtLink \
-    -taglet build.tools.taglet.Incubating \
-    -tagletpath $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+    -taglet org.openjdk.buildtools.taglet.ExtLink \
+    -taglet org.openjdk.buildtools.taglet.Incubating \
+    -tagletpath $(BUILDTOOLS_OUTPUTDIR)/classes \
     $(CUSTOM_JAVADOC_TAGS) \
     #
 
@@ -418,7 +418,7 @@ define SetupApiDocsGenerationBody
     # First we run the GenGraph tool. It will query the module structure of the
     # running JVM and output .dot files for all existing modules.
     MODULE_GRAPHS_PROPS := \
-        $$(TOPDIR)/make/jdk/src/classes/build/tools/jigsaw/javadoc-graphs.properties
+        $$(TOPDIR)/make/buildtools/make/org/openjdk/buildtools/jigsaw/javadoc-graphs.properties
 
     $1_MODULE_GRAPHS_DIR := $$(SUPPORT_OUTPUTDIR)/docs/$1-module-graphs
 
@@ -678,7 +678,7 @@ ifeq ($(ENABLE_PANDOC), true)
 
   # We should also depend on the source code for the filter
   PANDOC_HTML_MANPAGE_FILTER_SOURCE := $(call FindFiles, \
-      $(TOPDIR)/make/jdk/src/classes/build/tools/pandocfilter)
+      $(TOPDIR)/buildtools/make/org/openjdk/buildtools/pandocfilter)
 
   $(foreach m, $(ALL_MODULES), \
     $(eval MAN_$m := $(call FindModuleManDirs, $m)) \

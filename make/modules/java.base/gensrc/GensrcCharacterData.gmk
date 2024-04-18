@@ -27,6 +27,9 @@
 # Rules to create $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/lang/CharacterData*.java
 #
 
+TOOL_GENERATECHARACTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
+    org.openjdk.buildtools.generatecharacter.GenerateCharacter
+
 GENSRC_CHARACTERDATA :=
 
 CHARACTERDATA_TEMPLATES = $(MODULE_SRC)/share/classes/java/lang

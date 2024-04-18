@@ -25,6 +25,8 @@
 
 GENDATA_TZDB :=
 
+TOOL_TZDB = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
+    org.openjdk.buildtools.tzdb.TzdbZoneRulesCompiler
 #
 # Time zone data file creation
 #

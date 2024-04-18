@@ -52,9 +52,9 @@ COMPILECREATESYMBOLS_ADD_EXPORTS := \
 
 $(eval $(call SetupJavaCompilation, COMPILE_CREATE_SYMBOLS, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/langtools/src/classes \
+    SRC := $(TOPDIR)/make/buildtools/make/org/openjdk/buildtools \
         $(TOPDIR)/src/jdk.jdeps/share/classes, \
-    INCLUDES := build/tools/symbolgenerator com/sun/tools/classfile, \
+    INCLUDES := org/openjdk/buildtools/symbolgenerator com/sun/tools/classfile, \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javadoc, \
     DISABLED_WARNINGS := options, \
     JAVAC_FLAGS := \
@@ -81,7 +81,7 @@ $(JDK_JAVADOC_DIR)/_element_lists.marker: \
 	    $(JAVA_SMALL) $(INTERIM_LANGTOOLS_ARGS) \
 	        $(COMPILECREATESYMBOLS_ADD_EXPORTS) \
 	        -classpath $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javadoc \
-	        build.tools.symbolgenerator.CreateSymbols \
+	        org.openjdk.buildtools.symbolgenerator.CreateSymbols \
 	        build-javadoc-data \
 	        $(CT_DATA_DESCRIPTION) \
 	        $(ELEMENT_LISTS_DIR) \
@@ -92,7 +92,7 @@ $(JDK_JAVADOC_DIR)/_element_lists.marker: \
 	    $(JAVA_SMALL) $(INTERIM_LANGTOOLS_ARGS) \
 	        $(COMPILECREATESYMBOLS_ADD_EXPORTS) \
 	        -classpath $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javadoc \
-	        build.tools.symbolgenerator.JavadocElementList \
+	        org.openjdk.buildtools.symbolgenerator.JavadocElementList \
 	        $(ELEMENT_LISTS_DIR)/element-list-$(JDK_SOURCE_TARGET_VERSION).txt \
 	        $(JAVADOC_MODULESOURCEPATH) \
 	        $(JAVADOC_MODULES) \
