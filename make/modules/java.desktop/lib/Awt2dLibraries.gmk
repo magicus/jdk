@@ -700,7 +700,10 @@ TARGETS += $(BUILD_LIBJAWT)
 
 ################################################################################
 
-ifeq ($(ENABLE_HEADLESS_ONLY), false)
+ifeq (true, false)
+
+USE_EXTERNAL_LIBZ := true
+USE_EXTERNAL_LIBJPEG := true
 
   LIBSPLASHSCREEN_EXTRA_SRC := \
       common/awt/systemscale \
