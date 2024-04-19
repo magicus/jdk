@@ -32,6 +32,7 @@
 #ifndef ZCONF_H
 #define ZCONF_H
 
+#include "jni.h"
 /*
  * If you *really* need a unique prefix for all types and library functions,
  * compile with -DZ_PREFIX. The "standard" zlib should be compiled without it.
@@ -403,11 +404,12 @@
 #  define ZEXTERN extern
 #endif
 #ifndef ZEXPORT
-#  define ZEXPORT
+#  define ZEXPORT JNIEXPORT
 #endif
 #ifndef ZEXPORTVA
 #  define ZEXPORTVA
 #endif
+
 
 #ifndef FAR
 #  define FAR
