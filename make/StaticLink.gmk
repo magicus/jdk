@@ -78,20 +78,15 @@ JAVASTATIC_LD_OBJ_ARG := $(JAVASTATIC_OBJECT_DIR)/main.o
 JAVASTATIC_LIBS := -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
 JAVASTATIC_EXTRA_LIBS := -Wl$(COMMA)--no-whole-archive -lpthread $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK)
 
-#$(JVM_STATIC_LIB) : $(HOTSPOT_OUTPUTDIR)/variant-server/libjvm/objs/static/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX) 
+#$(JVM_STATIC_LIB) : $(HOTSPOT_OUTPUTDIR)/variant-server/libjvm/objs/static/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX)
 #	$(CP) $< $@
 
 $(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS)
-        ifeq ($(call isTargetOs, linux), true)
-	  $(ECHO) "Creating '$(JAVASTATIC_TARGET_IMAGE)'"
-	  $(call ExecuteWithLog, $(JAVASTATIC_LOG_PREFIX), \
-	      $(LD) $(JAVASTATIC_LDFLAGS) -o $(JAVASTATIC_TARGET) \
-	          $(JAVASTATIC_LD_OBJ_ARG) $(JAVASTATIC_LIBS) $(JAVASTATIC_EXTRA_LIBS))
-	  echo copy $(JAVASTATIC_TARGET) to $@
-	  $(CP) -f $(JAVASTATIC_TARGET) $@
-        else
-	  $(error Not supported on non-linux platform currently)
-        endif
+	$(ECHO) "Creating '$(JAVASTATIC_TARGET_IMAGE)'"
+	$(call ExecuteWithLog, $(JAVASTATIC_LOG_PREFIX), \
+	    $(LD) $(JAVASTATIC_LDFLAGS) -o $(JAVASTATIC_TARGET) \
+	        $(JAVASTATIC_LD_OBJ_ARG) $(JAVASTATIC_LIBS) $(JAVASTATIC_EXTRA_LIBS))
+	$(CP) -f $(JAVASTATIC_TARGET) $@
 
 TARGETS += $(JAVASTATIC_TARGET_IMAGE)
 
