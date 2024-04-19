@@ -117,11 +117,20 @@ JAVASTATIC_TARGET_IMAGE := $(JDK_IMAGE_DIR)/bin/$(JAVASTATIC)
 
 JAVASTATIC_LD_OBJ_ARG :=
 
-# FIXME: Perhaps we really should prefix each and one individuall with -force_load...
-JAVASTATIC_LIBS := -Wl$(COMMA)-all_load $(JAVASTATIC_LINK_LIBS)
+ifeq ($(call isTargetOs, macosx), true)
+  # FIXME: Perhaps we really should prefix each and one individuall with -force_load...
+  JAVASTATIC_LIBS := -Wl$(COMMA)-all_load $(JAVASTATIC_LINK_LIBS)
 
-# FIXME: We should collect these automatically
-SYSTEM_LIBS :=-liconv -lstdc++  -framework Accelerate -framework ApplicationServices -framework AudioToolbox -framework AudioUnit -framework Carbon -framework Cocoa -framework Cocoa -framework CoreAudio -framework CoreFoundation -framework CoreGraphics -framework CoreMIDI -framework CoreServices -framework CoreServices -framework CoreText -framework ExceptionHandling -framework Foundation -framework Foundation -framework IOSurface -framework JavaRuntimeSupport -framework Kerberos -framework Metal -framework Metal -framework OpenGL -framework OpenGL -framework QuartzCore -framework Security -framework SystemConfiguration
+  # FIXME: We should collect these automatically
+  SYSTEM_LIBS := -liconv -lstdc++  -framework Accelerate -framework ApplicationServices -framework AudioToolbox -framework AudioUnit -framework Carbon -framework Cocoa -framework Cocoa -framework CoreAudio -framework CoreFoundation -framework CoreGraphics -framework CoreMIDI -framework CoreServices -framework CoreServices -framework CoreText -framework ExceptionHandling -framework Foundation -framework Foundation -framework IOSurface -framework JavaRuntimeSupport -framework Kerberos -framework Metal -framework Metal -framework OpenGL -framework OpenGL -framework QuartzCore -framework Security -framework SystemConfiguration
+else ifeq ($(call isTargetOs, linux), true)
+  JAVASTATIC_LIBS :=  -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
+
+  # FIXME: We should collect these automatically
+  SYSTEM_LIBS := -Wl$(COMMA)--no-whole-archive -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK)
+else
+  $(error Unsupported platform)
+endif
 
 $(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS)
 	$(ECHO) "Creating '$(JAVASTATIC_TARGET_IMAGE)'"
