@@ -559,7 +559,7 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_STATIC_BUILD],
       RESULT: NATIVE_LIB_TYPE,
       VALID_VALUES: [dynamic static both], DEFAULT: dynamic,
       CHECKING_MSG: [for native library build type],
-      DESC: [select native library build type (dynamic, static or both)]),
+      DESC: [select native library build type (dynamic, static or both)]
   )
   AC_SUBST(NATIVE_LIB_TYPE)
 
