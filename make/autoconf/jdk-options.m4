@@ -555,6 +555,14 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_UNDEFINED_BEHAVIOR_SANITIZER],
 #
 AC_DEFUN_ONCE([JDKOPT_SETUP_STATIC_BUILD],
 [
+  UTIL_ARG_WITH(NAME: native-lib-type, TYPE: literal,
+      RESULT: NATIVE_LIB_TYPE,
+      VALID_VALUES: [dynamic static both], DEFAULT: dynamic,
+      CHECKING_MSG: [for native library build type],
+      DESC: [select native library build type (dynamic, static or both)]),
+  )
+  AC_SUBST(NATIVE_LIB_TYPE)
+
   UTIL_DEPRECATED_ARG_ENABLE(static-build)
 ])
 
