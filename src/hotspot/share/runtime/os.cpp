@@ -505,10 +505,10 @@ static void* _native_java_library = nullptr;
 
 void* os::native_java_library() {
   if (_native_java_library == nullptr) {
-    if (JVM_IsStaticJDK()) {
-      _native_java_library = get_default_process_handle();
-      return _native_java_library;
-    }
+#ifdef STATIC_BUILD
+    _native_java_library = get_default_process_handle();
+    return _native_java_library;
+#endif
 
     char buffer[JVM_MAXPATHLEN];
     char ebuf[1024];

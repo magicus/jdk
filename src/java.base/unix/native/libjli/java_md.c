@@ -25,7 +25,6 @@
 
 #include "java.h"
 #include "jvm_md.h"
-#include <assert.h>
 #include <dirent.h>
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -297,13 +296,13 @@ CreateExecutionEnvironment(int *pargc, char ***pargv,
                            char jrepath[], jint so_jrepath,
                            char jvmpath[], jint so_jvmpath,
                            char jvmcfg[],  jint so_jvmcfg) {
-    if (JLI_IsStaticJDK()) {
-        // With static builds, all JDK and VM natives are statically linked
-        // with the launcher executable. No need to manipulate LD_LIBRARY_PATH
-        // by adding <jdk_path>/lib and etc. The 'jrepath', 'jvmpath' and
-        // 'jvmcfg' are not used by the caller for static builds. Simply return.
-        return;
-    }
+#ifdef STATIC_BUILD
+    // With static builds, all JDK and VM natives are statically linked
+    // with the launcher executable. No need to manipulate LD_LIBRARY_PATH
+    // by adding <jdk_path>/lib and etc. The 'jrepath', 'jvmpath' and
+    // 'jvmcfg' are not used by the caller for static builds. Simply return.
+    return;
+#endif
 
     char * jvmtype = NULL;
     char **argv = *pargv;
@@ -475,8 +474,6 @@ static jboolean
 GetJVMPath(const char *jrepath, const char *jvmtype,
            char *jvmpath, jint jvmpathsize)
 {
-    assert(!JLI_IsStaticJDK());
-
     struct stat s;
 
     if (JLI_StrChr(jvmtype, '/')) {
@@ -502,15 +499,13 @@ GetJVMPath(const char *jrepath, const char *jvmtype,
 static jboolean
 GetJREPath(char *path, jint pathsize, jboolean speculative)
 {
-    assert(!JLI_IsStaticJDK());
-
     char libjava[MAXPATHLEN];
     struct stat s;
 
     if (GetApplicationHome(path, pathsize)) {
-        if (JLI_IsStaticJDK()) {
-            return JNI_TRUE;
-        }
+#ifdef STATIC_BUILD
+        return JNI_TRUE;
+#endif
 
         /* Is JRE co-located with the application? */
         JLI_Snprintf(libjava, sizeof(libjava), "%s/lib/" JAVA_DLL, path);
@@ -552,16 +547,16 @@ LoadJavaVM(const char *jvmpath, InvocationFunctions *ifn)
 
     JLI_TraceLauncher("JVM path is %s\n", jvmpath);
 
-    if (JLI_IsStaticJDK()) {
-        libjvm = dlopen(NULL, RTLD_NOW + RTLD_GLOBAL);
-    } else {
-        libjvm = dlopen(jvmpath, RTLD_NOW + RTLD_GLOBAL);
-        if (libjvm == NULL) {
-            JLI_ReportErrorMessage(DLL_ERROR1, __LINE__);
-            JLI_ReportErrorMessage(DLL_ERROR2, jvmpath, dlerror());
-            return JNI_FALSE;
-        }
+#ifdef STATIC_BUILD
+    libjvm = dlopen(NULL, RTLD_NOW + RTLD_GLOBAL);
+#else
+    libjvm = dlopen(jvmpath, RTLD_NOW + RTLD_GLOBAL);
+    if (libjvm == NULL) {
+        JLI_ReportErrorMessage(DLL_ERROR1, __LINE__);
+        JLI_ReportErrorMessage(DLL_ERROR2, jvmpath, dlerror());
+        return JNI_FALSE;
     }
+#endif
 
     ifn->CreateJavaVM = (CreateJavaVM_t)
         dlsym(libjvm, "JNI_CreateJavaVM");
@@ -637,26 +632,26 @@ void* SplashProcAddress(const char* name) {
         char jrePath[MAXPATHLEN];
         char splashPath[MAXPATHLEN];
 
-        if (JLI_IsStaticJDK()) {
-            hSplashLib = dlopen(NULL, RTLD_LAZY);
-        } else {
-            if (!GetJREPath(jrePath, sizeof(jrePath), JNI_FALSE)) {
-                JLI_ReportErrorMessage(JRE_ERROR1);
-                return NULL;
-            }
-            ret = JLI_Snprintf(splashPath, sizeof(splashPath), "%s/lib/%s",
+#ifdef STATIC_BUILD
+        hSplashLib = dlopen(NULL, RTLD_LAZY);
+#else
+        if (!GetJREPath(jrePath, sizeof(jrePath), JNI_FALSE)) {
+            JLI_ReportErrorMessage(JRE_ERROR1);
+            return NULL;
+        }
+        ret = JLI_Snprintf(splashPath, sizeof(splashPath), "%s/lib/%s",
                      jrePath, SPLASHSCREEN_SO);
 
-            if (ret >= (int) sizeof(splashPath)) {
-                JLI_ReportErrorMessage(JRE_ERROR11);
-                return NULL;
-            }
-            if (ret < 0) {
-                JLI_ReportErrorMessage(JRE_ERROR13);
-                return NULL;
-            }
-            hSplashLib = dlopen(splashPath, RTLD_LAZY | RTLD_GLOBAL);
+        if (ret >= (int) sizeof(splashPath)) {
+            JLI_ReportErrorMessage(JRE_ERROR11);
+            return NULL;
         }
+        if (ret < 0) {
+            JLI_ReportErrorMessage(JRE_ERROR13);
+            return NULL;
+        }
+        hSplashLib = dlopen(splashPath, RTLD_LAZY | RTLD_GLOBAL);
+#endif
         JLI_TraceLauncher("Info: loaded %s\n", splashPath);
     }
     if (hSplashLib) {
@@ -761,11 +756,4 @@ jboolean
 ProcessPlatformOption(const char *arg)
 {
     return JNI_FALSE;
-}
-
-/*
- * Static JDK related.
- */
-void* JLI_Lookup_Set_Static_JDK() {
-    return dlsym(RTLD_DEFAULT, "set_static_jdk");
 }
