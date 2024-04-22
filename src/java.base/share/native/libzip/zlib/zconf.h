@@ -404,7 +404,7 @@
 #  define ZEXTERN extern
 #endif
 #ifndef ZEXPORT
-#  define ZEXPORT JNIEXPORT
+#  define ZEXPORT
 #endif
 #ifndef ZEXPORTVA
 #  define ZEXPORTVA
