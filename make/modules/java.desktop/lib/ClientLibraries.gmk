@@ -131,11 +131,7 @@ TARGETS += $(BUILD_LIBJAVAJPEG)
 ## Build libsplashscreen
 ################################################################################
 
-ifeq (true, false)
-#ifeq ($(ENABLE_HEADLESS_ONLY), false)
-
-USE_EXTERNAL_LIBZ := true
-USE_EXTERNAL_LIBJPEG := true
+ifeq ($(ENABLE_HEADLESS_ONLY), false)
 
   LIBSPLASHSCREEN_EXTRA_SRC := \
       common/awt/systemscale \
