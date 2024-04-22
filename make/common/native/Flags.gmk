@@ -101,6 +101,9 @@ define SetupCompilerFlags
   ifeq ($(STATIC_LIBS), true)
     $1_EXTRA_CFLAGS += $$(STATIC_LIBS_CFLAGS)
   endif
+  ifeq ($(STATIC_BUILD), true)
+    $1_EXTRA_CFLAGS += -DSTATIC_BUILD
+  endif
 
   # Pickup extra OPENJDK_TARGET_OS_TYPE, OPENJDK_TARGET_OS and/or TOOLCHAIN_TYPE
   # dependent variables for CXXFLAGS.

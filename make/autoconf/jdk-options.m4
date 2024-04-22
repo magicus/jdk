@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2023, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -532,6 +532,14 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_UNDEFINED_BEHAVIOR_SANITIZER],
 #
 AC_DEFUN_ONCE([JDKOPT_SETUP_STATIC_BUILD],
 [
+  UTIL_ARG_WITH(NAME: native-lib-type, TYPE: literal,
+      RESULT: NATIVE_LIB_TYPE,
+      VALID_VALUES: [dynamic static both], DEFAULT: dynamic,
+      CHECKING_MSG: [for native library build type],
+      DESC: [select native library build type (dynamic, static or both)]
+  )
+  AC_SUBST(NATIVE_LIB_TYPE)
+
   UTIL_ARG_ENABLE(NAME: static-build, DEFAULT: false, RESULT: STATIC_BUILD,
       DESC: [enable static library build],
       CHECKING_MSG: [if static build is enabled],
@@ -849,7 +857,7 @@ AC_DEFUN([JDKOPT_CHECK_CODESIGN_DEBUG],
 
 AC_DEFUN([JDKOPT_SETUP_MACOSX_SIGNING],
 [
-  ENABLE_CODESIGN=false
+  MACOSX_CODESIGN_MODE=disabled
   if test "x$OPENJDK_TARGET_OS" = "xmacosx" && test "x$CODESIGN" != "x"; then
 
     UTIL_ARG_WITH(NAME: macosx-codesign, TYPE: literal, OPTIONAL: true,
@@ -859,7 +867,6 @@ AC_DEFUN([JDKOPT_SETUP_MACOSX_SIGNING],
         DESC: [set the macosx code signing mode (hardened, debug, auto)]
     )
 
-    MACOSX_CODESIGN_MODE=disabled
     if test "x$MACOSX_CODESIGN_ENABLED" = "xtrue"; then
 
       # Check for user provided code signing identity.
@@ -902,9 +909,9 @@ AC_DEFUN([JDKOPT_SETUP_MACOSX_SIGNING],
         AC_MSG_ERROR([unknown value for --with-macosx-codesign: $MACOSX_CODESIGN])
       fi
     fi
-    AC_SUBST(MACOSX_CODESIGN_IDENTITY)
-    AC_SUBST(MACOSX_CODESIGN_MODE)
   fi
+  AC_SUBST(MACOSX_CODESIGN_IDENTITY)
+  AC_SUBST(MACOSX_CODESIGN_MODE)
 ])
 
 ################################################################################
