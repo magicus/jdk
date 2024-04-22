@@ -399,9 +399,6 @@ void Threads::initialize_java_lang_classes(JavaThread* main_thread, TRAPS) {
   initialize_class(vmSymbols::java_lang_StackOverflowError(), CHECK);
   initialize_class(vmSymbols::java_lang_IllegalMonitorStateException(), CHECK);
   initialize_class(vmSymbols::java_lang_IllegalArgumentException(), CHECK);
-
-  // JavaHome
-  initialize_class(vmSymbols::jdk_internal_misc_JavaHome(), CHECK);
 }
 
 void Threads::initialize_jsr292_core_classes(TRAPS) {
@@ -428,10 +425,8 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Initialize the output stream module
   ostream_init();
 
-  // Process java launcher properties and hermetic JDK options.
-  if (Arguments::process_sun_java_launcher_and_hermetic_options(args) != JNI_OK) {
-    return JNI_EINVAL;
-  }
+  // Process java launcher properties.
+  Arguments::process_sun_java_launcher_properties(args);
 
   // Initialize the os module
   os::init();

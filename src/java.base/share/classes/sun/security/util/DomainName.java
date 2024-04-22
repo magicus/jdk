@@ -47,8 +47,6 @@ import java.util.zip.ZipInputStream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import jdk.internal.misc.JavaHome;
-
 import sun.security.ssl.SSLLogger;
 
 /**
@@ -211,16 +209,11 @@ class DomainName {
                 new PrivilegedAction<>() {
                     @Override
                     public InputStream run() {
+                        File f = new File(System.getProperty("java.home"),
+                            "lib/security/public_suffix_list.dat");
                         try {
-                            if (JavaHome.isHermetic()) {
-                                return DomainName.class.getResourceAsStream(
-                                        "public_suffix_list.dat");
-                            } else {
-                                return new FileInputStream(
-                                    new File(System.getProperty("java.home"),
-                                        "lib/security/public_suffix_list.dat"));
-                            }
-                        } catch (IOException e) {
+                            return new FileInputStream(f);
+                        } catch (FileNotFoundException e) {
                             return null;
                         }
                     }

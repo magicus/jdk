@@ -73,10 +73,9 @@ typedef jlong JImageLocationRef;
  */
 
 extern "C" JNIEXPORT JImageFile*
-JIMAGE_Open(const char *name, long file_offset, size_t file_size, jint* error);
+JIMAGE_Open(const char *name, jint* error);
 
-typedef JImageFile* (*JImageOpen_t)(const char *name, long file_offset,
-                                    size_t file_size, jint* error);
+typedef JImageFile* (*JImageOpen_t)(const char *name, jint* error);
 
 /*
  * JImageClose - Given the supplied open image file (see JImageOpen), release

@@ -26,13 +26,10 @@
 package sun.security.tools;
 
 
-import java.lang.reflect.Method;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import java.io.StreamTokenizer;
@@ -53,8 +50,6 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.ServiceLoader;
-
-import jdk.internal.misc.JavaHome;
 
 import sun.security.util.FilePaths;
 import sun.security.util.PropertyExpander;
@@ -135,20 +130,11 @@ public class KeyStoreUtil {
      * Returns the keystore with the configured CA certificates.
      */
     public static KeyStore getCacertsKeyStore() throws Exception {
-        try (InputStream is = FilePaths.cacertsStream()) {
-            if (is == null) {
-                return null;
-            }
-
-            // getInstance(InputStream, char[], LoadStoreParameter, boolean)
-            // is a private method in java.security.KeyStore, so it must be called
-            // via reflection.
-            Method m = KeyStore.class.getDeclaredMethod(
-                "getInstance", InputStream.class, char[].class,
-                KeyStore.LoadStoreParameter.class, boolean.class);
-            m.setAccessible(true);
-            return (KeyStore)m.invoke(null, is, (char[])null, null, true);
+        File file = new File(getCacerts());
+        if (!file.exists()) {
+            return null;
         }
+        return KeyStore.getInstance(file, (char[])null);
     }
 
     public static char[] getPassWithModifier(String modifier, String arg,

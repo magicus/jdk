@@ -92,15 +92,12 @@ import java.nio.charset.*;
 import java.nio.CharBuffer;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.nio.file.Path;
 
 //REMIND: Remove use of this class when IPPPrintService is moved to share directory.
 import java.lang.reflect.Method;
 import javax.print.attribute.Attribute;
 import javax.print.attribute.standard.JobSheets;
 import javax.print.attribute.standard.Media;
-
-import jdk.internal.misc.JavaHome;
 
 /**
  * A class which initiates and executes a PostScript printer job.
@@ -362,62 +359,30 @@ public class PSPrinterJob extends RasterPrinterJob {
         // search psfont.properties for fonts
         // and create and initialize fontProps if it exist.
 
-        String ulocale = SunToolkit.getStartupLocale().getLanguage();
-        String psfontj2dProps = "psfontj2d.properties";
-        String psfontj2dPropsForLang = psfontj2dProps + "." + ulocale;
-        String psfontProps = "psfont.properties";
-        String psfontPropsForLang = psfontProps + "." + ulocale;
-
-        if (JavaHome.isHermetic()) {
-            InputStream in = PSPrinterJob.class.getResourceAsStream(
-                    psfontj2dPropsForLang);
-            if (in == null) {
-                in = PSPrinterJob.class.getResourceAsStream(
-                    psfontPropsForLang);
-                if (in == null) {
-                    in = PSPrinterJob.class.getResourceAsStream(
-                        psfontj2dProps);
-                    if (in == null) {
-                        in = PSPrinterJob.class.getResourceAsStream(
-                            psfontProps);
-                        if (in == null) {
-                            return (Properties)null;
-                        }
-                    }
-                }
-            }
-            Properties props = new Properties();
-            try {
-                props.load(in);
-                in.close();
-            } catch (IOException ioe) {
-                return (Properties)null;
-            }
-            return props;
-        }
-
         String jhome = System.getProperty("java.home");
 
         if (jhome != null){
+            String ulocale = SunToolkit.getStartupLocale().getLanguage();
             try {
+
                 File f = new File(jhome + File.separator +
                                   "lib" + File.separator +
-                                  psfontj2dPropsForLang);
+                                  "psfontj2d.properties." + ulocale);
 
                 if (!f.canRead()){
 
                     f = new File(jhome + File.separator +
                                       "lib" + File.separator +
-                                      psfontPropsForLang);
+                                      "psfont.properties." + ulocale);
                     if (!f.canRead()){
 
                         f = new File(jhome + File.separator + "lib" +
-                                     File.separator + psfontj2dProps);
+                                     File.separator + "psfontj2d.properties");
 
                         if (!f.canRead()){
 
                             f = new File(jhome + File.separator + "lib" +
-                                         File.separator + psfontProps);
+                                         File.separator + "psfont.properties");
 
                             if (!f.canRead()){
                                 return (Properties)null;

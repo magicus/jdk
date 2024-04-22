@@ -32,10 +32,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
-import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -52,8 +49,6 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.swing.plaf.FontUIResource;
-
-import jdk.internal.misc.JavaHome;
 
 import sun.awt.FontConfiguration;
 import sun.awt.SunToolkit;
@@ -197,7 +192,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
     boolean noOtherJREFontFiles = false; // initial assumption.
 
     public static String jreLibDirName;
-    public static Path jreFontDirPath;
+    public static String jreFontDirName;
     private static HashSet<String> missingFontFiles = null;
     private String defaultFontName;
     private String defaultFontFileName;
@@ -285,8 +280,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
                 noType1Font = "true".equals(System.getProperty("sun.java2d.noType1Font"));
                 jreLibDirName = System.getProperty("java.home","") + File.separator + "lib";
-                jreFontDirPath =  JavaHome.getJDKResource(
-                    System.getProperty("java.home",""), "lib", "fonts");
+                jreFontDirName = jreLibDirName + File.separator + "fonts";
 
                 maxSoftRefCnt = Integer.getInteger("sun.java2d.font.maxSoftRefs", 10);
                 return null;
@@ -299,7 +293,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
      * this will be updated to reflect that.
      */
     public static final String getJDKFontDir() {
-        return jreFontDirPath.toString();
+        return jreFontDirName;
     }
 
     public TrueTypeFont getEUDCFont() {
@@ -314,45 +308,43 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
     protected SunFontManager() {
         AccessController.doPrivileged(new PrivilegedAction<Void>() {
             public Void run() {
-                if (!JavaHome.isHermetic()) {
-                    File badFontFile =
-                        new File(jreFontDirPath + File.separator + "badfonts.txt");
-                    if (badFontFile.exists()) {
-                        badFonts = new ArrayList<>();
-                        try (FileInputStream fis = new FileInputStream(badFontFile);
-                             BufferedReader br = new BufferedReader(new InputStreamReader(fis))) {
-                            while (true) {
-                                String name = br.readLine();
-                                if (name == null) {
-                                    break;
-                                } else {
-                                    if (FontUtilities.debugFonts()) {
-                                        FontUtilities.logWarning("read bad font: " + name);
-                                    }
-                                    badFonts.add(name);
+                File badFontFile =
+                    new File(jreFontDirName + File.separator + "badfonts.txt");
+                if (badFontFile.exists()) {
+                    badFonts = new ArrayList<>();
+                    try (FileInputStream fis = new FileInputStream(badFontFile);
+                         BufferedReader br = new BufferedReader(new InputStreamReader(fis))) {
+                        while (true) {
+                            String name = br.readLine();
+                            if (name == null) {
+                                break;
+                            } else {
+                                if (FontUtilities.debugFonts()) {
+                                    FontUtilities.logWarning("read bad font: " + name);
                                 }
+                                badFonts.add(name);
                             }
-                        } catch (IOException e) {
                         }
+                    } catch (IOException e) {
                     }
-
-                    /* Here we get the fonts in jre/lib/fonts and register
-                     * them so they are always available and preferred over
-                     * other fonts. This needs to be registered before the
-                     * composite fonts as otherwise some native font that
-                     * corresponds may be found as we don't have a way to
-                     * handle two fonts of the same name, so the JRE one
-                     * must be the first one registered. Pass "true" to
-                     * registerFonts method as on-screen these JRE fonts
-                     * always go through the JDK rasteriser.
-                     */
-                    if (FontUtilities.isLinux) {
-                        /* Linux font configuration uses these fonts */
-                        registerFontDir(jreFontDirPath.toString());
-                    }
-                    registerFontsInDir(jreFontDirPath.toString(), true, Font2D.JRE_RANK,
-                                       true, false);
                 }
+
+                /* Here we get the fonts in jre/lib/fonts and register
+                 * them so they are always available and preferred over
+                 * other fonts. This needs to be registered before the
+                 * composite fonts as otherwise some native font that
+                 * corresponds may be found as we don't have a way to
+                 * handle two fonts of the same name, so the JRE one
+                 * must be the first one registered. Pass "true" to
+                 * registerFonts method as on-screen these JRE fonts
+                 * always go through the JDK rasteriser.
+                 */
+                if (FontUtilities.isLinux) {
+                    /* Linux font configuration uses these fonts */
+                    registerFontDir(jreFontDirName);
+                }
+                registerFontsInDir(jreFontDirName, true, Font2D.JRE_RANK,
+                                   true, false);
 
                 /* Create the font configuration and get any font path
                  * that might be specified.
@@ -411,7 +403,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                 }
 
                 if (FontUtilities.debugFonts()) {
-                    FontUtilities.logInfo("JRE font directory: " + jreFontDirPath);
+                    FontUtilities.logInfo("JRE font directory: " + jreFontDirName);
                     FontUtilities.logInfo("Extra font path: " + extraFontPath);
                     FontUtilities.logInfo("Debug font path: " + dbgFontPath);
                 }
@@ -687,7 +679,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                  * In other words if we reach here, there's a possible
                  * problem with our choice of font configuration fonts.
                  */
-                if (oldFont.platName.startsWith(jreFontDirPath.toString())) {
+                if (oldFont.platName.startsWith(jreFontDirName)) {
                     if (FontUtilities.isLogging()) {
                         FontUtilities.logWarning("Unexpected attempt to replace a JRE " +
                                        " font " + fontName + " from " + oldFont.platName +
@@ -809,7 +801,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
         if (noOtherJREFontFiles) {
             return null;
         }
-        synchronized (jreFontDirPath) {
+        synchronized (jreFontDirName) {
             if (jreOtherFontFiles == null) {
                 HashSet<String> otherFontFiles = new HashSet<>();
                 for (String deferredFile : deferredFontFiles.keySet()) {
@@ -818,7 +810,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
                     /* skip names which aren't absolute, aren't in the JRE
                      * directory, or are known Lucida fonts.
                      */
-                    if (dir == null || !dir.equals(jreFontDirPath.toString())) {
+                    if (dir == null || !dir.equals(jreFontDirName)) {
                         continue;
                     }
                     otherFontFiles.add(deferredFile);
@@ -948,51 +940,41 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
 
         PhysicalFont physicalFont = null;
         try {
-            if (fileName.startsWith("jar:file:")) {
-                // This is a hermetic JAR packaged JDK bundled font file
-                // (lib/fonts/*.ttf). Create the font by opening an InputStream.
-                @SuppressWarnings("deprecation")
-                InputStream is = (new URL(fileName)).openStream();
-                Font font = Font.createFont(fontFormat, is);
-                physicalFont = (PhysicalFont)FontUtilities.getFont2D(font);
-                physicalFont = addToFontList(physicalFont, fontRank);
-            } else {
-                switch (fontFormat) {
+            switch (fontFormat) {
 
-                case FONTFORMAT_TRUETYPE:
-                    int fn = 0;
-                    TrueTypeFont ttf;
-                    do {
-                        ttf = new TrueTypeFont(fileName, nativeNames, fn++,
-                                               useJavaRasterizer);
-                        PhysicalFont pf = addToFontList(ttf, fontRank);
-                        if (physicalFont == null) {
-                            physicalFont = pf;
-                        }
+            case FONTFORMAT_TRUETYPE:
+                int fn = 0;
+                TrueTypeFont ttf;
+                do {
+                    ttf = new TrueTypeFont(fileName, nativeNames, fn++,
+                                           useJavaRasterizer);
+                    PhysicalFont pf = addToFontList(ttf, fontRank);
+                    if (physicalFont == null) {
+                        physicalFont = pf;
                     }
-                    while (fn < ttf.getFontCount());
-                    break;
-
-                case FONTFORMAT_TYPE1:
-                    Type1Font t1f = new Type1Font(fileName, nativeNames);
-                    physicalFont = addToFontList(t1f, fontRank);
-                    break;
-
-                case FONTFORMAT_NATIVE:
-                    NativeFont nf = new NativeFont(fileName, false);
-                    physicalFont = addToFontList(nf, fontRank);
-                    break;
-                default:
-
                 }
+                while (fn < ttf.getFontCount());
+                break;
+
+            case FONTFORMAT_TYPE1:
+                Type1Font t1f = new Type1Font(fileName, nativeNames);
+                physicalFont = addToFontList(t1f, fontRank);
+                break;
+
+            case FONTFORMAT_NATIVE:
+                NativeFont nf = new NativeFont(fileName, false);
+                physicalFont = addToFontList(nf, fontRank);
+                break;
+            default:
+
             }
             if (FontUtilities.isLogging()) {
                 FontUtilities.logInfo("Registered file " + fileName + " as font " +
                                 physicalFont + " rank="  + fontRank);
             }
-        } catch (FontFormatException | IOException e) {
+        } catch (FontFormatException ffe) {
             if (FontUtilities.isLogging()) {
-                FontUtilities.logInfo("Unusable font: " + fileName + " " + e.toString());
+                FontUtilities.logInfo("Unusable font: " + fileName + " " + ffe.toString());
             }
         }
         if (physicalFont != null &&
@@ -3438,7 +3420,7 @@ public abstract class SunFontManager implements FontSupport, FontManagerForSGE {
      */
     protected void getJREFontFamilyNames(TreeMap<String,String> familyNames,
                                          Locale requestedLocale) {
-        registerDeferredJREFonts(jreFontDirPath.toString());
+        registerDeferredJREFonts(jreFontDirName);
         Font2D[] physicalfonts = getPhysicalFonts();
         for (int i=0; i < physicalfonts.length; i++) {
             if (!(physicalfonts[i] instanceof NativeFont)) {

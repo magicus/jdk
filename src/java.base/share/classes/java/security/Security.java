@@ -30,14 +30,10 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.*;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
 
 import jdk.internal.access.JavaSecurityPropertiesAccess;
 import jdk.internal.event.EventHelper;
 import jdk.internal.event.SecurityPropertyModificationEvent;
-import jdk.internal.misc.JavaHome;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.util.StaticProperty;
 import sun.security.util.Debug;
@@ -103,8 +99,8 @@ public final class Security {
 
         // first load the system properties file
         // to determine the value of security.overridePropertiesFile
-        InputStream propStream = securityPropStream("java.security");
-        boolean success = loadProps(propStream, null, false);
+        File propFile = securityPropFile("java.security");
+        boolean success = loadProps(propFile, null, false);
         if (!success) {
             throw new InternalError("Error loading java.security file");
         }
@@ -130,13 +126,12 @@ public final class Security {
 
     }
 
-    private static boolean loadProps(InputStream masterResource, String extraPropFile, boolean overrideAll) {
+    private static boolean loadProps(File masterFile, String extraPropFile, boolean overrideAll) {
         InputStream is = null;
         try {
-            if (masterResource != null) {
-                is = masterResource;
+            if (masterFile != null && masterFile.exists()) {
+                is = new FileInputStream(masterFile);
             } else if (extraPropFile != null) {
-                // TODO (jiangli): Hermetic support for extraPropFile? 
                 extraPropFile = PropertyExpander.expand(extraPropFile);
                 File propFile = new File(extraPropFile);
                 URL propURL;
@@ -161,14 +156,16 @@ public final class Security {
             }
             props.load(is);
             if (sdebug != null) {
+                // ExceptionInInitializerError if masterFile.getName() is
+                // called here (NPE!). Leave as is (and few lines down)
                 sdebug.println("reading security properties file: " +
-                        masterResource == null ? extraPropFile : "java.security");
+                        masterFile == null ? extraPropFile : "java.security");
             }
             return true;
         } catch (IOException | PropertyExpander.ExpandException e) {
             if (sdebug != null) {
                 sdebug.println("unable to load security properties from " +
-                        masterResource == null ? extraPropFile : "java.security");
+                        masterFile == null ? extraPropFile : "java.security");
                 e.printStackTrace();
             }
             return false;
@@ -191,35 +188,12 @@ public final class Security {
     private Security() {
     }
 
-    private static InputStream securityPropStream(String filename) {
+    private static File securityPropFile(String filename) {
         // maybe check for a system property which will specify where to
         // look. Someday.
-        InputStream is = null;
-        if (JavaHome.isHermetic()) {
-            is = Security.class.getResourceAsStream(filename);
-        } else {
-            String sep = File.separator;
-            File securityFile = new File(StaticProperty.javaHome() + sep +
-                                         "conf" + sep + "security" + sep +
-                                         filename);
-            try {
-                // Returns null if the file is not found. An InternalError
-                // would be thrown by the the caller initialize()
-                // method when the security property cannot be loaded
-                // successfully.
-                if (securityFile != null && securityFile.exists()) {
-                    is = new FileInputStream(securityFile);
-                }
-            } catch (IOException e) {
-                // Returns null in this case.
-                if (sdebug != null) {
-                    sdebug.println("unable to find security property file " +
-                                   filename);
-                    e.printStackTrace();
-                }
-            }
-        }
-        return is;
+        String sep = File.separator;
+        return new File(StaticProperty.javaHome() + sep + "conf" + sep +
+                        "security" + sep + filename);
     }
 
     /**

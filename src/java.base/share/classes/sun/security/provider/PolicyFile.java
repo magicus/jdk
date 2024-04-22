@@ -43,7 +43,6 @@ import java.net.NetPermission;
 import java.util.concurrent.ConcurrentHashMap;
 import jdk.internal.access.JavaSecurityAccess;
 import jdk.internal.access.SharedSecrets;
-import jdk.internal.misc.JavaHome;
 import jdk.internal.util.StaticProperty;
 import sun.nio.fs.DefaultFileSystemProvider;
 import sun.security.util.*;
@@ -389,7 +388,6 @@ public class PolicyFile extends java.security.Policy {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private boolean initPolicyFile(final String propname, final String urlname,
                                    final PolicyInfo newInfo) {
         boolean loadedPolicy =
@@ -448,27 +446,17 @@ public class PolicyFile extends java.security.Policy {
                         String expanded_uri = PropertyExpander.expand
                                 (policy_uri).replace(File.separatorChar, '/');
 
-                        String javaHomeUriPrefix = "file:${java.home}/";
-                        String userHomeUriPrefix = "file:${user.home}/";
+                        if (policy_uri.startsWith("file:${java.home}/") ||
+                            policy_uri.startsWith("file:${user.home}/")) {
 
-                        if (policy_uri.startsWith(javaHomeUriPrefix) ||
-                            policy_uri.startsWith(userHomeUriPrefix)) {
-                            if (JavaHome.isHermetic() &&
-                                policy_uri.startsWith(javaHomeUriPrefix)) {
-                                // Get the policy file from hermetic jimage.
-                                policy_url = PolicyFile.class.getResource(
-                                    policy_uri.substring(
-                                        policy_uri.lastIndexOf('/') + 1));
-                            } else {
-                                // this special case accommodates
-                                // the situation java.home/user.home
-                                // expand to a single slash, resulting in
-                                // a file://foo URI
-                                policy_url = new File
-                                    (expanded_uri.substring(5)).toURI().toURL();
-                            }
+                            // this special case accommodates
+                            // the situation java.home/user.home
+                            // expand to a single slash, resulting in
+                            // a file://foo URI
+                            policy_url = new File
+                                (expanded_uri.substring(5)).toURI().toURL();
                         } else {
-                           policy_url = new URI(expanded_uri).toURL();
+                            policy_url = new URI(expanded_uri).toURL();
                         }
 
                         if (debug != null) {
@@ -495,23 +483,14 @@ public class PolicyFile extends java.security.Policy {
     }
 
     private void initDefaultPolicy(PolicyInfo newInfo) {
-        Path defaultPolicy = null;
-
-        if (!JavaHome.isHermetic()) {
-            defaultPolicy = builtInFS.getPath(StaticProperty.javaHome(),
+        Path defaultPolicy = builtInFS.getPath(StaticProperty.javaHome(),
                                      "lib",
                                      "security",
                                      "default.policy");
-        }
-
         if (debug != null) {
-            debug.println("reading " + (JavaHome.isHermetic() ?
-                "hermetic default.policy" : defaultPolicy));
+            debug.println("reading " + defaultPolicy);
         }
-        try (BufferedReader br = JavaHome.isHermetic() ?
-             new BufferedReader(new InputStreamReader(
-                 PolicyFile.class.getResourceAsStream("default.policy"))) :
-             Files.newBufferedReader(defaultPolicy)) {
+        try (BufferedReader br = Files.newBufferedReader(defaultPolicy)) {
 
             PolicyParser pp = new PolicyParser(expandProperties);
             pp.read(br);

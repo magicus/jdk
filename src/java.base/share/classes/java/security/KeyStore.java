@@ -1781,23 +1781,12 @@ public class KeyStore {
                     file);
         }
 
-        try (BufferedInputStream stream =
-                new BufferedInputStream(
-                    new FileInputStream(file))) {
-            return getInstance(stream, password, param, hasPassword);
-        }
-    }
-
-    private static final KeyStore getInstance(InputStream in, char[] password,
-        LoadStoreParameter param, boolean hasPassword)
-            throws KeyStoreException, IOException, NoSuchAlgorithmException,
-                CertificateException {
-
         KeyStore keystore = null;
 
         try (DataInputStream dataStream =
             new DataInputStream(
-                new BufferedInputStream(in))) {
+                new BufferedInputStream(
+                    new FileInputStream(file)))) {
 
             dataStream.mark(Integer.MAX_VALUE);
 
@@ -1810,7 +1799,7 @@ public class KeyStore {
                             if (impl.engineProbe(dataStream)) {
                                 if (kdebug != null) {
                                     kdebug.println(s.getAlgorithm()
-                                            + " keystore detected: ");
+                                            + " keystore detected: " + file);
                                 }
                                 keystore = new KeyStore(impl, p, s.getAlgorithm());
                                 break;
@@ -1823,7 +1812,7 @@ public class KeyStore {
                         } catch (IOException e) {
                             // ignore
                             if (kdebug != null) {
-                                kdebug.println("I/O error in " + dataStream + " - " + e);
+                                kdebug.println("I/O error in " + file + " - " + e);
                             }
                         }
                         dataStream.reset(); // prepare the stream for the next probe

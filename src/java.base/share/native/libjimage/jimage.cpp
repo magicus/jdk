@@ -35,14 +35,6 @@
 
 #include "imageFile.hpp"
 
-#include "jni.h"
-#include "jni_util.h"
-
-/*
- * Declare jimage library specific JNI_Onload entry for static build.
- */
-extern "C" DEF_STATIC_JNI_OnLoad
-
 /*
  * JImageOpen - Given the supplied full path file name, open an image file. This
  * function will also initialize tables and retrieve meta-data necessary to
@@ -64,12 +56,10 @@ extern "C" DEF_STATIC_JNI_OnLoad
  *   ...
  */
 extern "C" JNIEXPORT JImageFile*
-JIMAGE_Open(const char *name, long image_start_offset,
-            size_t image_size, jint* error) {
+JIMAGE_Open(const char *name, jint* error) {
     // TODO - return a meaningful error code
     *error = 0;
-    ImageFileReader* jfile = ImageFileReader::open(name, image_start_offset,
-                                                   image_size);
+    ImageFileReader* jfile = ImageFileReader::open(name);
     return (JImageFile*) jfile;
 }
 

@@ -274,18 +274,14 @@ ImageFileReader* ImageFileReader::find_image(const char* name) {
 }
 
 // Open an image file, reuse structure if file already open.
-ImageFileReader* ImageFileReader::open(const char* name,
-                                       long image_start_offset,
-                                       size_t image_size,
-                                       bool big_endian) {
+ImageFileReader* ImageFileReader::open(const char* name, bool big_endian) {
     ImageFileReader* reader = find_image(name);
     if (reader != NULL) {
         return reader;
     }
 
     // Need a new image reader.
-    reader = new ImageFileReader(name, image_start_offset,
-                                 image_size, big_endian);
+    reader = new ImageFileReader(name, big_endian);
     if (reader == NULL || !reader->open()) {
         // Failed to open.
         delete reader;
@@ -344,10 +340,7 @@ ImageFileReader* ImageFileReader::id_to_reader(u8 id) {
 }
 
 // Constructor initializes to a closed state.
-ImageFileReader::ImageFileReader(const char* name,
-                                 long image_start_offset,
-                                 size_t image_size,
-                                 bool big_endian) :
+ImageFileReader::ImageFileReader(const char* name, bool big_endian) :
     _module_data(NULL) {
     // Copy the image file name.
      int len = (int) strlen(name) + 1;
@@ -356,8 +349,6 @@ ImageFileReader::ImageFileReader(const char* name,
     strncpy(_name, name, len);
     // Initialize for a closed file.
     _fd = -1;
-    _image_start = image_start_offset;
-    _image_size = image_size;
     _endian = Endian::get_handler(big_endian);
     _index_data = NULL;
 }
@@ -403,7 +394,7 @@ bool ImageFileReader::open() {
         return false;
     }
     // Memory map image (minimally the index.)
-    _index_data = (u1*)osSupport::map_memory(_fd, _name, _image_start, (size_t)map_size());
+    _index_data = (u1*)osSupport::map_memory(_fd, _name, 0, (size_t)map_size());
     assert(_index_data && "image file not memory mapped");
     // Retrieve length of index perfect hash table.
     u4 length = table_length();
@@ -450,13 +441,8 @@ void ImageFileReader::close() {
 }
 
 // Read directly from the file.
-//
-// '_image_start' is added to 'offset' to automatically handle the cases where
-// the JDK runtime image is embedded within another file. It avoids adjusting
-// the offsets in the callers.
 bool ImageFileReader::read_at(u1* data, u8 size, u8 offset) const {
-    return (u8)osSupport::read(_fd, (char*)data, size,
-                               _image_start + offset) == size;
+    return (u8)osSupport::read(_fd, (char*)data, size, offset) == size;
 }
 
 // Find the location attributes associated with the path.    Returns true if

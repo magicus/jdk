@@ -162,10 +162,6 @@ class SerializeClosure;
   template(jdk_internal_loader_BuiltinClassLoader,    "jdk/internal/loader/BuiltinClassLoader")   \
   template(jdk_internal_loader_ClassLoaders_AppClassLoader,      "jdk/internal/loader/ClassLoaders$AppClassLoader")      \
   template(jdk_internal_loader_ClassLoaders_PlatformClassLoader, "jdk/internal/loader/ClassLoaders$PlatformClassLoader") \
-                                                                                                  \
-  /* JavaHome */                                                                                  \
-  template(jdk_internal_misc_JavaHome,                "jdk/internal/misc/JavaHome")               \
-                                                                                                  \
   template(java_lang_Deprecated,                      "Ljava/lang/Deprecated;")                   \
   template(since,                                     "since")                                    \
   template(for_removal,                               "forRemoval")                               \

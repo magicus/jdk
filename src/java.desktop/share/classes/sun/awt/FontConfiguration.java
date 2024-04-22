@@ -35,8 +35,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
@@ -48,7 +46,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
-import jdk.internal.misc.JavaHome;
 import sun.font.CompositeFontDescriptor;
 import sun.font.SunFontManager;
 import sun.font.FontUtilities;
@@ -75,7 +72,7 @@ public abstract class FontConfiguration {
     protected boolean preferLocaleFonts;
     protected boolean preferPropFonts;
 
-    private Path fontConfigPath;
+    private File fontConfigFile;
     private boolean foundOsSpecificFile;
     private boolean inited;
     private String javaLib;
@@ -105,7 +102,7 @@ public abstract class FontConfiguration {
             this.preferLocaleFonts = false;
             this.preferPropFonts = false;
             setFontConfiguration();
-            readFontConfigFile(fontConfigPath);
+            readFontConfigFile(fontConfigFile);
             initFontConfig();
             inited = true;
         }
@@ -183,20 +180,21 @@ public abstract class FontConfiguration {
             throw new Error("java.home property not set");
         }
         javaLib = javaHome + File.separator + "lib";
-        Path javaConfFonts = JavaHome.getJDKResource(javaHome, "conf", "fonts");
+        String javaConfFonts = javaHome +
+                               File.separator + "conf" +
+                               File.separator + "fonts";
         String userConfigFile = System.getProperty("sun.awt.fontconfig");
         if (userConfigFile != null) {
-            fontConfigPath = Path.of(userConfigFile);
+            fontConfigFile = new File(userConfigFile);
         } else {
-            fontConfigPath = findFontConfigFile(javaConfFonts);
-            if (fontConfigPath == null) {
-                fontConfigPath = findFontConfigFile(
-                    JavaHome.getJDKResource(javaHome, "lib"));
+            fontConfigFile = findFontConfigFile(javaConfFonts);
+            if (fontConfigFile == null) {
+                fontConfigFile = findFontConfigFile(javaLib);
             }
         }
     }
 
-    private void readFontConfigFile(Path p) {
+    private void readFontConfigFile(File f) {
         /* This is invoked here as readFontConfigFile is only invoked
          * once per VM, and always in a privileged context, thus the
          * directory containing installed fall back fonts is accessed
@@ -204,19 +202,19 @@ public abstract class FontConfiguration {
          */
         getInstalledFallbackFonts(javaLib);
 
-        if (p != null) {
-            try (InputStream in = Files.newInputStream(p)) {
+        if (f != null) {
+            try (FileInputStream in = new FileInputStream(f.getPath())) {
                 if (isProperties) {
                     loadProperties(in);
                 } else {
                     loadBinary(in);
                 }
                 if (FontUtilities.debugFonts()) {
-                    logger.config("Read logical font configuration from " + p);
+                    logger.config("Read logical font configuration from " + f);
                 }
             } catch (IOException e) {
                 if (FontUtilities.debugFonts()) {
-                    logger.config("Failed to read logical font configuration from " + p);
+                    logger.config("Failed to read logical font configuration from " + f);
                 }
             }
         }
@@ -227,11 +225,6 @@ public abstract class FontConfiguration {
     }
 
     protected void getInstalledFallbackFonts(String javaLib) {
-        if (JavaHome.isHermetic()) {
-            // No JDK bundled fallback fonts for hermetic Java.
-            return;
-        }
-
         String fallbackDirName = javaLib + File.separator +
             "fonts" + File.separator + "fallback";
 
@@ -258,66 +251,66 @@ public abstract class FontConfiguration {
         }
     }
 
-    private Path findImpl(Path dir, String fname) {
-        Path p = dir.resolve(fname + ".properties");
+    private File findImpl(String fname) {
+        File f = new File(fname + ".properties");
         if (FontUtilities.debugFonts()) {
-            logger.info("Looking for text fontconfig file : " + p);
+            logger.info("Looking for text fontconfig file : " + f);
         }
-        if (Files.isReadable(p)) {
+        if (f.canRead()) {
             if (FontUtilities.debugFonts()) {
-                logger.info("Found file : " + p);
+                logger.info("Found file : " + f);
             }
             isProperties = true;
-            return p;
+            return f;
         }
-        p = dir.resolve(fname + ".bfc");
+        f = new File(fname + ".bfc");
         if (FontUtilities.debugFonts()) {
-            logger.info("Looking for binary fontconfig file : " + p);
+            logger.info("Looking for binary fontconfig file : " + f);
         }
-        if (Files.isReadable(p)) {
+        if (f.canRead()) {
             if (FontUtilities.debugFonts()) {
-                logger.info("Found file : " + p);
+                logger.info("Found file : " + f);
             }
             isProperties = false;
-            return p;
+            return f;
         }
         return null;
     }
 
-    private Path findFontConfigFile(Path dir) {
-        if (!Files.exists(dir)) {
+    private File findFontConfigFile(String dir) {
+        if (!(new File(dir)).exists()) {
             return null;
         }
-        String baseName = "fontconfig";
-        Path configFile;
+        String baseName = dir + File.separator + "fontconfig";
+        File configFile;
         String osMajorVersion = null;
         if (osVersion != null && osName != null) {
-            configFile = findImpl(dir, baseName + "." + osName + "." + osVersion);
+            configFile = findImpl(baseName + "." + osName + "." + osVersion);
             if (configFile != null) {
                 return configFile;
             }
             int decimalPointIndex = osVersion.indexOf('.');
             if (decimalPointIndex != -1) {
                 osMajorVersion = osVersion.substring(0, osVersion.indexOf('.'));
-                configFile = findImpl(dir, baseName + "." + osName + "." + osMajorVersion);
+                configFile = findImpl(baseName + "." + osName + "." + osMajorVersion);
                 if (configFile != null) {
                     return configFile;
                 }
             }
         }
         if (osName != null) {
-            configFile = findImpl(dir, baseName + "." + osName);
+            configFile = findImpl(baseName + "." + osName);
             if (configFile != null) {
                 return configFile;
             }
         }
         if (osVersion != null) {
-            configFile = findImpl(dir, baseName + "." + osVersion);
+            configFile = findImpl(baseName + "." + osVersion);
             if (configFile != null) {
                 return configFile;
             }
             if (osMajorVersion != null) {
-                configFile = findImpl(dir, baseName + "." + osMajorVersion);
+                configFile = findImpl(baseName + "." + osMajorVersion);
                 if (configFile != null) {
                     return configFile;
                 }
@@ -325,7 +318,7 @@ public abstract class FontConfiguration {
         }
         foundOsSpecificFile = false;
 
-        configFile = findImpl(dir, baseName);
+        configFile = findImpl(baseName);
         if (configFile != null) {
             return configFile;
         }

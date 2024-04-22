@@ -32,15 +32,12 @@ import sun.util.logging.PlatformLogger;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Scanner;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
-
-import jdk.internal.misc.JavaHome;
 
 public class MFontConfiguration extends FontConfiguration {
 
@@ -162,14 +159,8 @@ public class MFontConfiguration extends FontConfiguration {
 
     protected String mapFileName(String fileName) {
         if (fileName != null && fileName.startsWith(fontsDirPrefix)) {
-            Path p = SunFontManager.jreFontDirPath.resolve(
-                fileName.substring(fontsDirPrefix.length() +
-                                   File.separator.length()));
-            if (JavaHome.isHermetic()) {
-                return p.toUri().toString();
-            } else {
-                return p.toString();
-            }
+            return SunFontManager.jreFontDirName
+                    + fileName.substring(fontsDirPrefix.length());
         }
         return fileName;
     }
