@@ -65,7 +65,14 @@ ifeq ($(call isTargetOs, macosx), true)
 else ifeq ($(call isTargetOs, linux), true)
   JAVASTATIC_LIBS :=  -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
 
+  ifeq ($(TOOLCHAIN_TYPE), gcc)
+    LDFLAGS_CXX_STATIC_JDK := -llibstdc++.a
+  else ifeq ($(TOOLCHAIN_TYPE), clang)
+    LDFLAGS_CXX_STATIC_JDK := -llibc++.a
+  endif
+
   # FIXME: We should collect these automatically
+
   SYSTEM_LIBS := -Wl$(COMMA)--no-whole-archive -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK)
 else
   $(error Unsupported platform)
