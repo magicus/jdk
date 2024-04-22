@@ -60,6 +60,7 @@ static inline bool not_loaded() {
 }
 
 static void* dll_lookup(const char* name, const char* path, bool vm_exit_on_failure) {
+#ifndef STATIC_BUILD
   assert(_zip_handle != nullptr, "invariant");
   void* func = os::dll_lookup(_zip_handle, name);
   if (func == nullptr && vm_exit_on_failure) {
@@ -68,11 +69,13 @@ static void* dll_lookup(const char* name, const char* path, bool vm_exit_on_fail
     vm_exit_during_initialization(&msg[0], path);
   }
   return func;
+#else
+  return os::lookup_function(name);
+#endif
 }
 
 static void store_function_pointers(const char* path, bool vm_exit_on_failure) {
   assert(_zip_handle != nullptr, "invariant");
-#ifndef STATIC_BUILD
   ZIP_Open = CAST_TO_FN_PTR(ZIP_Open_t, dll_lookup("ZIP_Open", path, vm_exit_on_failure));
   ZIP_Close = CAST_TO_FN_PTR(ZIP_Close_t, dll_lookup("ZIP_Close", path, vm_exit_on_failure));
   ZIP_FindEntry = CAST_TO_FN_PTR(ZIP_FindEntry_t, dll_lookup("ZIP_FindEntry", path, vm_exit_on_failure));
@@ -83,14 +86,6 @@ static void store_function_pointers(const char* path, bool vm_exit_on_failure) {
   // and if possible, streamline setting all entry points consistently.
   ZIP_GZip_InitParams = CAST_TO_FN_PTR(ZIP_GZip_InitParams_t, dll_lookup("ZIP_GZip_InitParams", path, false));
   ZIP_GZip_Fully = CAST_TO_FN_PTR(ZIP_GZip_Fully_t, dll_lookup("ZIP_GZip_Fully", path, false));
-#else
-  ZIP_Open = CAST_TO_FN_PTR(ZIP_Open_t, os::lookup_function("ZIP_Open"));
-  ZIP_Close = CAST_TO_FN_PTR(ZIP_Close_t, os::lookup_function("ZIP_Close"));
-  ZIP_FindEntry = CAST_TO_FN_PTR(ZIP_FindEntry_t, os::lookup_function("ZIP_FindEntry"));
-  ZIP_ReadEntry = CAST_TO_FN_PTR(ZIP_ReadEntry_t, os::lookup_function("ZIP_ReadEntry"));
-  ZIP_CRC32 = CAST_TO_FN_PTR(ZIP_CRC32_t, os::lookup_function("ZIP_CRC32"));
-  ZIP_GZip_InitParams = CAST_TO_FN_PTR(ZIP_GZip_InitParams_t, os::lookup_function("ZIP_GZip_InitParams"));    ZIP_GZip_Fully = CAST_TO_FN_PTR(ZIP_GZip_Fully_t, os::lookup_function("ZIP_GZip_Fully"));
-#endif
 }
 
 static void load_zip_library(bool vm_exit_on_failure) {
