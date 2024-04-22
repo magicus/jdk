@@ -164,7 +164,6 @@ USE_EXTERNAL_LIBJPEG := true
     LIBSPLASHSCREEN_EXCLUDES += libpng
   endif
 
-USE_EXTERNAL_LIBZ := true
   ifeq ($(USE_EXTERNAL_LIBZ), false)
     LIBSPLASHSCREEN_EXTRA_SRC += java.base:libzip/zlib
   endif

@@ -504,18 +504,7 @@ spawnChild(JNIEnv *env, jobject process, ChildStuff *c, const char *helperpath) 
      * argv[1] contains the version string as argument to jspawnhelper
      * argv[2] contains the fd string as argument to jspawnhelper
      */
-    /* Use 'jspawnhelper' in helper executable's arg[0]. It can be recognized by
-     * the launcher when it is used as the executable for posix_spawn.
-     *
-     * TODO(jiangli):
-     * https://mail.openjdk.org/pipermail/core-libs-dev/2023-June/107738.html
-     * linked from JDK-8310265 indicates argv[0] element is not preserved when
-     * running on "jshell in qemu-user-static using binfmt_misc". We may want
-     * consider using a special flag instead of checking for argv[0] from the
-     * Java executable (launcher) for the spawned child process.
-     */
-    //hlpargs[0] = (char*)helperpath;
-    hlpargs[0] = "jspawnhelper";
+    hlpargs[0] = (char*)helperpath;
     hlpargs[1] = VERSION_STRING;
     hlpargs[2] = buf1;
     hlpargs[3] = NULL;

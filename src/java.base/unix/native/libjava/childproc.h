@@ -50,8 +50,6 @@ extern char **environ;
 #include <sched.h>
 #endif
 
-#include "jni.h"
-
 #ifndef STDIN_FILENO
 #define STDIN_FILENO 0
 #endif
@@ -129,9 +127,6 @@ int magicNumber();
 ssize_t readFully(int fd, void *buf, size_t nbyte);
 void initVectorFromBlock(const char**vector, const char* block, int count);
 int childProcess(void *arg);
-
-JNIEXPORT int JNICALL
-JDK_spawn_process(int argc, char *argv[]);
 
 #ifdef DEBUG
 /* This method is only used in debug builds for testing MODE_POSIX_SPAWN
