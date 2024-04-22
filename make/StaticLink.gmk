@@ -29,70 +29,6 @@ include $(SPEC)
 include $(TOPDIR)/make/common/MakeBase.gmk
 include $(TOPDIR)/make/common/Modules.gmk
 
-$(eval $(call IncludeCustomExtension, StaticLink.gmk))
-
-ifeq (true, false)
-################################################################################
-
-JAVASTATIC := javastatic$(EXE_SUFFIX)
-
-ORIGIN_ARG := $(call SET_EXECUTABLE_ORIGIN,/.)
-
-JAVASTATIC_OUTPUT_DIR := $(JDK_OUTPUTDIR)/bin
-JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/native/java.base/java
-STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
-
-JDK_STATIC_LIBS := $(call FindFiles, $(STATIC_LIBS_IMAGE_DIR)/lib)
-# Currently we are supporting headless only.
-EXCLUDED_STATIC_LIBS := \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jsound$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jawt$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)awt_xawt$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncher$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncheraux$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jsig$(STATIC_LIBRARY_SUFFIX)
-
-EXCLUDED_STATIC_LIBS0000 := \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)awt_headless$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncher$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncheraux$(STATIC_LIBRARY_SUFFIX)
-
-#JVM_STATIC_LIB := $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX)
-
-JAVASTATIC_LINK_LIBS := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
-
-JAVASTATIC_LOG_PREFIX := $(JAVASTATIC_OBJECT_DIR)/BUILD_LAUNCHER_javastatic$(EXE_SUFFIX)_static_link
-
-JAVASTATIC_TARGET := $(JAVASTATIC_OUTPUT_DIR)/$(JAVASTATIC)
-JAVASTATIC_TARGET_IMAGE := $(JDK_IMAGE_DIR)/bin/$(JAVASTATIC)
-
-JAVASTATIC_LDFLAGS := $(JVM_LDFLAGS) $(ORIGIN_ARG) -Wl$(COMMA)--export-dynamic
-JAVASTATIC_LD_OBJ_ARG := $(JAVASTATIC_OBJECT_DIR)/main.o
-
-# Link with headless native only for now.
-#
-# For headful support, we need to link with the following X11 libraries.
-# X11_LIBS := $(X_LIBS) -lX11 -lXext -lXrender -lXtst -lXi
-#
-JAVASTATIC_LIBS := -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
-JAVASTATIC_EXTRA_LIBS := -Wl$(COMMA)--no-whole-archive -lrt -lpthread $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK)
-
-#$(JVM_STATIC_LIB) : $(HOTSPOT_OUTPUTDIR)/variant-server/libjvm/objs/static/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX)
-#	$(CP) $< $@
-
-$(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS)
-	$(ECHO) "Creating '$(JAVASTATIC_TARGET_IMAGE)'"
-	$(call ExecuteWithLog, $(JAVASTATIC_LOG_PREFIX), \
-	    $(LD) $(JAVASTATIC_LDFLAGS) -o $(JAVASTATIC_TARGET) \
-	        $(JAVASTATIC_LD_OBJ_ARG) $(JAVASTATIC_LIBS) $(JAVASTATIC_EXTRA_LIBS))
-	$(CP) -f $(JAVASTATIC_TARGET) $@
-
-TARGETS += $(JAVASTATIC_TARGET_IMAGE)
-
-else
-
 # WORKS on mac
 ################################################################################
 
@@ -144,7 +80,6 @@ $(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS)
 
 TARGETS += $(JAVASTATIC_TARGET_IMAGE)
 
-endif
 all: $(TARGETS)
 
 .PHONY: all

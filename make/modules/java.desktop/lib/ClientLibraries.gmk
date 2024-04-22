@@ -132,7 +132,6 @@ TARGETS += $(BUILD_LIBJAVAJPEG)
 ################################################################################
 
 ifeq ($(ENABLE_HEADLESS_ONLY), false)
-
   LIBSPLASHSCREEN_EXTRA_SRC := \
       common/awt/systemscale \
       #

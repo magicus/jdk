@@ -26,7 +26,6 @@
 #define SHARE_RUNTIME_THREADLOCALSTORAGE_HPP
 
 #include "memory/allStatic.hpp"
-#include "utilities/globalDefinitions.hpp"
 
 // forward-decl as we can't have an include cycle
 class Thread;
