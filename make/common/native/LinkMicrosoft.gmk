@@ -47,17 +47,23 @@ define CreateStaticLibraryMicrosoft
       $$($1_VARDEPS_FILE)
 
   $1_COMBINED_OBJ := $$($1_OBJECT_DIR)/lib$$($1_NAME)$(OBJ_SUFFIX)
+  $1_RELATIVE_COMBINED_OBJ := $$(patsubst $$(OUTPUTDIR)/%, %, $$($1_COMBINED_OBJ))
 
   $$($1_TARGET): $$($1_TARGET_DEPS)
         ifneq ($$($1_OBJ_FILE_LIST), )
-	  $$(eval $$(call ListPathsSafely, $1_ALL_OBJS, $$($1_OBJ_FILE_LIST)))
+          ifeq ($$($1_LINK_OBJS_RELATIVE), true)
+	    $$(eval $$(call ListPathsSafely, $1_ALL_OBJS_RELATIVE, $$($1_OBJ_FILE_LIST)))
+          else
+	    $$(eval $$(call ListPathsSafely, $1_ALL_OBJS, $$($1_OBJ_FILE_LIST)))
+          endif
         endif
 	$$(call LogInfo, Building static library $$($1_BASENAME))
 	$$(call MakeDir, $$($1_OUTPUT_DIR) $$($1_SYMBOLS_DIR))
         # Combine all object files into one
 	$$(call ExecuteWithLog, $$($1_OBJECT_DIR)/$$($1_SAFE_NAME)_partial_link, \
-	    $(GNU_LD) --oformat=pe-x86-64 \
-	        -r -o $$($1_COMBINED_OBJ) $$($1_LD_OBJ_ARG))
+	    $(if $$($1_LINK_OBJS_RELATIVE), $$(CD) $$(OUTPUTDIR) ; ) \
+	    wsl ld --oformat=pe-x86-64 \
+	        -r -o $$($1_RELATIVE_COMBINED_OBJ) $$($1_LD_OBJ_ARG))
         # Make sure only exported symbols are global
 	$(DUMPBIN) /directives $$($1_ALL_OBJS) | $(GREP) /EXPORT: > $$($1_OBJECT_DIR)/$$($1_SAFE_NAME).exports || $(TOUCH) $$($1_OBJECT_DIR)/$$($1_SAFE_NAME).exports
 	$(CUT) -d : -f 2 $$($1_OBJECT_DIR)/$$($1_SAFE_NAME).exports > $$($1_TARGET).def
