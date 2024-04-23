@@ -728,6 +728,10 @@ AC_DEFUN_ONCE([TOOLCHAIN_DETECT_TOOLCHAIN_EXTRA],
   # full debug symbols are enabled.
   if test "x$OPENJDK_TARGET_OS" = xlinux; then
     UTIL_LOOKUP_TOOLCHAIN_PROGS(OBJCOPY, gobjcopy objcopy)
+  elif test "x$OPENJDK_TARGET_OS" = xwindows; then
+    UTIL_LOOKUP_TOOLCHAIN_PROGS(OBJCOPY, objcopy)
+    UTIL_LOOKUP_TOOLCHAIN_PROGS(GNU_LD, ld)
+    AC_SUBST(GNU_LD)
   fi
 
   UTIL_LOOKUP_TOOLCHAIN_PROGS(OBJDUMP, gobjdump objdump)

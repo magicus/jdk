@@ -655,7 +655,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
     STATIC_LIBS_CFLAGS="$STATIC_LIBS_CFLAGS -ffunction-sections -fdata-sections \
       -DJNIEXPORT='__attribute__((visibility(\"default\")))'"
   else
-    STATIC_LIBS_CFLAGS="$STATIC_LIBS_CFLAGS -DJNIEXPORT="
+    STATIC_LIBS_CFLAGS="$STATIC_LIBS_CFLAGS"
   fi
   if test "x$TOOLCHAIN_TYPE" = xgcc; then
     # Disable relax-relocation to enable compatibility with older linkers

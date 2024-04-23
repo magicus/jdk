@@ -74,6 +74,10 @@ else ifeq ($(call isTargetOs, linux), true)
   # FIXME: We should collect these automatically
 
   SYSTEM_LIBS := -Wl$(COMMA)--no-whole-archive -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK)
+else ifeq ($(call isTargetOs, windows), true)
+  JAVASTATIC_LIBS := /wholearchive $(JAVASTATIC_LINK_LIBS)
+  SYSTEM_LIBS := advapi32.lib comctl32.lib comdlg32.lib crypt32.lib dbgeng.lib delayimp.lib dsound.lib gdi32.lib imm32.lib iphlpapi.lib kernel32.lib mpr.lib msi.lib mswsock.lib ncrypt.lib netapi32.lib odbc32.lib odbccp32.lib ole32.lib oleaut32.lib psapi.lib secur32.lib shell32.lib shlwapi.lib user32.lib uuid.lib version.lib winhttp.lib winmm.lib winscard.lib winspool.lib ws2_32.lib
+
 else
   $(error Unsupported platform)
 endif
@@ -81,8 +85,8 @@ endif
 $(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS)
 	$(ECHO) "Creating '$(JAVASTATIC_TARGET_IMAGE)'"
 	$(call ExecuteWithLog, $(JAVASTATIC_LOG_PREFIX), \
-	    $(LD) $(LDFLAGS_JDKEXE) $(call SET_EXECUTABLE_ORIGIN) $(SYSROOT_LDFLAGS) \
-	    -o $(JAVASTATIC_TARGET)  $(JAVASTATIC_OBJECT_DIR)/main.o \
+	    $(LD)  -nologo  $(LDFLAGS_JDKEXE) $(call SET_EXECUTABLE_ORIGIN) $(SYSROOT_LDFLAGS) \
+	    -out:$(JAVASTATIC_TARGET).exe  $(JAVASTATIC_OBJECT_DIR)/main.obj \
 	    $(JAVASTATIC_LIBS) $(SYSTEM_LIBS))
 
 TARGETS += $(JAVASTATIC_TARGET_IMAGE)

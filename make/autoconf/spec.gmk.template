@@ -711,6 +711,8 @@ JLINK_KEEP_PACKAGED_MODULES := @JLINK_KEEP_PACKAGED_MODULES@
 
 RCFLAGS := @RCFLAGS@
 
+GNU_LD := @GNU_LD@
+
 # Tools adhering to a minimal and common standard of posix compliance.
 AWK := @AWK@
 BASENAME := @BASENAME@
