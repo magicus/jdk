@@ -68,28 +68,15 @@ endef
 
 ################################################################################
 define CreateStaticLibrary
-  # Include partial linking when building the static library with clang on linux
-  ifeq ($(call isTargetOs, linux macosx), true)
-    $1_ENABLE_PARTIAL_LINKING := true
-  endif
-
   $1_VARDEPS := $$($1_AR) $$(ARFLAGS) $$($1_LIBS) \
-      $$($1_EXTRA_LIBS)
-  ifeq ($$($1_ENABLE_PARTIAL_LINKING), true)
-    $1_VARDEPS += $$($1_LD) $$($1_SYSROOT_LDFLAGS)
-  endif
+      $$($1_EXTRA_LIBS) $$($1_LD) $$($1_SYSROOT_LDFLAGS)
+
   $1_VARDEPS_FILE := $$(call DependOnVariable, $1_VARDEPS, \
       $$($1_OBJECT_DIR)/$$($1_NOSUFFIX).vardeps)
 
   $1_TARGET_DEPS := $$($1_ALL_OBJS) $$($1_EXTRA_LINK_DEPS) $$($1_VARDEPS_FILE)
 
-  $1_AR_OBJ_ARG := $$($1_LD_OBJ_ARG)
-  # With clang on linux, partial linking is enabled and 'AR' takes the output
-  # object from the partial linking step.
-  ifeq ($$($1_ENABLE_PARTIAL_LINKING), true)
-    $1_TARGET_RELOCATABLE := $$($1_OBJECT_DIR)/$$($1_PREFIX)$$($1_NAME)$(OBJ_SUFFIX)
-    $1_AR_OBJ_ARG := $$($1_TARGET_RELOCATABLE)
-  endif
+  $1_COMBINED_OBJ := $$($1_OBJECT_DIR)/$$($1_PREFIX)$$($1_NAME)$(OBJ_SUFFIX)
 
   $$($1_TARGET): $$($1_TARGET_DEPS)
         ifneq ($$($1_OBJ_FILE_LIST), )
@@ -101,29 +88,21 @@ define CreateStaticLibrary
         endif
 	$$(call LogInfo, Building static library $$($1_BASENAME))
 	$$(call MakeDir, $$($1_OUTPUT_DIR) $$($1_SYMBOLS_DIR))
-        # Do partial linking.
-        ifeq ($$($1_ENABLE_PARTIAL_LINKING), true)
-	  $$(call ExecuteWithLog, $$($1_OBJECT_DIR)/$$($1_SAFE_NAME)_partial_link, \
-	      $(if $$($1_LINK_OBJS_RELATIVE), $$(CD) $$(OUTPUTDIR) ; ) \
-	      $$($1_LD) $(LDFLAGS_CXX_PARTIAL_LINKING) $$($1_SYSROOT_LDFLAGS) \
-	          -o $$($1_TARGET_RELOCATABLE) $$($1_LD_OBJ_ARG))
-        endif
+        # Combine all object files into one
+	$$(call ExecuteWithLog, $$($1_OBJECT_DIR)/$$($1_SAFE_NAME)_partial_link, \
+	    $(if $$($1_LINK_OBJS_RELATIVE), $$(CD) $$(OUTPUTDIR) ; ) \
+	    $$($1_LD) $(MACHINE_FLAG) $$($1_SYSROOT_LDFLAGS) \
+	        -r -o $$($1_COMBINED_OBJ) $$($1_LD_OBJ_ARG))
+        # Make sure only exported symbols are global
         ifeq ($(call isTargetOs, linux), true)
 	  $$(call ExecuteWithLog, $$($1_OBJECT_DIR)/$$($1_SAFE_NAME)_localize, \
-	      $$($1_OBJCOPY) --localize-hidden $$($1_TARGET_RELOCATABLE))
+	      $$($1_OBJCOPY) --localize-hidden $$($1_COMBINED_OBJ))
         endif
+        # Create an archive of the resulting object file
 	$$(call ExecuteWithLog, $$($1_OBJECT_DIR)/$$($1_SAFE_NAME)_run_ar, \
 	    $(if $$($1_LINK_OBJS_RELATIVE), $$(CD) $$(OUTPUTDIR) ; ) \
 	    $$($1_AR) $$(ARFLAGS) -r -cs $$($1_TARGET) \
-	        $$($1_AR_OBJ_ARG) $$($1_RES))
-        ifeq ($(STATIC_BUILD), true)
-	  $(RM) $$(@D)/$$(basename $$(@F)).symbols; \
-	  $(ECHO) "Getting symbols from nm"; \
-	  $(NM) $(NMFLAGS) -m $$($1_TARGET) | $(GREP)  "__TEXT" | \
-	      $(EGREP) -v "non-external|private extern|__TEXT,__eh_frame" | \
-	      $(SED) -e  's/.* //' > $$(@D)/$$(basename $$(@F)).symbols \
-	      || touch $$(@D)/$$(basename $$(@F)).symbols
-        endif
+	        $$($1_COMBINED_OBJ))
 endef
 
 ################################################################################

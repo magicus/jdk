@@ -62,13 +62,9 @@ AC_DEFUN([FLAGS_SETUP_LDFLAGS_HELPER],
 
     BASIC_LDFLAGS_JVM_ONLY=""
 
-    LDFLAGS_CXX_PARTIAL_LINKING="$MACHINE_FLAG -r"
-
   elif test "x$TOOLCHAIN_TYPE" = xclang; then
     BASIC_LDFLAGS_JVM_ONLY="-mno-omit-leaf-frame-pointer -mstack-alignment=16 \
         -fPIC"
-
-    LDFLAGS_CXX_PARTIAL_LINKING="$MACHINE_FLAG -r"
 
     if test "x$OPENJDK_TARGET_OS" = xlinux; then
       BASIC_LDFLAGS="-Wl,--exclude-libs,ALL"
@@ -146,7 +142,6 @@ AC_DEFUN([FLAGS_SETUP_LDFLAGS_HELPER],
   # Export some intermediate variables for compatibility
   LDFLAGS_CXX_JDK="$DEBUGLEVEL_LDFLAGS_JDK_ONLY"
   AC_SUBST(LDFLAGS_CXX_JDK)
-  AC_SUBST(LDFLAGS_CXX_PARTIAL_LINKING)
 ])
 
 ################################################################################
