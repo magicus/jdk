@@ -43,6 +43,7 @@ STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 JDK_STATIC_LIBS := $(call FindFiles, $(STATIC_LIBS_IMAGE_DIR)/lib)
 EXCLUDED_STATIC_LIBS := \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncher$(STATIC_LIBRARY_SUFFIX) \
+  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncheraux$(STATIC_LIBRARY_SUFFIX) \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)saproc$(STATIC_LIBRARY_SUFFIX) \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)le$(STATIC_LIBRARY_SUFFIX) \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)fontmanager$(STATIC_LIBRARY_SUFFIX) \
@@ -65,14 +66,18 @@ ifeq ($(call isTargetOs, macosx), true)
 
  LD_TARGET_OPTS := -o $(JAVASTATIC_TARGET)
 
+ FIXED_LDFLAGS_JDKEXE := $(LDFLAGS_JDKEXE)
+
 else ifeq ($(call isTargetOs, linux), true)
-  JAVASTATIC_LIBS :=  -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
+  JAVASTATIC_LIBS := -Wl$(COMMA)--export-dynamic -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
 
   ifeq ($(TOOLCHAIN_TYPE), gcc)
-    LDFLAGS_CXX_STATIC_JDK := -llibstdc++.a
+    LDFLAGS_CXX_STATIC_JDK := -l:libstdc++.a
   else ifeq ($(TOOLCHAIN_TYPE), clang)
-    LDFLAGS_CXX_STATIC_JDK := -llibc++.a
+    LDFLAGS_CXX_STATIC_JDK := -l:libc++.a
   endif
+
+  FIXED_LDFLAGS_JDKEXE := $(filter-out -Wl$(COMMA)--exclude-libs$(COMMA)ALL, $(LDFLAGS_JDKEXE))
 
   # FIXME: We should collect these automatically
 
@@ -84,6 +89,9 @@ else ifeq ($(call isTargetOs, windows), true)
   JAVASTATIC_LIBS := /wholearchive $(JAVASTATIC_LINK_LIBS)
   SYSTEM_LIBS := advapi32.lib comctl32.lib comdlg32.lib crypt32.lib dbgeng.lib delayimp.lib dsound.lib gdi32.lib imm32.lib iphlpapi.lib kernel32.lib mpr.lib msi.lib mswsock.lib ncrypt.lib netapi32.lib odbc32.lib odbccp32.lib ole32.lib oleaut32.lib psapi.lib secur32.lib shell32.lib shlwapi.lib user32.lib uuid.lib version.lib winhttp.lib winmm.lib winscard.lib winspool.lib ws2_32.lib
  LD_TARGET_OPTS := -nologo  -out:$(JAVASTATIC_TARGET).exe
+
+ FIXED_LDFLAGS_JDKEXE := $(LDFLAGS_JDKEXE)
+
 else
   $(error Unsupported platform)
 endif
@@ -91,7 +99,7 @@ endif
 $(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS)
 	$(ECHO) "Creating '$(JAVASTATIC_TARGET_IMAGE)'"
 	$(call ExecuteWithLog, $(JAVASTATIC_LOG_PREFIX), \
-	    $(LD) $(LD_TARGET_OPTS) $(LDFLAGS_JDKEXE) $(call SET_EXECUTABLE_ORIGIN) $(SYSROOT_LDFLAGS) \
+	    $(LD) $(LD_TARGET_OPTS) $(FIXED_LDFLAGS_JDKEXE) $(call SET_EXECUTABLE_ORIGIN) $(SYSROOT_LDFLAGS) \
 	     $(JAVASTATIC_OBJECT_DIR)/main$(OBJ_SUFFIX) \
 	    $(JAVASTATIC_LIBS) $(SYSTEM_LIBS))
 
