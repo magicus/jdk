@@ -684,14 +684,15 @@ else # not windows
       LIBS_macosx := -framework Cocoa, \
   ))
 
-  ifeq ($(ENABLE_HEADLESS_ONLY), false)
-    $(BUILD_LIBJAWT): $(BUILD_LIBAWT_XAWT)
-  else
-    $(BUILD_LIBJAWT): $(call FindLib, $(MODULE), awt_headless)
-  endif
 
   ifeq ($(call isTargetOs, macosx), true)
    $(BUILD_LIBJAWT): $(call FindLib, $(MODULE), awt_lwawt)
+  else
+    ifeq ($(ENABLE_HEADLESS_ONLY), false)
+      $(BUILD_LIBJAWT): $(BUILD_LIBAWT_XAWT)
+    else
+      $(BUILD_LIBJAWT): $(call FindLib, $(MODULE), awt_headless)
+    endif
   endif
 
 endif
