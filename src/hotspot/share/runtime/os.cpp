@@ -237,6 +237,15 @@ OSReturn os::set_priority(Thread* thread, ThreadPriority p) {
   }
 }
 
+void os::static_debug(char *msg) {
+  const char *v = getenv("DEBUG_STATIC_JAVA");
+
+  if (v != NULL) {
+        fprintf(stderr, "%s\n", msg);
+  }
+}
+
+
 // The mapping from OS priority back to Java priority may be inexact because
 // Java priorities can map M:1 with native priorities. If you want the definite
 // Java priority then use JavaThread::java_priority()
