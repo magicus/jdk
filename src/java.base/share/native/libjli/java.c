@@ -2419,3 +2419,11 @@ JLI_ShowMessage(const char* fmt, ...)
     fprintf(stdout, "\n");
     va_end(vl);
 }
+
+void static_debug(char *msg) {
+  const char *v = getenv("DEBUG_STATIC_JAVA");
+
+  if (v != NULL) {
+        fprintf(stderr, "%s\n", msg);
+  }
+}

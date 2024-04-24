@@ -73,6 +73,9 @@
 #define SPLASH_JAR_ENV_ENTRY "_JAVA_SPLASH_JAR"
 #define JDK_JAVA_OPTIONS "JDK_JAVA_OPTIONS"
 
+void static_debug(char *msg);
+
+
 /*
  * Pointers to the needed JNI invocation API, initialized by LoadJavaVM.
  */
