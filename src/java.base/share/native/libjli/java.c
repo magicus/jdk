@@ -1549,7 +1549,6 @@ InitializeJVM(JavaVM **pvm, JNIEnv **penv, InvocationFunctions *ifn)
                    i, args.options[i].optionString);
     }
 
-    assert(ifn->CreateJavaVM != 0);
     r = ifn->CreateJavaVM(pvm, (void **)penv, &args);
     JLI_MemFree(options);
     return r == JNI_OK;
@@ -2358,7 +2357,6 @@ ContinueInNewThread(InvocationFunctions* ifn, jlong threadStackSize,
         struct JDK1_1InitArgs args1_1;
         memset((void*)&args1_1, 0, sizeof(args1_1));
         args1_1.version = JNI_VERSION_1_1;
-        assert(ifn->GetDefaultJavaVMInitArgs != 0);
         ifn->GetDefaultJavaVMInitArgs(&args1_1);  /* ignore return value */
         if (args1_1.javaStackSize > 0) {
             threadStackSize = args1_1.javaStackSize;

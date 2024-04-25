@@ -98,9 +98,6 @@ JNIEXPORT jboolean JNICALL AWTIsHeadless() {
   #define HEADLESS_PATH "/libawt_headless.so"
 #endif
 
-typedef jboolean (*JVM_IsStaticJDK_t)();
-static JVM_IsStaticJDK_t IsStaticJDK = NULL;
-
 jint
 AWT_OnLoad(JavaVM *vm, void *reserved)
 {
@@ -119,18 +116,13 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
     }
 
     jvm = vm;
-
-    // IsStaticJDK is defined by libjvm. Check if it is statically linked.
-    IsStaticJDK = (JVM_IsStaticJDK_t)dlsym(RTLD_DEFAULT, "JVM_IsStaticJDK");
-    jboolean isStaticJDK = (IsStaticJDK != NULL) && (IsStaticJDK)();
-    if (!isStaticJDK) {
-        /* Get address of this library and the directory containing it. */
-        dladdr((void *)AWT_OnLoad, &dlinfo);
-        realpath((char *)dlinfo.dli_fname, buf);
-        len = strlen(buf);
-        p = strrchr(buf, '/');
-    }
-
+#ifndef STATIC_BUILD
+    /* Get address of this library and the directory containing it. */
+    dladdr((void *)AWT_OnLoad, &dlinfo);
+    realpath((char *)dlinfo.dli_fname, buf);
+    len = strlen(buf);
+    p = strrchr(buf, '/');
+#endif
     /*
      * The code below is responsible for
      * loading appropriate awt library, i.e. libawt_xawt or libawt_headless
@@ -148,20 +140,20 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
     }
 #endif
 
-    if (!isStaticJDK) {
-        /* Calculate library name to load */
-        strncpy(p, tk, MAXPATHLEN-len-1);
+#ifndef STATIC_BUILD
+    /* Calculate library name to load */
+    strncpy(p, tk, MAXPATHLEN-len-1);
 
-        jstring jbuf = JNU_NewStringPlatform(env, buf);
-        CHECK_EXCEPTION_FATAL(env, "Could not allocate library name");
-        JNU_CallStaticMethodByName(env, NULL, "java/lang/System", "load",
-                                   "(Ljava/lang/String;)V",
-                                   jbuf);
+    jstring jbuf = JNU_NewStringPlatform(env, buf);
+    CHECK_EXCEPTION_FATAL(env, "Could not allocate library name");
+    JNU_CallStaticMethodByName(env, NULL, "java/lang/System", "load",
+                               "(Ljava/lang/String;)V",
+                               jbuf);
 
-        awtHandle = dlopen(buf, RTLD_LAZY | RTLD_GLOBAL);
-    } else {
-        awtHandle = dlopen(NULL, RTLD_LAZY);
-    }
+    awtHandle = dlopen(buf, RTLD_LAZY | RTLD_GLOBAL);
+#else
+    awtHandle = dlopen(NULL, RTLD_LAZY);
+#endif
     return JNI_VERSION_1_2;
 }
 

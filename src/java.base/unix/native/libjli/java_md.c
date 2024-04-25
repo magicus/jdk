@@ -25,7 +25,6 @@
 
 #include "java.h"
 #include "jvm_md.h"
-#include <assert.h>
 #include <dirent.h>
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -475,8 +474,6 @@ static jboolean
 GetJVMPath(const char *jrepath, const char *jvmtype,
            char *jvmpath, jint jvmpathsize)
 {
-    assert(!JLI_IsStaticJDK());
-
     struct stat s;
 
     if (JLI_StrChr(jvmtype, '/')) {
@@ -502,8 +499,6 @@ GetJVMPath(const char *jrepath, const char *jvmtype,
 static jboolean
 GetJREPath(char *path, jint pathsize, jboolean speculative)
 {
-    assert(!JLI_IsStaticJDK());
-
     char libjava[MAXPATHLEN];
     struct stat s;
 
