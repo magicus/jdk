@@ -125,7 +125,7 @@ jobs:
           --with-jtreg=${{ steps.jtreg.outputs.path }}
           --with-gtest=${{ steps.gtest.outputs.path }}
           --with-zlib=bundled
-          --with-toolchain-type=clang --with-static-java --disable-warnings-as-errors
+          --with-toolchain-type=clang --with-static-java --enable-headless-only
           --with-jmod-compress=zip-1
           ${{ inputs.extra-conf-options }} ${{ inputs.configure-arguments }} || (
           echo "Dumping config.log:" &&

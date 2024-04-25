@@ -684,7 +684,6 @@ else # not windows
       LIBS_macosx := -framework Cocoa, \
   ))
 
-
   ifeq ($(call isTargetOs, macosx), true)
    $(BUILD_LIBJAWT): $(call FindLib, $(MODULE), awt_lwawt)
   else
@@ -875,8 +874,6 @@ ifeq ($(call isTargetOs, macosx), true)
   LIBAWT_LWAWT_EXFILES := fontpath.c awt_Font.c X11Color.c
   LIBAWT_LWAWT_EXCLUDES := $(TOPDIR)/src/$(MODULE)/unix/native/common/awt/medialib
 
-#  LIBAWT_LWAWT_STATIC_EXCLUDE_OBJS := systemScale.o
-
   $(eval $(call SetupJdkLibrary, BUILD_LIBAWT_LWAWT, \
       NAME := awt_lwawt, \
       EXTRA_SRC := $(LIBAWT_LWAWT_EXTRA_SRC), \
@@ -886,7 +883,6 @@ ifeq ($(call isTargetOs, macosx), true)
       OPTIMIZATION := LOW, \
       CFLAGS := $(CFLAGS_JDKLIB) \
           $(LIBAWT_LWAWT_CFLAGS), \
-      STATIC_LIB_EXCLUDE_OBJS := $(LIBAWT_LWAWT_STATIC_EXCLUDE_OBJS), \
       EXTRA_HEADER_DIRS := $(LIBAWT_LWAWT_EXTRA_HEADER_DIRS), \
       DISABLED_WARNINGS_clang := incomplete-implementation deprecated-declarations \
           objc-method-access incompatible-pointer-types extra-tokens sign-compare undef, \

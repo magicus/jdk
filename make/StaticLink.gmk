@@ -51,9 +51,6 @@ EXCLUDED_STATIC_LIBS := \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncher$(STATIC_LIBRARY_SUFFIX) \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncheraux$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)saproc$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)le$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)fontmanager$(STATIC_LIBRARY_SUFFIX) \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jsig$(STATIC_LIBRARY_SUFFIX)
 
 EXCLUDED_STATIC_LIBS0000 := \
@@ -80,23 +77,27 @@ JAVASTATIC_LD_OBJ_ARG := $(JAVASTATIC_OBJECT_DIR)/main.o
 # X11_LIBS := $(X_LIBS) -lX11 -lXext -lXrender -lXtst -lXi
 #
 JAVASTATIC_LIBS := -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
-JAVASTATIC_EXTRA_LIBS := -Wl$(COMMA)--no-whole-archive -lrt -lpthread $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK)
+JAVASTATIC_EXTRA_LIBS := -Wl$(COMMA)--no-whole-archive -lpthread $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK)
 
-#$(JVM_STATIC_LIB) : $(HOTSPOT_OUTPUTDIR)/variant-server/libjvm/objs/static/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX)
+#$(JVM_STATIC_LIB) : $(HOTSPOT_OUTPUTDIR)/variant-server/libjvm/objs/static/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX) 
 #	$(CP) $< $@
 
 $(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS)
-	$(ECHO) "Creating '$(JAVASTATIC_TARGET_IMAGE)'"
-	$(call ExecuteWithLog, $(JAVASTATIC_LOG_PREFIX), \
-	    $(LD) $(JAVASTATIC_LDFLAGS) -o $(JAVASTATIC_TARGET) \
-	        $(JAVASTATIC_LD_OBJ_ARG) $(JAVASTATIC_LIBS) $(JAVASTATIC_EXTRA_LIBS))
-	$(CP) -f $(JAVASTATIC_TARGET) $@
+        ifeq ($(call isTargetOs, linux), true)
+	  $(ECHO) "Creating '$(JAVASTATIC_TARGET_IMAGE)'"
+	  $(call ExecuteWithLog, $(JAVASTATIC_LOG_PREFIX), \
+	      $(LD) $(JAVASTATIC_LDFLAGS) -o $(JAVASTATIC_TARGET) \
+	          $(JAVASTATIC_LD_OBJ_ARG) $(JAVASTATIC_LIBS) $(JAVASTATIC_EXTRA_LIBS))
+	  echo copy $(JAVASTATIC_TARGET) to $@
+	  $(CP) -f $(JAVASTATIC_TARGET) $@
+        else
+	  $(error Not supported on non-linux platform currently)
+        endif
 
 TARGETS += $(JAVASTATIC_TARGET_IMAGE)
 
 else
 
-# WORKS on mac
 ################################################################################
 
 JAVASTATIC := javastatic$(EXE_SUFFIX)
@@ -121,10 +122,8 @@ JAVASTATIC_LOG_PREFIX := $(JAVASTATIC_OBJECT_DIR)/BUILD_LAUNCHER_javastatic$(EXE
 JAVASTATIC_TARGET := $(JAVASTATIC_OUTPUT_DIR)/$(JAVASTATIC)
 JAVASTATIC_TARGET_IMAGE := $(JDK_IMAGE_DIR)/bin/$(JAVASTATIC)
 
-JAVASTATIC_LD_OBJ_ARG :=
-
 ifeq ($(call isTargetOs, macosx), true)
-  # FIXME: Perhaps we really should prefix each and one individuall with -force_load...
+  # FIXME: Perhaps we really should prefix each and one individually with -force_load...
   JAVASTATIC_LIBS := -Wl$(COMMA)-all_load $(JAVASTATIC_LINK_LIBS)
 
   # FIXME: We should collect these automatically
