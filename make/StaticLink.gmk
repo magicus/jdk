@@ -56,12 +56,16 @@ JAVASTATIC_TARGET := $(JAVASTATIC_OUTPUT_DIR)/$(JAVASTATIC)
 JAVASTATIC_TARGET_IMAGE := $(JDK_IMAGE_DIR)/bin/$(JAVASTATIC)
 
 ifeq ($(call isTargetOs, macosx), true)
+ FIXED_LDFLAGS_JDKEXE := $(LDFLAGS_JDKEXE)
+
   # FIXME: Perhaps we really should prefix each and one individually with -force_load...
   JAVASTATIC_LIBS := -Wl$(COMMA)-all_load $(JAVASTATIC_LINK_LIBS)
 
   # FIXME: We should collect these automatically
   SYSTEM_LIBS := -liconv -lstdc++  -framework Accelerate -framework ApplicationServices -framework AudioToolbox -framework AudioUnit -framework Carbon -framework Cocoa -framework Cocoa -framework CoreAudio -framework CoreFoundation -framework CoreGraphics -framework CoreMIDI -framework CoreServices -framework CoreServices -framework CoreText -framework ExceptionHandling -framework Foundation -framework Foundation -framework IOSurface -framework JavaRuntimeSupport -framework Kerberos -framework Metal -framework Metal -framework OpenGL -framework OpenGL -framework QuartzCore -framework Security -framework SystemConfiguration
 else ifeq ($(call isTargetOs, linux), true)
+  FIXED_LDFLAGS_JDKEXE := $(filter-out -Wl$(COMMA)--exclude-libs$(COMMA)ALL, $(LDFLAGS_JDKEXE))
+
   JAVASTATIC_LIBS :=  -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
 
   # FIXME: We should collect these automatically
@@ -77,7 +81,7 @@ endif
 $(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS)
 	$(ECHO) "Linking static launcher '$(JAVASTATIC_TARGET_IMAGE)'"
 	$(call ExecuteWithLog, $(JAVASTATIC_LOG_PREFIX)_new, \
-	    $(LD) $(LDFLAGS_JDKEXE) $(call SET_EXECUTABLE_ORIGIN) $(SYSROOT_LDFLAGS) \
+	    $(LD) $(FIXED_LDFLAGS_JDKEXE) $(call SET_EXECUTABLE_ORIGIN) $(SYSROOT_LDFLAGS) \
 	     -o $(JAVASTATIC_TARGET)  $(JAVASTATIC_OBJECT_DIR)/main.o \
 	    $(JAVASTATIC_LIBS) $(SYSTEM_LIBS))
 
