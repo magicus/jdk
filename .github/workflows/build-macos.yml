@@ -104,8 +104,7 @@ jobs:
           --with-boot-jdk=${{ steps.bootjdk.outputs.path }}
           --with-jtreg=${{ steps.jtreg.outputs.path }}
           --with-gtest=${{ steps.gtest.outputs.path }}
-          --with-zlib=bundled
-          --with-static-java --enable-headless-only
+          --with-zlib=system
           --with-jmod-compress=zip-1
           ${{ inputs.extra-conf-options }} ${{ inputs.configure-arguments }} || (
           echo "Dumping config.log:" &&
@@ -116,7 +115,7 @@ jobs:
         id: build
         uses: ./.github/actions/do-build
         with:
-          make-target: 'static-java-image ${{ inputs.make-target }} ${{ inputs.make-arguments }}'
+          make-target: '${{ inputs.make-target }} ${{ inputs.make-arguments }}'
           platform: ${{ inputs.platform }}
           debug-suffix: '${{ matrix.suffix }}'
 

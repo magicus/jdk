@@ -74,8 +74,6 @@ abstract class SystemImage {
                 }
             };
         }
-        if (explodedModulesDir == null)
-            throw new FileSystemNotFoundException("No exploded modules dir");
         if (Files.notExists(explodedModulesDir))
             throw new FileSystemNotFoundException(explodedModulesDir.toString());
         return new ExplodedImage(explodedModulesDir);
