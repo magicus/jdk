@@ -133,12 +133,15 @@ else ifeq ($(call isTargetOs, linux), true)
 
   # FIXME: We should collect these automatically
   SYSTEM_LIBS :=-Wl$(COMMA)--export-dynamic  -Wl$(COMMA)--no-whole-archive -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK)
+  ifeq ($(USE_EXTERNAL_LIBZ), true)
+    SYSTEM_LIBS += -lz
+  endif
 else
   $(error Unsupported platform)
 endif
 
 $(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS)
-	$(ECHO) "Creating FO '$(JAVASTATIC_TARGET_IMAGE)'"
+	$(ECHO) "Linking static launcher '$(JAVASTATIC_TARGET_IMAGE)'"
 	echo WILL_RUN:    $(LD) $(LDFLAGS_JDKEXE) $(call SET_EXECUTABLE_ORIGIN) $(SYSROOT_LDFLAGS) \
 	     -o $(JAVASTATIC_TARGET)  $(JAVASTATIC_OBJECT_DIR)/main.o \
 	    $(JAVASTATIC_LIBS) $(SYSTEM_LIBS)
