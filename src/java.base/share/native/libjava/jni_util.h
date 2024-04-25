@@ -364,7 +364,6 @@ jstring getLastErrorString(JNIEnv *env);
 JNIEXPORT int JNICALL
 getErrorString(int err, char *buf, size_t len);
 
-#ifdef STATIC_BUILD
 /* Macros for handling declaration of static/dynamic
  * JNI library Load/Unload functions
  *
@@ -408,15 +407,6 @@ void JNICALL ADD_LIB_NAME(JNI_OnUnload_dynamic_)
 #define DEF_STATIC_JNI_OnUnload \
 ADD_LIB_NAME(JNI_OnUnload_)
 
-#else
-
-#define DEF_JNI_OnLoad JNI_OnLoad
-#define DEF_STATIC_JNI_OnLoad
-#define DEF_JNI_OnUnload JNI_OnUnload
-#define DEF_STATIC_JNI_OnUnload
-#endif
-
-#ifdef STATIC_BUILD
 /* Macros for handling declaration of static/dynamic
  * Agent library Load/Attach/Unload functions
  *
@@ -464,15 +454,6 @@ void JNICALL ADD_LIB_NAME(Agent_OnUnload_dynamic_)
 
 #define DEF_STATIC_Agent_OnUnload \
 ADD_LIB_NAME(Agent_OnUnload_)
-
-#else
-#define DEF_Agent_OnLoad Agent_OnLoad
-#define DEF_Agent_OnAttach Agent_OnAttach
-#define DEF_Agent_OnUnload Agent_OnUnload
-#define DEF_STATIC_Agent_OnLoad
-#define DEF_STATIC_Agent_OnAttach
-#define DEF_STATIC_Agent_OnUnload
-#endif
 
 #ifdef __cplusplus
 } /* extern "C" */
