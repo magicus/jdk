@@ -725,8 +725,6 @@ class os: AllStatic {
   // Find out whether the pc is in the static code for jvm.dll/libjvm.so.
   static bool address_is_in_vm(address addr);
 
-  static void static_debug(char *msg);
-
   // Loads .dll/.so and
   // in case of error it checks if .dll/.so was built for the
   // same architecture as HotSpot is running on

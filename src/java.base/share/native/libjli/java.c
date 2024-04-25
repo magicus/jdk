@@ -2457,10 +2457,8 @@ void JLI_SetStaticJDK() {
     SetStaticJDK = (SetStaticJDK_t)dlsym(RTLD_DEFAULT, "JVM_SetStaticJDK");
     if (SetStaticJDK != NULL) {
         exectype = JLI_StaticBuild;
-        static_debug("Static JDK detected.");
         (SetStaticJDK)();
     } else {
-        static_debug("Static JDK detected.");
         exectype = JLI_DynamicBuild;
     }
 }
@@ -2468,17 +2466,5 @@ void JLI_SetStaticJDK() {
 // JVM_SetStaticJDK is defined in libjvm.
 jboolean JLI_IsStaticJDK() {
     assert(exectype != JLI_UnknownBuild);
-    static_debug("testing static build.");
-    if (exectype == JLI_StaticBuild) {
-    static_debug("YES.");
-    }
     return exectype == JLI_StaticBuild;
-}
-
-void static_debug(char *msg) {
-  const char *v = getenv("DEBUG_STATIC_JAVA");
-
-  if (v != NULL) {
-        fprintf(stderr, "%s\n", msg);
-  }
 }
