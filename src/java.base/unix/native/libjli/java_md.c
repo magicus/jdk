@@ -296,14 +296,6 @@ CreateExecutionEnvironment(int *pargc, char ***pargv,
                            char jrepath[], jint so_jrepath,
                            char jvmpath[], jint so_jvmpath,
                            char jvmcfg[],  jint so_jvmcfg) {
-#ifdef STATIC_BUILD
-    // With static builds, all JDK and VM natives are statically linked
-    // with the launcher executable. No need to manipulate LD_LIBRARY_PATH
-    // by adding <jdk_path>/lib and etc. The 'jrepath', 'jvmpath' and
-    // 'jvmcfg' are not used by the caller for static builds. Simply return.
-    return;
-#endif
-
     char * jvmtype = NULL;
     char **argv = *pargv;
 
@@ -320,6 +312,7 @@ CreateExecutionEnvironment(int *pargc, char ***pargv,
     /* Compute/set the name of the executable */
     SetExecname(*pargv);
 
+#ifndef STATIC_BUILD
     /* Check to see if the jvmpath exists */
     /* Find out where the JRE is that we will be using. */
     if (!GetJREPath(jrepath, so_jrepath, JNI_FALSE)) {
@@ -345,6 +338,8 @@ CreateExecutionEnvironment(int *pargc, char ***pargv,
         JLI_ReportErrorMessage(CFG_ERROR8, jvmtype, jvmpath);
         exit(4);
     }
+#endif
+
     /*
      * we seem to have everything we need, so without further ado
      * we return back, otherwise proceed to set the environment.
