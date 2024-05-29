@@ -177,7 +177,8 @@ AC_DEFUN([FLAGS_SETUP_LDFLAGS_HELPER],
     if test "x$TOOLCHAIN_TYPE" = xgcc; then
       LDFLAGS_CXX_STATIC_JDK="-l:libstdc++.a"
     elif test "x$TOOLCHAIN_TYPE" = xclang; then
-      LDFLAGS_CXX_STATIC_JDK="-l:libc++.a"
+#      LDFLAGS_CXX_STATIC_JDK="-l:libc++.a"
+      LDFLAGS_CXX_STATIC_JDK="-l:libstdc++.a"
     fi
   fi
   AC_SUBST(LDFLAGS_CXX_STATIC_JDK)
