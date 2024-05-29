@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015, 2024, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,6 @@
 #
 
 include CopyFiles.gmk
-include Execute.gmk
 include JarArchive.gmk
 include JavaCompilation.gmk
 include Modules.gmk
@@ -60,20 +59,6 @@ COMPILECREATESYMBOLS_ADD_EXPORTS := \
     --add-exports jdk.jdeps/com.sun.tools.classfile=ALL-UNNAMED \
     #
 
-TEST_JAVAC_BASE := $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javac/_test-javac
-
-$(eval $(call SetupExecute, TEST_BUILD_JAVAC, \
-    COMMAND := $(BUILD_JAVAC) --version > $(TEST_JAVAC_BASE).output 2>&1 || ( \
-        exitcode=$$? ; \
-        $(ECHO) "ERROR: Failed to run javac from the build JDK." \
-            "This is likely a problem with the newly built JVM/JDK. Output:" ; \
-        $(CAT) $(TEST_JAVAC_BASE).output ; \
-        exit $$exitcode \
-    ), \
-    DESC := Testing javac from the Build JDK, \
-    OUTPUT_FILE := $(TEST_JAVAC_BASE).marker, \
-))
-
 # TODO: Unify with jdk.javadoc-gendata. Should only compile this once and share.
 $(eval $(call SetupJavaCompilation, COMPILE_CREATE_SYMBOLS, \
     TARGET_RELEASE := $(TARGET_RELEASE_NEWJDK), \
@@ -85,8 +70,6 @@ $(eval $(call SetupJavaCompilation, COMPILE_CREATE_SYMBOLS, \
     JAVAC_FLAGS := \
         $(COMPILECREATESYMBOLS_ADD_EXPORTS), \
 ))
-
-$(COMPILE_CREATE_SYMBOLS): $(TEST_BUILD_JAVAC)
 
 $(SUPPORT_OUTPUTDIR)/symbols/ct.sym: $(COMPILE_CREATE_SYMBOLS) $(SYMBOL_FILES) \
     $(MODULE_INFOS) $(CT_MODULES_API_TARGETS)
