@@ -81,6 +81,9 @@ AC_DEFUN([FLAGS_SETUP_LDFLAGS_HELPER],
 
     LDFLAGS_CXX_PARTIAL_LINKING="$MACHINE_FLAG -r"
 
+    if test "x$OPENJDK_TARGET_OS" = xlinux; then
+      BASIC_LDFLAGS="-fuse-ld=lld -Wl,--exclude-libs,ALL"
+    fi
     if test "x$OPENJDK_TARGET_OS" = xaix; then
       BASIC_LDFLAGS="-Wl,-b64 -Wl,-brtl -Wl,-bnorwexec -Wl,-bnolibpath -Wl,-bnoexpall \
         -Wl,-bernotok -Wl,-bdatapsize:64k -Wl,-btextpsize:64k -Wl,-bstackpsize:64k"
