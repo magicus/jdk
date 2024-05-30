@@ -296,6 +296,7 @@ CreateExecutionEnvironment(int *pargc, char ***pargv,
                            char jrepath[], jint so_jrepath,
                            char jvmpath[], jint so_jvmpath,
                            char jvmcfg[],  jint so_jvmcfg) {
+
     char * jvmtype = NULL;
     char **argv = *pargv;
 
@@ -638,7 +639,7 @@ void* SplashProcAddress(const char* name) {
             return NULL;
         }
         ret = JLI_Snprintf(splashPath, sizeof(splashPath), "%s/lib/%s",
-                  jrePath, SPLASHSCREEN_SO);
+                     jrePath, SPLASHSCREEN_SO);
 
         if (ret >= (int) sizeof(splashPath)) {
             JLI_ReportErrorMessage(JRE_ERROR11);
