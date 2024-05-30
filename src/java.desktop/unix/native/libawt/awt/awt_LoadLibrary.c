@@ -117,26 +117,16 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
 
     jvm = vm;
 
-    if (!JVM_IsStaticallyLinked()) {
-        /* Get address of this library and the directory containing it. */
-        dladdr((void *)AWT_OnLoad, &dlinfo);
-        realpath((char *)dlinfo.dli_fname, buf);
-        len = strlen(buf);
-        p = strrchr(buf, '/');
-    }
-
     /*
      * The code below is responsible for
      * loading appropriate awt library, i.e. libawt_xawt or libawt_headless
      */
 
 #ifdef MACOSX
-        tk = LWAWT_PATH;
+    tk = LWAWT_PATH;
 #else
-        tk = XAWT_PATH;
-#endif
+    tk = XAWT_PATH;
 
-#ifndef MACOSX
     if (AWTIsHeadless()) {
         tk = HEADLESS_PATH;
     }
@@ -145,6 +135,12 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
     if (JVM_IsStaticallyLinked()) {
         awtHandle = dlopen(NULL, RTLD_LAZY);
     } else {
+        /* Get address of this library and the directory containing it. */
+        dladdr((void *)AWT_OnLoad, &dlinfo);
+        realpath((char *)dlinfo.dli_fname, buf);
+        len = strlen(buf);
+        p = strrchr(buf, '/');
+
         /* Calculate library name to load */
         strncpy(p, tk, MAXPATHLEN-len-1);
 
