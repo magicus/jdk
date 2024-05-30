@@ -178,7 +178,7 @@ JNIEXPORT jboolean JNICALL
 JVM_IsForeignLinkerSupported(void);
 
 JNIEXPORT jboolean JNICALL
-JVM_IsStaticallyLinkedJDK(void);
+JVM_IsStaticallyLinked(void);
 
 JNIEXPORT void JNICALL
 JVM_InitializeFromArchive(JNIEnv* env, jclass cls);

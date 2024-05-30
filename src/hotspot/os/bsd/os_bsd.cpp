@@ -457,7 +457,7 @@ void os::init_system_properties_values() {
     if (pslash != nullptr) {
       *pslash = '\0';            // Get rid of /{client|server|hotspot}.
     }
-    if (JVM_IsStaticallyLinkedJDK()) {
+    if (vm_is_statically_linked()) {
       strcat(buf, "/lib");
     }
 
@@ -1077,7 +1077,7 @@ void *os::Bsd::dlopen_helper(const char *filename, int mode, char *ebuf, int ebu
 
 #ifdef __APPLE__
 void * os::dll_load(const char *filename, char *ebuf, int ebuflen) {
-  if (JVM_IsStaticallyLinkedJDK()) {
+  if (vm_is_statically_linked()) {
     return os::get_default_process_handle();
   }
 
@@ -1087,7 +1087,7 @@ void * os::dll_load(const char *filename, char *ebuf, int ebuflen) {
 }
 #else
 void * os::dll_load(const char *filename, char *ebuf, int ebuflen) {
-  if (JVM_IsStaticallyLinkedJDK()) {
+  if (vm_is_statically_linked()) {
     return os::get_default_process_handle();
   }
 

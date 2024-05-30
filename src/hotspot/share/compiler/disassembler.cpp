@@ -32,12 +32,12 @@
 #include "gc/shared/cardTable.hpp"
 #include "gc/shared/cardTableBarrierSet.hpp"
 #include "gc/shared/collectedHeap.hpp"
-#include "jvm.h"
 #include "logging/log.hpp"
 #include "memory/resourceArea.hpp"
 #include "memory/universe.hpp"
 #include "oops/oop.inline.hpp"
 #include "runtime/handles.inline.hpp"
+#include "runtime/java.hpp"
 #include "runtime/os.hpp"
 #include "runtime/stubCodeGenerator.hpp"
 #include "runtime/stubRoutines.hpp"
@@ -787,7 +787,7 @@ bool Disassembler::load_library(outputStream* st) {
   int jvm_offset = -1;
   int lib_offset = -1;
 
-  if (JVM_IsStaticallyLinkedJDK()) {
+  if (vm_is_statically_linked()) {
     char* p = strrchr(buf, '/');
     *p = '\0';
     strcat(p, "/lib/");

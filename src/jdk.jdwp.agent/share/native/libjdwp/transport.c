@@ -123,7 +123,7 @@ loadTransportLibrary(const char *libdir, const char *name)
 {
     char buf[MAXPATHLEN*2+100];
 
-    if (JVM_IsStaticallyLinkedJDK()) {
+    if (JVM_IsStaticallyLinked()) {
         return (dbgsysLoadLibrary(NULL, buf, sizeof(buf)));
     }
 

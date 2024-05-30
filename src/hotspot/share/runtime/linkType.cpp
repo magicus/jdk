@@ -30,10 +30,14 @@
 // object files, depending on if we are going to build a static or a dynamic
 // library.
 
-JVM_ENTRY_NO_ENV(jboolean, JVM_IsStaticallyLinkedJDK(void))
+bool vm_is_statically_linked(void) {
 #ifdef STATIC_BUILD
   return JNI_TRUE;
 #else
   return JNI_FALSE;
 #endif
+}
+
+JVM_ENTRY_NO_ENV(jboolean, JVM_IsStaticallyLinked(void))
+  return vm_is_statically_linked();
 JVM_END

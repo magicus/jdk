@@ -518,7 +518,7 @@ void* os::native_java_library() {
     char buffer[JVM_MAXPATHLEN];
     char ebuf[1024];
 
-    if (JVM_IsStaticallyLinkedJDK()) {
+    if (vm_is_statically_linked()) {
       _native_java_library = get_default_process_handle();
       return _native_java_library;
     }
