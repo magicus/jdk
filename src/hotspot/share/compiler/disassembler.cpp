@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,6 +32,7 @@
 #include "gc/shared/cardTable.hpp"
 #include "gc/shared/cardTableBarrierSet.hpp"
 #include "gc/shared/collectedHeap.hpp"
+#include "jvm.h"
 #include "logging/log.hpp"
 #include "memory/resourceArea.hpp"
 #include "memory/universe.hpp"
@@ -785,13 +786,13 @@ bool Disassembler::load_library(outputStream* st) {
   os::jvm_path(buf, sizeof(buf));
   int jvm_offset = -1;
   int lib_offset = -1;
-#ifdef STATIC_BUILD
-  char* p = strrchr(buf, '/');
-  *p = '\0';
-  strcat(p, "/lib/");
-  lib_offset = jvm_offset = (int)strlen(buf);
-#else
-  {
+
+  if (JVM_IsStaticallyLinkedJDK()) {
+    char* p = strrchr(buf, '/');
+    *p = '\0';
+    strcat(p, "/lib/");
+    lib_offset = jvm_offset = (int)strlen(buf);
+  } else {
     // Match "libjvm" instead of "jvm" on *nix platforms. Creates better matches.
     // Match "[lib]jvm[^/]*" in jvm_path.
     const char* base = buf;
@@ -805,7 +806,6 @@ bool Disassembler::load_library(outputStream* st) {
     if (p != nullptr) jvm_offset = p - base + 3; // this points to 'j' in libjvm.
 #endif
   }
-#endif
 
   // Find the disassembler shared library.
   // Search for several paths derived from libjvm, in this order:

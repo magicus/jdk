@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,8 +26,6 @@
 #include <stdlib.h>
 
 #include "jni.h"
-
-#ifndef STATIC_BUILD
 
 /* This is a temporary solution until we figure out how to let native
  * libraries use jio_* without linking with the VM.
@@ -64,6 +62,3 @@ jio_fprintf(FILE *fp, const char *fmt, ...)
 
     return len;
 }
-
-#endif
-
