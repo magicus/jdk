@@ -25,6 +25,7 @@
 #include "precompiled.hpp"
 #include "jvm.h"
 #include "runtime/interfaceSupport.inline.hpp"
+#include "runtime/java.hpp"
 
 // This is in a separate file since it will need to be compiled to two different
 // object files, depending on if we are going to build a static or a dynamic
