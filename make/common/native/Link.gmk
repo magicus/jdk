@@ -108,8 +108,10 @@ define CreateStaticLibrary
 	      $$($1_LD) $(LDFLAGS_CXX_PARTIAL_LINKING) $$($1_SYSROOT_LDFLAGS) \
 	          -o $$($1_TARGET_RELOCATABLE) $$($1_LD_OBJ_ARG))
           ifeq ($(call isTargetOs, linux), true)
-	    $$(call ExecuteWithLog, $$($1_OBJECT_DIR)/$$($1_SAFE_NAME)_localize, \
-	        $$($1_OBJCOPY) --localize-hidden $$($1_TARGET_RELOCATABLE))
+            ifneq ($$($1_SKIP_LOCALIZE_HIDDEN), true)
+	      $$(call ExecuteWithLog, $$($1_OBJECT_DIR)/$$($1_SAFE_NAME)_localize, \
+	          $$($1_OBJCOPY) --localize-hidden $$($1_TARGET_RELOCATABLE))
+            endif
           endif
         endif
 	$$(call ExecuteWithLog, $$($1_OBJECT_DIR)/$$($1_SAFE_NAME)_run_ar, \

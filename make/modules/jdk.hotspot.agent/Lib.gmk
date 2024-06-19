@@ -67,6 +67,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBSAPROC, \
     CFLAGS := $(LIBSAPROC_CFLAGS), \
     CXXFLAGS := $(LIBSAPROC_CFLAGS) $(LIBSAPROC_CXXFLAGS), \
     EXTRA_SRC := $(LIBSAPROC_EXTRA_SRC), \
+    SKIP_LOCALIZE_HIDDEN := true, \
     JDK_LIBS := java.base:libjava, \
     LIBS_linux := $(LIBDL), \
     LIBS_macosx := \

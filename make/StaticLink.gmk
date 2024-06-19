@@ -43,7 +43,9 @@ STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 # consumption...
 JDK_STATIC_LIBS := $(call FindFiles, $(STATIC_LIBS_IMAGE_DIR)/lib)
 EXCLUDED_STATIC_LIBS := \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncher$(STATIC_LIBRARY_SUFFIX)
+  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncher$(STATIC_LIBRARY_SUFFIX) \
+  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)awt_xawt$(STATIC_LIBRARY_SUFFIX) \
+  #
 
 JAVASTATIC_LINK_LIBS := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
 
@@ -66,7 +68,7 @@ else ifeq ($(call isTargetOs, linux), true)
   JAVASTATIC_LIBS :=  -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
 
   # FIXME: We should collect these automatically
-  SYSTEM_LIBS :=-Wl$(COMMA)--export-dynamic  -Wl$(COMMA)--no-whole-archive -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK) -l:libstdc++.a
+  SYSTEM_LIBS := -Wl$(COMMA)--export-dynamic  -Wl$(COMMA)--no-whole-archive -ldl -lrt -lpthread -lfreetype -lm -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK) -l:libstdc++.a
 
   ifeq ($(USE_EXTERNAL_LIBZ), true)
     SYSTEM_LIBS += -lz
