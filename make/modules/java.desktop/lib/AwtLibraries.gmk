@@ -173,6 +173,7 @@ ifeq ($(call isTargetOs, windows macosx), false)
       EXTRA_HEADER_DIRS := $(LIBAWT_HEADLESS_EXTRA_HEADER_DIRS), \
       DISABLED_WARNINGS_gcc_X11Renderer.c := unused-function, \
       DISABLED_WARNINGS_gcc_X11SurfaceData.c := unused-function, \
+      STATIC_BUILD_FILES := HeadlessToolkit.o, \
       JDK_LIBS := libawt java.base:libjava, \
       LIBS_linux := $(LIBDL) $(LIBM), \
   ))
