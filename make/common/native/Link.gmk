@@ -115,7 +115,8 @@ define CreateStaticLibrary
 	$$(call ExecuteWithLog, $$($1_OBJECT_DIR)/$$($1_SAFE_NAME)_run_ar, \
 	    $(if $$($1_LINK_OBJS_RELATIVE), $$(CD) $$(OUTPUTDIR) ; ) \
 	    $$($1_AR) $$(ARFLAGS) -r -cs $$($1_TARGET) \
-	        $$($1_AR_OBJ_ARG) $$($1_RES))
+	        $$($1_AR_OBJ_ARG))
+	$(ECHO) LIBS=$$(strip $$($1_LIBS) $$($1_EXTRA_LIBS)) > $$($1_TARGET).libinfo
         ifeq ($$($1_ENABLE_PARTIAL_LINKING), true)
           ifeq ($$($1_CREATE_DEBUGINFO), true)
             ifeq ($(call isTargetOs, linux), true)
