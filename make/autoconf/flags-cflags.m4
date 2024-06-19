@@ -516,8 +516,9 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
   # CFLAGS BASIC
   if test "x$TOOLCHAIN_TYPE" = xgcc || test "x$TOOLCHAIN_TYPE" = xclang; then
     # COMMON to gcc and clang
-    TOOLCHAIN_CFLAGS_JVM="-pipe -fno-rtti -fno-exceptions \
+    TOOLCHAIN_CFLAGS_JVM="-ffunction-sections -fdata-sections -pipe -fno-rtti -fno-exceptions \
         -fvisibility=hidden -fno-strict-aliasing -fno-omit-frame-pointer"
+    TOOLCHAIN_CFLAGS_JDK="-ffunction-sections -fdata-sections"
   fi
 
   if test "x$TOOLCHAIN_TYPE" = xclang && test "x$OPENJDK_TARGET_OS" = xaix; then
@@ -528,7 +529,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
 
   if test "x$TOOLCHAIN_TYPE" = xgcc; then
     TOOLCHAIN_CFLAGS_JVM="$TOOLCHAIN_CFLAGS_JVM -fstack-protector"
-    TOOLCHAIN_CFLAGS_JDK="-fvisibility=hidden -pipe -fstack-protector"
+    TOOLCHAIN_CFLAGS_JDK="$TOOLCHAIN_CFLAGS_JDK -fvisibility=hidden -pipe -fstack-protector"
     # reduce lib size on linux in link step, this needs also special compile flags
     # do this on s390x also for libjvm (where serviceability agent is not supported)
     if test "x$ENABLE_LINKTIME_GC" = xtrue; then
@@ -649,7 +650,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
   # JDK libraries.
   STATIC_LIBS_CFLAGS="-DSTATIC_BUILD=1"
   if test "x$TOOLCHAIN_TYPE" = xgcc || test "x$TOOLCHAIN_TYPE" = xclang; then
-    STATIC_LIBS_CFLAGS="$STATIC_LIBS_CFLAGS -ffunction-sections -fdata-sections \
+    STATIC_LIBS_CFLAGS="$STATIC_LIBS_CFLAGS \
       -DJNIEXPORT='__attribute__((visibility(\"default\")))'"
   else
     STATIC_LIBS_CFLAGS="$STATIC_LIBS_CFLAGS -DJNIEXPORT="
