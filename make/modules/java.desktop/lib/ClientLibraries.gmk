@@ -46,6 +46,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBMLIB_IMAGE, \
     CFLAGS := -D__USE_J2D_NAMES -D__MEDIALIB_OLD_NAMES -DMLIB_NO_LIBSUNMATH \
         $(LIBMLIB_IMAGE_CFLAGS), \
     DISABLED_WARNINGS_gcc := unused-function, \
+    STATIC_BUILD_FILES := mlib_ImageUtils.o, \
     LIBS_unix := $(LIBDL) $(LIBM), \
 ))
 
@@ -87,6 +88,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBLCMS, \
     DISABLED_WARNINGS_gcc := format-nonliteral type-limits \
         stringop-truncation, \
     DISABLED_WARNINGS_clang := format-nonliteral, \
+    STATIC_BUILD_FILES := LCMS.o, \
     JDK_LIBS := libawt java.base:libjava, \
     LIBS_unix := $(LCMS_LIBS) $(LIBM), \
 ))
@@ -121,6 +123,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJAVAJPEG, \
     DISABLED_WARNINGS_gcc_imageioJPEG.c := clobbered array-bounds, \
     DISABLED_WARNINGS_gcc_jcmaster.c := implicit-fallthrough, \
     DISABLED_WARNINGS_gcc_jdphuff.c := shift-negative-value, \
+    STATIC_BUILD_FILES := jpegdecoder.o, \
     JDK_LIBS := java.base:libjava, \
     LIBS := $(LIBJPEG_LIBS), \
 ))
@@ -236,6 +239,7 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
       DISABLED_WARNINGS_microsoft_splashscreen_impl.c := 4018 4267 4244, \
       DISABLED_WARNINGS_microsoft_splashscreen_png.c := 4267, \
       DISABLED_WARNINGS_microsoft_splashscreen_sys.c := 4267 4244, \
+      STATIC_BUILD_FILES := java_awt_SplashScreen.o, \
       LDFLAGS_windows := -delayload:user32.dll, \
       JDK_LIBS_windows := java.base:libjava, \
       JDK_LIBS_macosx := libosxapp, \
@@ -383,6 +387,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBFONTMANAGER, \
     DISABLED_WARNINGS_CXX_gcc := $(HARFBUZZ_DISABLED_WARNINGS_CXX_gcc), \
     DISABLED_WARNINGS_clang := $(HARFBUZZ_DISABLED_WARNINGS_clang), \
     DISABLED_WARNINGS_microsoft := $(HARFBUZZ_DISABLED_WARNINGS_microsoft), \
+    STATIC_BUILD_FILES := sunFont.o, \
     LDFLAGS := $(LDFLAGS_CXX_JDK), \
     LDFLAGS_FILTER_OUT :=-Wl$(COMMA)-z$(COMMA)defs, \
     LDFLAGS_aix := -Wl$(COMMA)-berok, \
@@ -438,6 +443,7 @@ ifeq ($(call isTargetOs, macosx), true)
       DISABLED_WARNINGS_clang_AquaFileView.m := deprecated-declarations \
           sign-compare, \
       DISABLED_WARNINGS_clang_ScreenMenu.m := deprecated-declarations, \
+      STATIC_BUILD_FILES := AquaLookAndFeel.o, \
       APPEND_LDFLAGS := -Wl$(COMMA)-rpath$(COMMA)@loader_path, \
       JDK_LIBS := java.base:libjava libosxapp, \
       LIBS_macosx := \

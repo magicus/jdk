@@ -52,6 +52,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBNET, \
     DISABLED_WARNINGS_clang_aix_NetworkInterface.c := gnu-pointer-arith, \
     DISABLED_WARNINGS_microsoft_InetAddress.c := 4244, \
     DISABLED_WARNINGS_microsoft_ResolverConfigurationImpl.c := 4996, \
+    STATIC_BUILD_FILES := net_util.o, \
     LDFLAGS_windows := -delayload:iphlpapi.dll -delayload:secur32.dll \
         -delayload:winhttp.dll, \
     JDK_LIBS := libjava libjvm, \
@@ -77,6 +78,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBNIO, \
         libnio/ch \
         libnio/fs \
         libjvm, \
+    STATIC_BUILD_FILES := nio_util.o, \
     JDK_LIBS := libjava libnet, \
     LIBS_linux := $(LIBDL) -lpthread, \
     LIBS_aix := $(LIBDL), \

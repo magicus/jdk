@@ -66,6 +66,7 @@ ifeq ($(call isTargetOs, aix), false)
       CXXFLAGS := $(LIBJSOUND_CFLAGS), \
       DISABLED_WARNINGS_gcc := undef, \
       DISABLED_WARNINGS_clang := undef, \
+      STATIC_BUILD_FILES := Platform.o, \
       LIBS_linux := $(ALSA_LIBS), \
       LIBS_macosx := \
           -framework AudioToolbox \
@@ -92,6 +93,7 @@ ifeq ($(call isTargetOs, macosx), true)
           format-nonliteral, \
       DISABLED_WARNINGS_clang_QueuingApplicationDelegate.m := \
           objc-method-access, \
+      STATIC_BUILD_FILES := NSApplicationAWT.o, \
       JDK_LIBS := java.base:libjava, \
       LIBS_macosx := \
           -framework Accelerate \

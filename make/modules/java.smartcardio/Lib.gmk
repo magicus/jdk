@@ -36,6 +36,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJ2PCSC, \
         libj2pcsc/MUSCLE \
         java.base:libjava, \
     OPTIMIZATION := LOW, \
+    STATIC_BUILD_FILES := pcsc.o, \
     LIBS_unix := $(LIBDL), \
     LIBS_windows := winscard.lib, \
 ))

@@ -37,6 +37,7 @@ endif
 $(eval $(call SetupJdkLibrary, BUILD_LIBMANAGEMENT, \
     NAME := management, \
     OPTIMIZATION := $(LIBMANAGEMENT_OPTIMIZATION), \
+    STATIC_BUILD_FILES := management.o, \
     JDK_LIBS := java.base:libjava java.base:libjvm, \
     LIBS_aix := -lperfstat,\
     LIBS_windows := advapi32.lib psapi.lib, \

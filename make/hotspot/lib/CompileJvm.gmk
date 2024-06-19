@@ -213,6 +213,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJVM, \
     OBJECT_DIR := $(JVM_OUTPUTDIR)/objs, \
     STRIPFLAGS := $(JVM_STRIPFLAGS), \
     EMBED_MANIFEST := true, \
+    STATIC_BUILD_FILES := classLoader.o disassembler.o os.o os_bsd.o verifier.o zipLibrary.o, \
     RC_FILEDESC := $(HOTSPOT_VM_DISTRO) $(OPENJDK_TARGET_CPU_BITS)-Bit $(JVM_VARIANT) VM, \
     PRECOMPILED_HEADER := $(JVM_PRECOMPILED_HEADER), \
     PRECOMPILED_HEADER_EXCLUDE := $(JVM_PRECOMPILED_HEADER_EXCLUDE), \

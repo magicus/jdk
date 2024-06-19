@@ -36,6 +36,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBINSTRUMENT, \
     CFLAGS_windows := -Dstrcasecmp=stricmp, \
     CFLAGS_debug := -DJPLIS_LOGGING, \
     CFLAGS_release := -DNO_JPLIS_LOGGING, \
+    STATIC_BUILD_FILES := InstrumentationImplNativeMethods.o InvocationAdapter.o JPLISAgent.o JarFacade.o Utilities.o, \
     JDK_LIBS := java.base:libjava java.base:libjli java.base:libjvm, \
     LIBS_unix := $(LIBZ_LIBS), \
     LIBS_linux := $(LIBDL), \

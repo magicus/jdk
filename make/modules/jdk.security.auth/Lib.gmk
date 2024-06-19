@@ -33,6 +33,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJAAS, \
     NAME := jaas, \
     OPTIMIZATION := LOW, \
     EXTRA_HEADER_DIRS := java.base:libjava, \
+    STATIC_BUILD_FILES := Unix.o, \
     LIBS_windows := advapi32.lib mpr.lib netapi32.lib user32.lib, \
 ))
 
