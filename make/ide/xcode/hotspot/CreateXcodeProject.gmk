@@ -43,6 +43,7 @@ JAVA_WARNINGS_ARE_ERRORS :=
       TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
       SRC := $(TOPDIR)/make/ide/xcode/hotspot/src/classes, \
       BIN := $(TOOLS_OUTPUTDIR), \
+      DISABLED_WARNINGS := rawtypes unchecked serial, \
   ))
 
   TARGETS += $(BUILD_PROJECT_CREATOR)
