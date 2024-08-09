@@ -15,7 +15,7 @@ public class XcodeProjectMaker
   public static void main(String[] args)
   {
     boolean isOpenJDK = true;
-    
+
     System.out.println("");
     System.out.println("Version "+VERSION);
     System.out.println("");
@@ -58,13 +58,13 @@ public class XcodeProjectMaker
     String absolute_path_to_jdk = Paths.get(path_to_jdk).toAbsolutePath().normalize().toString();
     String absolute_path_to_compile_commands = Paths.get(path_to_compile_commands).toAbsolutePath().normalize().toString();
     String absolute_path_to_build_log = Paths.get(path_to_build_log).toAbsolutePath().normalize().toString();
-    
+
     isOpenJDK = (FindFile(absolute_path_to_jdk, "", "closed", false, true) == null);
     System.out.println("                              Is OpenJDK \""+isOpenJDK+"\"");
     System.out.println("                          Path to jdk is \""+path_to_jdk+"\"");
     System.out.println("        Path to compile commands file is \""+path_to_compile_commands+"\"");
     System.out.println("               Path to build log file is \""+path_to_build_log+"\"");
-    
+
     final String XCODE_FOLDER_NAME = "xcode";
 
     String path_to_xcode = absolute_path_to_jdk+"/"+BUILD_FOLDER_NAME+"/"+XCODE_FOLDER_NAME;
@@ -79,7 +79,7 @@ public class XcodeProjectMaker
     System.out.println("       Absolute path to build log file is \""+absolute_path_to_build_log+"\"");
     System.out.println("          Xcode project will be placed in \""+absolute_path_to_xcode+"\"");
     System.out.println("");
-    
+
     XcodeProjectMaker maker = new XcodeProjectMaker(isOpenJDK);
     maker.parse_hotspot_compile_commands(absolute_path_to_compile_commands);
     maker.parse_hotspot_build_log(absolute_path_to_build_log);
@@ -87,7 +87,7 @@ public class XcodeProjectMaker
 
     maker.prepare_files(absolute_path_to_jdk);
     maker.make_xcode_proj(absolute_path_to_jdk, absolute_path_to_xcode, path_from_xcode_to_jdk);
-    
+
     String path_to_build = GetFileParent(absolute_path_to_compile_commands);
     maker.copy_files(absolute_path_to_xcode, path_to_build);
     maker.make_aliases(absolute_path_to_xcode, path_to_build);
@@ -106,13 +106,13 @@ public class XcodeProjectMaker
                                                         "-mno-omit-leaf-frame-pointer",
                                                         "-mstack-alignment=16"
                                                       };
-                                                      
+
   static String LINKING_PARSE_TOKEN_1               = "bin/clang++";
   static String LINKING_PARSE_TOKEN_2               = "@rpath/libjvm.dylib";
   static String LINKING_PARSE_TOKEN_3               = "-o";
-  
+
   static String EXCLUDE_PARSE_TOKEN_1               = "gtest";
-  
+
   static String TEMPLATE_FRAMEWORK_SEARCH_PATHS     = "TEMPLATE_FRAMEWORK_SEARCH_PATHS";
   static String TEMPLATE_OTHER_CFLAGS               = "TEMPLATE_OTHER_CFLAGS";
   static String TEMPLATE_OTHER_LDFLAGS              = "TEMPLATE_OTHER_LDFLAGS";
@@ -127,7 +127,7 @@ public class XcodeProjectMaker
   static String TEMPLATE_PBXFILEREFERENCE           = "TEMPLATE_PBXFILEREFERENCE";
   static String TEMPLATE_PBXSOURCESSBUILDPHASE      = "TEMPLATE_PBXSOURCESSBUILDPHASE";
   static String TEMPLATE_JDK_PATH                   = "TEMPLATE_JDK_PATH";
-  
+
   static String HOTSPOT_PBXPROJ                     = "hotspot.xcodeproj";
   static String PBXPROJ                             = "project.pbxproj";
   static String XCSAHAREDDATA                       = "xcshareddata";
@@ -136,20 +136,20 @@ public class XcodeProjectMaker
   static String J2D_XCSCHEME                        = "runJ2Demo.xcscheme";
   static String XCDEBUGGER                          = "xcdebugger";
   static String XCBKPTLIST                          = "Breakpoints_v2.xcbkptlist";
-  
+
   static String DATA_DST_PATH                       = "data";
   static String TEMPLATE_PBXPROJ                    = "template_"+PBXPROJ+".txt";
   static String TEMPLATE_JVM_XCSCHEME               = "template_"+JVM_XCSCHEME+".txt";
   static String TEMPLATE_J2D_XCSCHEME               = "template_"+J2D_XCSCHEME+".txt";
   static String TEMPLATE_XCBKPTLIST                 = "template_"+XCBKPTLIST+".txt";
-  
+
   static String EXCLUDE_FILES_PREFIX[]              = {"."};
   static String EXCLUDE_FILES_POSTFIX[]             = {".log", ".cmdline"};
   static String COMPILER_FLAGS_INCLUDE[]            = {"-m", "-f", "-D", "-W"};
   static String COMPILER_FLAGS_IS[]                 = {"-g", "-Os", "-0"};
   static String COMPILER_FLAGS_EXCLUDE[]            = {"-DTHIS_FILE", "-DGTEST_OS_MAC", "-mmacosx-version-min", "-Werror"}; // "-Werror" causes Xcode to stop compiling
   static String LINKER_FLAGS_PREFIXES[]             = {"-m", "-f", "-W", "-stdlib"};
-  
+
   static int EXIT1                                  = -1;
   static int EXIT2                                  = -2;
   static int EXIT3                                  = -3;
@@ -161,24 +161,24 @@ public class XcodeProjectMaker
   static int EXIT9                                  = -9;
   static int EXIT10                                 = -10;
   static int EXIT11                                 = -11;
-  
+
   final boolean OpenJDK;
-  
+
   HashMap<String,ArrayList<String>> compiled_files  = new HashMap<String,ArrayList<String>>();
   TreeSet<String> compiler_flags                    = new TreeSet();
   TreeSet<String> linker_flags                      = new TreeSet();
   TreeSet<String> header_paths                      = new TreeSet();
-  
+
   String generated_hotspot_path                     = null;
   String isysroot                                   = null;
   String iframework                                 = null;
   String fframework                                 = null;
-  
+
   DiskFile root_gensrc                              = new DiskFile("/", true);
   DiskFile root_closed_src                          = new DiskFile("/", true);
   DiskFile root_open_src                            = new DiskFile("/", true);
   DiskFile root_open_test                           = new DiskFile("/", true);
-  
+
   public static String FindFile(String path, String where, String target, boolean recursive, boolean quiet)
   {
     String found = null;
@@ -231,7 +231,7 @@ public class XcodeProjectMaker
       {
         final String JDK_SCRIPT_TOKEN_1 = "configure";
         final String JDK_SCRIPT_TOKEN_2 = ".jcheck";
-        
+
         String file_name = file.toPath().getFileName().toString();
         if (file_name.equals(JDK_SCRIPT_TOKEN_1))
         {
@@ -586,7 +586,7 @@ public class XcodeProjectMaker
     for (int c=0; c<commands.length; c++)
     {
       String command = commands[c];
-      
+
       final String FILE_TOKEN    = "\"file\": ";
       final String COMMAND_TOKEN = "\"command\": ";
 
@@ -620,7 +620,7 @@ public class XcodeProjectMaker
                 argument = argument.replace("\"", "\\\"'");
                 argument = argument.replace("~.~", "'\\\"");
               }
-              
+
               final String QUOTE_START_TOKEN = "'\\\"";
               final String QUOTE_END_TOKEN   = "\\\"'";
 
@@ -696,7 +696,7 @@ public class XcodeProjectMaker
     // FALLBACK in case we didn't/couldn't process build.log file
     // hardcode the linker flags to a reasonable defaults
     if (linker_flags.size() == 0)
-    {      
+    {
       final String MAPFILE_NAME = "mapfile";
 
       String build_path = GetFileParent(path); // ex: "/Volumes/Work/ide/jdk12/build/macosx-x86_64-server-fastdebug"
@@ -744,7 +744,7 @@ public class XcodeProjectMaker
       // don't bother until we find clang command
       if (found_clang)
       {
-        // don't bother after we find -o flag				
+        // don't bother after we find -o flag
         if (token.equals(LINKING_PARSE_TOKEN_3))
         {
           break;
@@ -896,7 +896,7 @@ public class XcodeProjectMaker
     }
 
     final String CLOSED_SRC_HOTSPOT_PATH = "/closed/src/hotspot";
-    
+
     this.root_gensrc = get_hotspot_files(this.root_gensrc, path_to_jdk, this.generated_hotspot_path);
     this.root_closed_src = get_hotspot_files(this.root_closed_src, path_to_jdk, CLOSED_SRC_HOTSPOT_PATH);
     this.root_open_src = get_hotspot_files(this.root_open_src, path_to_jdk, path_to_open_src);
@@ -923,12 +923,12 @@ public class XcodeProjectMaker
               if (Contains(log_file_path, disk_file_path))
               {
                 total_marked_files++;
-                
+
                 log_file_processed = log_file_path;
-                
+
                 // mark the file as needing compilation
                 disk_file.mark_as_compiled(this.compiled_files.get(log_file_path));
-                
+
                 // break early if found
                 break;
               }
@@ -1352,7 +1352,7 @@ public class XcodeProjectMaker
     String generate_PBXGroup()
     {
       String string = String.format("    %s /* %s */ = {\n      isa = PBXGroup;\n      children = (\n", this._xcode_id, get_file_name());
-      
+
       TreeSet<DiskFile> sortedSet = new TreeSet();
       sortedSet.addAll(values());
 
@@ -1542,7 +1542,7 @@ public class XcodeProjectMaker
       int index = path.indexOf(subpath);
       return StringToPath(path.substring(index, path.length()));
     }
-    
+
     @Override
     public int compareTo(DiskFile file)
     {
