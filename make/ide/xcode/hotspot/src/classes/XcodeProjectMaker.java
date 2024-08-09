@@ -28,7 +28,7 @@ public class XcodeProjectMaker
     String absolute_path_to_linker_options_file = args[3];
     String linker_options_string = ReadFile(absolute_path_to_linker_options_file);
 
-    isOpenJDK = (FindFile(absolute_path_to_jdk, "", "closed", false, true) == null);
+    isOpenJDK = true;
     System.out.println("                              Is OpenJDK \""+isOpenJDK+"\"");
     System.out.println("                          Path to jdk is \""+absolute_path_to_jdk+"\"");
     System.out.println("        Path to compile commands file is \""+absolute_path_to_compile_commands+"\"");
@@ -131,37 +131,6 @@ public class XcodeProjectMaker
   DiskFile root_closed_src                          = new DiskFile("/", true);
   DiskFile root_open_src                            = new DiskFile("/", true);
   DiskFile root_open_test                           = new DiskFile("/", true);
-
-  public static String FindFile(String path, String where, String target, boolean recursive, boolean quiet)
-  {
-    String found = null;
-    File dir = new File(path, where);
-    File candidate = new File(dir, target);
-    if (candidate.exists())
-    {
-      found = candidate.toString();
-    }
-    else
-    {
-      File files[] = dir.listFiles();
-      for (File folder : files)
-      {
-        if (recursive && folder.isDirectory())
-        {
-          found = FindFile(folder.toString(), "", target, recursive, quiet);
-          if (found != null)
-          {
-            break;
-          }
-        }
-      }
-    }
-    if ((found == null) && (!quiet))
-    {
-      System.err.println("Error: \""+target+"\" not found in \""+path+where+"\"");
-    }
-    return found;
-  }
 
   // find a path to what looks like jdk
   static String FindRelativePathToJDKRootRoot()
