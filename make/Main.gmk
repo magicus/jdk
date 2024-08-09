@@ -278,6 +278,11 @@ $(eval $(call SetupTarget, eclipse-mixed-env, \
     ARGS := --always-make, \
 ))
 
+$(eval $(call SetupTarget, hotspot-xcode-project, \
+    MAKEFILE := ide/xcode/hotspot/CreateXcodeProject, \
+    DEPS := hotspot exploded-image, \
+))
+
 ALL_TARGETS += $(HOTSPOT_VARIANT_TARGETS) $(HOTSPOT_VARIANT_GENSRC_TARGETS) \
     $(HOTSPOT_VARIANT_LIBS_TARGETS) $(HOTSPOT_VARIANT_STATIC_LIBS_TARGETS)
 
