@@ -23,8 +23,9 @@ public class XcodeProjectMaker
     final String BUILD_FOLDER_NAME = "build";
 
     String absolute_path_to_jdk = args[0];
-    String absolute_path_to_compile_commands = args[1];
-    String absolute_path_to_linker_options_file = args[2];
+    String absolute_path_to_project_maker_data = args[1];
+    String absolute_path_to_compile_commands = args[2];
+    String absolute_path_to_linker_options_file = args[3];
     String linker_options_string = ReadFile(absolute_path_to_linker_options_file);
 
     isOpenJDK = (FindFile(absolute_path_to_jdk, "", "closed", false, true) == null);
@@ -48,6 +49,7 @@ public class XcodeProjectMaker
     XcodeProjectMaker maker = new XcodeProjectMaker(isOpenJDK);
     maker.parse_hotspot_compile_commands(absolute_path_to_compile_commands);
     maker.linker_flags = List.of(linker_options_string.split(" "));
+    maker.projectMakerDataPath = absolute_path_to_project_maker_data;
 
     maker.print_log_details();
 
@@ -89,7 +91,6 @@ public class XcodeProjectMaker
   static String XCDEBUGGER                          = "xcdebugger";
   static String XCBKPTLIST                          = "Breakpoints_v2.xcbkptlist";
 
-  static String DATA_DST_PATH                       = "data";
   static String TEMPLATE_PBXPROJ                    = "template_"+PBXPROJ+".txt";
   static String TEMPLATE_JVM_XCSCHEME               = "template_"+JVM_XCSCHEME+".txt";
   static String TEMPLATE_J2D_XCSCHEME               = "template_"+J2D_XCSCHEME+".txt";
@@ -120,6 +121,7 @@ public class XcodeProjectMaker
   List<String> linker_flags                         = List.of();
   TreeSet<String> header_paths                      = new TreeSet();
 
+  String projectMakerDataPath = null;
   String generated_hotspot_path                     = null;
   String isysroot                                   = null;
   String iframework                                 = null;
@@ -944,7 +946,7 @@ public class XcodeProjectMaker
     xcschemes_dir.mkdirs();
     xcdebugger_dir.mkdirs();
 
-    File data_dir                                  = new File(DATA_DST_PATH);
+    File data_dir                                  = new File(projectMakerDataPath);
     File template_project_pbxproj_file             = new File(data_dir, TEMPLATE_PBXPROJ);
     File template_jvm_xcscheme_file                = new File(data_dir, TEMPLATE_JVM_XCSCHEME);
     File template_J2Demo_xcscheme_file             = new File(data_dir, TEMPLATE_J2D_XCSCHEME);
@@ -974,11 +976,11 @@ public class XcodeProjectMaker
     {
       if (!script_before_file.exists())
       {
-        Files.copy(Paths.get(DATA_DST_PATH+"/"+SCRIPT_BEFORE), script_before_file.toPath());
+        Files.copy(Paths.get(projectMakerDataPath +"/"+SCRIPT_BEFORE), script_before_file.toPath());
       }
       if (!script_after_file.exists())
       {
-        Files.copy(Paths.get(DATA_DST_PATH+"/"+SCRIPT_AFTER), script_after_file.toPath());
+        Files.copy(Paths.get(projectMakerDataPath +"/"+SCRIPT_AFTER), script_after_file.toPath());
       }
     }
     catch (IOException ex)

@@ -37,11 +37,12 @@ ifeq ($(call isTargetOs, macosx), true)
   # Build the XcodeProjectMaker java tool.
 
   TOOLS_OUTPUTDIR := $(MAKESUPPORT_OUTPUTDIR)/ide/xcode
+  PROJECT_MAKER_DIR := $(TOPDIR)/make/ide/xcode/hotspot
 
 JAVA_WARNINGS_ARE_ERRORS :=
   $(eval $(call SetupJavaCompilation, BUILD_PROJECT_CREATOR, \
       TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-      SRC := $(TOPDIR)/make/ide/xcode/hotspot/src/classes, \
+      SRC := $(PROJECT_MAKER_DIR)/src/classes, \
       BIN := $(TOOLS_OUTPUTDIR), \
       DISABLED_WARNINGS := rawtypes unchecked serial, \
   ))
@@ -57,8 +58,8 @@ JAVA_WARNINGS_ARE_ERRORS :=
   COMPILE_COMMAND_FILE := $(OUTPUTDIR)/compile_commands.json
   LINKER_FLAGS_FILE := $(MAKESUPPORT_OUTPUTDIR)/compile-commands/jvm-ldflags.txt
 
-  XCODE_PROJ_VARDEPS := $(WORKSPACE_ROOT) $(COMPILE_COMMAND_FILE) \
-      $(LINKER_FLAGS_FILE)
+  XCODE_PROJ_VARDEPS := $(WORKSPACE_ROOT) $(PROJECT_MAKER_DIR)/data \
+      $(COMPILE_COMMAND_FILE) $(LINKER_FLAGS_FILE)
   XCODE_PROJ_VARDEPS_FILE := $(call DependOnVariable, XCODE_PROJ_VARDEPS, \
     $(TOOLS_OUTPUTDIR)/xcodeproj.vardeps)
 
@@ -66,9 +67,9 @@ JAVA_WARNINGS_ARE_ERRORS :=
       INFO := Generating Xcode project file, \
       DEPS := $(BUILD_PROJECT_CREATOR) $(XCODE_PROJ_VARDEPS_FILE), \
       OUTPUT_FILE := $(XCODE_PROJ_FILE), \
-      COMMAND := $(PROJECT_CREATOR_TOOL) \
-          $(WORKSPACE_ROOT) $(COMPILE_COMMAND_FILE) $(LINKER_FLAGS_FILE) \
-          $(LOG_INFO), \
+      COMMAND := $(PROJECT_CREATOR_TOOL) $(WORKSPACE_ROOT) \
+          $(PROJECT_MAKER_DIR)/data $(COMPILE_COMMAND_FILE) \
+          $(LINKER_FLAGS_FILE) $(LOG_INFO), \
   ))
 
   TARGETS += $(xcodeproject_TARGET)
