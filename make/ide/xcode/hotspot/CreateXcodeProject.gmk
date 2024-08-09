@@ -52,12 +52,13 @@ JAVA_WARNINGS_ARE_ERRORS :=
   PROJECT_CREATOR_TOOL := $(JAVA_SMALL) -cp $(TOOLS_OUTPUTDIR) XcodeProjectMaker
 
   IDE_OUTPUTDIR := $(OUTPUTDIR)/ide/hotspot-xcode
-
   XCODE_PROJ_FILE := $(IDE_OUTPUTDIR)/hotspot.xcodeproj/project.pbxproj
 
-  PROJECT_CREATOR_ARGS :=
+  COMPILE_COMMAND_FILE := $(OUTPUTDIR)/compile_commands.json
+  LINKER_FLAGS_FILE := $(MAKESUPPORT_OUTPUTDIR)/compile-commands/jvm-ldflags.txt
 
-  XCODE_PROJ_VARDEPS := $(PROJECT_CREATOR_ARGS)
+  XCODE_PROJ_VARDEPS := $(WORKSPACE_ROOT) $(COMPILE_COMMAND_FILE) \
+      $(LINKER_FLAGS_FILE)
   XCODE_PROJ_VARDEPS_FILE := $(call DependOnVariable, XCODE_PROJ_VARDEPS, \
     $(TOOLS_OUTPUTDIR)/xcodeproj.vardeps)
 
@@ -65,8 +66,8 @@ JAVA_WARNINGS_ARE_ERRORS :=
       INFO := Generating Xcode project file, \
       DEPS := $(BUILD_PROJECT_CREATOR) $(XCODE_PROJ_VARDEPS_FILE), \
       OUTPUT_FILE := $(XCODE_PROJ_FILE), \
-      COMMAND := cd $(TOPDIR)/xcode && $(PROJECT_CREATOR_TOOL) \
-          $(PROJECT_CREATOR_ARGS) \
+      COMMAND := $(PROJECT_CREATOR_TOOL) \
+          $(WORKSPACE_ROOT) $(COMPILE_COMMAND_FILE) $(LINKER_FLAGS_FILE) \
           $(LOG_INFO), \
   ))
 

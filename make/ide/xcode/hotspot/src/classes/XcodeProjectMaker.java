@@ -20,55 +20,21 @@ public class XcodeProjectMaker
     System.out.println("Version "+VERSION);
     System.out.println("");
 
-    String path_to_jdk = null;
-    if (args.length == 0)
-    {
-      System.out.println("No arguments - assuming this tool is being run somewhere from within jdk repo ...\n");
-      path_to_jdk = FindRelativePathToJDKRootRoot();
-    }
-    else if (args.length == 1)
-    {
-      path_to_jdk = VerifyFile(args[0], true);
-    }
-
-    if (path_to_jdk == null)
-    {
-      System.err.println("Error: could not determine the path to \"jdk\" - either pass it via command line, or run this tool from within the \"jdk\"");
-      System.exit(EXIT8);
-    }
-
-    final String LOG_FILE_NAME     = "build.log.hotspot";
-    final String COMPILE_FILE_NAME = "compile_commands.json";
     final String BUILD_FOLDER_NAME = "build";
 
-    String path_to_compile_commands = VerifyFile(FindFile(path_to_jdk, BUILD_FOLDER_NAME, COMPILE_FILE_NAME, true, true), false);
-    if (path_to_compile_commands == null)
-    {
-      System.err.println("Error: could not find the compile commands file at "+path_to_compile_commands+" Did \"make compile-commands-hotspot\" succeed?");
-      System.exit(EXIT10);
-    }
-
-    String path_to_build_log = VerifyFile(FindFile(path_to_jdk, BUILD_FOLDER_NAME, LOG_FILE_NAME, true, true), false);
-    if (path_to_build_log == null)
-    {
-      System.err.println("Error: could not find the build logfile at "+path_to_build_log+" Did \"make images LOG=debug\" succeed?");
-      System.exit(EXIT11);
-    }
-
-    String absolute_path_to_jdk = Paths.get(path_to_jdk).toAbsolutePath().normalize().toString();
-    String absolute_path_to_compile_commands = Paths.get(path_to_compile_commands).toAbsolutePath().normalize().toString();
-    String absolute_path_to_build_log = Paths.get(path_to_build_log).toAbsolutePath().normalize().toString();
+    String absolute_path_to_jdk = args[0];
+    String absolute_path_to_compile_commands = args[1];
+    String absolute_path_to_linker_options_file = args[2];
+    String linker_options_string = ReadFile(absolute_path_to_linker_options_file);
 
     isOpenJDK = (FindFile(absolute_path_to_jdk, "", "closed", false, true) == null);
     System.out.println("                              Is OpenJDK \""+isOpenJDK+"\"");
-    System.out.println("                          Path to jdk is \""+path_to_jdk+"\"");
-    System.out.println("        Path to compile commands file is \""+path_to_compile_commands+"\"");
-    System.out.println("               Path to build log file is \""+path_to_build_log+"\"");
+    System.out.println("                          Path to jdk is \""+absolute_path_to_jdk+"\"");
+    System.out.println("        Path to compile commands file is \""+absolute_path_to_compile_commands+"\"");
 
     final String XCODE_FOLDER_NAME = "xcode";
 
-    String path_to_xcode = absolute_path_to_jdk+"/"+BUILD_FOLDER_NAME+"/"+XCODE_FOLDER_NAME;
-    String absolute_path_to_xcode = Paths.get(path_to_xcode).toAbsolutePath().normalize().toString();
+    String absolute_path_to_xcode = absolute_path_to_jdk+"/"+BUILD_FOLDER_NAME+"/"+XCODE_FOLDER_NAME;
     File xcode_folder = new File(absolute_path_to_xcode);
     xcode_folder.mkdirs();
     String path_from_xcode_to_jdk = FindRelativePathToJDKRootRoot(absolute_path_to_xcode);
@@ -76,13 +42,13 @@ public class XcodeProjectMaker
     System.out.println("");
     System.out.println("                  Absolute path to jdk is \""+absolute_path_to_jdk+"\"");
     System.out.println("Absolute path to compile commands file is \""+absolute_path_to_compile_commands+"\"");
-    System.out.println("       Absolute path to build log file is \""+absolute_path_to_build_log+"\"");
     System.out.println("          Xcode project will be placed in \""+absolute_path_to_xcode+"\"");
     System.out.println("");
 
     XcodeProjectMaker maker = new XcodeProjectMaker(isOpenJDK);
     maker.parse_hotspot_compile_commands(absolute_path_to_compile_commands);
-    maker.parse_hotspot_build_log(absolute_path_to_build_log);
+    maker.linker_flags = List.of(linker_options_string.split(" "));
+
     maker.print_log_details();
 
     maker.prepare_files(absolute_path_to_jdk);
@@ -96,20 +62,6 @@ public class XcodeProjectMaker
     System.out.println("");
     System.out.println("Xcode project was succesfully created and can be found in \""+absolute_path_to_xcode+"\"");
   }
-
-  static String FALLBACK_MAPFILE_LINKER_FLAG        = "-Wl,-exported_symbols_list,";
-  static String FALLBACK_LINKER_FLAGS[]             = { "-Wl,-install_name,@rpath/libjvm.dylib",
-                                                        "-Wl,-rpath,@loader_path/.",
-                                                        "-Wl,-rpath,@loader_path/..",
-                                                        "-fPIC",
-                                                        "-m64",
-                                                        "-mno-omit-leaf-frame-pointer",
-                                                        "-mstack-alignment=16"
-                                                      };
-
-  static String LINKING_PARSE_TOKEN_1               = "bin/clang++";
-  static String LINKING_PARSE_TOKEN_2               = "@rpath/libjvm.dylib";
-  static String LINKING_PARSE_TOKEN_3               = "-o";
 
   static String EXCLUDE_PARSE_TOKEN_1               = "gtest";
 
@@ -148,7 +100,6 @@ public class XcodeProjectMaker
   static String COMPILER_FLAGS_INCLUDE[]            = {"-m", "-f", "-D", "-W"};
   static String COMPILER_FLAGS_IS[]                 = {"-g", "-Os", "-0"};
   static String COMPILER_FLAGS_EXCLUDE[]            = {"-DTHIS_FILE", "-DGTEST_OS_MAC", "-mmacosx-version-min", "-Werror"}; // "-Werror" causes Xcode to stop compiling
-  static String LINKER_FLAGS_PREFIXES[]             = {"-m", "-f", "-W", "-stdlib"};
 
   static int EXIT1                                  = -1;
   static int EXIT2                                  = -2;
@@ -166,7 +117,7 @@ public class XcodeProjectMaker
 
   HashMap<String,ArrayList<String>> compiled_files  = new HashMap<String,ArrayList<String>>();
   TreeSet<String> compiler_flags                    = new TreeSet();
-  TreeSet<String> linker_flags                      = new TreeSet();
+  List<String> linker_flags                         = List.of();
   TreeSet<String> header_paths                      = new TreeSet();
 
   String generated_hotspot_path                     = null;
@@ -261,48 +212,6 @@ public class XcodeProjectMaker
       }
     }
     return path_to_jdk;
-  }
-
-  static String VerifyFile(String path, boolean directory)
-  {
-    return VerifyFile(path, directory, true);
-  }
-  static String VerifyFile(String path, boolean directory, boolean fatal)
-  {
-    String verified = path;
-    if (path != null)
-    {
-      File file = new File(path);
-      if (!file.exists())
-      {
-        if (fatal)
-        {
-          System.err.println("Error: the specified path \""+path+"\" does not exist");
-          System.exit(EXIT1);
-        }
-        else
-        {
-          System.err.println("Warning: the specified path \""+path+"\" does not exist");
-        }
-        verified = null;
-      }
-      if (directory && !file.isDirectory())
-      {
-        System.err.println("Error: the specified path \""+path+"\" does not specify folder");
-        System.exit(EXIT2);
-      }
-      if (!directory && file.isDirectory())
-      {
-        System.err.println("Error: the specified path \""+path+"\" does not specify file");
-        System.exit(EXIT3);
-      }
-    }
-    else if (fatal)
-    {
-      System.err.println("Error: the specified path \""+path+"\" does not exist");
-      System.exit(EXIT1);
-    }
-    return verified;
   }
 
   static String ReadFile(File file)
@@ -420,22 +329,6 @@ public class XcodeProjectMaker
       if (IsExcludeCompilerFlag(string))
       {
         flag = false;
-      }
-    }
-    return flag;
-  }
-
-  static boolean IsLinkerFlag(String string)
-  {
-    boolean flag = false;
-    {
-      for (int i=0; i<LINKER_FLAGS_PREFIXES.length; i++)
-      {
-        if (string.startsWith(LINKER_FLAGS_PREFIXES[i]))
-        {
-          flag = true;
-          break;
-        }
       }
     }
     return flag;
@@ -576,7 +469,6 @@ public class XcodeProjectMaker
   }
 
   boolean verbose_compiler_tokens = false;
-  boolean verbose_linker_tokens = false;
   void extract_compiler_flags(String line)
   {
     String file = null;
@@ -678,92 +570,6 @@ public class XcodeProjectMaker
     if (verbose_compiler_tokens)
     {
       System.exit(0);
-    }
-  }
-
-  void parse_hotspot_build_log(String path)
-  {
-    String content = ReadFile(path);
-    String[] parts = content.split("\n");
-    for (String line : parts)
-    {
-      if (Contains(line, LINKING_PARSE_TOKEN_1) && Contains(line, LINKING_PARSE_TOKEN_2) && !Contains(line, EXCLUDE_PARSE_TOKEN_1))
-      {
-        extract_linker_flags(line);
-      }
-    }
-
-    // FALLBACK in case we didn't/couldn't process build.log file
-    // hardcode the linker flags to a reasonable defaults
-    if (linker_flags.size() == 0)
-    {
-      final String MAPFILE_NAME = "mapfile";
-
-      String build_path = GetFileParent(path); // ex: "/Volumes/Work/ide/jdk12/build/macosx-x86_64-server-fastdebug"
-      String path_to_mapfile = VerifyFile(FindFile(build_path, "", MAPFILE_NAME, true, true), false);
-
-      // ex: "-Wl,-exported_symbols_list,/Volumes/Work/ide/jdk12/build/macosx-x86_64-server-fastdebug/hotspot/variant-server/libjvm/mapfile
-      String mapfile_flag = FALLBACK_MAPFILE_LINKER_FLAG; // "-Wl,-exported_symbols_list,"
-      mapfile_flag += path_to_mapfile; // += "/Volumes/Work/ide/jdk12/build/macosx-x86_64-server-fastdebug"
-      this.linker_flags.add(mapfile_flag);
-
-      for (String flag : FALLBACK_LINKER_FLAGS)
-      {
-        this.linker_flags.add(flag);
-      }
-
-      System.err.println("Warning: Could not determine linker flags using the build log, using default flags, which may or may not work:");
-      for (String flag : this.linker_flags)
-      {
-        System.err.println(" "+flag);
-      }
-    }
-  }
-
-  void extract_linker_flags(String line)
-  {
-    if (verbose_compiler_tokens)
-    {
-      System.err.println("LINKER LINE: "+line);
-    }
-    boolean found_clang = false;
-    String[] tokens  = line.split(" ");
-    for (int t=0; t<tokens.length; t++)
-    {
-      String token = tokens[t];
-      if (verbose_linker_tokens)
-      {
-        System.err.println("LINKER TOKEN: "+token);
-      }
-
-      if (!found_clang)
-      {
-         found_clang = Contains(token, LINKING_PARSE_TOKEN_1);
-      }
-
-      // don't bother until we find clang command
-      if (found_clang)
-      {
-        // don't bother after we find -o flag
-        if (token.equals(LINKING_PARSE_TOKEN_3))
-        {
-          break;
-        }
-
-        if (verbose_linker_tokens)
-        {
-          System.err.println("  PROCESSING LINKER TOKEN: "+token);
-        }
-
-        if (IsLinkerFlag(token))
-        {
-          if (verbose_linker_tokens)
-          {
-            System.err.println("    FOUND LINKER FLAG: "+token);
-          }
-          this.linker_flags.add(token);
-        }
-      }
     }
   }
 
