@@ -25,6 +25,9 @@
 
 package java.net;
 
+import java.util.Enumeration;
+import java.io.IOException;
+
 /**
  * Choose a network interface to be the default for
  * outgoing IPv6 traffic that does not specify a scope_id (and which needs one).
@@ -36,10 +39,6 @@ package java.net;
  * Platforms that do not require a default interface implement a dummy
  * that returns null.
  */
-
-import java.util.Enumeration;
-import java.io.IOException;
-
 class DefaultInterface {
 
     private static final NetworkInterface defaultInterface =
