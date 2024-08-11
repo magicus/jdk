@@ -126,6 +126,21 @@
   #include <mach-o/dyld.h>
 #endif
 
+#if defined(__OpenBSD__)
+#define KERN_PROC_MIB  KERN_PROC
+#define KINFO_PROC_T   kinfo_proc
+#define KI_RSS         p_vm_rssize
+#elif defined(__FreeBSD__)
+#include <sys/user.h>
+#define KERN_PROC_MIB  KERN_PROC
+#define KINFO_PROC_T   kinfo_proc
+#define KI_RSS         ki_rssize
+#elif defined(__NetBSD__)
+#define KERN_PROC_MIB  KERN_PROC2
+#define KINFO_PROC_T   kinfo_proc2
+#define KI_RSS         p_vm_rssize
+#endif
+
 #ifndef MAP_ANONYMOUS
   #define MAP_ANONYMOUS MAP_ANON
 #endif
@@ -307,6 +322,20 @@ size_t os::rss() {
                                 (task_info_t)&info, &count);
   if (ret == KERN_SUCCESS) {
     rss = info.resident_size;
+  }
+#else
+  pid_t pid = getpid();
+  struct KINFO_PROC_T kp;
+  size_t bufSize = sizeof kp;
+#ifndef __FreeBSD__
+  u_int namelen = 6;
+  int mib[6] = {CTL_KERN, KERN_PROC_MIB, KERN_PROC_PID, pid, bufSize, 1};
+#else
+  u_int namelen = 4;
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
+#endif
+  if (sysctl(mib, namelen, &kp, &bufSize, NULL, 0) != -1) {
+    return kp.KI_RSS * getpagesize();
   }
 #endif // __APPLE__
 
@@ -716,7 +745,7 @@ static void *thread_native_entry(Thread *thread) {
   log_info(os, thread)("Thread finished (tid: " UINTX_FORMAT ", pthread id: " UINTX_FORMAT ").",
     os::current_thread_id(), (uintx) pthread_self());
 
-  return 0;
+  return nullptr;
 }
 
 bool os::create_thread(Thread* thread, ThreadType thr_type,
