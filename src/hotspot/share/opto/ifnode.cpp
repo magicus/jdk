@@ -47,6 +47,24 @@
 extern uint explicit_null_checks_elided;
 #endif
 
+IfNode::IfNode(Node* control, Node* bol, float p, float fcnt)
+    : MultiBranchNode(2),
+      _prob(p),
+      _fcnt(fcnt)
+      NOT_PRODUCT(COMMA _assertion_predicate_type(AssertionPredicateType::None)) {
+  init_node(control, bol);
+}
+
+#ifndef PRODUCT
+IfNode::IfNode(Node* control, Node* bol, float p, float fcnt, AssertionPredicateType assertion_predicate_type)
+    : MultiBranchNode(2),
+      _prob(p),
+      _fcnt(fcnt),
+      _assertion_predicate_type(assertion_predicate_type) {
+  init_node(control, bol);
+}
+#endif // NOT_PRODUCT
+
 //=============================================================================
 //------------------------------Value------------------------------------------
 // Return a tuple for whichever arm of the IF is reachable
@@ -755,6 +773,7 @@ bool IfNode::cmpi_folds(PhaseIterGVN* igvn, bool fold_ne) {
 bool IfNode::is_ctrl_folds(Node* ctrl, PhaseIterGVN* igvn) {
   return ctrl != nullptr &&
     ctrl->is_Proj() &&
+    ctrl->outcnt() == 1 && // No side-effects
     ctrl->in(0) != nullptr &&
     ctrl->in(0)->Opcode() == Op_If &&
     ctrl->in(0)->outcnt() == 2 &&
@@ -1031,7 +1050,7 @@ bool IfNode::fold_compares_helper(ProjNode* proj, ProjNode* success, ProjNode* f
       const TypeInt* type2 = filtered_int_type(igvn, n, fail);
       if (type2 != nullptr) {
         failtype = failtype->join(type2)->is_int();
-        if (failtype->_lo > failtype->_hi) {
+        if (failtype->empty()) {
           // previous if determines the result of this if so
           // replace Bool with constant
           igvn->replace_input_of(this, 1, igvn->intcon(success->_con));
@@ -1039,55 +1058,53 @@ bool IfNode::fold_compares_helper(ProjNode* proj, ProjNode* success, ProjNode* f
         }
       }
     }
-    lo = nullptr;
-    hi = nullptr;
+    return false;
   }
 
-  if (lo && hi) {
-    Node* hook = new Node(1);
-    hook->init_req(0, lo); // Add a use to lo to prevent him from dying
-    // Merge the two compares into a single unsigned compare by building (CmpU (n - lo) (hi - lo))
-    Node* adjusted_val = igvn->transform(new SubINode(n,  lo));
-    if (adjusted_lim == nullptr) {
-      adjusted_lim = igvn->transform(new SubINode(hi, lo));
-    }
-    hook->destruct(igvn);
-
-    int lo = igvn->type(adjusted_lim)->is_int()->_lo;
-    if (lo < 0) {
-      // If range check elimination applies to this comparison, it includes code to protect from overflows that may
-      // cause the main loop to be skipped entirely. Delay this transformation.
-      // Example:
-      // for (int i = 0; i < limit; i++) {
-      //   if (i < max_jint && i > min_jint) {...
-      // }
-      // Comparisons folded as:
-      // i - min_jint - 1 <u -2
-      // when RC applies, main loop limit becomes:
-      // min(limit, max(-2 + min_jint + 1, min_jint))
-      // = min(limit, min_jint)
-      // = min_jint
-      if (!igvn->C->post_loop_opts_phase()) {
-        if (adjusted_val->outcnt() == 0) {
-          igvn->remove_dead_node(adjusted_val);
-        }
-        if (adjusted_lim->outcnt() == 0) {
-          igvn->remove_dead_node(adjusted_lim);
-        }
-        igvn->C->record_for_post_loop_opts_igvn(this);
-        return false;
-      }
-    }
-
-    Node* newcmp = igvn->transform(new CmpUNode(adjusted_val, adjusted_lim));
-    Node* newbool = igvn->transform(new BoolNode(newcmp, cond));
-
-    igvn->replace_input_of(dom_iff, 1, igvn->intcon(proj->_con));
-    igvn->replace_input_of(this, 1, newbool);
-
-    return true;
+  assert(lo != nullptr && hi != nullptr, "sanity");
+  Node* hook = new Node(lo); // Add a use to lo to prevent him from dying
+  // Merge the two compares into a single unsigned compare by building (CmpU (n - lo) (hi - lo))
+  Node* adjusted_val = igvn->transform(new SubINode(n,  lo));
+  if (adjusted_lim == nullptr) {
+    adjusted_lim = igvn->transform(new SubINode(hi, lo));
   }
-  return false;
+  hook->destruct(igvn);
+
+  if (adjusted_val->is_top() || adjusted_lim->is_top()) {
+    return false;
+  }
+
+  if (igvn->type(adjusted_lim)->is_int()->_lo < 0 &&
+      !igvn->C->post_loop_opts_phase()) {
+    // If range check elimination applies to this comparison, it includes code to protect from overflows that may
+    // cause the main loop to be skipped entirely. Delay this transformation.
+    // Example:
+    // for (int i = 0; i < limit; i++) {
+    //   if (i < max_jint && i > min_jint) {...
+    // }
+    // Comparisons folded as:
+    // i - min_jint - 1 <u -2
+    // when RC applies, main loop limit becomes:
+    // min(limit, max(-2 + min_jint + 1, min_jint))
+    // = min(limit, min_jint)
+    // = min_jint
+    if (adjusted_val->outcnt() == 0) {
+      igvn->remove_dead_node(adjusted_val);
+    }
+    if (adjusted_lim->outcnt() == 0) {
+      igvn->remove_dead_node(adjusted_lim);
+    }
+    igvn->C->record_for_post_loop_opts_igvn(this);
+    return false;
+  }
+
+  Node* newcmp = igvn->transform(new CmpUNode(adjusted_val, adjusted_lim));
+  Node* newbool = igvn->transform(new BoolNode(newcmp, cond));
+
+  igvn->replace_input_of(dom_iff, 1, igvn->intcon(proj->_con));
+  igvn->replace_input_of(this, 1, newbool);
+
+  return true;
 }
 
 // Merge the branches that trap for this If and the dominating If into
@@ -1330,7 +1347,7 @@ Node* IfNode::fold_compares(PhaseIterGVN* igvn) {
 
   if (cmpi_folds(igvn)) {
     Node* ctrl = in(0);
-    if (is_ctrl_folds(ctrl, igvn) && ctrl->outcnt() == 1) {
+    if (is_ctrl_folds(ctrl, igvn)) {
       // A integer comparison immediately dominated by another integer
       // comparison
       ProjNode* success = nullptr;
@@ -1824,11 +1841,23 @@ void IfProjNode::pin_array_access_nodes(PhaseIterGVN* igvn) {
 }
 
 #ifndef PRODUCT
-//------------------------------dump_spec--------------------------------------
-void IfNode::dump_spec(outputStream *st) const {
-  st->print("P=%f, C=%f",_prob,_fcnt);
+void IfNode::dump_spec(outputStream* st) const {
+  switch (_assertion_predicate_type) {
+    case AssertionPredicateType::InitValue:
+      st->print("#Init Value Assertion Predicate  ");
+      break;
+    case AssertionPredicateType::LastValue:
+      st->print("#Last Value Assertion Predicate  ");
+      break;
+    case AssertionPredicateType::None:
+      // No Assertion Predicate
+      break;
+    default:
+      fatal("Unknown Assertion Predicate type");
+  }
+  st->print("P=%f, C=%f", _prob, _fcnt);
 }
-#endif
+#endif // NOT PRODUCT
 
 //------------------------------idealize_test----------------------------------
 // Try to canonicalize tests better.  Peek at the Cmp/Bool/If sequence and
@@ -2183,6 +2212,8 @@ void ParsePredicateNode::dump_spec(outputStream* st) const {
     default:
       fatal("unknown kind");
   }
+  if (_useless) {
+    st->print("#useless ");
+  }
 }
-
 #endif // NOT PRODUCT

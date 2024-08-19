@@ -30,6 +30,9 @@ include MakeStart.gmk
 include CopyFiles.gmk
 include MakeIO.gmk
 
+include CopyFiles.gmk
+include MakeIO.gmk
+
 PRODUCT_TARGETS :=
 LEGACY_TARGETS :=
 TEST_TARGETS :=

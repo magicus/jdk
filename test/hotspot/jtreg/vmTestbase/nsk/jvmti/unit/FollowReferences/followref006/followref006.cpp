@@ -24,8 +24,8 @@
 #include <string.h>
 #include <jvmti.h>
 #include "agent_common.hpp"
-#include "jni_tools.h"
-#include "jvmti_tools.h"
+#include "jni_tools.hpp"
+#include "jvmti_tools.hpp"
 #include "jvmti_FollowRefObjects.hpp"
 
 extern "C" {
@@ -181,7 +181,7 @@ static void JNICALL agentProc(jvmtiEnv* jvmti, JNIEnv* jni, void* arg)
     checkNoObjIterated(jni, jvmti, JAVA_UTIL_CALENDAR_CLASS_NAME);
 
     NSK_DISPLAY0("Let debugee to finish");
-    fflush(0);
+    fflush(nullptr);
 
     if (!NSK_VERIFY(nsk_jvmti_waitForSync(g_timeout))) {
         return;

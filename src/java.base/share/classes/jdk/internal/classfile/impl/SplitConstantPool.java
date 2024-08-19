@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,16 +28,14 @@ import java.lang.constant.ConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
-import java.lang.classfile.Attribute;
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassReader;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.BootstrapMethodEntry;
-import java.lang.classfile.BufWriter;
 import java.lang.classfile.attribute.BootstrapMethodsAttribute;
 import java.lang.classfile.constantpool.*;
+import java.util.Objects;
 
 import static java.lang.classfile.ClassFile.TAG_CLASS;
 import static java.lang.classfile.ClassFile.TAG_CONSTANTDYNAMIC;
@@ -87,6 +85,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         this.bsmSize = parentBsmSize;
         this.myEntries = new PoolEntry[8];
         this.myBsmEntries = new BootstrapMethodEntryImpl[8];
+        this.doneFullScan = true;
     }
 
     @Override
@@ -114,6 +113,12 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
     }
 
     @Override
+    public <T extends PoolEntry> T entryByIndex(int index, Class<T> cls) {
+        Objects.requireNonNull(cls);
+        return ClassReaderImpl.checkType(entryByIndex(index), index, cls);
+    }
+
+    @Override
     public BootstrapMethodEntryImpl bootstrapMethodEntry(int index) {
         if (index < 0 || index >= bootstrapMethodCount()) {
             throw new ConstantPoolException("Bad BSM index: " + index);
@@ -128,8 +133,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return this == other || parent == other;
     }
 
-    @Override
-    public boolean writeBootstrapMethods(BufWriter buf) {
+    public boolean writeBootstrapMethods(BufWriterImpl buf) {
         if (bsmSize == 0)
             return false;
         int pos = buf.size();
@@ -142,11 +146,11 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
             buf.patchInt(pos + 6, 2, bsmSize);
         }
         else {
-            Attribute<BootstrapMethodsAttribute> a
-                    = new UnboundAttribute.AdHocAttribute<>(Attributes.BOOTSTRAP_METHODS) {
+            UnboundAttribute<BootstrapMethodsAttribute> a
+                    = new UnboundAttribute.AdHocAttribute<>(Attributes.bootstrapMethods()) {
 
                 @Override
-                public void writeBody(BufWriter b) {
+                public void writeBody(BufWriterImpl b) {
                     buf.writeU2(bsmSize);
                     for (int i = 0; i < bsmSize; i++)
                         bootstrapMethodEntry(i).writeTo(buf);
@@ -157,8 +161,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
         return true;
     }
 
-    @Override
-    public void writeTo(BufWriter buf) {
+    void writeTo(BufWriterImpl buf) {
         int writeFrom = 1;
         if (size() >= 65536) {
             throw new IllegalArgumentException(String.format("Constant pool is too large %d", size()));
@@ -169,7 +172,7 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
             writeFrom = parent.size();
         }
         for (int i = writeFrom; i < size(); ) {
-            PoolEntry info = entryByIndex(i);
+            var info = (AbstractPoolEntry) entryByIndex(i);
             info.writeTo(buf);
             i += info.width();
         }
@@ -189,10 +192,15 @@ public final class SplitConstantPool implements ConstantPoolBuilder {
             // So we inflate the map with whatever we've got from the parent, and
             // later, if we miss, we do a one-time full inflation before creating
             // a new entry.
-            for (int i=1; i<parentSize; i++) {
+            for (int i=1; i<parentSize;) {
                 PoolEntry cpi = parent.cp[i];
-                if (cpi != null)
+                if (cpi == null) {
+                    doneFullScan = false;
+                    i++;
+                } else {
                     map.put(cpi.hashCode(), cpi.index());
+                    i += cpi.width();
+                }
             }
             for (int i = Math.max(parentSize, 1); i < size; ) {
                 PoolEntry cpi = myEntries[i - parentSize];

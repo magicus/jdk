@@ -31,6 +31,8 @@ include MakeStart.gmk
 
 include CopyFiles.gmk
 
+include CopyFiles.gmk
+
 ################################################################################
 
 $(eval $(call SetupCopyFiles, COPY_JDK_IMG, \
