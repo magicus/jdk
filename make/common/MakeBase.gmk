@@ -73,13 +73,12 @@ ifeq (4.0, $(firstword $(sort 4.0 $(MAKE_VERSION))))
   RWILDCARD_WORKS := true
 endif
 
-# Basic functionality for MakeBase and friends. Needs the make version defines.
-include $(TOPDIR)/make/common/BaseUtils.gmk
-
 # For convenience, MakeBase.gmk continues to include these separate files, at
 # least for now.
-include $(TOPDIR)/make/common/FileUtils.gmk
+# Utils.gmk must be included before FileUtils.gmk, since it uses some of the
+# basic utility functions there.
 include $(TOPDIR)/make/common/Utils.gmk
+include $(TOPDIR)/make/common/FileUtils.gmk
 
 ################################################################################
 # Make sure we have a value (could be overridden on command line by caller)
