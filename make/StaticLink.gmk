@@ -67,6 +67,13 @@ ifeq ($(call isTargetOs, macosx), true)
   # FIXME: We should collect these automatically
   SYSTEM_LIBS := -liconv -lstdc++  -framework Accelerate -framework ApplicationServices -framework AudioToolbox -framework AudioUnit -framework Carbon -framework Cocoa -framework Cocoa -framework CoreAudio -framework CoreFoundation -framework CoreGraphics -framework CoreMIDI -framework CoreServices -framework CoreServices -framework CoreText -framework ExceptionHandling -framework Foundation -framework Foundation -framework IOSurface -framework JavaRuntimeSupport -framework Kerberos -framework Metal -framework Metal -framework OpenGL -framework OpenGL -framework QuartzCore -framework Security -framework SystemConfiguration
 
+  ifeq ($(USE_EXTERNAL_LIBZ), true)
+    SYSTEM_LIBS += -lz
+  else
+    # FIXME: There's something rotten here...
+    SYSTEM_LIBS += -lz
+  endif
+
 else ifeq ($(call isTargetOs, linux), true)
   ifneq ($(ENABLE_HEADLESS_ONLY), true)
   # libsplashscreen has a name conflict with libawt in the function
