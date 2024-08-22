@@ -38,6 +38,9 @@ JAVASTATIC := javastatic$(EXE_SUFFIX)
 JAVASTATIC_OUTPUT_DIR := $(JDK_OUTPUTDIR)/bin
 JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/native/java.base/java
 STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
+JAVASTATIC_LOG_PREFIX := $(JAVASTATIC_OBJECT_DIR)/BUILD_LAUNCHER_javastatic$(EXE_SUFFIX)_static_link
+JAVASTATIC_TARGET := $(JAVASTATIC_OUTPUT_DIR)/$(JAVASTATIC)
+JAVASTATIC_TARGET_IMAGE := $(JDK_IMAGE_DIR)/bin/$(JAVASTATIC)
 
 # Get all static libs, but exclude libjpackageapplauncher which is not for general
 # consumption...
@@ -46,14 +49,21 @@ EXCLUDED_STATIC_LIBS := \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncher$(STATIC_LIBRARY_SUFFIX) \
   #
 
-JAVASTATIC_LOG_PREFIX := $(JAVASTATIC_OBJECT_DIR)/BUILD_LAUNCHER_javastatic$(EXE_SUFFIX)_static_link
+ifeq ($(call isTargetOs, linux), true)
+  ifneq ($(ENABLE_HEADLESS_ONLY), true)
+  # libsplashscreen has a name conflict with libawt in the function
+  # BitmapToYXBandedRectangles, so we exclude it for now.
+    EXCLUDED_STATIC_LIBS += \
+      $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)awt_headless$(STATIC_LIBRARY_SUFFIX) \
+      $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
+      #
+  endif
+endif
 
-JAVASTATIC_TARGET := $(JAVASTATIC_OUTPUT_DIR)/$(JAVASTATIC)
-JAVASTATIC_TARGET_IMAGE := $(JDK_IMAGE_DIR)/bin/$(JAVASTATIC)
+JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
+JVM_TYPE_DIR := $(patsubst $(STATIC_LIBS_DIR)/%/libjvm.a,%, $(filter %/libjvm.a, $(JAVASTATIC_LINK_LIBS_PATH)))
 
 ifeq ($(call isTargetOs, macosx), true)
-  JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
-  JVM_TYPE_DIR := $(patsubst $(STATIC_LIBS_DIR)/%/libjvm.a,%, $(filter %/libjvm.a, $(JAVASTATIC_LINK_LIBS_PATH)))
   JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -force_load$(SPACE), $(JAVASTATIC_LINK_LIBS_PATH))
 
   FIXED_LDFLAGS_JDKEXE := $(LDFLAGS_JDKEXE)
@@ -69,23 +79,14 @@ ifeq ($(call isTargetOs, macosx), true)
   endif
 
 else ifeq ($(call isTargetOs, linux), true)
-  ifneq ($(ENABLE_HEADLESS_ONLY), true)
-  # libsplashscreen has a name conflict with libawt in the function
-  # BitmapToYXBandedRectangles, so we exclude it for now.
-    EXCLUDED_STATIC_LIBS += \
-      $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)awt_headless$(STATIC_LIBRARY_SUFFIX) \
-      $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
-      #
-  endif
 
-  JAVASTATIC_LINK_LIBS := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
+  JAVASTATIC_LINK_LIBS_NAMES := $(notdir $(JAVASTATIC_LINK_LIBS_PATH))
+  JAVASTATIC_LINK_LIBS_FLAGS :=  -Wl$(COMMA)--whole-archive $(patsubst lib%.a,-l%, $(JAVASTATIC_LINK_LIBS_NAMES)) -Wl$(COMMA)--no-whole-archive
 
-  JAVASTATIC_LIBS :=  -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
-
-  FIXED_LDFLAGS_JDKEXE := $(filter-out -Wl$(COMMA)--exclude-libs$(COMMA)ALL, $(LDFLAGS_JDKEXE))
+  FIXED_LDFLAGS_JDKEXE := $(filter-out -Wl$(COMMA)--exclude-libs$(COMMA)ALL, $(LDFLAGS_JDKEXE)) -L $(STATIC_LIBS_DIR) -L $(STATIC_LIBS_DIR)/$(JVM_TYPE_DIR)
 
   # FIXME: We should collect these automatically
-  SYSTEM_LIBS :=-Wl$(COMMA)--export-dynamic  -Wl$(COMMA)--no-whole-archive -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK) -l:libstdc++.a
+  SYSTEM_LIBS :=-Wl$(COMMA)--export-dynamic -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK) -l:libstdc++.a
 
   ifneq ($(ENABLE_HEADLESS_ONLY), true)
     SYSTEM_LIBS += $(X_LIBS) -lX11 -lXext -lXi -lXrender -lXtst
