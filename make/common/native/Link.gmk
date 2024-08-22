@@ -69,10 +69,8 @@ endef
 ################################################################################
 define CreateStaticLibrary
   # Include partial linking when building the static library with clang on linux
-  ifeq ($(call isTargetOs, linux), true)
-    ifneq ($(findstring $(TOOLCHAIN_TYPE), clang), )
-      $1_ENABLE_PARTIAL_LINKING := true
-    endif
+  ifeq ($(call isTargetOs, linux macosx), true)
+    $1_ENABLE_PARTIAL_LINKING := true
   endif
 
   $1_VARDEPS := $$($1_AR) $$(ARFLAGS) $$($1_LIBS) \
@@ -89,7 +87,7 @@ define CreateStaticLibrary
   # With clang on linux, partial linking is enabled and 'AR' takes the output
   # object from the partial linking step.
   ifeq ($$($1_ENABLE_PARTIAL_LINKING), true)
-    $1_TARGET_RELOCATABLE := $$($1_OBJECT_DIR)/$$($1_PREFIX)$$($1_NAME)_relocatable$(OBJ_SUFFIX)
+    $1_TARGET_RELOCATABLE := $$($1_OBJECT_DIR)/$$($1_PREFIX)$$($1_NAME)$(OBJ_SUFFIX)
     $1_AR_OBJ_ARG := $$($1_TARGET_RELOCATABLE)
   endif
 
