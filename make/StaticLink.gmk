@@ -44,11 +44,7 @@ STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 JDK_STATIC_LIBS := $(call FindFiles, $(STATIC_LIBS_IMAGE_DIR)/lib)
 EXCLUDED_STATIC_LIBS := \
   $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncher$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)saproc$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)le$(STATIC_LIBRARY_SUFFIX) \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)fontmanager$(STATIC_LIBRARY_SUFFIX) \
   #
-JAVASTATIC_LINK_LIBS := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
 
 JAVASTATIC_LOG_PREFIX := $(JAVASTATIC_OBJECT_DIR)/BUILD_LAUNCHER_javastatic$(EXE_SUFFIX)_static_link
 
@@ -56,20 +52,47 @@ JAVASTATIC_TARGET := $(JAVASTATIC_OUTPUT_DIR)/$(JAVASTATIC)
 JAVASTATIC_TARGET_IMAGE := $(JDK_IMAGE_DIR)/bin/$(JAVASTATIC)
 
 ifeq ($(call isTargetOs, macosx), true)
- FIXED_LDFLAGS_JDKEXE := $(LDFLAGS_JDKEXE)
+  EXCLUDED_STATIC_LIBS += \
+    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)saproc$(STATIC_LIBRARY_SUFFIX) \
+    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)le$(STATIC_LIBRARY_SUFFIX) \
+    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)fontmanager$(STATIC_LIBRARY_SUFFIX) \
+    #
+  JAVASTATIC_LINK_LIBS := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
 
   # FIXME: Perhaps we really should prefix each and one individually with -force_load...
   JAVASTATIC_LIBS := -Wl$(COMMA)-all_load $(JAVASTATIC_LINK_LIBS)
 
+  FIXED_LDFLAGS_JDKEXE := $(LDFLAGS_JDKEXE)
+
   # FIXME: We should collect these automatically
   SYSTEM_LIBS := -liconv -lstdc++  -framework Accelerate -framework ApplicationServices -framework AudioToolbox -framework AudioUnit -framework Carbon -framework Cocoa -framework Cocoa -framework CoreAudio -framework CoreFoundation -framework CoreGraphics -framework CoreMIDI -framework CoreServices -framework CoreServices -framework CoreText -framework ExceptionHandling -framework Foundation -framework Foundation -framework IOSurface -framework JavaRuntimeSupport -framework Kerberos -framework Metal -framework Metal -framework OpenGL -framework OpenGL -framework QuartzCore -framework Security -framework SystemConfiguration
+
 else ifeq ($(call isTargetOs, linux), true)
-  FIXED_LDFLAGS_JDKEXE := $(filter-out -Wl$(COMMA)--exclude-libs$(COMMA)ALL, $(LDFLAGS_JDKEXE))
+  ifneq ($(ENABLE_HEADLESS_ONLY), true)
+  # libsplashscreen has a name conflict with libawt in the function
+  # BitmapToYXBandedRectangles, so we exclude it for now.
+    EXCLUDED_STATIC_LIBS += \
+      $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)awt_headless$(STATIC_LIBRARY_SUFFIX) \
+      $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
+      #
+  endif
+
+  JAVASTATIC_LINK_LIBS := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
 
   JAVASTATIC_LIBS :=  -Wl$(COMMA)--whole-archive $(JAVASTATIC_LINK_LIBS)
 
+  FIXED_LDFLAGS_JDKEXE := $(filter-out -Wl$(COMMA)--exclude-libs$(COMMA)ALL, $(LDFLAGS_JDKEXE))
+
   # FIXME: We should collect these automatically
   SYSTEM_LIBS :=-Wl$(COMMA)--export-dynamic  -Wl$(COMMA)--no-whole-archive -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK) -l:libstdc++.a
+
+  ifneq ($(ENABLE_HEADLESS_ONLY), true)
+    SYSTEM_LIBS += $(X_LIBS) -lX11 -lXext -lXi -lXrender -lXtst
+  endif
+
+  ifeq ($(FREETYPE_TO_USE), system)
+    SYSTEM_LIBS += $(FREETYPE_LIBS)
+  endif
 
   ifeq ($(USE_EXTERNAL_LIBZ), true)
     SYSTEM_LIBS += -lz
