@@ -120,6 +120,11 @@ define SetupBuildLauncherBody
     $1_EXTRA_FILES += $(TOPDIR)/make/data/lsan/lsan_default_options.c
   endif
 
+  ifneq ($$($1_SKIP_JLI), true)
+      $1_JDK_LIBS := java.base:libjli
+      $1_JDK_LIBS_windows := java.base:libjava
+  endif
+
   ##############################################################################
   ## Build launcher "$1"
   ##############################################################################
@@ -140,8 +145,8 @@ define SetupBuildLauncherBody
       LDFLAGS := $$($1_LDFLAGS), \
       LDFLAGS_linux := $$(call SET_EXECUTABLE_ORIGIN,/../lib), \
       LDFLAGS_macosx := $$(call SET_EXECUTABLE_ORIGIN,/../lib), \
-      JDK_LIBS := java.base:libjli, \
-      JDK_LIBS_windows := java.base:libjava, \
+      JDK_LIBS := $$($1_JDK_LIBS), \
+      JDK_LIBS_windows := $$($1_JDK_LIBS_windows), \
       LIBS := $$($1_LIBS), \
       LIBS_unix := $(LIBZ_LIBS), \
       LIBS_linux := $(LIBDL) -lpthread, \
@@ -150,6 +155,7 @@ define SetupBuildLauncherBody
           -framework Cocoa \
           -framework Security, \
       OUTPUT_DIR := $$($1_OUTPUT_DIR), \
+      OBJECT_DIR := $$($1_OBJECT_DIR), \
       VERSIONINFO_RESOURCE := $$($1_VERSION_INFO_RESOURCE), \
       EXTRA_RCFLAGS := $$($1_EXTRA_RCFLAGS), \
       MANIFEST := $(JAVA_MANIFEST), \

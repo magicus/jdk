@@ -29,6 +29,9 @@ include $(SPEC)
 include $(TOPDIR)/make/common/MakeBase.gmk
 include $(TOPDIR)/make/common/Modules.gmk
 
+include $(TOPDIR)/make/common/modules/LauncherCommon.gmk
+
+
 $(eval $(call IncludeCustomExtension, StaticLink.gmk))
 
 ################################################################################
@@ -36,7 +39,7 @@ $(eval $(call IncludeCustomExtension, StaticLink.gmk))
 JAVASTATIC := javastatic$(EXE_SUFFIX)
 
 JAVASTATIC_OUTPUT_DIR := $(JDK_OUTPUTDIR)/bin
-JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/native/java.base/java
+JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/native/java.base/java-static
 STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 JAVASTATIC_LOG_PREFIX := $(JAVASTATIC_OBJECT_DIR)/BUILD_LAUNCHER_javastatic$(EXE_SUFFIX)_static_link
 JAVASTATIC_TARGET := $(JAVASTATIC_OUTPUT_DIR)/$(JAVASTATIC)
@@ -141,6 +144,17 @@ $(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS_PATH)
 	    $(JAVASTATIC_LINK_LIBS_FLAGS) $(SYSTEM_LIBS))
 
 TARGETS += $(JAVASTATIC_TARGET_IMAGE)
+
+$(eval $(call SetupBuildLauncher, javastatic2, \
+    CFLAGS := -DEXPAND_CLASSPATH_WILDCARDS -DENABLE_ARG_FILES, \
+    EXTRA_RCFLAGS := $(JAVA_RCFLAGS), \
+    VERSION_INFO_RESOURCE := $(JAVA_VERSION_INFO_RESOURCE), \
+    OPTIMIZATION := HIGH, \
+    SKIP_JLI := true, \
+    LIBS := $(JAVASTATIC_LINK_LIBS_FLAGS) $(SYSTEM_LIBS), \
+    OUTPUT_DIR := $(JAVASTATIC_OUTPUT_DIR), \
+    OBJECT_DIR := $(JAVASTATIC_OBJECT_DIR), \
+))
 
 all: $(TARGETS)
 
