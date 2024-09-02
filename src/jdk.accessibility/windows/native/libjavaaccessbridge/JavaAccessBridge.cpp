@@ -61,7 +61,7 @@ extern "C" {
      * DllMain - where Windows executables will load/unload us
      *
      */
-    BOOL WINAPI DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved) {
+    BOOL WINAPI DllMain_acc(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved) {
 
         switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
