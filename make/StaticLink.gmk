@@ -38,47 +38,41 @@ JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
 
 STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 
-# Get all static libs, but exclude libjpackageapplauncher which is not for general
-# consumption...
+# Get all static libs
 JDK_STATIC_LIBS := $(call FindFiles, $(STATIC_LIBS_IMAGE_DIR)/lib)
-EXCLUDED_STATIC_LIBS := \
-  $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncher$(STATIC_LIBRARY_SUFFIX) \
-  #
+
+# libjpackageapplauncher is not for general consumption...
+EXCLUDED_STATIC_LIBS :=jpackageapplauncher
 
 ifeq ($(call isTargetOs, linux), true)
   # libsplashscreen has a name conflict with libawt in the function
   # BitmapToYXBandedRectangles, so we exclude it for now.
-  EXCLUDED_STATIC_LIBS += \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
-    #
+  EXCLUDED_STATIC_LIBS += splashscreen
   ifneq ($(ENABLE_HEADLESS_ONLY), true)
     # We cannot link with both awt_headless and awt_xawt at the same time
-    EXCLUDED_STATIC_LIBS += \
-      $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)awt_headless$(STATIC_LIBRARY_SUFFIX) \
-      #
+    EXCLUDED_STATIC_LIBS += awt_headless
   endif
 else ifeq ($(call isTargetOs, macosx), true)
   # libosxsecurity has a name conclict with libosxapp in the function
   # JavaStringToNSString, so we exclude it for now.
-  EXCLUDED_STATIC_LIBS += \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)osxsecurity$(STATIC_LIBRARY_SUFFIX) \
-    #
+  EXCLUDED_STATIC_LIBS += osxsecurity
 else ifeq ($(call isTargetOs, windows), true)
   EXCLUDED_STATIC_LIBS += \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)javaaccessbridge$(STATIC_LIBRARY_SUFFIX) \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncherw$(STATIC_LIBRARY_SUFFIX) \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)msiwrapper$(STATIC_LIBRARY_SUFFIX) \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)windowsaccessbridge-64$(STATIC_LIBRARY_SUFFIX) \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)wixhelper$(STATIC_LIBRARY_SUFFIX) \
+    javaaccessbridge \
+    jpackageapplauncherw \
+    msiwrapper \
+    splashscreen \
+    windowsaccessbridge-64 \
+    wixhelper \
     #
 endif
 
-JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
+JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(foreach l, \$(EXCLUDED_STATIC_LIBS), \
+    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)$l$(STATIC_LIBRARY_SUFFIX)), \
+    $(JDK_STATIC_LIBS))
 JVM_TYPE_DIR := $(patsubst $(STATIC_LIBS_DIR)/%/libjvm.a,%, $(filter %/libjvm.a, $(JAVASTATIC_LINK_LIBS_PATH)))
 
 ifeq ($(call isTargetOs, macosx), true)
-
   JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -force_load$(SPACE), $(JAVASTATIC_LINK_LIBS_PATH))
 
   # FIXME: We should collect these automatically
@@ -89,7 +83,6 @@ ifeq ($(call isTargetOs, macosx), true)
   endif
 
 else ifeq ($(call isTargetOs, linux), true)
-
   JAVASTATIC_LINK_LIBS_NAMES := $(notdir $(JAVASTATIC_LINK_LIBS_PATH))
   JAVASTATIC_LINK_LIBS_FLAGS :=  -Wl$(COMMA)--whole-archive $(patsubst lib%.a,-l%, $(JAVASTATIC_LINK_LIBS_NAMES)) -Wl$(COMMA)--no-whole-archive
 
@@ -111,9 +104,7 @@ else ifeq ($(call isTargetOs, linux), true)
   ifeq ($(USE_EXTERNAL_LIBZ), true)
     SYSTEM_LIBS += -lz
   endif
-
 else ifeq ($(call isTargetOs, windows), true)
-
   JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -wholearchive:, $(JAVASTATIC_LINK_LIBS_PATH))
 
   JAVASTATIC_LINK_LDFLAGS := \
@@ -124,7 +115,6 @@ else ifeq ($(call isTargetOs, windows), true)
 
   # FIXME: We should collect these automatically
   SYSTEM_LIBS := advapi32.lib comctl32.lib comdlg32.lib crypt32.lib dbgeng.lib delayimp.lib dsound.lib gdi32.lib imm32.lib iphlpapi.lib kernel32.lib mpr.lib msi.lib mswsock.lib ncrypt.lib netapi32.lib odbc32.lib odbccp32.lib ole32.lib oleaut32.lib powrprof.lib psapi.lib secur32.lib shell32.lib shlwapi.lib user32.lib uuid.lib version.lib winhttp.lib winmm.lib winscard.lib winspool.lib ws2_32.lib
-
 else
   $(error Unsupported platform)
 endif
