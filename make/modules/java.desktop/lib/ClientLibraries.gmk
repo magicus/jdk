@@ -219,6 +219,8 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
     LIBSPLASHSCREEN_CFLAGS += -DWITH_X11 $(X_CFLAGS)
   endif
 
+  LIBSPLASHSCREEN_STATIC_LIB_EXCLUDE_OBJS += systemScale.o
+
   $(eval $(call SetupJdkLibrary, BUILD_LIBSPLASHSCREEN, \
       NAME := splashscreen, \
       EXTRA_SRC := $(LIBSPLASHSCREEN_EXTRA_SRC), \

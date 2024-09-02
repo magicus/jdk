@@ -46,12 +46,15 @@ EXCLUDED_STATIC_LIBS := \
   #
 
 ifeq ($(call isTargetOs, linux), true)
-  ifneq ($(ENABLE_HEADLESS_ONLY), true)
   # libsplashscreen has a name conflict with libawt in the function
   # BitmapToYXBandedRectangles, so we exclude it for now.
+  EXCLUDED_STATIC_LIBS += \
+    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
+    #
+  ifneq ($(ENABLE_HEADLESS_ONLY), true)
+    # We cannot link with both awt_headless and awt_xawt at the same time
     EXCLUDED_STATIC_LIBS += \
       $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)awt_headless$(STATIC_LIBRARY_SUFFIX) \
-      $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
       #
   endif
 else ifeq ($(call isTargetOs, macosx), true)
