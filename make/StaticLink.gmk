@@ -31,19 +31,12 @@ include $(TOPDIR)/make/common/Modules.gmk
 
 include $(TOPDIR)/make/common/modules/LauncherCommon.gmk
 
-
-$(eval $(call IncludeCustomExtension, StaticLink.gmk))
-
 ################################################################################
 
-JAVASTATIC := javastatic$(EXE_SUFFIX)
+JAVASTATIC_OUTPUT_DIR := $(JDK_OUTPUTDIR)/bin-static
+JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
 
-JAVASTATIC_OUTPUT_DIR := $(JDK_OUTPUTDIR)/bin
-JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/native/java.base/java-static
 STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
-JAVASTATIC_LOG_PREFIX := $(JAVASTATIC_OBJECT_DIR)/BUILD_LAUNCHER_javastatic$(EXE_SUFFIX)_static_link
-JAVASTATIC_TARGET := $(JAVASTATIC_OUTPUT_DIR)/$(JAVASTATIC)
-JAVASTATIC_TARGET_IMAGE := $(JDK_IMAGE_DIR)/bin/$(JAVASTATIC)
 
 # Get all static libs, but exclude libjpackageapplauncher which is not for general
 # consumption...
@@ -82,7 +75,7 @@ ifeq ($(call isTargetOs, macosx), true)
 
   JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -force_load$(SPACE), $(JAVASTATIC_LINK_LIBS_PATH))
 
-  FIXED_LDFLAGS_JDKEXE := $(LDFLAGS_JDKEXE)
+#  JAVASTATIC_LINK_LDFLAGS := $(LDFLAGS_JDKEXE)
 
   # FIXME: We should collect these automatically
   SYSTEM_LIBS := -liconv -lstdc++  -framework Accelerate -framework ApplicationServices -framework AudioToolbox -framework AudioUnit -framework Carbon -framework Cocoa -framework Cocoa -framework CoreAudio -framework CoreFoundation -framework CoreGraphics -framework CoreMIDI -framework CoreServices -framework CoreServices -framework CoreText -framework ExceptionHandling -framework Foundation -framework Foundation -framework IOSurface -framework JavaRuntimeSupport -framework Kerberos -framework Metal -framework Metal -framework OpenGL -framework OpenGL -framework QuartzCore -framework Security -framework SystemConfiguration
@@ -99,7 +92,7 @@ else ifeq ($(call isTargetOs, linux), true)
   JAVASTATIC_LINK_LIBS_NAMES := $(notdir $(JAVASTATIC_LINK_LIBS_PATH))
   JAVASTATIC_LINK_LIBS_FLAGS :=  -Wl$(COMMA)--whole-archive $(patsubst lib%.a,-l%, $(JAVASTATIC_LINK_LIBS_NAMES)) -Wl$(COMMA)--no-whole-archive
 
-  FIXED_LDFLAGS_JDKEXE := $(filter-out -Wl$(COMMA)--exclude-libs$(COMMA)ALL, $(LDFLAGS_JDKEXE)) -L $(STATIC_LIBS_DIR) -L $(STATIC_LIBS_DIR)/$(JVM_TYPE_DIR)
+  JAVASTATIC_LINK_LDFLAGS :=  -L $(STATIC_LIBS_DIR) -L $(STATIC_LIBS_DIR)/$(JVM_TYPE_DIR)
 
   # FIXME: We should collect these automatically
   SYSTEM_LIBS :=-Wl$(COMMA)--export-dynamic -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK) -l:libstdc++.a
@@ -120,8 +113,7 @@ else ifeq ($(call isTargetOs, windows), true)
 
   JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -wholearchive:, $(JAVASTATIC_LINK_LIBS_PATH))
 
-  FIXED_LDFLAGS_JDKEXE := $(LDFLAGS_JDKEXE)
-  FIXED_LDFLAGS_JDKEXE += \
+  JAVASTATIC_LINK_LDFLAGS := \
     -libpath:/var/tmp/jib-ma~1/install/jpg/infra/buildd~1/devkit~1/vs2022~1.0/devkit~1.gz/10/lib/x64 \
     -libpath:/var/tmp/jib-ma~1/install/jpg/infra/buildd~1/devkit~1/vs2022~1.0/devkit~1.gz/VC/atlmfc/lib/x64 \
     -libpath:/var/tmp/jib-ma~1/install/jpg/infra/buildd~1/devkit~1/vs2022~1.0/devkit~1.gz/VC/lib/x64 \
@@ -130,31 +122,23 @@ else ifeq ($(call isTargetOs, windows), true)
   # FIXME: We should collect these automatically
   SYSTEM_LIBS := advapi32.lib comctl32.lib comdlg32.lib crypt32.lib dbgeng.lib delayimp.lib dsound.lib gdi32.lib imm32.lib iphlpapi.lib kernel32.lib mpr.lib msi.lib mswsock.lib ncrypt.lib netapi32.lib odbc32.lib odbccp32.lib ole32.lib oleaut32.lib powrprof.lib psapi.lib secur32.lib shell32.lib shlwapi.lib user32.lib uuid.lib version.lib winhttp.lib winmm.lib winscard.lib winspool.lib ws2_32.lib
 
-  OUTFLAG := -out:
-
 else
   $(error Unsupported platform)
 endif
 
-$(JAVASTATIC_TARGET_IMAGE): $(JAVASTATIC_LINK_LIBS_PATH)
-	$(ECHO) "Linking static launcher '$(JAVASTATIC_TARGET_IMAGE)'"
-	$(call ExecuteWithLog, $(JAVASTATIC_LOG_PREFIX)_new, \
-	    $(LD) $(FIXED_LDFLAGS_JDKEXE) $(call SET_EXECUTABLE_ORIGIN) $(SYSROOT_LDFLAGS) \
-	     $(OUTFLAG)$(JAVASTATIC_TARGET)$(EXECUTABLE_SUFFIX)  $(JAVASTATIC_OBJECT_DIR)/main$(OBJ_SUFFIX) \
-	    $(JAVASTATIC_LINK_LIBS_FLAGS) $(SYSTEM_LIBS))
-
-TARGETS += $(JAVASTATIC_TARGET_IMAGE)
-
-$(eval $(call SetupBuildLauncher, javastatic2, \
+$(eval $(call SetupBuildLauncher, java, \
     CFLAGS := -DEXPAND_CLASSPATH_WILDCARDS -DENABLE_ARG_FILES, \
     EXTRA_RCFLAGS := $(JAVA_RCFLAGS), \
     VERSION_INFO_RESOURCE := $(JAVA_VERSION_INFO_RESOURCE), \
     OPTIMIZATION := HIGH, \
-    SKIP_JLI := true, \
+    STATIC_LAUNCHER := true, \
+    LDFLAGS := $(JAVASTATIC_LINK_LDFLAGS), \
     LIBS := $(JAVASTATIC_LINK_LIBS_FLAGS) $(SYSTEM_LIBS), \
     OUTPUT_DIR := $(JAVASTATIC_OUTPUT_DIR), \
     OBJECT_DIR := $(JAVASTATIC_OBJECT_DIR), \
 ))
+
+TARGETS += $(java)
 
 all: $(TARGETS)
 
