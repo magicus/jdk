@@ -57,10 +57,8 @@ ifeq ($(call isTargetOs, linux), true)
 else ifeq ($(call isTargetOs, macosx), true)
   # libosxsecurity has a name conclict with libosxapp in the function
   # JavaStringToNSString, so we exclude it for now.
-  # libsplashscreen has a lot of clashes with libjavajpeg and libzip.
   EXCLUDED_STATIC_LIBS += \
     $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)osxsecurity$(STATIC_LIBRARY_SUFFIX) \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
     #
 else ifeq ($(call isTargetOs, windows), true)
   EXCLUDED_STATIC_LIBS += \
