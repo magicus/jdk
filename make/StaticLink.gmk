@@ -93,10 +93,12 @@ else ifeq ($(call isTargetOs, linux), true)
   JAVASTATIC_LINK_LIBS_NAMES := $(notdir $(JAVASTATIC_LINK_LIBS_PATH))
   JAVASTATIC_LINK_LIBS_FLAGS :=  -Wl$(COMMA)--whole-archive $(patsubst lib%.a,-l%, $(JAVASTATIC_LINK_LIBS_NAMES)) -Wl$(COMMA)--no-whole-archive
 
-  JAVASTATIC_LINK_LDFLAGS :=  -L $(STATIC_LIBS_DIR) -L $(STATIC_LIBS_DIR)/$(JVM_TYPE_DIR)
+  JAVASTATIC_LINK_LDFLAGS := -L $(STATIC_LIBS_DIR) -L $(STATIC_LIBS_DIR)/$(JVM_TYPE_DIR) -Wl$(COMMA)--export-dynamic
+
+  SYSTEM_LIBS +=  -l:libstdc++.a
 
   # FIXME: We should collect these automatically
-  SYSTEM_LIBS :=-Wl$(COMMA)--export-dynamic -lrt -lpthread -lasound $(LIBDL) $(LIBM) $(LDFLAGS_CXX_STATIC_JDK) -l:libstdc++.a
+  SYSTEM_LIBS += -lrt -lpthread -lasound $(LIBDL) $(LIBM)
 
   ifneq ($(ENABLE_HEADLESS_ONLY), true)
     SYSTEM_LIBS += $(X_LIBS) -lX11 -lXext -lXi -lXrender -lXtst
