@@ -39,7 +39,7 @@ JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
 STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 
 HOTSPOT_STATIC_LIB_DIR := $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static
-ifneq ($(word 2, $(wildcard $(HOTSPOT_STATIC_LIB_DIR)), )
+ifneq ($(word 2, $(wildcard $(HOTSPOT_STATIC_LIB_DIR))), )
   $(error Cannot perform static linking when building more than one JVM library)
 endif
 
