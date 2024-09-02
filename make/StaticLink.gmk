@@ -39,10 +39,14 @@ JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
 STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 
 # Get all static libs
-JDK_STATIC_LIBS := $(call FindFiles, $(STATIC_LIBS_IMAGE_DIR)/lib)
+# FIXME: Do this without searching
+JDK_STATIC_LIBS := $(call ShellFindFiles, $(SUPPORT_OUTPUTDIR)/native/*/*/static \
+    $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static, lib*.a)
 
-# libjpackageapplauncher is not for general consumption...
-EXCLUDED_STATIC_LIBS := jpackageapplauncher jpackageapplauncheraux wixhelper msiwrapper jpackageapplauncherw
+# jpackage libs are not for general consumption...
+# FIXME: This should be marked in the actual libraries instead
+EXCLUDED_STATIC_LIBS := jpackageapplauncher jpackageapplauncheraux \
+    jpackageapplauncherw msiwrapper wixhelper
 
 ifeq ($(call isTargetOs, linux), true)
   # libsplashscreen has a name conflict with libawt in the function
@@ -67,20 +71,25 @@ else ifeq ($(call isTargetOs, windows), true)
     #
 endif
 
-JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(foreach l, $(EXCLUDED_STATIC_LIBS), \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)$l$(STATIC_LIBRARY_SUFFIX)), \
+EXCLUDED_STATIC_LIBS_PATH := $(foreach lib, $(JDK_STATIC_LIBS), \
+    $(foreach excluded, $(EXCLUDED_STATIC_LIBS), \
+    $(if $(findstring $(excluded), $(lib)), $(lib))))
+
+JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(EXCLUDED_STATIC_LIBS_PATH), \
     $(JDK_STATIC_LIBS))
 JVM_TYPE_DIR := $(patsubst $(STATIC_LIBS_DIR)/%/libjvm.a,%, $(filter %/libjvm.a, $(JAVASTATIC_LINK_LIBS_PATH)))
+
+LIB_FILES := $(addsuffix .libs-info, $(JAVASTATIC_LINK_LIBS_PATH))
+COLLECTED_LIBS := $(shell $(CAT) $(LIB_FILES) | \
+    $(SED) -e 's/-framework /-framework_/g' | $(TR) ' ' '\n' | $(SORT) -u | \
+    $(SED) -e 's/-framework_/-framework /g')
 
 ifeq ($(call isTargetOs, macosx), true)
   JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -force_load$(SPACE), $(JAVASTATIC_LINK_LIBS_PATH))
 
-  # FIXME: We should collect these automatically
-  SYSTEM_LIBS := -liconv -lstdc++  -framework Accelerate -framework ApplicationServices -framework AudioToolbox -framework AudioUnit -framework Carbon -framework Cocoa -framework Cocoa -framework CoreAudio -framework CoreFoundation -framework CoreGraphics -framework CoreMIDI -framework CoreServices -framework CoreServices -framework CoreText -framework ExceptionHandling -framework Foundation -framework Foundation -framework IOSurface -framework JavaRuntimeSupport -framework Kerberos -framework Metal -framework Metal -framework OpenGL -framework OpenGL -framework QuartzCore -framework Security -framework SystemConfiguration
+  SYSTEM_LIBS := $(COLLECTED_LIBS)
 
-  ifeq ($(USE_EXTERNAL_LIBZ), true)
-    SYSTEM_LIBS += -lz
-  endif
+  SYSTEM_LIBS += -lstdc++
 
 else ifeq ($(call isTargetOs, linux), true)
   JAVASTATIC_LINK_LIBS_NAMES := $(notdir $(JAVASTATIC_LINK_LIBS_PATH))
