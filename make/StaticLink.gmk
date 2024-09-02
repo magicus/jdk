@@ -77,12 +77,11 @@ EXCLUDED_STATIC_LIBS_PATH := $(foreach lib, $(JDK_STATIC_LIBS), \
 
 JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(EXCLUDED_STATIC_LIBS_PATH), \
     $(JDK_STATIC_LIBS))
-JVM_TYPE_DIR := $(patsubst $(STATIC_LIBS_DIR)/%/libjvm.a,%, $(filter %/libjvm.a, $(JAVASTATIC_LINK_LIBS_PATH)))
 
 LIB_FILES := $(addsuffix .libs-info, $(JAVASTATIC_LINK_LIBS_PATH))
-COLLECTED_LIBS := $(shell $(CAT) $(LIB_FILES) | \
+COLLECTED_LIBS := $(strip $(shell $(CAT) $(LIB_FILES) | \
     $(SED) -e 's/-framework /-framework_/g' | $(TR) ' ' '\n' | $(SORT) -u | \
-    $(SED) -e 's/-framework_/-framework /g')
+    $(SED) -e 's/-framework_/-framework /g'))
 
 ifeq ($(call isTargetOs, macosx), true)
   JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -force_load$(SPACE), $(JAVASTATIC_LINK_LIBS_PATH))
@@ -92,27 +91,12 @@ ifeq ($(call isTargetOs, macosx), true)
   SYSTEM_LIBS += -lstdc++
 
 else ifeq ($(call isTargetOs, linux), true)
-  JAVASTATIC_LINK_LIBS_NAMES := $(notdir $(JAVASTATIC_LINK_LIBS_PATH))
-  JAVASTATIC_LINK_LIBS_FLAGS :=  -Wl$(COMMA)--whole-archive $(patsubst lib%.a,-l%, $(JAVASTATIC_LINK_LIBS_NAMES)) -Wl$(COMMA)--no-whole-archive
+  JAVASTATIC_LINK_LIBS_FLAGS := -Wl,--export-dynamic -Wl,--whole-archive $(JAVASTATIC_LINK_LIBS_PATH) -Wl,--no-whole-archive
 
-  JAVASTATIC_LINK_LDFLAGS := -L $(STATIC_LIBS_DIR) -L $(STATIC_LIBS_DIR)/$(JVM_TYPE_DIR) -Wl$(COMMA)--export-dynamic
+  SYSTEM_LIBS := $(COLLECTED_LIBS)
 
-  SYSTEM_LIBS +=  -l:libstdc++.a
+  SYSTEM_LIBS += -l:libstdc++.a
 
-  # FIXME: We should collect these automatically
-  SYSTEM_LIBS += -lrt -lpthread -lasound $(LIBDL) $(LIBM)
-
-  ifneq ($(ENABLE_HEADLESS_ONLY), true)
-    SYSTEM_LIBS += $(X_LIBS) -lX11 -lXext -lXi -lXrender -lXtst
-  endif
-
-  ifeq ($(FREETYPE_TO_USE), system)
-    SYSTEM_LIBS += $(FREETYPE_LIBS)
-  endif
-
-  ifeq ($(USE_EXTERNAL_LIBZ), true)
-    SYSTEM_LIBS += -lz
-  endif
 else ifeq ($(call isTargetOs, windows), true)
   JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -wholearchive:, $(JAVASTATIC_LINK_LIBS_PATH))
 
