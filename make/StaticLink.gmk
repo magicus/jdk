@@ -38,19 +38,25 @@ JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
 
 STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 
-ifneq ($(word 2, $(wildcard $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static)), )
+HOTSPOT_STATIC_LIB_DIR := $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static
+ifneq ($(word 2, $(wildcard $(HOTSPOT_STATIC_LIB_DIR)), )
   $(error Cannot perform static linking when building more than one JVM library)
 endif
 
-# Get all static libs
-# FIXME: Do this without searching
-ALL_STATIC_LIBS := $(call ShellFindFiles, $(SUPPORT_OUTPUTDIR)/native/*/*/static \
-    $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static, $(LIBRARY_PREFIX)*$(STATIC_LIBRARY_SUFFIX))
+# Find all modules with static libraries
+STATIC_LIB_MODULES := $(patsubst $(SUPPORT_OUTPUTDIR)/modules_static-libs/%, \
+    %, $(wildcard $(SUPPORT_OUTPUTDIR)/modules_static-libs/*))
 
-# jpackage libs are not for general consumption...
-# FIXME: This should be marked in the actual libraries instead
-EXCLUDED_STATIC_LIBS := jpackageapplauncher jpackageapplauncheraux \
-    jpackageapplauncherw msiwrapper wixhelper
+$(foreach module, $(STATIC_LIB_MODULES), \
+    $(eval LIBS_$(module) := $(shell cat \
+    $(SUPPORT_OUTPUTDIR)/modules_static-libs/$(module)/module-libs.txt)) \
+)
+ALL_STATIC_LIBS := $(foreach module, $(STATIC_LIB_MODULES), \
+    $(foreach lib, $(LIBS_$(module)), \
+    $(SUPPORT_OUTPUTDIR)/native/$(module)/lib$(lib)/static/lib$(lib).a))
+
+# Add Hotspot
+ALL_STATIC_LIBS += $(wildcard $(HOTSPOT_STATIC_LIB_DIR)/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX))
 
 ifeq ($(call isTargetOs, linux), true)
   # libsplashscreen has a name conflict with libawt in the function

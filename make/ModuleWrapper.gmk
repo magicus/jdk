@@ -45,6 +45,18 @@ TARGETS :=
 # Include the file being wrapped.
 include $(MAKEFILE_PREFIX).gmk
 
+ifeq ($(MAKEFILE_PREFIX), Lib)
+  ifneq ($($(MODULE)_JDK_LIBS), )
+    LIBLIST := $(SUPPORT_OUTPUTDIR)/modules_static-libs/$(MODULE)/module-libs.txt
+
+    $(LIBLIST): $(TARGETS)
+	$(call MakeDir, $(@D))
+	$(ECHO) $($(MODULE)_JDK_LIBS) > $@
+
+    TARGETS += $(LIBLIST)
+  endif
+endif
+
 # Setup copy rules from the modules directories to the jdk image directory.
 ifeq ($(call isTargetOs, windows), true)
   TO_BIN_FILTER := %$(SHARED_LIBRARY_SUFFIX) %.diz %.pdb %.map
