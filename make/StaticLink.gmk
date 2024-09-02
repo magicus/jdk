@@ -38,9 +38,13 @@ JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
 
 STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 
+ifneq ($(word 2, $(wildcard $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static)), )
+  $(error Cannot perform static linking when building more than one JVM library)
+endif
+
 # Get all static libs
 # FIXME: Do this without searching
-JDK_STATIC_LIBS := $(call ShellFindFiles, $(SUPPORT_OUTPUTDIR)/native/*/*/static \
+ALL_STATIC_LIBS := $(call ShellFindFiles, $(SUPPORT_OUTPUTDIR)/native/*/*/static \
     $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static, lib*.a)
 
 # jpackage libs are not for general consumption...
@@ -71,34 +75,30 @@ else ifeq ($(call isTargetOs, windows), true)
     #
 endif
 
-EXCLUDED_STATIC_LIBS_PATH := $(foreach lib, $(JDK_STATIC_LIBS), \
+EXCLUDED_STATIC_LIBS_PATH := $(foreach lib, $(ALL_STATIC_LIBS), \
     $(foreach excluded, $(EXCLUDED_STATIC_LIBS), \
     $(if $(findstring $(excluded), $(lib)), $(lib))))
 
-JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(EXCLUDED_STATIC_LIBS_PATH), \
-    $(JDK_STATIC_LIBS))
+STATIC_LIBS_PATH := $(filter-out $(EXCLUDED_STATIC_LIBS_PATH), \
+    $(ALL_STATIC_LIBS))
 
-LIB_FILES := $(addsuffix .libs-info, $(JAVASTATIC_LINK_LIBS_PATH))
-COLLECTED_LIBS := $(strip $(shell $(CAT) $(LIB_FILES) | \
+LIBINFO_FILES := $(addsuffix .libs-info, $(STATIC_LIBS_PATH))
+
+# Gather the lib flags from all individual libraries. There are many duplicates,
+# so sort and just keep unique instances. On macOS, a common pattern is
+# "-framework FooFramework", so we must make sure we keep the two words together.
+EXTERNAL_LIBS := $(strip $(shell $(CAT) $(LIBINFO_FILES) | \
     $(SED) -e 's/-framework /-framework_/g' | $(TR) ' ' '\n' | $(SORT) -u | \
     $(SED) -e 's/-framework_/-framework /g'))
 
 ifeq ($(call isTargetOs, macosx), true)
-  JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -force_load$(SPACE), $(JAVASTATIC_LINK_LIBS_PATH))
-
-  SYSTEM_LIBS := $(COLLECTED_LIBS)
-
-  SYSTEM_LIBS += -lstdc++
-
+  STATIC_LIBS := $(addprefix -force_load$(SPACE), $(STATIC_LIBS_PATH))
+  STANDARD_LIBS += -lstdc++
 else ifeq ($(call isTargetOs, linux), true)
-  JAVASTATIC_LINK_LIBS_FLAGS := -Wl,--export-dynamic -Wl,--whole-archive $(JAVASTATIC_LINK_LIBS_PATH) -Wl,--no-whole-archive
-
-  SYSTEM_LIBS := $(COLLECTED_LIBS)
-
-  SYSTEM_LIBS += -l:libstdc++.a
-
+  STATIC_LIBS := -Wl,--export-dynamic -Wl,--whole-archive $(STATIC_LIBS_PATH) -Wl,--no-whole-archive
+  STANDARD_LIBS := -l:libstdc++.a
 else ifeq ($(call isTargetOs, windows), true)
-  JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -wholearchive:, $(JAVASTATIC_LINK_LIBS_PATH))
+  STATIC_LIBS := $(addprefix -wholearchive:, $(STATIC_LIBS_PATH))
 
   JAVASTATIC_LINK_LDFLAGS := \
     -libpath:/var/tmp/jib-ma~1/install/jpg/infra/buildd~1/devkit~1/vs2022~1.0/devkit~1.gz/10/lib/x64 \
@@ -107,7 +107,7 @@ else ifeq ($(call isTargetOs, windows), true)
     #
 
   # FIXME: We should collect these automatically
-  SYSTEM_LIBS := advapi32.lib comctl32.lib comdlg32.lib crypt32.lib dbgeng.lib delayimp.lib dsound.lib gdi32.lib imm32.lib iphlpapi.lib kernel32.lib mpr.lib msi.lib mswsock.lib ncrypt.lib netapi32.lib odbc32.lib odbccp32.lib ole32.lib oleaut32.lib powrprof.lib psapi.lib secur32.lib shell32.lib shlwapi.lib user32.lib uuid.lib version.lib winhttp.lib winmm.lib winscard.lib winspool.lib ws2_32.lib
+  EXTERNAL_LIBS := advapi32.lib comctl32.lib comdlg32.lib crypt32.lib dbgeng.lib delayimp.lib dsound.lib gdi32.lib imm32.lib iphlpapi.lib kernel32.lib mpr.lib msi.lib mswsock.lib ncrypt.lib netapi32.lib odbc32.lib odbccp32.lib ole32.lib oleaut32.lib powrprof.lib psapi.lib secur32.lib shell32.lib shlwapi.lib user32.lib uuid.lib version.lib winhttp.lib winmm.lib winscard.lib winspool.lib ws2_32.lib
 else
   $(error Unsupported platform)
 endif
@@ -119,7 +119,7 @@ $(eval $(call SetupBuildLauncher, java, \
     OPTIMIZATION := HIGH, \
     STATIC_LAUNCHER := true, \
     LDFLAGS := $(JAVASTATIC_LINK_LDFLAGS), \
-    LIBS := $(JAVASTATIC_LINK_LIBS_FLAGS) $(SYSTEM_LIBS), \
+    LIBS := $(STATIC_LIBS) $(EXTERNAL_LIBS) $(STANDARD_LIBS), \
     OUTPUT_DIR := $(JAVASTATIC_OUTPUT_DIR), \
     OBJECT_DIR := $(JAVASTATIC_OBJECT_DIR), \
 ))
