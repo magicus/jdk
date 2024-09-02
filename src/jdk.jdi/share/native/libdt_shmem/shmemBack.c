@@ -340,7 +340,7 @@ shmemGetLastError(jdwpTransportEnv* env, char **msgP)
 }
 
 JNIEXPORT jint JNICALL
-jdwpTransport_OnLoad(JavaVM *vm, jdwpTransportCallback* cbTablePtr,
+jdwpTransport_OnLoad2(JavaVM *vm, jdwpTransportCallback* cbTablePtr,
                      jint version, jdwpTransportEnv** result)
 {
     if (version != JDWPTRANSPORT_VERSION_1_0) {

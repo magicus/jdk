@@ -93,7 +93,7 @@ static struct {
  * Initialize Windows Sockets API support
  */
 BOOL WINAPI
-DllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved)
+DllMain_socket(HINSTANCE hinst, DWORD reason, LPVOID reserved)
 {
     WSADATA wsadata;
 

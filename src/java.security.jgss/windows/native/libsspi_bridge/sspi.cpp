@@ -54,7 +54,7 @@
 
 // A debugging macro
 #define PP(fmt, ...) \
-        if (trace) { \
+        if (sspi_trace) { \
             fprintf(stderr, "[SSPI:%ld] " fmt "\n", __LINE__, ##__VA_ARGS__); \
             fflush(stderr); \
         }
@@ -65,12 +65,12 @@ extern "C" {
 #endif /* __cplusplus */
 
 // When SSPI_BRIDGE_TRACE is set, debug info goes to stderr. The value is ignored.
-char* trace = getenv("SSPI_BRIDGE_TRACE");
+char* sspi_trace = getenv("SSPI_BRIDGE_TRACE");
 
 void
-dump(const char* title, PBYTE data, size_t len)
+sspi_dump(const char* title, PBYTE data, size_t len)
 {
-    if (trace) {
+    if (sspi_trace) {
         fprintf(stderr, "==== %s ====\n", title);
         for (size_t i = 0; i < len; i++) {
             if (i != 0 && i % 16 == 0) {
@@ -141,7 +141,7 @@ seconds_until(int inputIsUTC, TimeStamp *time)
 static void
 show_time(const char* label, TimeStamp* ts)
 {
-    if (trace) {
+    if (sspi_trace) {
         SYSTEMTIME stLocal;
         FileTimeToSystemTime((FILETIME*)ts, &stLocal);
 
@@ -232,7 +232,7 @@ has_oid(gss_const_OID_set set, gss_const_OID oid)
 static void
 show_oid(gss_const_OID mech)
 {
-    if (trace) {
+    if (sspi_trace) {
         if (is_same_oid(mech, &KRB5_OID)) {
             PP("Kerberos mech");
         } else if (is_same_oid(mech, &SPNEGO_OID)) {
@@ -246,7 +246,7 @@ show_oid(gss_const_OID mech)
         } else if (is_same_oid(mech, &EXPORT_NAME_OID)) {
             PP("NT_EXPORT_NAME name-type");
         } else {
-            dump("UNKNOWN OID", (PBYTE)mech->elements, mech->length);
+            sspi_dump("UNKNOWN OID", (PBYTE)mech->elements, mech->length);
         }
     }
 }
@@ -254,7 +254,7 @@ show_oid(gss_const_OID mech)
 static void
 show_oid_set(gss_const_OID_set mechs)
 {
-    if (trace) {
+    if (sspi_trace) {
         if (mechs == NULL) {
             PP("OID set is NULL");
             return;
