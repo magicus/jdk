@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2023, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -464,8 +464,9 @@ $(eval $(call SetupTarget, static-libs-graal-image, \
     TARGET := static-libs-graal-image, \
 ))
 
-$(eval $(call SetupTarget, static-java-image, \
-    MAKEFILE := StaticLink, \
+$(eval $(call SetupTarget, static-launcher, \
+    MAKEFILE := StaticLibs, \
+    TARGET := static-launcher, \
     DEPS := jdk-image hotspot-server-static-libs static-libs-image, \
 ))
 
