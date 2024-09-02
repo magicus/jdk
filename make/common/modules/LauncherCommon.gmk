@@ -127,7 +127,6 @@ define SetupBuildLauncherBody
   else
     ifeq ($(TOOLCHAIN_TYPE), gcc)
       $1_LDFLAGS_FILTER_OUT := -Wl$(COMMA)--exclude-libs$(COMMA)ALL
-      $$(info 1_LDFLAGS_FILTER_OUT is $$($1_LDFLAGS_FILTER_OUT))
     endif
   endif
 
