@@ -42,7 +42,7 @@ STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
 JDK_STATIC_LIBS := $(call FindFiles, $(STATIC_LIBS_IMAGE_DIR)/lib)
 
 # libjpackageapplauncher is not for general consumption...
-EXCLUDED_STATIC_LIBS :=jpackageapplauncher
+EXCLUDED_STATIC_LIBS := jpackageapplauncher jpackageapplauncheraux wixhelper msiwrapper jpackageapplauncherw
 
 ifeq ($(call isTargetOs, linux), true)
   # libsplashscreen has a name conflict with libawt in the function
@@ -57,17 +57,17 @@ else ifeq ($(call isTargetOs, macosx), true)
   # JavaStringToNSString, so we exclude it for now.
   EXCLUDED_STATIC_LIBS += osxsecurity
 else ifeq ($(call isTargetOs, windows), true)
+  # libsplashscreen has a name conflict with libawt in the function
+  # BitmapToYXBandedRectangles, so we exclude it for now.
+  EXCLUDED_STATIC_LIBS += splashscreen
+
+  # windowsaccessbridge-64 has multiple collisions and conflicts
   EXCLUDED_STATIC_LIBS += \
-    javaaccessbridge \
-    jpackageapplauncherw \
-    msiwrapper \
-    splashscreen \
     windowsaccessbridge-64 \
-    wixhelper \
     #
 endif
 
-JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(foreach l, \$(EXCLUDED_STATIC_LIBS), \
+JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(foreach l, $(EXCLUDED_STATIC_LIBS), \
     $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)$l$(STATIC_LIBRARY_SUFFIX)), \
     $(JDK_STATIC_LIBS))
 JVM_TYPE_DIR := $(patsubst $(STATIC_LIBS_DIR)/%/libjvm.a,%, $(filter %/libjvm.a, $(JAVASTATIC_LINK_LIBS_PATH)))
