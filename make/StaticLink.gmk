@@ -45,7 +45,7 @@ endif
 # Get all static libs
 # FIXME: Do this without searching
 ALL_STATIC_LIBS := $(call ShellFindFiles, $(SUPPORT_OUTPUTDIR)/native/*/*/static \
-    $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static, lib*.a)
+    $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static, $(LIBRARY_PREFIX)*$(STATIC_LIBRARY_SUFFIX))
 
 # jpackage libs are not for general consumption...
 # FIXME: This should be marked in the actual libraries instead
@@ -99,15 +99,6 @@ else ifeq ($(call isTargetOs, linux), true)
   STANDARD_LIBS := -l:libstdc++.a
 else ifeq ($(call isTargetOs, windows), true)
   STATIC_LIBS := $(addprefix -wholearchive:, $(STATIC_LIBS_PATH))
-
-  JAVASTATIC_LINK_LDFLAGS := \
-    -libpath:/var/tmp/jib-ma~1/install/jpg/infra/buildd~1/devkit~1/vs2022~1.0/devkit~1.gz/10/lib/x64 \
-    -libpath:/var/tmp/jib-ma~1/install/jpg/infra/buildd~1/devkit~1/vs2022~1.0/devkit~1.gz/VC/atlmfc/lib/x64 \
-    -libpath:/var/tmp/jib-ma~1/install/jpg/infra/buildd~1/devkit~1/vs2022~1.0/devkit~1.gz/VC/lib/x64 \
-    #
-
-  # FIXME: We should collect these automatically
-  EXTERNAL_LIBS := advapi32.lib comctl32.lib comdlg32.lib crypt32.lib dbgeng.lib delayimp.lib dsound.lib gdi32.lib imm32.lib iphlpapi.lib kernel32.lib mpr.lib msi.lib mswsock.lib ncrypt.lib netapi32.lib odbc32.lib odbccp32.lib ole32.lib oleaut32.lib powrprof.lib psapi.lib secur32.lib shell32.lib shlwapi.lib user32.lib uuid.lib version.lib winhttp.lib winmm.lib winscard.lib winspool.lib ws2_32.lib
 else
   $(error Unsupported platform)
 endif
