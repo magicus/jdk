@@ -35,11 +35,9 @@ include $(TOPDIR)/make/common/modules/LauncherCommon.gmk
 
 JAVASTATIC_OUTPUT_DIR := $(JDK_OUTPUTDIR)/bin-static
 JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
+HOTSPOT_STATIC_LIB_PATH := $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static
 
-STATIC_LIBS_DIR := $(STATIC_LIBS_IMAGE_DIR)/lib
-
-HOTSPOT_STATIC_LIB_DIR := $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static
-ifneq ($(word 2, $(wildcard $(HOTSPOT_STATIC_LIB_DIR))), )
+ifneq ($(word 2, $(wildcard $(HOTSPOT_STATIC_LIB_PATH))), )
   $(error Cannot perform static linking when building more than one JVM library)
 endif
 
@@ -56,38 +54,33 @@ ALL_STATIC_LIBS := $(foreach module, $(STATIC_LIB_MODULES), \
     $(SUPPORT_OUTPUTDIR)/native/$(module)/lib$(lib)/static/lib$(lib).a))
 
 # Add Hotspot
-ALL_STATIC_LIBS += $(wildcard $(HOTSPOT_STATIC_LIB_DIR)/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX))
+ALL_STATIC_LIBS += $(wildcard $(HOTSPOT_STATIC_LIB_PATH)/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX))
 
 ifeq ($(call isTargetOs, linux), true)
   # libsplashscreen has a name conflict with libawt in the function
   # BitmapToYXBandedRectangles, so we exclude it for now.
-  EXCLUDED_STATIC_LIBS += splashscreen
-  ifneq ($(ENABLE_HEADLESS_ONLY), true)
-    # We cannot link with both awt_headless and awt_xawt at the same time
-    EXCLUDED_STATIC_LIBS += awt_headless
-  endif
+  BROKEN_STATIC_LIBS += splashscreen
 else ifeq ($(call isTargetOs, macosx), true)
   # libosxsecurity has a name conclict with libosxapp in the function
   # JavaStringToNSString, so we exclude it for now.
-  EXCLUDED_STATIC_LIBS += osxsecurity
+  BROKEN_STATIC_LIBS += osxsecurity
 else ifeq ($(call isTargetOs, windows), true)
   # libsplashscreen has a name conflict with libawt in the function
   # BitmapToYXBandedRectangles, so we exclude it for now.
-  EXCLUDED_STATIC_LIBS += splashscreen
+  BROKEN_STATIC_LIBS += splashscreen
 
   # windowsaccessbridge-64 has multiple collisions and conflicts
-  EXCLUDED_STATIC_LIBS += \
-    windowsaccessbridge-64 \
-    #
+  BROKEN_STATIC_LIBS += windowsaccessbridge-64
 endif
 
-EXCLUDED_STATIC_LIBS_PATH := $(foreach lib, $(ALL_STATIC_LIBS), \
-    $(foreach excluded, $(EXCLUDED_STATIC_LIBS), \
-    $(if $(findstring $(excluded), $(lib)), $(lib))))
+# Filter out known broken libraries. This is a temporary measure until
+# proper support for these libraries can be provided.
+STATIC_LIBS_PATH := $(foreach lib, $(ALL_STATIC_LIBS), \
+    $(foreach excluded, $(BROKEN_STATIC_LIBS), \
+    $(if $(findstring $(excluded), $(lib)), , $(lib))))
 
-STATIC_LIBS_PATH := $(filter-out $(EXCLUDED_STATIC_LIBS_PATH), \
-    $(ALL_STATIC_LIBS))
-
+# Figure out what external libraries are required to link these static JDK
+# libraries.
 LIBINFO_FILES := $(addsuffix .libs-info, $(STATIC_LIBS_PATH))
 
 # Gather the lib flags from all individual libraries. There are many duplicates,
