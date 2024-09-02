@@ -54,36 +54,36 @@ ifeq ($(call isTargetOs, linux), true)
       $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
       #
   endif
+else ifeq ($(call isTargetOs, macosx), true)
+  # libosxsecurity has a name conclict with libosxapp in the function
+  # JavaStringToNSString, so we exclude it for now.
+  # libsplashscreen has a lot of clashes with libjavajpeg and libzip.
+  EXCLUDED_STATIC_LIBS += \
+    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)osxsecurity$(STATIC_LIBRARY_SUFFIX) \
+    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
+    #
 else ifeq ($(call isTargetOs, windows), true)
   EXCLUDED_STATIC_LIBS += \
+    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)javaaccessbridge$(STATIC_LIBRARY_SUFFIX) \
     $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)jpackageapplauncherw$(STATIC_LIBRARY_SUFFIX) \
     $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)msiwrapper$(STATIC_LIBRARY_SUFFIX) \
     $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)splashscreen$(STATIC_LIBRARY_SUFFIX) \
-    $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)javaaccessbridge$(STATIC_LIBRARY_SUFFIX) \
     $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)windowsaccessbridge-64$(STATIC_LIBRARY_SUFFIX) \
     $(STATIC_LIBS_IMAGE_DIR)/lib/$(LIBRARY_PREFIX)wixhelper$(STATIC_LIBRARY_SUFFIX) \
     #
-
 endif
 
 JAVASTATIC_LINK_LIBS_PATH := $(filter-out $(EXCLUDED_STATIC_LIBS), $(JDK_STATIC_LIBS))
 JVM_TYPE_DIR := $(patsubst $(STATIC_LIBS_DIR)/%/libjvm.a,%, $(filter %/libjvm.a, $(JAVASTATIC_LINK_LIBS_PATH)))
 
-OUTFLAG := -o$(SPACE)
-
 ifeq ($(call isTargetOs, macosx), true)
 
   JAVASTATIC_LINK_LIBS_FLAGS := $(addprefix -force_load$(SPACE), $(JAVASTATIC_LINK_LIBS_PATH))
-
-#  JAVASTATIC_LINK_LDFLAGS := $(LDFLAGS_JDKEXE)
 
   # FIXME: We should collect these automatically
   SYSTEM_LIBS := -liconv -lstdc++  -framework Accelerate -framework ApplicationServices -framework AudioToolbox -framework AudioUnit -framework Carbon -framework Cocoa -framework Cocoa -framework CoreAudio -framework CoreFoundation -framework CoreGraphics -framework CoreMIDI -framework CoreServices -framework CoreServices -framework CoreText -framework ExceptionHandling -framework Foundation -framework Foundation -framework IOSurface -framework JavaRuntimeSupport -framework Kerberos -framework Metal -framework Metal -framework OpenGL -framework OpenGL -framework QuartzCore -framework Security -framework SystemConfiguration
 
   ifeq ($(USE_EXTERNAL_LIBZ), true)
-    SYSTEM_LIBS += -lz
-  else
-    # FIXME: There's something rotten here...
     SYSTEM_LIBS += -lz
   endif
 
