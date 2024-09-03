@@ -120,7 +120,6 @@ define CreateStaticLibrary
 	    $$($1_AR) $$(ARFLAGS) -r -cs $$($1_TARGET) \
 	        $$($1_AR_OBJ_ARG) $$($1_RES))
 	$$(ECHO) $$(strip $$($1_LIBS) $$($1_EXTRA_LIBS)) > $$($1_TARGET).libs-info
-
 endef
 
 ################################################################################
@@ -211,4 +210,5 @@ define CreateDynamicLibraryOrExecutable
 	$$(call LogInfo, Creating compile commands linker flags output for $$($1_BASENAME))
 	$$(call MakeDir, $$(dir $$@))
 	$$(ECHO) $$($1_ALL_LD_ARGS) > $$@
+
 endef
