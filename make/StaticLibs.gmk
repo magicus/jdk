@@ -38,9 +38,9 @@ include modules/LauncherCommon.gmk
 #
 ################################################################################
 
-JAVASTATIC_OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
-HOTSPOT_STATIC_LIB_PATH := $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static
 STATIC_JDK_IMAGE_DIR := $(IMAGES_OUTPUTDIR)/static-jdk
+STATIC_LAUNCHER_OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
+HOTSPOT_STATIC_LIB_PATH := $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static
 
 ifneq ($(word 2, $(wildcard $(HOTSPOT_STATIC_LIB_PATH))), )
   $(error Cannot perform static linking when building more than one JVM library)
@@ -57,7 +57,7 @@ ifeq ($(call isTargetOs, linux), true)
   # BitmapToYXBandedRectangles, so we exclude it for now.
   BROKEN_STATIC_LIBS += splashscreen
 else ifeq ($(call isTargetOs, macosx), true)
-  # libosxsecurity has a name conclict with libosxapp in the function
+  # libosxsecurity has a name conflict with libosxapp in the function
   # JavaStringToNSString, so we exclude it for now.
   BROKEN_STATIC_LIBS += osxsecurity
 else ifeq ($(call isTargetOs, windows), true)
@@ -79,32 +79,32 @@ $(foreach module, $(STATIC_LIB_MODULES), \
     $(SUPPORT_OUTPUTDIR)/modules_static-libs/$(module)/module-libs.txt))) \
 )
 
-STATIC_LIBS_PATH := $(foreach module, $(STATIC_LIB_MODULES), \
+STATIC_LIB_FILES := $(foreach module, $(STATIC_LIB_MODULES), \
     $(foreach lib, $(LIBS_$(module)), \
     $(SUPPORT_OUTPUTDIR)/native/$(module)/lib$(lib)/static/$(LIBRARY_PREFIX)$(lib)$(STATIC_LIBRARY_SUFFIX)))
 
 # Add Hotspot
-STATIC_LIBS_PATH += $(wildcard $(HOTSPOT_STATIC_LIB_PATH)/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX))
+STATIC_LIB_FILES += $(wildcard $(HOTSPOT_STATIC_LIB_PATH)/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX))
 
 # Figure out what external libraries are required to link these static JDK
 # libraries.
-LIBINFO_FILES := $(addsuffix .libs-info, $(STATIC_LIBS_PATH))
+LIB_FLAGS_FILES := $(addsuffix .lib-flags.txt, $(STATIC_LIB_FILES))
 
 # Gather the lib flags from all individual libraries. There are many duplicates,
 # so sort and just keep unique instances. On macOS, a common pattern is
 # "-framework FooFramework", so we must make sure we keep the two words together.
-EXTERNAL_LIBS := $(strip $(shell $(CAT) $(LIBINFO_FILES) | \
+EXTERNAL_LIBS := $(strip $(shell $(CAT) $(LIB_FLAGS_FILES) | \
     $(SED) -e 's/-framework /-framework_/g' | $(TR) ' ' '\n' | $(SORT) -u | \
     $(SED) -e 's/-framework_/-framework /g'))
 
 ifeq ($(call isTargetOs, macosx), true)
-  STATIC_LIBS := $(addprefix -force_load$(SPACE), $(STATIC_LIBS_PATH))
+  STATIC_LIBS := $(addprefix -force_load$(SPACE), $(STATIC_LIB_FILES))
   STANDARD_LIBS += -lstdc++
 else ifeq ($(call isTargetOs, linux), true)
-  STATIC_LIBS := -Wl,--export-dynamic -Wl,--whole-archive $(STATIC_LIBS_PATH) -Wl,--no-whole-archive
+  STATIC_LIBS := -Wl,--export-dynamic -Wl,--whole-archive $(STATIC_LIB_FILES) -Wl,--no-whole-archive
   STANDARD_LIBS := -l:libstdc++.a
 else ifeq ($(call isTargetOs, windows), true)
-  STATIC_LIBS := $(addprefix -wholearchive:, $(STATIC_LIBS_PATH))
+  STATIC_LIBS := $(addprefix -wholearchive:, $(STATIC_LIB_FILES))
 else
   $(error Unsupported platform)
 endif
@@ -117,8 +117,8 @@ $(eval $(call SetupBuildLauncher, java, \
     STATIC_LAUNCHER := true, \
     LDFLAGS := $(JAVASTATIC_LINK_LDFLAGS), \
     LIBS := $(STATIC_LIBS) $(EXTERNAL_LIBS) $(STANDARD_LIBS), \
-    OUTPUT_DIR := $(JAVASTATIC_OUTPUT_DIR), \
-    OBJECT_DIR := $(JAVASTATIC_OUTPUT_DIR), \
+    OUTPUT_DIR := $(STATIC_LAUNCHER_OUTPUT_DIR), \
+    OBJECT_DIR := $(STATIC_LAUNCHER_OUTPUT_DIR), \
 ))
 
 TARGETS += $(java)
