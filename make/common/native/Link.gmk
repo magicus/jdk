@@ -211,5 +211,4 @@ define CreateDynamicLibraryOrExecutable
 	$$(call LogInfo, Creating compile commands linker flags output for $$($1_BASENAME))
 	$$(call MakeDir, $$(dir $$@))
 	$$(ECHO) $$($1_ALL_LD_ARGS) > $$@
-
 endef
