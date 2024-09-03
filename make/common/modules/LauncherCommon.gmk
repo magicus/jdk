@@ -125,7 +125,7 @@ define SetupBuildLauncherBody
       $1_JDK_LIBS := java.base:libjli
       $1_JDK_LIBS_windows := java.base:libjava
   else
-    ifeq ($(TOOLCHAIN_TYPE), gcc)
+    ifneq ($(findstring $(TOOLCHAIN_TYPE), gcc clang), )
       $1_LDFLAGS_FILTER_OUT := -Wl$(COMMA)--exclude-libs$(COMMA)ALL
     endif
   endif
