@@ -250,7 +250,7 @@ BOOL AwtToolkit::activateKeyboardLayout(HKL hkl) {
  * Exported functions
  */
 
-extern "C" BOOL APIENTRY DllMain_AWT(HANDLE hInstance, DWORD ul_reason_for_call,
+extern "C" BOOL APIENTRY DllMain(HANDLE hInstance, DWORD ul_reason_for_call,
                                  LPVOID)
 {
     // Don't use the TRY and CATCH_BAD_ALLOC_RET macros if we're detaching

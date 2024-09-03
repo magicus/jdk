@@ -105,7 +105,7 @@ static struct {
  * Initialize Windows Sockets API support
  */
 BOOL WINAPI
-DllMain_net(HINSTANCE hinst, DWORD reason, LPVOID reserved)
+DllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved)
 {
     WSADATA wsadata;
 
