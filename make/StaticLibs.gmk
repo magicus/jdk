@@ -38,8 +38,7 @@ include modules/LauncherCommon.gmk
 #
 ################################################################################
 
-JAVASTATIC_OUTPUT_DIR := $(JDK_OUTPUTDIR)/bin-static
-JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
+JAVASTATIC_OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
 HOTSPOT_STATIC_LIB_PATH := $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static
 STATIC_JDK_IMAGE_DIR := $(IMAGES_OUTPUTDIR)/static-jdk
 
@@ -119,7 +118,7 @@ $(eval $(call SetupBuildLauncher, java, \
     LDFLAGS := $(JAVASTATIC_LINK_LDFLAGS), \
     LIBS := $(STATIC_LIBS) $(EXTERNAL_LIBS) $(STANDARD_LIBS), \
     OUTPUT_DIR := $(JAVASTATIC_OUTPUT_DIR), \
-    OBJECT_DIR := $(JAVASTATIC_OBJECT_DIR), \
+    OBJECT_DIR := $(JAVASTATIC_OUTPUT_DIR), \
 ))
 
 TARGETS += $(java)
