@@ -26,16 +26,22 @@
 default: all
 
 include $(SPEC)
-include $(TOPDIR)/make/common/MakeBase.gmk
-include $(TOPDIR)/make/common/Modules.gmk
+include MakeBase.gmk
 
-include $(TOPDIR)/make/common/modules/LauncherCommon.gmk
+include CopyFiles.gmk
+include Modules.gmk
+include modules/LauncherCommon.gmk
 
+################################################################################
+#
+# Create the static java launcher
+#
 ################################################################################
 
 JAVASTATIC_OUTPUT_DIR := $(JDK_OUTPUTDIR)/bin-static
 JAVASTATIC_OBJECT_DIR := $(SUPPORT_OUTPUTDIR)/static-native/launcher
 HOTSPOT_STATIC_LIB_PATH := $(HOTSPOT_OUTPUTDIR)/*/libjvm/objs/static
+STATIC_JDK_IMAGE_DIR := $(IMAGES_OUTPUTDIR)/static-jdk
 
 ifneq ($(word 2, $(wildcard $(HOTSPOT_STATIC_LIB_PATH))), )
   $(error Cannot perform static linking when building more than one JVM library)
@@ -118,11 +124,62 @@ $(eval $(call SetupBuildLauncher, java, \
 
 TARGETS += $(java)
 
+JAVA_LAUNCHER := $(BUILD_LAUNCHER_java_TARGET)
+
 static-launcher: $(java)
 
-static-jdk-image:
-	$(ECHO) Not implemented yet
+################################################################################
+#
+# Create the static-jdk image with the statically built java launcher
+#
+################################################################################
+
+# Until we get proper support in jlink for generating an image with static
+# builds, we need to create the image ourselves. We base it on a normal
+# dynamically linked JDK image.
+
+# All these files/dirs should be copied as-is
+JDK_IMAGE_COPY_FILES := $(addprefix $(JDK_IMAGE_DIR)/, conf demo include jmods \
+    legal man/man1/java.1 release README)
+
+# We need to copy some files from lib, but not the dynamic libraries themselves
+ALL_LIB_FILES := $(call FindFiles, $(JDK_IMAGE_DIR)/lib)
+
+# Remove all dynamic libraries from the list
+JDK_IMAGE_COPY_LIB_FILES := $(filter-out %$(SHARED_LIBRARY_SUFFIX), $(ALL_LIB_FILES))
+# Remove all debug files from the list
+ifeq ($(call isTargetOs, macosx), true)
+  JDK_IMAGE_COPY_LIB_FILES := $(call not-containing, .dSYM, $(JDK_IMAGE_COPY_LIB_FILES))
+else
+  JDK_IMAGE_COPY_LIB_FILES := $(filter-out %.debuginfo %.pdb %.map, $(JDK_IMAGE_COPY_LIB_FILES))
+endif
+
+static-jdk-info:
+	$(call LogWarn, Creating static-jdk image)
+
+$(eval $(call SetupCopyFiles, copy-from-jdk-image, \
+    SRC := $(JDK_IMAGE_DIR), \
+    DEST := $(STATIC_JDK_IMAGE_DIR), \
+    FILES := $(call FindFiles, $(JDK_IMAGE_COPY_FILES)) \
+        $(JDK_IMAGE_COPY_LIB_FILES), \
+))
+
+TARGETS += $(copy-from-jdk-image)
+
+$(copy-from-jdk-image): | static-jdk-info
+
+$(eval $(call SetupCopyFiles, copy-static-launcher, \
+    SRC := $(dir $(JAVA_LAUNCHER)), \
+    DEST := $(STATIC_JDK_IMAGE_DIR)/bin, \
+    FILES := $(JAVA_LAUNCHER), \
+))
+
+TARGETS += $(copy-static-launcher)
+
+static-jdk-image: $(copy-from-jdk-image) $(copy-static-launcher)
+
+TARGETS += static-jdk-image
 
 all: $(TARGETS)
 
-.PHONY: all static-launcher
+.PHONY: all static-launcher static-jdk-image
