@@ -120,6 +120,9 @@ TARGETS += $(java)
 
 static-launcher: $(java)
 
+static-jdk-image:
+	$(ECHO) Not implemented yet
+
 all: $(TARGETS)
 
 .PHONY: all static-launcher
