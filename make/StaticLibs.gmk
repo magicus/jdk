@@ -71,7 +71,7 @@ $(foreach module, $(STATIC_LIB_MODULES), \
 
 STATIC_LIBS_PATH := $(foreach module, $(STATIC_LIB_MODULES), \
     $(foreach lib, $(LIBS_$(module)), \
-    $(SUPPORT_OUTPUTDIR)/native/$(module)/lib$(lib)/static/lib$(lib).a))
+    $(SUPPORT_OUTPUTDIR)/native/$(module)/lib$(lib)/static/$(LIBRARY_PREFIX)$(lib)$(STATIC_LIBRARY_SUFFIX)))
 
 # Add Hotspot
 STATIC_LIBS_PATH += $(wildcard $(HOTSPOT_STATIC_LIB_PATH)/$(LIBRARY_PREFIX)jvm$(STATIC_LIBRARY_SUFFIX))
