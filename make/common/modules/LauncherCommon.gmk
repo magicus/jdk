@@ -62,7 +62,7 @@ JAVA_MANIFEST := $(TOPDIR)/src/java.base/windows/native/launcher/java.manifest
 # OPTIMIZATION   Override default optimization level (LOW)
 # OUTPUT_DIR   Override default output directory
 # VERSION_INFO_RESOURCE   Override default Windows resource file
-# STATIC_LAUNCHER   If true, will use settingds for building a static launcher
+# STATIC_LAUNCHER   If true, will use settings for building a static launcher
 SetupBuildLauncher = $(NamedParamsMacroTemplate)
 define SetupBuildLauncherBody
   # Setup default values (unless overridden)
