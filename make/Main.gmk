@@ -1306,7 +1306,7 @@ endif
 ################################################################################
 
 # all-images builds all our deliverables as images.
-all-images: product-images test-image all-docs-images
+all-images: product-images static-jdk-image test-image all-docs-images
 
 # all-bundles packages all our deliverables as tar.gz bundles.
 all-bundles: product-bundles test-bundles docs-bundles static-libs-bundles
@@ -1319,7 +1319,7 @@ ALL_TARGETS += buildtools hotspot hotspot-libs hotspot-static-libs \
     create-buildjdk docs-jdk-api docs-javase-api docs-reference-api docs-jdk \
     docs-javase docs-reference docs-javadoc mac-bundles product-images legacy-images \
     docs-image docs-javase-image docs-reference-image all-docs-images \
-    docs-bundles all-docs-bundles test-image all-images \
+    docs-bundles all-docs-bundles test-image all-images static-exploded-image \
     all-bundles
 
 ################################################################################
