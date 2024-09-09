@@ -23,8 +23,8 @@
 # questions.
 #
 
-include LibCommon.gmk
 include LauncherCommon.gmk
+include LibCommon.gmk
 
 JPACKAGE_OUTPUT_DIR := \
     $(JDK_OUTPUTDIR)/modules/$(MODULE)/jdk/jpackage/internal/resources
