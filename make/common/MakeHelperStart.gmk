@@ -28,10 +28,26 @@
 ################################################################
 
 # Get the next to last word (by prepending a padding element)
-INCLUDING_HELPER := $(word $(words ${MAKEFILE_LIST}),padding ${MAKEFILE_LIST})
-RELATIVE_HELPER_NAME := $(patsubst $(TOPDIR)/make/%,%,$(INCLUDING_HELPER))
+THIS_HELPER := $(word $(words ${MAKEFILE_LIST}),padding ${MAKEFILE_LIST})
+RELATIVE_HELPER_NAME := $(patsubst $(TOPDIR)/make/%,%,$(THIS_HELPER))
 
-################################################################################
-# Hook to include the corresponding custom file, if present.
-CUSTOM_PRE_NAME := $(subst .gmk,-pre.gmk, $(RELATIVE_HELPER_NAME))
-$(eval $(call IncludeCustomExtension, $(CUSTOM_PRE_NAME)))
+ifeq ($(SPEC), )
+  $(error SPEC is not set for $(THIS_HELPER))
+endif
+
+ifneq ($(MAKEBASE_INCLUDED), true)
+  $(error MakeBase.gmk is not included before including $(THIS_HELPER))
+endif
+
+# Setup an automatic include guard
+ifneq ($(INCLUDE_GUARD_$(RELATIVE_HELPER_NAME)), true)
+  INCLUDE_GUARD_$(RELATIVE_HELPER_NAME) := true
+  HELPER := include
+
+  ##############################################################################
+  # Hook to include the corresponding custom file, if present.
+  CUSTOM_PRE_NAME := $(subst .gmk,-pre.gmk, $(RELATIVE_HELPER_NAME))
+  $(eval $(call IncludeCustomExtension, $(CUSTOM_PRE_NAME)))
+else
+  HELPER := skip
+endif

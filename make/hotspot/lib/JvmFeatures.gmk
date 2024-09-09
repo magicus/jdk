@@ -24,6 +24,11 @@
 #
 
 ################################################################################
+
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
+
+################################################################################
 # Setup CFLAGS and EXCLUDES for the libjvm compilation, depending on which
 # jvm features are selected for this jvm variant.
 
@@ -273,3 +278,8 @@ ifeq ($(call check-jvm-feature, opt-size), true)
     BUILD_LIBJVM_systemDictionary.cpp_CXXFLAGS := -fno-optimize-sibling-calls
   endif
 endif
+
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

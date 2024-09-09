@@ -23,18 +23,14 @@
 # questions.
 #
 
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
+
 ################################################################################
 # This is the top-level entry point for our native compilation and linking.
 # It contains the SetupNativeCompilation macro, but is supported by helper
 # macros in the make/common/native directory.
 ################################################################################
-
-ifndef _NATIVE_COMPILATION_GMK
-_NATIVE_COMPILATION_GMK := 1
-
-ifeq ($(_MAKEBASE_GMK), )
-  $(error You must include MakeBase.gmk prior to including NativeCompilation.gmk)
-endif
 
 include MakeIO.gmk
 include native/CompileFile.gmk
@@ -409,4 +405,7 @@ define ImportDependencyFile
   endif
 endef
 
-endif # _NATIVE_COMPILATION_GMK
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

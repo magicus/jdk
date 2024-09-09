@@ -22,7 +22,10 @@
 # or visit www.oracle.com if you need additional information or have any
 # questions.
 #
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
 
+################################################################################
 
 GTEST_TEST_SRC += $(TOPDIR)/test/hotspot/gtest
 
@@ -158,3 +161,6 @@ $(eval $(call SetupJdkExecutable, BUILD_GTEST_LAUNCHER, \
 TARGETS += $(BUILD_GTEST_LAUNCHER)
 
 ################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

@@ -23,14 +23,11 @@
 # questions.
 #
 
-ifeq ($(_MAKEBASE_GMK), )
-  $(error You must include MakeBase.gmk prior to including FileUtils.gmk)
-endif
+include $(TOPDIR)/make/common/MakeHelperStart.gmk
+ifeq ($(HELPER), include)
 
 ################################################################################
-#
 # Common file utility functions
-#
 ################################################################################
 
 ################################################################################
@@ -307,3 +304,8 @@ ifeq ($(DISABLE_CACHE_FIND), true)
 else
   FindFiles = $(CacheFindFiles)
 endif
+
+################################################################################
+
+include $(TOPDIR)/make/common/MakeHelperEnd.gmk
+endif # include guard

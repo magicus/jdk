@@ -23,12 +23,10 @@
 # questions.
 #
 
-ifndef _JAR_ARCHIVE_GMK
-_JAR_ARCHIVE_GMK := 1
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
 
-ifeq ($(_MAKEBASE_GMK), )
-  $(error You must include MakeBase.gmk prior to including JarArchive.gmk)
-endif
+################################################################################
 
 include MakeIO.gmk
 
@@ -283,4 +281,7 @@ define SetupJarArchiveBody
   $1 += $$($1_JAR)
 endef
 
-endif # _JAR_ARCHIVE_GMK
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

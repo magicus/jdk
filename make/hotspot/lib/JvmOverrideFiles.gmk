@@ -23,6 +23,9 @@
 # questions.
 #
 
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
+
 ################################################################################
 # This file contains explicit overrides of CFLAGS and/or precompiled header
 # status for individual files on specific platforms.
@@ -147,3 +150,8 @@ else ifeq ($(call isTargetOs, windows), true)
   BUILD_LIBJVM_jvmciCompilerToVMInit.cpp_OPTIMIZATION := NONE
 
 endif
+
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

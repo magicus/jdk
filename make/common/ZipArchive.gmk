@@ -23,15 +23,13 @@
 # questions.
 #
 
-ifndef _ZIP_ARCHIVE_GMK
-_ZIP_ARCHIVE_GMK := 1
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
+
+################################################################################
 
 # Depends on build tools for MakeZipReproducible
 include $(TOPDIR)/make/ToolsJdk.gmk
-
-ifeq ($(_MAKEBASE_GMK), )
-  $(error You must include MakeBase.gmk prior to including ZipArchive.gmk)
-endif
 
 # Setup make rules for creating a zip archive.
 #
@@ -192,4 +190,7 @@ define SetupZipArchiveBody
   $1 += $$($1_ZIP)
 endef
 
-endif # _ZIP_ARCHIVE_GMK
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

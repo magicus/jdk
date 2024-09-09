@@ -23,6 +23,11 @@
 # questions.
 #
 
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
+
+################################################################################
+
 ifeq ($(call check-jvm-feature, compiler2), true)
 
   ADLC_SUPPORT_DIR := $(JVM_SUPPORT_DIR)/adlc
@@ -260,3 +265,8 @@ ifeq ($(call check-jvm-feature, compiler2), true)
   TARGETS += $(ADLC_GENERATED_FILES)
 
 endif
+
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

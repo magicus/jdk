@@ -23,14 +23,10 @@
 # questions.
 #
 
-ifndef _JDK_NATIVE_COMPILATION_GMK
-_JDK_NATIVE_COMPILATION_GMK := 1
-
 include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
 
-ifeq ($(_MAKEBASE_GMK), )
-  $(error You must include MakeBase.gmk prior to including JdkNativeCompilation.gmk)
-endif
+################################################################################
 
 include NativeCompilation.gmk
 
@@ -482,4 +478,7 @@ define SetupJdkExecutableBody
   $$(eval $$(call SetupJdkNativeCompilation, $1))
 endef
 
-endif # _JDK_NATIVE_COMPILATION_GMK
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

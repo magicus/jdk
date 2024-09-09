@@ -23,12 +23,10 @@
 # questions.
 #
 
-ifndef _JAVA_COMPILATION_GMK
-_JAVA_COMPILATION_GMK := 1
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
 
-ifeq ($(_MAKEBASE_GMK), )
-  $(error You must include MakeBase.gmk prior to including JavaCompilation.gmk)
-endif
+################################################################################
 
 include MakeIO.gmk
 
@@ -556,4 +554,7 @@ SetupJavaCompilationCompileTarget = \
 SetupJavaCompilationApiTarget = \
     $(strip $2)/_the.$(strip $1)_pubapi
 
-endif # _JAVA_COMPILATION_GMK
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

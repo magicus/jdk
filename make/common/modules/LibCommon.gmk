@@ -23,4 +23,14 @@
 # questions.
 #
 
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
+
+################################################################################
+
 include JdkNativeCompilation.gmk
+
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

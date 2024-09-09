@@ -23,6 +23,11 @@
 # questions.
 #
 
+include MakeHelperStart.gmk
+ifeq ($(HELPER), include)
+
+################################################################################
+
 include CopyFiles.gmk
 include JdkNativeCompilation.gmk
 include Modules.gmk
@@ -239,3 +244,8 @@ ifeq ($(call isTargetOsType, unix)+$(MAKEFILE_PREFIX), true+Launcher)
     endif
   endif
 endif
+
+################################################################################
+
+include MakeHelperEnd.gmk
+endif # include guard

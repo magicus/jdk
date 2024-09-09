@@ -23,14 +23,11 @@
 # questions.
 #
 
-ifeq ($(_MAKEBASE_GMK), )
-  $(error You must include MakeBase.gmk prior to including Utils.gmk)
-endif
+include $(TOPDIR)/make/common/MakeHelperStart.gmk
+ifeq ($(HELPER), include)
 
 ################################################################################
-#
 # Basic utility functions available to MakeBase.gmk itself
-#
 ################################################################################
 
 # String equals
@@ -398,3 +395,8 @@ FilterExcludedTranslations = \
     ), \
     $1 \
   ))
+
+################################################################################
+
+include $(TOPDIR)/make/common/MakeHelperEnd.gmk
+endif # include guard
