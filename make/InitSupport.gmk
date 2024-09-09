@@ -39,7 +39,7 @@ ifeq ($(HAS_SPEC), )
 
   # Include the corresponding closed file, if present.
   ifneq ($(CUSTOM_MAKE_DIR), )
-    -include $(CUSTOM_MAKE_DIR)/InitSupport.gmk
+    -include $(CUSTOM_MAKE_DIR)/InitSupport-pre.gmk
   endif
 
   ##############################################################################
