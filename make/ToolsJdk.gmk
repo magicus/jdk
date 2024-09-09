@@ -26,6 +26,8 @@
 ifndef _TOOLS_GMK
 _TOOLS_GMK := 1
 
+include MakeHelperStart.gmk
+
 include JavaCompilation.gmk
 
 ################################################################################
@@ -134,7 +136,6 @@ PANDOC_HTML_MANPAGE_FILTER := $(BUILDTOOLS_OUTPUTDIR)/manpages/pandoc-html-manpa
 
 ################################################################################
 
-# Hook to include the corresponding custom post file, if present.
-$(eval $(call IncludeCustomExtension, ToolsJdk-post.gmk))
+include MakeHelperEnd.gmk
 
 endif # _TOOLS_GMK

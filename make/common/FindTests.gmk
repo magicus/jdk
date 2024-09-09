@@ -26,6 +26,8 @@
 ifndef _FIND_TESTS_GMK
 _FIND_TESTS_GMK := 1
 
+include MakeHelperStart.gmk
+
 # This makefile can be called directly to just trigger generation of the cache
 # makefile. If so, SPEC and MakeBase.gmk need to be included.
 ifeq ($(FINDTESTS_STAND_ALONE), true)
@@ -35,9 +37,6 @@ endif
 
 # Make sure this variable is not lazy evaled.
 ALL_NAMED_TESTS :=
-
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, common/FindTests.gmk))
 
 # TEST_BASEDIRS might have been set by a custom extension
 TEST_BASEDIRS += $(TOPDIR)/test $(TOPDIR)
