@@ -27,6 +27,9 @@ include CopyCommon.gmk
 include Modules.gmk
 include TextFileProcessing.gmk
 
+# Hook to include the corresponding custom file, if present.
+$(eval $(call IncludeCustomExtension, modules/java.base/Copy.gmk))
+
 ################################################################################
 
 ifeq ($(call isTargetOs, aix), true)
@@ -68,8 +71,6 @@ ifeq ($(call isTargetOs, windows)+$(CREATING_BUILDJDK), true+false)
       MACRO := copy-and-chmod-executable, \
   ))
 
-  TARGETS += $(COPY_MSVCR) $(COPY_VCRUNTIME_1) $(COPY_MSVCP)
-
   ifneq ($(UCRT_DLL_DIR), )
     $(eval $(call SetupCopyFiles, COPY_UCRT_DLLS, \
         DEST := $(LIB_DST_DIR), \
@@ -77,8 +78,6 @@ ifeq ($(call isTargetOs, windows)+$(CREATING_BUILDJDK), true+false)
         FILES := $(wildcard $(UCRT_DLL_DIR)/*.dll), \
         MACRO := copy-and-chmod-executable, \
     ))
-
-    TARGETS += $(COPY_UCRT_DLLS)
   endif
 endif
 
@@ -190,8 +189,6 @@ ifeq ($(call isTargetOs, linux), true)
       FILES := $(TOPDIR)/src/java.base/$(OPENJDK_TARGET_OS_TYPE)/conf/sdp/sdp.conf.template, \
       DEST := $(CONF_DST_DIR)/sdp, \
   ))
-
-  TARGETS += $(COPY_SDP_CONF)
 endif
 
 ################################################################################
@@ -209,8 +206,6 @@ $(eval $(call SetupCopyFiles, COPY_JDK_NOTICES, \
     DEST := $(COMMON_LEGAL_DST_DIR), \
     FLATTEN := true, \
 ))
-
-TARGETS += $(COPY_JDK_NOTICES)
 
 ################################################################################
 #
@@ -237,8 +232,6 @@ ifeq ($(ENABLE_LIBFFI_BUNDLING), true)
       FLATTEN := true, \
       MACRO := install-file-nolink, \
   ))
-
-  TARGETS += $(COPY_LIBFFI)
 endif
 
 ################################################################################
@@ -249,8 +242,6 @@ ifeq ($(call isTargetOs, windows), true)
       FILES := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/windows/conf/tzmappings, \
       DEST := $(call FindLibDirForModule, $(MODULE)), \
   ))
-
-  TARGETS += $(COPY_TZMAPPINGS)
 endif
 
 ################################################################################
@@ -266,8 +257,6 @@ ifeq ($(ENABLE_HSDIS_BUNDLING), true)
       FLATTEN := true, \
       MACRO := install-file-nolink, \
   ))
-
-  TARGETS += $(COPY_HSDIS)
 endif
 
 ################################################################################

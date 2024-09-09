@@ -49,8 +49,6 @@ ifneq ($(wildcard $(INCLUDE_SOURCE_DIR)/*), )
       DEST := $(INCLUDE_TARGET_DIR), \
       FILES := $(filter %.h, $(call FindFiles, $(INCLUDE_SOURCE_DIR))), \
   ))
-
-  TARGETS += $(COPY_EXPORTED_INCLUDE)
 endif
 
 # Use the most specific of OS and OS_TYPE.
@@ -65,8 +63,6 @@ ifneq ($(wildcard $(INCLUDE_SOURCE_OS_DIR)/*), )
       DEST := $(INCLUDE_TARGET_DIR)/$(OPENJDK_TARGET_OS_INCLUDE_SUBDIR), \
       FILES := $(filter %.h, $(call FindFiles, $(INCLUDE_SOURCE_OS_DIR))), \
   ))
-
-  TARGETS += $(COPY_EXPORTED_INCLUDE_OS)
 endif
 
 ################################################################################
@@ -92,6 +88,8 @@ define SetupCopyLegalFilesBody
       $$(eval $1 += $$($1_$$(notdir $$f))) \
     ) \
   )
+  TARGETS += $$($1)
+
 endef
 
 ################################################################################

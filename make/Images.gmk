@@ -222,8 +222,6 @@ ifneq ($(filter jdk, $(MAKECMDGOALS)), )
       DEST := $(JDK_IMAGE_DIR)/demo, \
       FILES := $(DEMO_FILES), \
   ))
-
-  JDK_TARGETS += $(JDK_COPY_DEMOS)
 endif
 
 ################################################################################
@@ -289,14 +287,12 @@ SetupCopyDebuginfo = \
           FILES := $(call FindDebuginfoFiles, \
               $(SUPPORT_OUTPUTDIR)/modules_libs/$m), \
       )) \
-      $(eval $1_TARGETS += $$(COPY_$1_LIBS_DEBUGINFO_$m)) \
       $(eval $(call SetupCopyFiles, COPY_$1_CMDS_DEBUGINFO_$m, \
           SRC := $(SUPPORT_OUTPUTDIR)/modules_cmds/$m, \
           DEST := $($1_IMAGE_DIR)/$(CMDS_TARGET_SUBDIR), \
           FILES := $(call FindDebuginfoFiles, \
               $(SUPPORT_OUTPUTDIR)/modules_cmds/$m), \
       )) \
-      $(eval $1_TARGETS += $$(COPY_$1_CMDS_DEBUGINFO_$m)) \
     )
 
 # No space before argument to avoid having to put $(strip ) everywhere in

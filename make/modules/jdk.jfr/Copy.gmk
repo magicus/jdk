@@ -33,6 +33,5 @@ $(eval $(call SetupCopyFiles, COPY_JFR_CONF, \
     FILES := $(wildcard $(JFR_CONF_DIR)/*.jfc), \
     FLATTEN := true, \
 ))
-TARGETS += $(COPY_JFR_CONF)
 
 ################################################################################

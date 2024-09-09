@@ -34,14 +34,10 @@ $(eval $(call SetupCopyFiles, COPY_JAVADOC_MODULE_LEGAL_RESOURCES, \
     DEST := $(JDK_JAVADOC_DOCLET_RESOURCE_DIR)/legal, \
     FILES := $(wildcard $(MODULE_SRC)/share/legal/*.md), \
 ))
-TARGETS += $(COPY_JAVADOC_MODULE_LEGAL_RESOURCES)
-
-################################################################################
 
 $(eval $(call SetupCopyFiles, COPY_JAVADOC_COMMON_LEGAL_RESOURCES, \
     DEST := $(JDK_JAVADOC_DOCLET_RESOURCE_DIR)/legal, \
     FILES := $(wildcard $(COMMON_LEGAL_DST_DIR)/*), \
 ))
-TARGETS += $(COPY_JAVADOC_COMMON_LEGAL_RESOURCES)
 
 ################################################################################

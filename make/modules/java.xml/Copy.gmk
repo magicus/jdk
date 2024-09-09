@@ -36,5 +36,4 @@ $(eval $(call SetupCopyFiles, COPY_XML_MODULE_CONF, \
     FILES := jaxp.properties jaxp-strict.properties.template, \
 ))
 
-TARGETS += $(COPY_XML_MODULE_CONF)
 ################################################################################

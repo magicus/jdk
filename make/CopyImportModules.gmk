@@ -55,7 +55,6 @@ ifneq ($(LIBS_DIR), )
         FILES := $(filter-out $(TO_BIN_FILTER), \
             $(call FindFiles, $(LIBS_DIR))) \
     ))
-    TARGETS += $(COPY_LIBS_TO_BIN) $(COPY_LIBS_TO_LIB)
   else
     $(eval $(call SetupCopyFiles, COPY_LIBS, \
         SRC := $(LIBS_DIR), \
@@ -80,7 +79,6 @@ ifneq ($(LIBS_DIR), )
         MACRO := $(LINK_MACRO), \
         LOG_ACTION := $(LOG_ACTION), \
     ))
-    TARGETS += $(COPY_LIBS) $(LINK_LIBS)
   endif
 endif
 
@@ -90,7 +88,6 @@ ifneq ($(CMDS_DIR), )
       DEST := $(JDK_OUTPUTDIR)/bin, \
       FILES := $(call FindFiles, $(CMDS_DIR)), \
   ))
-  TARGETS += $(COPY_CMDS)
 endif
 
 ifneq ($(CONF_DIR), )
@@ -99,7 +96,6 @@ ifneq ($(CONF_DIR), )
       DEST := $(JDK_OUTPUTDIR)/lib, \
       FILES := $(call FindFiles, $(CONF_DIR)), \
   ))
-  TARGETS += $(COPY_CONF)
 endif
 
 ################################################################################

@@ -41,7 +41,7 @@ $(eval $(call SetupJavaCompilation, BUILD_JTREG_TEST_THREAD_FACTORY, \
     JAR := $(TTF_JAR), \
 ))
 
-TARGETS += $(BUILD_JTREG_TEST_THREAD_FACTORY)
+BUILD_TARGETS += $(BUILD_JTREG_TEST_THREAD_FACTORY)
 
 ################################################################################
 # Targets for building test-image.
@@ -57,7 +57,7 @@ $(eval $(call SetupCopyFiles, COPY_TTF, \
 IMAGES_TARGETS += $(COPY_TTF)
 
 all: build
-build: $(TARGETS)
+build: $(BUILD_TARGETS)
 images: $(IMAGES_TARGETS)
 
 .PHONY: images

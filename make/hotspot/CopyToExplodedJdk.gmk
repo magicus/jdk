@@ -44,8 +44,6 @@ ifeq ($(call isTargetOs, windows), true)
       DEST := $(JDK_OUTPUTDIR)/lib, \
       FILES := $(filter %.lib, $(LIB_TARGETS)), \
   ))
-
-  TARGETS += $(COPY_LIBS_BIN) $(COPY_LIBS_LIB)
 else
   $(eval $(call SetupCopyFiles, COPY_LIBS, \
       SRC := $(SUPPORT_OUTPUTDIR)/modules_libs/java.base, \
@@ -59,8 +57,6 @@ else
       MACRO := link-file-relative, \
       LOG_ACTION := Creating symlink, \
   ))
-
-  TARGETS += $(COPY_LIBS) $(LINK_LIBS)
 endif
 
 ################################################################################

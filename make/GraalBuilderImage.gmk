@@ -37,7 +37,6 @@ $(eval $(call SetupCopyFiles, COPY_JDK_IMG, \
       DEST := $(GRAAL_BUILDER_IMAGE_DIR)/, \
       FILES := $(call FindFiles, $(JDK_IMAGE_DIR)/), \
 ))
-TARGETS += $(COPY_JDK_IMG)
 
 $(eval $(call SetupCopyFiles, COPY_STATIC_LIBS, \
       SRC := $(STATIC_LIBS_GRAAL_IMAGE_DIR)/lib, \
@@ -45,7 +44,6 @@ $(eval $(call SetupCopyFiles, COPY_STATIC_LIBS, \
       FILES := $(filter %$(STATIC_LIBRARY_SUFFIX), \
           $(call FindFiles, $(STATIC_LIBS_GRAAL_IMAGE_DIR)/lib)), \
 ))
-TARGETS += $(COPY_STATIC_LIBS)
 
 ################################################################################
 

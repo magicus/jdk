@@ -67,8 +67,6 @@ $(eval $(call SetupCopyFiles, COPY_FH, \
     FILES := $(FH_JAR) $(BUILD_LIBTIMEOUT_HANDLER), \
 ))
 
-IMAGES_TARGETS += $(COPY_FH)
-
 ################################################################################
 # Test the failure handler itself
 ################################################################################

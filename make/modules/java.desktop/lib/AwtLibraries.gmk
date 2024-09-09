@@ -429,6 +429,4 @@ ifeq ($(call isTargetOs, windows), true)
   ))
 
   $(COPY_JAWT_LIB): $(BUILD_LIBJAWT)
-
-  TARGETS += $(COPY_JAWT_LIB)
 endif

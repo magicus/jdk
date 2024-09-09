@@ -52,7 +52,6 @@ $(foreach m, $(ALL_MODULES), \
       FILES := $(filter %$(STATIC_LIBRARY_SUFFIX), \
           $(call FindFiles, $(SUPPORT_OUTPUTDIR)/native/$m/*/static)), \
   )) \
-  $(eval TARGETS += $$(COPY_STATIC_LIBS_$m)) \
   $(eval STATIC_LIBS_TARGETS += $$(COPY_STATIC_LIBS_$m)) \
 )
 
@@ -64,7 +63,6 @@ ifneq ($(filter static-libs-image, $(MAKECMDGOALS)), )
         DEST := $(IMAGE_DEST_DIR)/$v, \
         FILES := $(wildcard $(HOTSPOT_OUTPUTDIR)/variant-$v/libjvm/objs/static/*$(STATIC_LIBRARY_SUFFIX)), \
     )) \
-    $(eval TARGETS += $$(COPY_STATIC_LIBS_$v)) \
     $(eval HOTSPOT_VARIANT_STATIC_LIBS_TARGETS += $$(COPY_STATIC_LIBS_$v)) \
   )
 endif

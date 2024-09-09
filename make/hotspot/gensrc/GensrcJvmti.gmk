@@ -120,8 +120,6 @@ ifeq ($(JVM_VARIANT), $(firstword $(JVM_VARIANTS)))
       DEST := $(SUPPORT_OUTPUTDIR)/modules_include/java.base, \
       FILES := $(JVMTI_OUTPUTDIR)/jvmti.h, \
   ))
-
-  TARGETS += $(COPY_JVMTI_H)
 endif
 
 ################################################################################

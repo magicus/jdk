@@ -78,8 +78,6 @@ $(eval $(call SetupCopyFiles, COPY_PREVIEW_FEATURES, \
     DEST := $(BUILDTOOLS_OUTPUTDIR)/gensrc/java.base.interim/jdk/internal/javac/, \
 ))
 
-TARGETS += $(COPY_PREVIEW_FEATURES)
-
 ################################################################################
 # Setup the rules to build interim langtools, which is compiled by the boot
 # javac and can be run on the boot jdk. This will be used to compile the rest of

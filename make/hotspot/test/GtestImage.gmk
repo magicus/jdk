@@ -34,8 +34,7 @@ $(foreach v, $(JVM_VARIANTS), \
       SRC := $(HOTSPOT_OUTPUTDIR)/variant-$v/libjvm/gtest, \
       DEST := $(TEST_IMAGE_DIR)/hotspot/gtest/$v, \
       FILES := $(LIBRARY_PREFIX)jvm$(SHARED_LIBRARY_SUFFIX) gtestLauncher$(EXECUTABLE_SUFFIX), \
-  )) \
-  $(eval TARGETS += $$(COPY_GTEST_$v)) \
+  ))
 )
 
 ifeq ($(call isTargetOs, windows), true)
@@ -44,27 +43,23 @@ ifeq ($(call isTargetOs, windows), true)
         DEST := $(TEST_IMAGE_DIR)/hotspot/gtest/$v, \
         FILES := $(MSVCR_DLL), \
         FLATTEN := true, \
-    )) \
-    $(eval TARGETS += $$(COPY_GTEST_MSVCR_$v)) \
+    ))
     $(eval $(call SetupCopyFiles, COPY_GTEST_VCRUNTIME_1_$v, \
         DEST := $(TEST_IMAGE_DIR)/hotspot/gtest/$v, \
         FILES := $(VCRUNTIME_1_DLL), \
         FLATTEN := true, \
-    )) \
-    $(eval TARGETS += $$(COPY_GTEST_VCRUNTIME_1_$v)) \
+    ))
     $(eval $(call SetupCopyFiles, COPY_GTEST_MSVCP_$v, \
         DEST := $(TEST_IMAGE_DIR)/hotspot/gtest/$v, \
         FILES := $(MSVCP_DLL), \
         FLATTEN := true, \
-    )) \
-    $(eval TARGETS += $$(COPY_GTEST_MSVCP_$v)) \
+    ))
     $(if $(call equals, $(COPY_DEBUG_SYMBOLS), true), \
       $(eval $(call SetupCopyFiles, COPY_GTEST_PDB_$v, \
           SRC := $(HOTSPOT_OUTPUTDIR)/variant-$v/libjvm/gtest, \
           DEST := $(TEST_IMAGE_DIR)/hotspot/gtest/$v, \
           FILES := jvm.dll.pdb gtestLauncher.exe.pdb, \
-      )) \
-      $(eval TARGETS += $$(COPY_GTEST_PDB_$v)) \
+      ))
     ) \
   )
 endif

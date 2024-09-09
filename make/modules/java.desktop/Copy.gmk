@@ -79,6 +79,4 @@ $(eval $(call SetupCopyLegalFiles, COPY_LEGAL, \
     EXCLUDES := $(LEGAL_EXCLUDES), \
 ))
 
-TARGETS += $(COPY_LEGAL)
-
 ################################################################################

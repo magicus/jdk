@@ -82,8 +82,6 @@ ifeq ($(call isTargetOs, macosx), true)
       MACRO := copy-and-chmod-executable, \
   ))
 
-  TARGETS += $(copy_xcode_project)
-
   $(eval $(call SetupExecute, open_xcode_project, \
       INFO := Opening Xcode project file, \
       DEPS := $(build_xcodeproject_TARGET) FORCE, \

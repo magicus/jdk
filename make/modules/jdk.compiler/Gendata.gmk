@@ -94,6 +94,4 @@ $(eval $(call SetupCopyFiles, COPY_TO_LIBS, \
     DEST := $(SUPPORT_OUTPUTDIR)/modules_libs/jdk.compiler, \
 ))
 
-TARGETS += $(COPY_TO_LIBS)
-
 ################################################################################

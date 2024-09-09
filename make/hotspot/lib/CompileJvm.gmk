@@ -289,7 +289,6 @@ ifneq ($(GENERATE_COMPILE_COMMANDS_ONLY), true)
           DEST := $(LIB_OUTPUTDIR), \
           FILES := $(BUILD_LIBJVM_IMPORT_LIBRARY), \
       ))
-      TARGETS += $(COPY_JVM_LIB)
     endif
   endif
 endif

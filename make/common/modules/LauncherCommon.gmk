@@ -239,8 +239,6 @@ ifeq ($(call isTargetOsType, unix)+$(MAKEFILE_PREFIX), true+Launcher)
           DEST := $(SUPPORT_OUTPUTDIR)/modules_man/$(MODULE)/man1, \
           FILES := $(MAN_FILES_TROFF), \
       ))
-
-      TARGETS += $(COPY_MAN_PAGES)
     endif
   endif
 endif
