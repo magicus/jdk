@@ -58,8 +58,6 @@ $(eval $(call SetupJavaCompilation, BUILD_JIGSAW_TOOLS, \
         --add-exports jdk.jdeps/com.sun.tools.jdeps=ALL-UNNAMED, \
 ))
 
-TARGETS += $(BUILD_JIGSAW_TOOLS)
-
 ################################################################################
 
 include MakeEnd.gmk

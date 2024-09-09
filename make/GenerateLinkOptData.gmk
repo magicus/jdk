@@ -45,8 +45,6 @@ $(eval $(call SetupJavaCompilation, CLASSLIST_JAR, \
     JAR := $(SUPPORT_OUTPUTDIR)/classlist.jar, \
 ))
 
-TARGETS += $(CLASSLIST_JAR)
-
 ################################################################################
 
 LINK_OPT_DIR := $(SUPPORT_OUTPUTDIR)/link_opt

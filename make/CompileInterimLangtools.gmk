@@ -120,8 +120,6 @@ define SetupInterimModule
       $$(INTERIM_LANGTOOLS_BASE_MODULES), $$(call FindTransitiveDepsForModule, $1)))
 
   $$(BUILD_$1.interim): $$(foreach d, $$($1_DEPS_INTERIM), $$(BUILD_$$d)) $(COPY_PREVIEW_FEATURES)
-
-  TARGETS += $$(BUILD_$1.interim)
 endef
 
 $(foreach m, $(INTERIM_LANGTOOLS_BASE_MODULES), \
@@ -139,8 +137,6 @@ $(eval $(call SetupJavaCompilation, BUILD_JAVAC_SERVER, \
     INCLUDES := javacserver, \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/langtools_javacserver_classes, \
 ))
-
-TARGETS += $(BUILD_JAVAC_SERVER)
 
 ################################################################################
 

@@ -541,6 +541,8 @@ define SetupJavaCompilationBody
       $1 += $$($1_SRCZIP)
     endif
   endif # Source files found
+
+  TARGETS += $$($1)
 endef
 
 # Use this macro to find the correct target to depend on when the original

@@ -56,8 +56,6 @@ $(eval $(call SetupJavaCompilation, BUILD_TOOLS_JDK, \
         --add-exports jdk.internal.opt/jdk.internal.opt=jdk.javadoc.interim, \
 ))
 
-TARGETS += $(BUILD_TOOLS_JDK)
-
 $(eval $(call SetupCopyFiles, COPY_NIMBUS_TEMPLATES, \
     SRC := $(TOPDIR)/src/java.desktop/share/classes/javax/swing/plaf/nimbus, \
     DEST := $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes/build/tools/generatenimbus/resources, \
@@ -95,7 +93,7 @@ $(DEPEND_SERVICE_PROVIDER):
 	$(call MakeDir, $(BUILDTOOLS_OUTPUTDIR)/depend/META-INF/services)
 	$(ECHO) build.tools.depend.Depend > $@
 
-TARGETS += $(COMPILE_DEPEND) $(DEPEND_SERVICE_PROVIDER)
+TARGETS += $(DEPEND_SERVICE_PROVIDER)
 
 ################################################################################
 

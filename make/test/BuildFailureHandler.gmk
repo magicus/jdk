@@ -54,8 +54,6 @@ $(eval $(call SetupJavaCompilation, BUILD_FAILURE_HANDLER, \
     JAVAC_FLAGS := -XDstringConcat=inline, \
 ))
 
-TARGETS += $(BUILD_FAILURE_HANDLER)
-
 ################################################################################
 # Targets for building test-image.
 ################################################################################

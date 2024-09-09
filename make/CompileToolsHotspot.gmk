@@ -42,8 +42,6 @@ $(eval $(call SetupJavaCompilation, BUILD_TOOLS_HOTSPOT, \
     BIN := $(HOTSPOT_TOOLS_OUTPUTDIR), \
 ))
 
-TARGETS += $(BUILD_TOOLS_HOTSPOT)
-
 ################################################################################
 
 include MakeEnd.gmk

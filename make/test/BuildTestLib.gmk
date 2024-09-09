@@ -50,8 +50,6 @@ $(eval $(call SetupJavaCompilation, BUILD_WB_JAR, \
     JAVAC_FLAGS := --enable-preview, \
 ))
 
-TARGETS += $(BUILD_WB_JAR)
-
 $(eval $(call SetupJavaCompilation, BUILD_TEST_LIB_JAR, \
     TARGET_RELEASE := $(TARGET_RELEASE_NEWJDK_UPGRADED), \
     SRC := $(TEST_LIB_SOURCE_DIR), \
@@ -67,8 +65,6 @@ $(eval $(call SetupJavaCompilation, BUILD_TEST_LIB_JAR, \
         --add-exports java.base/jdk.internal.module=ALL-UNNAMED \
         --enable-preview, \
 ))
-
-TARGETS += $(BUILD_TEST_LIB_JAR)
 
 build-test-lib: $(TARGETS)
 
