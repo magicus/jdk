@@ -28,10 +28,10 @@
 ################################################################
 
 # Get the next to last word (by prepending a padding element)
-INCLUDING_MAKEFILE := $(word $(words ${MAKEFILE_LIST}),padding ${MAKEFILE_LIST})
-RELATIVE_MAKEFILE_NAME := $(patsubst $(TOPDIR)/make/%,%,$(INCLUDING_MAKEFILE))
+INCLUDING_HELPER := $(word $(words ${MAKEFILE_LIST}),padding ${MAKEFILE_LIST})
+RELATIVE_HELPER_NAME := $(patsubst $(TOPDIR)/make/%,%,$(INCLUDING_HELPER))
 
 ################################################################################
 # Hook to include the corresponding custom file, if present.
-CUSTOM_PRE_NAME := $(subst .gmk,-post.gmk, $(RELATIVE_MAKEFILE_NAME))
+CUSTOM_PRE_NAME := $(subst .gmk,-pre.gmk, $(RELATIVE_HELPER_NAME))
 $(eval $(call IncludeCustomExtension, $(CUSTOM_PRE_NAME)))

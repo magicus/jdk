@@ -26,6 +26,8 @@
 ################################################################
 # MakeStart should be included first of all in all makefiles
 ################################################################
+THIS_MAKEFILE := $(firstword $(MAKEFILE_LIST))
+RELATIVE_MAKEFILE_NAME := $(patsubst $(TOPDIR)/make/%,%,$(THIS_MAKEFILE))
 
 # This must be the first rule
 default: all
@@ -34,3 +36,10 @@ include $(SPEC)
 include MakeBase.gmk
 
 TARGETS :=
+
+################################################################################
+# Hook to include the corresponding custom file, if present.
+$(eval $(call IncludeCustomExtension, $(RELATIVE_MAKEFILE_NAME)))
+
+CUSTOM_PRE_NAME := $(subst .gmk,-pre.gmk, $(RELATIVE_MAKEFILE_NAME))
+$(eval $(call IncludeCustomExtension, $(CUSTOM_PRE_NAME)))

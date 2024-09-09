@@ -29,5 +29,5 @@
 
 ################################################################################
 # Hook to include the corresponding custom file, if present.
-CUSTOM_POST_NAME := $(subst .gmk,-post.gmk, $(RELATIVE_MAKEFILE_NAME))
+CUSTOM_POST_NAME := $(subst .gmk,-post.gmk, $(RELATIVE_HELPER_NAME))
 $(eval $(call IncludeCustomExtension, $(CUSTOM_POST_NAME)))

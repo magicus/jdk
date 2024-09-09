@@ -33,6 +33,8 @@
 ifndef _MAKEBASE_GMK
 _MAKEBASE_GMK := 1
 
+include $(TOPDIR)/make/common/MakeHelperStart.gmk
+
 ifeq ($(wildcard $(SPEC)), )
   $(error MakeBase.gmk needs SPEC set to a proper spec.gmk)
 endif
@@ -312,7 +314,6 @@ ExecuteWithLog = \
 
 ################################################################################
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, common/MakeBase.gmk))
+include $(TOPDIR)/make/common/MakeHelperEnd.gmk
 
 endif # _MAKEBASE_GMK
