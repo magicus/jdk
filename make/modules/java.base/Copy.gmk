@@ -27,9 +27,6 @@ include CopyCommon.gmk
 include Modules.gmk
 include TextFileProcessing.gmk
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, modules/java.base/Copy.gmk))
-
 ################################################################################
 
 ifeq ($(call isTargetOs, aix), true)

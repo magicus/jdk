@@ -37,6 +37,9 @@ include CopyFiles.gmk
 
 MODULE_SRC := $(TOPDIR)/src/$(MODULE)
 
+# Hook to include the corresponding custom file, if present.
+$(eval $(call IncludeCustomExtension, modules/$(MODULE)/$(MAKEFILE_PREFIX).gmk))
+
 # Include the file being wrapped.
 include $(MAKEFILE_PREFIX).gmk
 
@@ -105,9 +108,8 @@ $(eval $(call SetupCopyFiles, COPY_CONF, \
         $(TARGETS)), \
 ))
 
-  all: $(COPY_LIBS_TO_BIN) $(COPY_LIBS_TO_LIB) \
-      $(COPY_INCLUDE) $(COPY_CMDS) $(COPY_MAN) $(COPY_CONF) $(LINK_LIBS_TO_LIB)
-endif
+all: $(COPY_LIBS_TO_BIN) $(COPY_LIBS_TO_LIB) \
+    $(COPY_INCLUDE) $(COPY_CMDS) $(COPY_MAN) $(COPY_CONF) $(LINK_LIBS_TO_LIB)
 
 ################################################################################
 
