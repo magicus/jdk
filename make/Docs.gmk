@@ -22,19 +22,18 @@
 # questions.
 #
 
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include Execute.gmk
 include Modules.gmk
 include ModuleTools.gmk
 include ProcessMarkdown.gmk
+include TextFileProcessing.gmk
 include ToolsJdk.gmk
 include ZipArchive.gmk
-include TextFileProcessing.gmk
 
 # This is needed to properly setup DOCS_MODULES.
 $(eval $(call ReadImportMetaData))
@@ -808,7 +807,11 @@ all: docs-jdk-api-javadoc docs-jdk-api-graphs docs-javase-api-javadoc \
     docs-reference-api-graphs docs-jdk-specs docs-jdk-index docs-zip \
     docs-specs-zip
 
-.PHONY: default all docs-jdk-api-javadoc docs-jdk-api-graphs \
+.PHONY: docs-jdk-api-javadoc docs-jdk-api-graphs \
     docs-javase-api-javadoc docs-javase-api-graphs \
     docs-reference-api-javadoc docs-reference-api-graphs docs-jdk-specs \
     docs-jdk-index docs-zip docs-specs-zip
+
+################################################################################
+
+include MakeEnd.gmk

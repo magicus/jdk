@@ -23,14 +23,11 @@
 # questions.
 #
 
+include MakeStart.gmk
+
 ################################################################################
 # Build demos for the JDK into $(SUPPORT_OUTPUTDIR)/demos/image.
 ################################################################################
-
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
 
 include CopyFiles.gmk
 include JavaCompilation.gmk
@@ -261,7 +258,8 @@ endif
 # Hook to include the corresponding custom file, if present.
 $(eval $(call IncludeCustomExtension, CompileDemos-post.gmk))
 
-all: $(TARGETS)
 images: $(IMAGES_TARGETS)
 
-.PHONY: all
+################################################################################
+
+include MakeEnd.gmk

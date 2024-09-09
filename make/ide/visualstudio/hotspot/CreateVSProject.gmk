@@ -23,13 +23,12 @@
 # questions.
 #
 
-# This must be the first rule
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
-include JavaCompilation.gmk
+################################################################################
+
 include Execute.gmk
+include JavaCompilation.gmk
 
 ifeq ($(call isTargetOs, windows), true)
   # The next part is a bit hacky. We include the CompileJvm.gmk to be
@@ -144,11 +143,15 @@ ifeq ($(call isTargetOs, windows), true)
 
   TARGETS += $(vcproj_file_TARGET)
 
-  all: $(TARGETS)
-
 else
-  all:
+  not-available:
 	$(info Hotspot Visual Studio generation only supported on Windows)
+
+  TARGETS += not-available
+
+  all: not-available
 endif
 
-.PHONY: all
+################################################################################
+
+include MakeEnd.gmk

@@ -23,10 +23,9 @@
 # questions.
 #
 
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include MakeIO.gmk
@@ -517,6 +516,10 @@ static-libs-bundles: $(STATIC_LIBS_TARGETS)
 static-libs-graal-bundles: $(STATIC_LIBS_GRAAL_TARGETS)
 jcov-bundles: $(JCOV_TARGETS)
 
-.PHONY: all default product-bundles test-bundles \
+.PHONY: product-bundles test-bundles \
     docs-jdk-bundles docs-javase-bundles docs-reference-bundles \
     static-libs-bundles static-libs-graal-bundles jcov-bundles
+
+################################################################################
+
+include MakeEnd.gmk

@@ -23,10 +23,9 @@
 # questions.
 #
 
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include Execute.gmk
 include Modules.gmk
@@ -58,6 +57,4 @@ TARGETS += $(jlink_interim_image)
 
 ################################################################################
 
-all: $(TARGETS)
-
-.PHONY: all
+include MakeEnd.gmk

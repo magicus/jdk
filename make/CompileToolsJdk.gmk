@@ -23,16 +23,13 @@
 # questions.
 #
 
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include JavaCompilation.gmk
 include TextFileProcessing.gmk
-
-################################################################################
 
 $(eval $(call IncludeCustomExtension, CompileTools.gmk))
 
@@ -160,4 +157,6 @@ ifeq ($(ENABLE_PANDOC), true)
   TARGETS += $(PANDOC_HTML_MANPAGE_FILTER_SETUP)
 endif
 
-all: $(TARGETS)
+################################################################################
+
+include MakeEnd.gmk

@@ -23,11 +23,10 @@
 # questions.
 #
 
-# This must be the first rule
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
+
 include CopyFiles.gmk
 include Execute.gmk
 include JavaCompilation.gmk
@@ -100,13 +99,18 @@ ifeq ($(call isTargetOs, macosx), true)
   build: $(build_xcode_project) $(copy_xcode_project)
 
   open: $(open_xcode_project)
-
-  all: $(TARGETS)
 else
-  build:
-  open:
-  all:
+  not-available:
 	$(info Xcode projects are only supported on macOS)
+
+  TARGETS += not-available
+
+  build: not-available
+  open: not-available
 endif
 
-.PHONY: default all build open
+.PHONY: build open
+
+################################################################################
+
+include MakeEnd.gmk

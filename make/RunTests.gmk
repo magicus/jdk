@@ -23,10 +23,10 @@
 # questions.
 #
 
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
+
 include FindTests.gmk
 
 # We will always run multiple tests serially
@@ -1279,4 +1279,8 @@ endif
 
 all: run-test
 
-.PHONY: default all $(TARGETS)
+.PHONY: $(TARGETS)
+
+################################################################################
+
+include MakeEnd.gmk

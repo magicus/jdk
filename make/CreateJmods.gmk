@@ -23,10 +23,9 @@
 # questions.
 #
 
-default: all
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include Execute.gmk
@@ -266,6 +265,4 @@ TARGETS += $(create_$(JMOD_FILE))
 
 ################################################################################
 
-all: $(TARGETS)
-
-################################################################################
+include MakeEnd.gmk

@@ -23,8 +23,9 @@
 # questions.
 #
 
-include $(SPEC)
-include MakeBase.gmk
+include MakeStart.gmk
+
+################################################################################
 
 $(eval $(call IncludeCustomExtension, SourceRevision-pre.gmk))
 
@@ -167,3 +168,7 @@ create-source-revision-tracker: $(CREATE_SOURCE_REVISION_TRACKER_TARGET)
 FRC: # Force target
 
 .PHONY: store-source-revision create-source-revision-tracker
+
+################################################################################
+
+include MakeEnd.gmk

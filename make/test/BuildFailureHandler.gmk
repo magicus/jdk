@@ -23,17 +23,12 @@
 # questions.
 #
 
-default: build
+include MakeStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include JavaCompilation.gmk
-
-TARGETS :=
-
-################################################################################
 
 FH_BASEDIR := $(TOPDIR)/test/failure_handler
 FH_SUPPORT := $(SUPPORT_OUTPUTDIR)/test/failure_handler
@@ -107,7 +102,12 @@ test:
 
 ################################################################################
 
+all: build
 build: $(TARGETS)
 images: $(IMAGES_TARGETS)
 
-.PHONY: all images test
+.PHONY: images test
+
+################################################################################
+
+include MakeEnd.gmk
