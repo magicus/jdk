@@ -77,7 +77,6 @@ $(eval $(call SetupTextFileProcessing, BUILD_PLATFORMPROPERTIES_JAVA, \
         @@OPENJDK_TARGET_CPU_BITS@@ => $(OPENJDK_TARGET_CPU_BITS), \
 ))
 
-TARGETS += $(BUILD_VERSION_JAVA) $(BUILD_PLATFORMPROPERTIES_JAVA)
 ################################################################################
 
 ifneq ($(filter $(TOOLCHAIN_TYPE), gcc clang), )
@@ -151,6 +150,4 @@ ifneq ($(wildcard $(TOPDIR)/src/java.base/share/classes/javax/crypto/JceSecurity
       REPLACEMENTS := \
         @@JCE_DEFAULT_POLICY@@ => $(JCE_DEFAULT_POLICY), \
   ))
-
-  TARGETS += $(BUILD_JCESECURITY_JAVA)
 endif

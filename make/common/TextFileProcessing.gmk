@@ -222,6 +222,8 @@ define SetupTextFileProcessingBody
               $$(patsubst $$($1_SOURCE_BASE_DIR)/%,%,$$(src)))))
     endif
   endif
+
+  TARGETS += $$($1)
 endef
 
 ################################################################################

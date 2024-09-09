@@ -122,8 +122,6 @@ define SetupEclipseWorkspaceBody
             @@CLASSPATH@@ => $$($1_CLASSPATH), \
     ))
 
-    TARGETS += $$($1_CREATE_CLASSPATH_FILE)
-
     $1_NATURES += <nature>org.eclipse.jdt.core.javanature</nature>$$(NEWLINE)
 
   endif
@@ -211,8 +209,6 @@ define SetupEclipseWorkspaceBody
             @@MAKE_TARGETS@@ => $$($1_MATCHING_MAKE_TARGETS), \
     ))
 
-    TARGETS += $$($1_CREATE_NATIVE_FILE)
-
     $$(call MakeDir, $$($1_IDE_OUTPUTDIR)/.settings)
 
     $1_CSETTINGS :=
@@ -287,8 +283,6 @@ define SetupEclipseWorkspaceBody
             @@CXXSETTINGS@@ => $$($1_CXXSETTINGS), \
     ))
 
-    TARGETS += $$($1_CREATE_SETTINGS_FILE)
-
   endif
 
   ifneq ($$(findstring $$($1_NATURE), JAVA MIXED), )
@@ -333,8 +327,6 @@ define SetupEclipseWorkspaceBody
           @@NATURES@@ => $$($1_NATURES) ; \
           @@LINKED_RESOURCES@@ => $$($1_LINKED_RESOURCES), \
   ))
-
-  TARGETS += $$($1_CREATE_WORKSPACE_FILE)
 
 endef
 
