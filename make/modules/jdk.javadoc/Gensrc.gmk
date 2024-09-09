@@ -35,5 +35,3 @@ $(eval $(call SetupCompileProperties, COMPILE_PROPERTIES, \
     CLASS := java.util.ListResourceBundle, \
     TYPE := langtools, \
 ))
-
-TARGETS += $(COMPILE_PROPERTIES)

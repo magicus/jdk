@@ -32,5 +32,3 @@ $(eval $(call SetupCompileProperties, COMPILE_PROPERTIES, \
     SRC_DIRS := $(TOPDIR)/src/jdk.management.agent/share/classes/jdk/internal/agent/resources, \
     CLASS := ListResourceBundle, \
 ))
-
-TARGETS += $(COMPILE_PROPERTIES)

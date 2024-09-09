@@ -72,5 +72,3 @@ $(eval $(call SetupCompileProperties, COMPILE_PROPERTIES, \
     EXCLUDE := %cursors.properties, \
     CLASS := ListResourceBundle, \
 ))
-
-TARGETS += $(COMPILE_PROPERTIES)

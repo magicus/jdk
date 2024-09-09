@@ -32,5 +32,3 @@ $(eval $(call SetupCompileProperties, COMPILE_PROPERTIES, \
     SRC_DIRS := $(TOPDIR)/src/java.logging/share/classes/sun/util/logging/resources, \
     CLASS := ListResourceBundle, \
 ))
-
-TARGETS += $(COMPILE_PROPERTIES)

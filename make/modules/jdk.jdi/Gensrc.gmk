@@ -66,5 +66,3 @@ $(eval $(call SetupCompileProperties, COMPILE_PROPERTIES, \
     SRC_DIRS := $(TOPDIR)/src/jdk.jdi/share/classes/com/sun/tools/jdi/resources, \
     CLASS := ListResourceBundle, \
 ))
-
-TARGETS += $(COMPILE_PROPERTIES)

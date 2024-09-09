@@ -47,6 +47,3 @@ $(eval $(call SetupCompileProperties, JIMAGE_PROPERTIES, \
     SRC_DIRS := $(TOPDIR)/src/jdk.jlink/share/classes/jdk/tools/jimage/resources, \
     CLASS := ListResourceBundle, \
 ))
-
-
-TARGETS += $(JLINK_PROPERTIES) $(JMOD_PROPERTIES) $(JIMAGE_PROPERTIES)

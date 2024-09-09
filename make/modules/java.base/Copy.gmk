@@ -220,8 +220,6 @@ $(eval $(call SetupCopyLegalFiles, COPY_LEGAL, \
     EXCLUDES := $(LEGAL_EXCLUDES), \
 ))
 
-TARGETS += $(COPY_LEGAL)
-
 ################################################################################
 # Optionally copy libffi.so.? into the image
 

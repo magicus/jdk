@@ -37,8 +37,6 @@ $(eval $(call SetupCompileProperties, COMPILE_PROPERTIES, \
     TYPE := langtools, \
 ))
 
-TARGETS += $(COMPILE_PROPERTIES)
-
 ################################################################################
 #
 # Compile properties files into enum-like classes using the propertiesparser tool

@@ -146,6 +146,8 @@ define SetupCompilePropertiesBody
   $$($1_HK): $$($1_TARGET)
 
   $1 += $$($1_JAVAS) $$($1_TARGET) $$($1_HK)
+
+  TARGETS += $$($1)
 endef
 
 ################################################################################

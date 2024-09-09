@@ -32,5 +32,3 @@ $(eval $(call SetupCompileProperties, COMPILE_PROPERTIES, \
     SRC_DIRS := $(TOPDIR)/src/jdk.jartool/share/classes/sun/tools/jar/resources, \
     CLASS := ListResourceBundle, \
 ))
-
-TARGETS += $(COMPILE_PROPERTIES)

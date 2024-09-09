@@ -37,5 +37,3 @@ $(eval $(call SetupCompileProperties, SIMPLESERVER_PROPERTIES, \
     SRC_DIRS := $(SIMPLESERVER_RESOURCES_DIRS), \
     CLASS := ListResourceBundle, \
 ))
-
-TARGETS += $(SIMPLESERVER_PROPERTIES)
