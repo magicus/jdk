@@ -34,7 +34,7 @@ $(foreach v, $(JVM_VARIANTS), \
       SRC := $(HOTSPOT_OUTPUTDIR)/variant-$v/libjvm/gtest, \
       DEST := $(TEST_IMAGE_DIR)/hotspot/gtest/$v, \
       FILES := $(LIBRARY_PREFIX)jvm$(SHARED_LIBRARY_SUFFIX) gtestLauncher$(EXECUTABLE_SUFFIX), \
-  ))
+  )) \
 )
 
 ifeq ($(call isTargetOs, windows), true)
