@@ -38,10 +38,13 @@ include CopyFiles.gmk
 MODULE_SRC := $(TOPDIR)/src/$(MODULE)
 
 # Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, modules/$(MODULE)/$(MAKEFILE_PREFIX).gmk))
+$(eval $(call IncludeCustomExtension, modules/$(MODULE)/$(MAKEFILE_PREFIX)-pre.gmk))
 
 # Include the file being wrapped.
 include $(MAKEFILE_PREFIX).gmk
+
+# Hook to include the corresponding custom file, if present.
+$(eval $(call IncludeCustomExtension, modules/$(MODULE)/$(MAKEFILE_PREFIX)-post.gmk))
 
 # Setup copy rules from the modules directories to the jdk image directory.
 ifeq ($(call isTargetOs, windows), true)
