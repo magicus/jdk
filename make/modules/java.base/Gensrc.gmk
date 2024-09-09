@@ -29,7 +29,6 @@ include gensrc/GensrcCharacterData.gmk
 include gensrc/GensrcCharsetCoder.gmk
 include gensrc/GensrcCharsetMapping.gmk
 include gensrc/GensrcExceptions.gmk
-include gensrc/GensrcLocaleData.gmk
 include gensrc/GensrcMisc.gmk
 include gensrc/GensrcModuleLoaderMap.gmk
 include gensrc/GensrcRegex.gmk
