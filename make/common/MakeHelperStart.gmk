@@ -32,11 +32,19 @@ THIS_HELPER := $(word $(words ${MAKEFILE_LIST}),padding ${MAKEFILE_LIST})
 RELATIVE_HELPER_NAME := $(patsubst $(TOPDIR)/make/%,%,$(THIS_HELPER))
 
 ifeq ($(SPEC), )
-  $(error SPEC is not set for $(THIS_HELPER))
+  $(error $(THIS_HELPER): SPEC is not set)
+endif
+
+ifeq ($(wildcard $(SPEC)), )
+  $(error $(THIS_HELPER): spec.gmk file $(SPEC) is missing)
+endif
+
+ifeq ($(words $(MAKEFILE_LIST)), 2)
+  $(error $(THIS_HELPER): This file is supposed to be included)
 endif
 
 ifneq ($(MAKEBASE_INCLUDED), true)
-  $(error MakeBase.gmk is not included before including $(THIS_HELPER))
+  $(error $(THIS_HELPER): MakeBase.gmk is not included)
 endif
 
 # Setup an automatic include guard

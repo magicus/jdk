@@ -33,11 +33,15 @@ default: all
 THIS_MAKEFILE := $(firstword $(MAKEFILE_LIST))
 
 ifeq ($(SPEC), )
-  $(error SPEC is not set for $(THIS_MAKEFILE))
+  $(error $(THIS_MAKEFILE): SPEC is not set)
 endif
 
 ifeq ($(wildcard $(SPEC)), )
-  $(error spec.gmk file $(SPEC) is missing for $(THIS_MAKEFILE))
+  $(error $(THIS_MAKEFILE): spec.gmk file $(SPEC) is missing)
+endif
+
+ifneq ($(words $(MAKEFILE_LIST)), 2)
+  $(error $(THIS_MAKEFILE): This file is not supposed to be included)
 endif
 
 include $(SPEC)
