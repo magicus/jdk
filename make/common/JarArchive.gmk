@@ -279,6 +279,8 @@ define SetupJarArchiveBody
 
   # Add jar to target list
   $1 += $$($1_JAR)
+
+  TARGETS += $$($1)
 endef
 
 ################################################################################
