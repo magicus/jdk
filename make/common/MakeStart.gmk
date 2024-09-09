@@ -51,6 +51,7 @@ TARGETS :=
 
 ################################################################################
 # Hook to include the corresponding custom file, if present.
-RELATIVE_MAKEFILE_NAME := $(patsubst $(TOPDIR)/make/%,%,$(THIS_MAKEFILE))
+RELATIVE_MAKEFILE_NAME := $(patsubst make/%,%,$(patsubst $(TOPDIR)/%,%,$(THIS_MAKEFILE)))
+
 CUSTOM_PRE_NAME := $(subst .gmk,-pre.gmk, $(RELATIVE_MAKEFILE_NAME))
 $(eval $(call IncludeCustomExtension, $(CUSTOM_PRE_NAME)))
