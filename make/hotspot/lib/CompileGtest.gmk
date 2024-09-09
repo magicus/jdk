@@ -158,8 +158,6 @@ $(eval $(call SetupJdkExecutable, BUILD_GTEST_LAUNCHER, \
     ZIP_EXTERNAL_DEBUG_SYMBOLS := false, \
 ))
 
-TARGETS += $(BUILD_GTEST_LAUNCHER)
-
 ################################################################################
 
 include MakeHelperEnd.gmk

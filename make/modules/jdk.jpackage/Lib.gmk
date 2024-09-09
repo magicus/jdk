@@ -71,8 +71,6 @@ $(eval $(call SetupJdkExecutable, BUILD_JPACKAGEAPPLAUNCHER, \
     MANIFEST_VERSION := $(VERSION_NUMBER_FOUR_POSITIONS) \
 ))
 
-TARGETS += $(BUILD_JPACKAGEAPPLAUNCHER)
-
 ifeq ($(call isTargetOs, linux), true)
   ##############################################################################
   ## Build libjpackageapplauncheraux
@@ -152,8 +150,6 @@ ifeq ($(call isTargetOs, windows), true)
       LIBS_windows := msi.lib ole32.lib shell32.lib shlwapi.lib user32.lib, \
   ))
 
-  TARGETS += $(BUILD_MSIWRAPPER)
-
   ##############################################################################
   ## Build jpackageapplauncherw
   ##############################################################################
@@ -178,6 +174,4 @@ ifeq ($(call isTargetOs, windows), true)
       MANIFEST := $(JAVA_MANIFEST), \
       MANIFEST_VERSION := $(VERSION_NUMBER_FOUR_POSITIONS) \
   ))
-
-  TARGETS += $(BUILD_JPACKAGEAPPLAUNCHERW)
 endif

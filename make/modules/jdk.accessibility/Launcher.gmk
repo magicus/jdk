@@ -45,8 +45,6 @@ ifeq ($(call isTargetOs, windows), true)
       MANIFEST_VERSION := $(VERSION_NUMBER_FOUR_POSITIONS), \
   ))
 
-  TARGETS += $(BUILD_JABSWITCH)
-
   ##############################################################################
   # Setup rules to create 32/64 bit version of jaccessinspector
   #
@@ -69,8 +67,6 @@ ifeq ($(call isTargetOs, windows), true)
         VERSIONINFO_RESOURCE := \
             $(ACCESSIBILITY_SRCDIR)/jaccessinspector/jaccessinspectorWindow.rc, \
     ))
-
-    TARGETS += $$(BUILD_JACCESSINSPECTOR$1)
   endef
 
   ##############################################################################
@@ -94,8 +90,6 @@ ifeq ($(call isTargetOs, windows), true)
         VERSIONINFO_RESOURCE := \
             $(ACCESSIBILITY_SRCDIR)/jaccesswalker/jaccesswalkerWindow.rc, \
     ))
-
-    TARGETS += $$(BUILD_JACCESSWALKER$1)
   endef
 
   ifeq ($(call isTargetCpuBits, 32), true)

@@ -220,6 +220,8 @@ define SetupNativeCompilationBody
     # Override all targets (this is a hack)
     $1 := $$($1_ALL_OBJS_JSON) $$($1_LDFLAGS_FILE)
   endif
+
+  TARGETS += $$($1)
 endef
 
 ################################################################################
