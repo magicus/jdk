@@ -227,8 +227,6 @@ ifeq ($(call isTargetOsType, unix)+$(MAKEFILE_PREFIX), true+Launcher)
           EXTRA_DEPS := $(PANDOC_TROFF_MANPAGE_FILTER) \
               $(PANDOC_TROFF_MANPAGE_FILTER_SOURCE), \
       ))
-
-      TARGETS += $(BUILD_MAN_PAGES)
     endif
   else
     # No markdown man pages present

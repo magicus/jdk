@@ -48,7 +48,6 @@ $(eval $(call SetupProcessMarkdown, md_docs, \
   CSS := $(GLOBAL_SPECS_DEFAULT_CSS_FILE), \
   OPTIONS := --toc, \
 ))
-TARGETS += $(md_docs)
 
 ################################################################################
 
