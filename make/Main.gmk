@@ -23,6 +23,12 @@
 # questions.
 #
 
+# Declare ALL_TARGETS as an immediate variable. This variable is a list of all
+# valid top level targets. It's used to declare them all as PHONY and to
+# generate the -only targets.
+
+ALL_TARGETS :=
+
 include MakeStart.gmk
 
 ################################################################################
@@ -40,10 +46,6 @@ ifneq ($(findstring -only, $(MAKECMDGOALS)), )
   DEPS := none
 endif
 
-# Declare ALL_TARGETS as an immediate variable. This variable is a list of all
-# valid top level targets. It's used to declare them all as PHONY and to
-# generate the -only targets.
-ALL_TARGETS :=
 
 # All modules for the current target platform.
 ALL_MODULES := $(call FindAllModules)
