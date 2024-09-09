@@ -27,11 +27,6 @@ include MakeStart.gmk
 
 ################################################################################
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, TestImage-pre.gmk))
-
-################################################################################
-
 BUILD_INFO_PROPERTIES := $(TEST_IMAGE_DIR)/build-info.properties
 
 $(BUILD_INFO_PROPERTIES):

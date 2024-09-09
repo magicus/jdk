@@ -29,11 +29,6 @@ include MakeStart.gmk
 # Help user diagnose possible errors and problems with the build environment.
 ################################################################################
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, Doctor.gmk))
-
-################################################################################
-
 prologue:
 	$(ECHO)
 	$(ECHO) '"make doctor" will help you analyze your build environment. It can highlight'

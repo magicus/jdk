@@ -72,9 +72,6 @@ ifeq ($(call isTargetOs, windows), true)
 endif
 
 ################################################################################
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, RunTests.gmk))
-################################################################################
 
 # This is the JDK that we will test
 JDK_UNDER_TEST := $(JDK_IMAGE_DIR)

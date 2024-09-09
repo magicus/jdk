@@ -34,9 +34,6 @@ include JavaCompilation.gmk
 include TextFileProcessing.gmk
 include ZipArchive.gmk
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, CompileDemos-pre.gmk))
-
 # Prepare the find cache.
 DEMO_SRC_DIRS += $(TOPDIR)/src/demo
 
@@ -253,10 +250,6 @@ ifneq ($(filter images, $(MAKECMDGOALS)), )
 
   IMAGES_TARGETS := $(COPY_TO_TEST_IMAGE)
 endif
-
-################################################################################
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, CompileDemos-post.gmk))
 
 images: $(IMAGES_TARGETS)
 

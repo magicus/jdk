@@ -33,9 +33,6 @@ include Modules.gmk
 SRC_ZIP_WORK_DIR := $(SUPPORT_OUTPUTDIR)/src
 $(if $(filter $(TOPDIR)/%, $(SUPPORT_OUTPUTDIR)), $(eval SRC_ZIP_BASE := $(TOPDIR)), $(eval SRC_ZIP_BASE := $(SUPPORT_OUTPUTDIR)))
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, ZipSource.gmk))
-
 ################################################################################
 # Create the directory structure for src.zip using symlinks.
 # <module>/<package>/<file>.java

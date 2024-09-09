@@ -759,10 +759,6 @@ $(eval $(call SetupZipArchive, BUILD_JAVADOC_ZIP, \
 ZIP_TARGETS += $(BUILD_JAVADOC_ZIP)
 
 ################################################################################
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, Docs-post.gmk))
-
-################################################################################
 # Bundles all generated specs into a zip archive, skipping javadocs.
 
 SPECS_ZIP_NAME := jdk-$(VERSION_STRING)-specs.zip

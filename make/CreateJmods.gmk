@@ -27,15 +27,13 @@ include MakeStart.gmk
 
 ################################################################################
 
-include CopyFiles.gmk
-include Execute.gmk
-include Modules.gmk
-
 ifeq ($(MODULE), )
   $(error MODULE must be set when calling CreateJmods.gmk)
 endif
 
-$(eval $(call IncludeCustomExtension, CreateJmods.gmk))
+include CopyFiles.gmk
+include Execute.gmk
+include Modules.gmk
 
 ################################################################################
 

@@ -26,10 +26,6 @@
 include MakeStart.gmk
 
 ################################################################################
-
-$(eval $(call IncludeCustomExtension, SourceRevision-pre.gmk))
-
-################################################################################
 # Keep track of what source revision is used to create the build, by creating
 # a tracker file in the output directory. This tracker file is included in the
 # source image, and can be used to recreate the source revision used.

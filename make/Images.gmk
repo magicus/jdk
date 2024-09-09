@@ -307,12 +307,6 @@ $(call SetupCopyDebuginfo,SYMBOLS)
 
 ################################################################################
 
-# Include custom post hook here to make it possible to augment the target lists
-# before actual target prerequisites are declared.
-$(eval $(call IncludeCustomExtension, Images-post.gmk))
-
-################################################################################
-
 $(JRE_TARGETS): $(JLINK_JRE_TARGETS)
 $(JDK_TARGETS): $(JLINK_JDK_TARGETS)
 

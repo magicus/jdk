@@ -42,8 +42,6 @@ ifeq ($(call isBuildOs, windows), true)
   TAR_IGNORE_EXIT_VALUE := || test "$$$$?" = "1"
 endif
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, Bundles-pre.gmk))
 ################################################################################
 # BUNDLE : Name of bundle to create
 # FILES : Files in BASE_DIRS to add to bundle
@@ -498,11 +496,6 @@ ifneq ($(filter static-libs-graal-bundles, $(MAKECMDGOALS)), )
 
   STATIC_LIBS_GRAAL_TARGETS += $(BUILD_STATIC_LIBS_GRAAL_BUNDLE)
 endif
-
-################################################################################
-
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, Bundles.gmk))
 
 ################################################################################
 
