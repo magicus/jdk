@@ -23,10 +23,8 @@
 # questions.
 #
 
-################################################################
+################################################################################
 # MakeEnd should be included last of all in all makefiles
-################################################################
-
 ################################################################################
 # Hook to include the corresponding custom file, if present.
 CUSTOM_POST_NAME := $(subst .gmk,-post.gmk, $(RELATIVE_MAKEFILE_NAME))

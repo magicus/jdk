@@ -23,25 +23,16 @@
 # questions.
 #
 
+include MakeStart.gmk
+
 ################################################################################
 # This is the main makefile containing most actual top level targets. It needs
 # to be called with a SPEC file defined.
 ################################################################################
 
-# Declare default target
-default:
+include $(TOPDIR)/make/MainSupport.gmk
 
-ifeq ($(wildcard $(SPEC)), )
-  $(error Main.gmk needs SPEC set to a proper spec.gmk)
-endif
-
-# Now load the spec
-include $(SPEC)
-include MakeBase.gmk
-
-# Load the vital tools for all the makefiles.
 include FindTests.gmk
-include MainSupport.gmk
 include Modules.gmk
 
 # Are we requested to ignore dependencies?
@@ -54,13 +45,9 @@ endif
 # generate the -only targets.
 ALL_TARGETS :=
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, Main.gmk))
-
 # All modules for the current target platform.
 ALL_MODULES := $(call FindAllModules)
 
-################################################################################
 ################################################################################
 #
 # Recipes for all targets. Only recipes, dependencies are declared later.
@@ -1344,7 +1331,6 @@ ALL_TARGETS += $(RUN_TEST_TARGETS) run-test exploded-run-test check \
     test-jdk-jtreg-native
 
 ################################################################################
-################################################################################
 #
 # Clean targets
 #
@@ -1452,10 +1438,8 @@ create-main-targets-include:
 	  @$(ECHO) ALL_MAIN_TARGETS := $(sort $(ALL_TARGETS)) > \
 	      $(MAKESUPPORT_OUTPUTDIR)/main-targets.gmk
 
-################################################################################
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, Main-post.gmk))
-
 .PHONY: $(ALL_TARGETS)
 
 FRC: # Force target
+
+include MakeEnd.gmk
