@@ -39,10 +39,6 @@ include ZipArchive.gmk
 $(eval $(call ReadImportMetaData))
 
 ################################################################################
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, Docs.gmk))
-
-################################################################################
 # This file generates all documentation for OpenJDK.
 #
 # We will generate API documentation for two different selections of the source

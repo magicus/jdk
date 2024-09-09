@@ -28,9 +28,6 @@ include Modules.gmk
 
 ################################################################################
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, modules/jdk.javadoc/Gendata.gmk))
-
 # This is needed to properly setup DOCS_MODULES.
 $(eval $(call ReadImportMetaData))
 

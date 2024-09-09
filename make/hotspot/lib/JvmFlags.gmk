@@ -23,8 +23,6 @@
 # questions.
 #
 
-$(eval $(call IncludeCustomExtension, hotspot/lib/JvmFlags.gmk))
-
 ################################################################################
 # Setup JVM_CFLAGS. These are shared between GensrcDtrace.gmk and CompileJvm.gmk.
 

@@ -23,8 +23,6 @@
 # questions.
 #
 
-$(eval $(call IncludeCustomExtension, hotspot/gensrc/GensrcAdlc.gmk))
-
 ifeq ($(call check-jvm-feature, compiler2), true)
 
   ADLC_SUPPORT_DIR := $(JVM_SUPPORT_DIR)/adlc

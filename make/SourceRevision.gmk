@@ -157,10 +157,6 @@ endif
 
 ################################################################################
 
-$(eval $(call IncludeCustomExtension, SourceRevision-post.gmk))
-
-################################################################################
-
 store-source-revision: $(STORE_SOURCE_REVISION_TARGET)
 
 create-source-revision-tracker: $(CREATE_SOURCE_REVISION_TRACKER_TARGET)

@@ -35,9 +35,6 @@ include Utils.gmk
 JDK_TARGETS :=
 JRE_TARGETS :=
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, Images-pre.gmk))
-
 ################################################################################
 
 # All modules for the current target platform.

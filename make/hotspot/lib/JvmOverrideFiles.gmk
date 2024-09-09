@@ -23,8 +23,6 @@
 # questions.
 #
 
-$(eval $(call IncludeCustomExtension, hotspot/lib/JvmOverrideFiles.gmk))
-
 ################################################################################
 # This file contains explicit overrides of CFLAGS and/or precompiled header
 # status for individual files on specific platforms.

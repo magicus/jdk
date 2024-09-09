@@ -23,7 +23,6 @@
 # questions.
 #
 
-$(eval $(call IncludeCustomExtension, hotspot/lib/CompileGtest.gmk))
 
 GTEST_TEST_SRC += $(TOPDIR)/test/hotspot/gtest
 

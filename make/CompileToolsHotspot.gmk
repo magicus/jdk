@@ -29,9 +29,6 @@ include MakeStart.gmk
 
 include JavaCompilation.gmk
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, hotspot/CompileTools.gmk))
-
 ################################################################################
 # Build tools needed for the JFR source code generation
 
