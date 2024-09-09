@@ -63,8 +63,6 @@ $(eval $(call SetupZipArchive, BUILD_SEC_BIN_ZIP, \
     ZIP := $(IMAGES_OUTPUTDIR)/sec-bin.zip, \
 ))
 
-TARGETS += $(IMAGES_OUTPUTDIR)/sec-bin.zip
-
 ################################################################################
 #
 # Windows specific binary security packages.
@@ -76,8 +74,6 @@ ifeq ($(call isTargetOs, windows), true)
       INCLUDES := modules/java.security.jgss/sun/security/krb5/internal/tools, \
       ZIP := $(IMAGES_OUTPUTDIR)/sec-windows-bin.zip, \
   ))
-
-  TARGETS += $(IMAGES_OUTPUTDIR)/sec-windows-bin.zip
 
   # JGSS files contain the native Kerberos library
   ifeq ($(call isTargetCpu, x86_64), true)
@@ -94,8 +90,6 @@ ifeq ($(call isTargetOs, windows), true)
           modules_libs/java.security.jgss/w2k_lsa_auth.dll.pdb, \
       ZIP := $(IMAGES_OUTPUTDIR)/$(JGSS_ZIP_NAME), \
   ))
-
-  TARGETS += $(IMAGES_OUTPUTDIR)/$(JGSS_ZIP_NAME)
 endif
 
 ################################################################################

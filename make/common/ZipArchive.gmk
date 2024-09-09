@@ -188,6 +188,8 @@ define SetupZipArchiveBody
 
   # Add zip to target list
   $1 += $$($1_ZIP)
+
+  TARGETS += $$($1)
 endef
 
 ################################################################################
