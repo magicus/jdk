@@ -39,5 +39,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJ2PCSC, \
     LIBS_unix := $(LIBDL), \
     LIBS_windows := winscard.lib, \
 ))
-
-TARGETS += $(BUILD_LIBJ2PCSC)

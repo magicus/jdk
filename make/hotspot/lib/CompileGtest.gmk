@@ -76,8 +76,6 @@ $(eval $(call SetupJdkLibrary, BUILD_GTEST_LIBGTEST, \
     STRIP_SYMBOLS := false, \
 ))
 
-TARGETS += $(BUILD_GTEST_LIBGTEST)
-
 ################################################################################
 ## Build libjvm (for gtest)
 ################################################################################
@@ -128,9 +126,6 @@ $(BUILD_GTEST_LIBJVM) : $(BUILD_GTEST_LIBGTEST)
 ifeq ($(call isTargetOs, windows), true)
   $(BUILD_GTEST_LIBJVM_TARGET): $(WIN_EXPORT_FILE)
 endif
-
-
-TARGETS += $(BUILD_GTEST_LIBJVM)
 
 ################################################################################
 ## Build gtestLauncher

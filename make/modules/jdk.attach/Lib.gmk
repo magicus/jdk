@@ -44,5 +44,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBATTACH, \
     JDK_LIBS := java.base:libjava, \
     LIBS_windows := advapi32.lib psapi.lib, \
 ))
-
-TARGETS += $(BUILD_LIBATTACH)

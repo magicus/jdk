@@ -38,5 +38,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJ2PKCS11, \
     DISABLED_WARNINGS_clang_p11_util.c := format-nonliteral, \
     LIBS_unix := $(LIBDL), \
 ))
-
-TARGETS += $(BUILD_LIBJ2PKCS11)

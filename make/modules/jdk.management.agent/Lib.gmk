@@ -35,5 +35,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBMANAGEMENT_AGENT, \
     JDK_LIBS := java.base:libjava, \
     LIBS_windows := advapi32.lib, \
 ))
-
-TARGETS += $(BUILD_LIBMANAGEMENT_AGENT)

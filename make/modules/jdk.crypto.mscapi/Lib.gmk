@@ -37,6 +37,4 @@ ifeq ($(call isTargetOs, windows), true)
       LDFLAGS := $(LDFLAGS_CXX_JDK), \
       LIBS_windows := advapi32.lib crypt32.lib ncrypt.lib, \
   ))
-
-  TARGETS += $(BUILD_LIBSUNMSCAPI)
 endif

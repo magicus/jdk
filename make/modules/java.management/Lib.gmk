@@ -43,5 +43,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBMANAGEMENT, \
     LIBS_aix := -lperfstat, \
     LIBS_windows := advapi32.lib psapi.lib, \
 ))
-
-TARGETS += $(BUILD_LIBMANAGEMENT)

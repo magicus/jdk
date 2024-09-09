@@ -55,8 +55,6 @@ ifeq ($(call isTargetOs, windows), true)
         VERSIONINFO_RESOURCE := \
             $(ACCESSIBILITY_SRCDIR)/common/AccessBridgeStatusWindow.rc, \
     )
-
-    TARGETS += $$(BUILD_LIBJAVAACCESSBRIDGE$1)
   endef
 
   ##############################################################################
@@ -83,8 +81,6 @@ ifeq ($(call isTargetOs, windows), true)
         VERSIONINFO_RESOURCE := \
             $(ACCESSIBILITY_SRCDIR)/common/AccessBridgeStatusWindow.rc, \
     )
-
-    TARGETS += $$(BUILD_LIBWINDOWSACCESSBRIDGE$1)
   endef
 
   ifeq ($(call isTargetCpuBits, 32), true)
@@ -98,8 +94,6 @@ ifeq ($(call isTargetOs, windows), true)
         VERSIONINFO_RESOURCE := \
             $(ACCESSIBILITY_SRCDIR)/common/AccessBridgeStatusWindow.rc, \
     )
-
-    TARGETS += $(BUILD_LIBJABSYSINFO)
   endif
 
   ifeq ($(call isTargetCpuBits, 32), true)

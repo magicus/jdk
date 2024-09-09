@@ -46,5 +46,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBINSTRUMENT, \
         -framework Security, \
     LIBS_windows := advapi32.lib, \
 ))
-
-TARGETS += $(BUILD_LIBINSTRUMENT)

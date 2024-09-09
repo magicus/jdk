@@ -79,5 +79,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBSAPROC, \
         -framework Security, \
     LIBS_windows := dbgeng.lib, \
 ))
-
-TARGETS += $(BUILD_LIBSAPROC)

@@ -35,5 +35,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJAAS, \
     EXTRA_HEADER_DIRS := java.base:libjava, \
     LIBS_windows := advapi32.lib mpr.lib netapi32.lib user32.lib, \
 ))
-
-TARGETS += $(BUILD_LIBJAAS)

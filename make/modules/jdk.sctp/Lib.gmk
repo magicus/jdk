@@ -41,6 +41,4 @@ ifeq ($(call isTargetOs, linux), true)
       JDK_LIBS := java.base:libjava java.base:libnet, \
       LIBS_linux := $(LIBDL) -lpthread, \
   ))
-
-  TARGETS += $(BUILD_LIBSCTP)
 endif

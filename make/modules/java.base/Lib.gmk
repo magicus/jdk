@@ -63,8 +63,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBNET, \
         -framework CoreServices, \
 ))
 
-TARGETS += $(BUILD_LIBNET)
-
 ################################################################################
 ## Build libnio
 ################################################################################
@@ -87,8 +85,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBNIO, \
     LIBS_windows := advapi32.lib mswsock.lib ws2_32.lib, \
 ))
 
-TARGETS += $(BUILD_LIBNIO)
-
 ifeq ($(call isTargetOs, macosx), true)
   ##############################################################################
   ## Build libosxsecurity
@@ -105,8 +101,6 @@ ifeq ($(call isTargetOs, macosx), true)
           -framework Foundation \
           -framework Security, \
   ))
-
-  TARGETS += $(BUILD_LIBOSXSECURITY)
 endif
 
 ifeq ($(call isTargetOsType, unix), true)
@@ -123,8 +117,6 @@ ifeq ($(call isTargetOsType, unix), true)
       LIBS_linux := $(LIBDL), \
       LIBS_aix := $(LIBDL), \
   ))
-
-  TARGETS += $(BUILD_LIBJSIG)
 
   ##############################################################################
   # Create symlinks to libjsig in each JVM variant sub dir
@@ -162,8 +154,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBSYSLOOKUP, \
     LIBS_aix := -ldecNumber $(LIBM), \
 ))
 
-TARGETS += $(BUILD_LIBSYSLOOKUP)
-
 ifeq ($(ENABLE_FALLBACK_LINKER), true)
   ##############################################################################
   ## Build libfallbackLinker
@@ -177,8 +167,6 @@ ifeq ($(ENABLE_FALLBACK_LINKER), true)
       LIBS := $(LIBFFI_LIBS), \
       LIBS_windows := ws2_32.lib, \
   ))
-
-  TARGETS += $(BUILD_LIBFALLBACKLINKER)
 endif
 
 ifeq ($(call isTargetOs, linux)+$(call isTargetCpu, x86_64)+$(INCLUDE_COMPILER2)+$(filter $(TOOLCHAIN_TYPE), gcc), true+true+true+gcc)
@@ -194,6 +182,4 @@ ifeq ($(call isTargetOs, linux)+$(call isTargetCpu, x86_64)+$(INCLUDE_COMPILER2)
       DISABLED_WARNINGS_gcc := unused-variable, \
       LIBS_linux := $(LIBDL) $(LIBM), \
   ))
-
-  TARGETS += $(BUILD_LIBSIMD_SORT)
 endif

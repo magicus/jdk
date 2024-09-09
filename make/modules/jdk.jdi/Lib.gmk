@@ -37,6 +37,4 @@ ifeq ($(call isTargetOs, windows), true)
           jdk.jdwp.agent:include \
           jdk.jdwp.agent:libjdwp/export, \
   ))
-
-  TARGETS += $(BUILD_LIBDT_SHMEM)
 endif

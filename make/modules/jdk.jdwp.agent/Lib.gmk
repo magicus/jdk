@@ -40,9 +40,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBDT_SOCKET, \
     LIBS_windows := iphlpapi.lib ws2_32.lib, \
 ))
 
-# Include socket transport with JDWP agent to allow for remote debugging
-TARGETS += $(BUILD_LIBDT_SOCKET)
-
 ################################################################################
 ## Build libjdwp
 ################################################################################
@@ -75,5 +72,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJDWP, \
     LIBS_macosx := -liconv, \
     LIBS_aix := -liconv, \
 ))
-
-TARGETS += $(BUILD_LIBJDWP)

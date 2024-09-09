@@ -50,8 +50,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBMLIB_IMAGE, \
     LIBS_unix := $(LIBDL) $(LIBM), \
 ))
 
-TARGETS += $(BUILD_LIBMLIB_IMAGE)
-
 ################################################################################
 ## Build liblcms
 ################################################################################
@@ -92,8 +90,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBLCMS, \
     LIBS_unix := $(LCMS_LIBS) $(LIBM), \
 ))
 
-TARGETS += $(BUILD_LIBLCMS)
-
 ################################################################################
 ## Build libjavajpeg
 ################################################################################
@@ -128,8 +124,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJAVAJPEG, \
     JDK_LIBS := java.base:libjava, \
     LIBS := $(LIBJPEG_LIBS), \
 ))
-
-TARGETS += $(BUILD_LIBJAVAJPEG)
 
 ################################################################################
 ## Build libsplashscreen
@@ -258,8 +252,6 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
       LIBS_aix := $(LIBDL) -liconv $(X_LIBS) -lX11 -lXext, \
       LIBS_windows := delayimp.lib gdi32.lib kernel32.lib user32.lib, \
   ))
-
-  TARGETS += $(BUILD_LIBSPLASHSCREEN)
 endif
 
 ################################################################################
@@ -277,8 +269,6 @@ ifeq ($(FREETYPE_TO_USE), bundled)
       DISABLED_WARNINGS_microsoft := 4267 4244 4996, \
       DISABLED_WARNINGS_gcc := dangling-pointer stringop-overflow, \
   ))
-
-  TARGETS += $(BUILD_LIBFREETYPE)
 endif
 
 ################################################################################
@@ -405,8 +395,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBFONTMANAGER, \
     LIBS_windows := advapi32.lib gdi32.lib user32.lib, \
 ))
 
-TARGETS += $(BUILD_LIBFONTMANAGER)
-
 ifeq ($(call isTargetOs, macosx), true)
   ##############################################################################
   ## Build libosxui
@@ -453,8 +441,6 @@ ifeq ($(call isTargetOs, macosx), true)
           -framework JavaRuntimeSupport \
           -framework Metal, \
   ))
-
-  TARGETS += $(BUILD_LIBOSXUI)
 
   $(BUILD_LIBOSXUI): $(SHADERS_LIB)
 endif

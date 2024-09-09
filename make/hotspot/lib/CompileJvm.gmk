@@ -304,8 +304,6 @@ endif
 # 1540-1090 : (I) The destructor of "..." might not be called.
 # 1540-1639 : (I) The behavior of long type bit fields has changed ...
 
-TARGETS += $(BUILD_LIBJVM)
-
 ################################################################################
 # Hotspot disallows the use of global operators 'new' and 'delete'. This build
 # time check helps enforce this requirement. If you trigger this check and the
