@@ -73,8 +73,6 @@ define SetupXslTransformBody
       COMMAND := $$(TOOL_JVMTI_GEN) -IN $$($1_XML_FILE) \
           -XSL $$($1_XSL_FILE) -OUT $$($1_OUTPUT_FILE) $$($1_ARGS), \
   ))
-
-  TARGETS += $$(jvmti_gen_$1_TARGET)
 endef
 
 ################################################################################

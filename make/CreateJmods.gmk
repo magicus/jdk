@@ -259,8 +259,6 @@ $(eval $(call SetupExecute, create_$(JMOD_FILE), \
     POST_COMMAND := $(MV) $(JMODS_SUPPORT_DIR)/$(JMOD_FILE) $(JMODS_DIR)/$(JMOD_FILE), \
 ))
 
-TARGETS += $(create_$(JMOD_FILE))
-
 ################################################################################
 
 include MakeEnd.gmk

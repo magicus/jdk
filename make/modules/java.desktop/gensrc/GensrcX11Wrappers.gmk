@@ -43,5 +43,3 @@ $(eval $(call SetupExecute, gen_x11wrappers, \
         $(GENSRC_X11WRAPPERS_DATADIR)/xlibtypes.txt $(GENSRC_X11WRAPPERS_DATA) \
         $(OPENJDK_TARGET_CPU_BITS), \
 ))
-
-TARGETS += $(gen_x11wrappers_TARGET)

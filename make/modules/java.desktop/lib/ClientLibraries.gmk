@@ -436,8 +436,6 @@ ifeq ($(call isTargetOs, macosx), true)
       COMMAND := $(METALLIB) -o $(SHADERS_LIB) $(SHADERS_AIR), \
   ))
 
-  TARGETS += $(SHADERS_LIB)
-
   $(eval $(call SetupJdkLibrary, BUILD_LIBOSXUI, \
       NAME := osxui, \
       OPTIMIZATION := LOW, \

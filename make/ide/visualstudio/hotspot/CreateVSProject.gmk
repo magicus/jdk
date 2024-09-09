@@ -140,9 +140,6 @@ ifeq ($(call isTargetOs, windows), true)
           $(PROJECT_CREATOR_ARGS) -projectFileName $(call FixPath, $(VCPROJ_FILE)) \
           $(LOG_INFO), \
   ))
-
-  TARGETS += $(vcproj_file_TARGET)
-
 else
   not-available:
 	$(info Hotspot Visual Studio generation only supported on Windows)

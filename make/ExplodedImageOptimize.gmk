@@ -41,8 +41,6 @@ $(eval $(call SetupExecute, optimize_image, \
     COMMAND := $(TOOL_ADD_PACKAGES_ATTRIBUTE) $(JDK_OUTPUTDIR), \
 ))
 
-TARGETS := $(optimize_image_TARGET)
-
 ################################################################################
 
 include MakeEnd.gmk

@@ -53,8 +53,6 @@ $(eval $(call SetupExecute, jlink_interim_image, \
         --add-modules $(INTERIM_MODULES_LIST), \
 ))
 
-TARGETS += $(jlink_interim_image)
-
 ################################################################################
 
 include MakeEnd.gmk

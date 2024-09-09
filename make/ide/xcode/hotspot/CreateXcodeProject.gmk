@@ -74,8 +74,6 @@ ifeq ($(call isTargetOs, macosx), true)
           $(LINKER_FLAGS_FILE) $(XCODE_PROJ_DEBUG_OPTION), \
   ))
 
-  TARGETS += $(build_xcode_project)
-
   $(eval $(call SetupCopyFiles, copy_xcode_project, \
       DEST := $(IDE_OUTPUTDIR), \
       FILES := $(PROJECT_MAKER_DIR)/data/script_before.sh $(PROJECT_MAKER_DIR)/data/script_after.sh , \
@@ -88,8 +86,6 @@ ifeq ($(call isTargetOs, macosx), true)
       OUTPUT_DIR := $(TOOLS_OUTPUTDIR), \
       COMMAND := open $(IDE_OUTPUTDIR)/$(PROJECT_FILE_NAME), \
   ))
-
-  TARGETS += $(open_xcode_project)
 
   # Always call open without considering dependencies being up to date
   FORCE:

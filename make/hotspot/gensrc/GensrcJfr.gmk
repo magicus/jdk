@@ -46,8 +46,6 @@ $(eval $(call SetupExecute, jfr_gen_headers, \
     COMMAND := $(TOOL_JFR_GEN) --mode headers --xml $(METADATA_XML) --xsd $(METADATA_XSD) --output $(JFR_OUTPUTDIR), \
 ))
 
-TARGETS += $(jfr_gen_headers)
-
 ################################################################################
 
 include MakeHelperEnd.gmk

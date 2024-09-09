@@ -190,6 +190,8 @@ define SetupExecuteBody
 
   # Export all our generated targets in $1, and the final target in $1_TARGET.
   $1_TARGET := $$($1_FINAL_RESULT)
+
+  TARGETS += $$($1)
 endef
 
 ################################################################################
