@@ -539,7 +539,8 @@ define SetupJavaCompilationBody
           EXCLUDE_FILES := $$($1_EXCLUDE_FILES)))
 
       # Add zip to target list
-      $1 += $$($1_SRCZIP)
+      ## FIXME
+      #$1 += $$($1_SRCZIP)
     endif
   endif # Source files found
 
