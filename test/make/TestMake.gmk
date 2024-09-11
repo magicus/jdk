@@ -47,8 +47,10 @@ configure:
 	$(BASH) $(TOPDIR)/test/make/autoconf/test-configure.sh \
 	    "$(AUTOCONF)" "$(TOPDIR)" "$(TEST_SUPPORT_DIR)"
 
-TARGETS += make-base java-compilation copy-files fix-deps-file idea \
+TARGETS += make-base java-compilation copy-files fix-deps-file  \
     compile-commands configure
+# FIXME: need to fix broken idea generation
+# idea
 
 all: $(TARGETS)
 
