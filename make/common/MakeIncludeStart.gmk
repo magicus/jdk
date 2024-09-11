@@ -23,49 +23,49 @@
 # questions.
 #
 
-################################################################
-# MakeHelperStart should be included first of all in all helper makefiles
-################################################################
+################################################################################
+# MakeIncludeStart.gmk should be included first of all in all include files
+################################################################################
 
 # Get the next to last word (by prepending a padding element)
-THIS_HELPER := $(word $(words ${MAKEFILE_LIST}),padding ${MAKEFILE_LIST})
-RELATIVE_HELPER_NAME := $(patsubst $(TOPDIR)/make/%,%,$(THIS_HELPER))
+THIS_INCLUDE_PATH := $(word $(words ${MAKEFILE_LIST}),padding ${MAKEFILE_LIST})
+THIS_INCLUDE := $(patsubst $(TOPDIR)/make/%,%,$(THIS_INCLUDE_PATH))
 
+# Print an indented message, also counting the top-level makefile as a level
 ifeq ($(LOG_FLOW), true)
-  $(info :$(foreach s, top $(HELPER_STACK),    )Entering $(RELATIVE_HELPER_NAME))
+  $(info :$(foreach s, top $(HELPER_STACK),    )Entering $(THIS_INCLUDE))
 endif
 
-ifneq ($(filter $(RELATIVE_HELPER_NAME), $(HELPER_STACK)), )
-  $(error Include loop detected: $(RELATIVE_HELPER_NAME) $(HELPER_STACK))
+ifneq ($(filter $(THIS_INCLUDE), $(HELPER_STACK)), )
+  $(error Internal makefile error: Include loop detected: $(THIS_INCLUDE) $(HELPER_STACK))
 endif
 
 # Push our helper name onto the stack
-HELPER_STACK := $(RELATIVE_HELPER_NAME) $(HELPER_STACK)
+HELPER_STACK := $(THIS_INCLUDE) $(HELPER_STACK)
 
 ifeq ($(SPEC), )
-  $(error $(THIS_HELPER): SPEC is not set)
+  $(error $(THIS_INCLUDE_PATH): SPEC is not set)
 endif
 
 ifeq ($(wildcard $(SPEC)), )
-  $(error $(THIS_HELPER): spec.gmk file $(SPEC) is missing)
+  $(error $(THIS_INCLUDE_PATH): spec.gmk file $(SPEC) is missing)
 endif
 
 ifeq ($(words $(MAKEFILE_LIST)), 2)
-  $(error $(THIS_HELPER): This file is supposed to be included)
+  $(error $(THIS_INCLUDE_PATH): This file is supposed to be included)
 endif
 
 ifneq ($(MAKEBASE_INCLUDED), true)
-  $(error $(THIS_HELPER): MakeBase.gmk is not included)
+  $(error $(THIS_INCLUDE_PATH): MakeBase.gmk is not included)
 endif
 
 # Setup an automatic include guard
-ifneq ($(INCLUDE_GUARD_$(RELATIVE_HELPER_NAME)), true)
-  INCLUDE_GUARD_$(RELATIVE_HELPER_NAME) := true
+ifneq ($(INCLUDE_GUARD_$(THIS_INCLUDE)), true)
+  INCLUDE_GUARD_$(THIS_INCLUDE) := true
   INCLUDE := true
 
-  ##############################################################################
   # Hook to include the corresponding custom file, if present.
-  CUSTOM_PRE_NAME := $(subst .gmk,-pre.gmk, $(RELATIVE_HELPER_NAME))
+  CUSTOM_PRE_NAME := $(subst .gmk,-pre.gmk, $(THIS_INCLUDE))
   $(eval $(call IncludeCustomExtension, $(CUSTOM_PRE_NAME)))
 else
   INCLUDE := false
