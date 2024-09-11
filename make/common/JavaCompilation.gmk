@@ -33,7 +33,8 @@ include MakeIO.gmk
 # Java compilation needs SetupJarArchive and/or SetupZipArchive, if we're
 # generating a jar file or a source zip.
 include JarArchive.gmk
-include ZipArchive.gmk
+## FIXME
+#include ZipArchive.gmk
 
 ###
 ### Definitions for common release targets
