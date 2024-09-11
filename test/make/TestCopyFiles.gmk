@@ -21,10 +21,10 @@
 # questions.
 #
 
-default: all
+include MakeFileStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
+
 include CopyFiles.gmk
 include UtilsForTests.gmk
 
@@ -92,6 +92,8 @@ TEST_TARGETS += run-test1
 
 .PHONY: do-copy1 run-test1 delete-targets
 
+all: $(TEST_TARGETS)
+
 ################################################################################
 
-all: $(TEST_TARGETS)
+include MakeFileEnd.gmk
