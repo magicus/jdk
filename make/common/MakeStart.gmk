@@ -49,7 +49,9 @@ include $(SPEC)
 
 RELATIVE_MAKEFILE_NAME := $(patsubst make/%,%,$(patsubst $(TOPDIR)/%,%,$(THIS_MAKEFILE)))
 
-$(info :Entering $(RELATIVE_MAKEFILE_NAME))
+ifeq ($(LOG_FLOW), true)
+  $(info :Entering $(RELATIVE_MAKEFILE_NAME))
+endif
 
 include $(TOPDIR)/make/common/MakeBase.gmk
 

@@ -31,7 +31,9 @@
 THIS_HELPER := $(word $(words ${MAKEFILE_LIST}),padding ${MAKEFILE_LIST})
 RELATIVE_HELPER_NAME := $(patsubst $(TOPDIR)/make/%,%,$(THIS_HELPER))
 
-$(info :$(foreach s, top $(HELPER_STACK),    )Entering $(RELATIVE_HELPER_NAME))
+ifeq ($(LOG_FLOW), true)
+  $(info :$(foreach s, top $(HELPER_STACK),    )Entering $(RELATIVE_HELPER_NAME))
+endif
 
 ifneq ($(filter $(RELATIVE_HELPER_NAME), $(HELPER_STACK)), )
   $(error Include loop detected: $(RELATIVE_HELPER_NAME) $(HELPER_STACK))

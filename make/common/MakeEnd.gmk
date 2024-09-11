@@ -39,4 +39,6 @@ endif
 
 .PHONY: default all
 
-$(info :Exiting $(RELATIVE_MAKEFILE_NAME))
+ifeq ($(LOG_FLOW), true)
+  $(info :Exiting $(RELATIVE_MAKEFILE_NAME))
+endif

@@ -34,6 +34,10 @@ $(eval $(call IncludeCustomExtension, $(CUSTOM_POST_NAME)))
 
 # Pop our helper name off the stack
 HELPER_STACK := $(wordlist 2, $(words $(HELPER_STACK)), $(HELPER_STACK))
-$(info :$(foreach s, top $(HELPER_STACK),    )Exiting $(RELATIVE_HELPER_NAME))
+
+ifeq ($(LOG_FLOW), true)
+  $(info :$(foreach s, top $(HELPER_STACK),    )Exiting $(RELATIVE_HELPER_NAME))
+endif
+
 # Restore the previous helper name
 RELATIVE_HELPER_NAME := $(firstword $(HELPER_STACK))
