@@ -24,7 +24,7 @@
 #
 
 include MakeIncludeStart.gmk
-ifeq ($(HELPER), include)
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 # Functions for dealing with reading and writing from makefiles. Prior to GNU

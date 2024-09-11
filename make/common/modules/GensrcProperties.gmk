@@ -24,7 +24,7 @@
 #
 
 include MakeIncludeStart.gmk
-ifeq ($(HELPER), include)
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 # This file defines macros that sets up rules for generating java classes

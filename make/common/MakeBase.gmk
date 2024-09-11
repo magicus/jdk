@@ -26,7 +26,7 @@
 MAKEBASE_INCLUDED := true
 
 include $(TOPDIR)/make/common/MakeIncludeStart.gmk
-ifeq ($(HELPER), include)
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 # MakeBase provides the core functionality needed and used by all makefiles. It

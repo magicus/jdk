@@ -24,7 +24,7 @@
 #
 
 include $(TOPDIR)/make/common/MakeIncludeStart.gmk
-ifeq ($(HELPER), include)
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 # Basic utility functions available to MakeBase.gmk itself

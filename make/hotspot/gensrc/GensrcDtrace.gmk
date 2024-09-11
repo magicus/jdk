@@ -24,7 +24,7 @@
 #
 
 include MakeIncludeStart.gmk
-ifeq ($(HELPER), include)
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 # Gensrc support for dtrace. The files generated here are included by dtrace.hpp

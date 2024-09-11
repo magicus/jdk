@@ -24,7 +24,7 @@
 #
 
 include MakeIncludeStart.gmk
-ifeq ($(HELPER), include)
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 # This is the top-level entry point for our native compilation and linking.

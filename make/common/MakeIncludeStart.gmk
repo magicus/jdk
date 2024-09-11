@@ -61,12 +61,12 @@ endif
 # Setup an automatic include guard
 ifneq ($(INCLUDE_GUARD_$(RELATIVE_HELPER_NAME)), true)
   INCLUDE_GUARD_$(RELATIVE_HELPER_NAME) := true
-  HELPER := include
+  INCLUDE := true
 
   ##############################################################################
   # Hook to include the corresponding custom file, if present.
   CUSTOM_PRE_NAME := $(subst .gmk,-pre.gmk, $(RELATIVE_HELPER_NAME))
   $(eval $(call IncludeCustomExtension, $(CUSTOM_PRE_NAME)))
 else
-  HELPER := skip
+  INCLUDE := false
 endif

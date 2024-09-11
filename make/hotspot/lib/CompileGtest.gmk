@@ -23,7 +23,7 @@
 # questions.
 #
 include MakeIncludeStart.gmk
-ifeq ($(HELPER), include)
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 

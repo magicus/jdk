@@ -24,7 +24,7 @@
 #
 
 include MakeIncludeStart.gmk
-ifeq ($(HELPER), include)
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 # Setup make rules for JFR gensrc file generation.
