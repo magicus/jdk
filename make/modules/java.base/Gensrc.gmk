@@ -25,6 +25,7 @@
 
 include GensrcCommon.gmk
 
+include gensrc/GensrcBuffer.gmk
 include gensrc/GensrcCharacterData.gmk
 include gensrc/GensrcCharsetCoder.gmk
 include gensrc/GensrcCharsetMapping.gmk
@@ -92,7 +93,8 @@ GENSRC_LSREQUIVMAPS := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/util/locale/Loc
 
 $(GENSRC_LSREQUIVMAPS): $(MODULE_SRC)/share/data/lsrdata/language-subtag-registry.txt $(BUILD_TOOLS_JDK)
 	$(call MakeDir, $(@D))
-	$(TOOL_GENERATELSREQUIVMAPS) $< $@ $(COPYRIGHT_YEAR)
+	# echo $(TOOL_GENERATELSREQUIVMAPS) $< $@ $(COPYRIGHT_YEAR)
+	$(TOOL_GENERATELSREQUIVMAPS) $< $@ $(COPYRIGHT_YEAR) # || true
 
 TARGETS += $(GENSRC_LSREQUIVMAPS)
 
