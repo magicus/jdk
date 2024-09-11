@@ -31,3 +31,9 @@
 # Hook to include the corresponding custom file, if present.
 CUSTOM_POST_NAME := $(subst .gmk,-post.gmk, $(RELATIVE_HELPER_NAME))
 $(eval $(call IncludeCustomExtension, $(CUSTOM_POST_NAME)))
+
+# Pop our helper name off the stack
+HELPER_STACK := $(wordlist 2, $(words $(HELPER_STACK)), $(HELPER_STACK))
+$(info :$(foreach s, top $(HELPER_STACK),    )Exiting $(RELATIVE_HELPER_NAME))
+# Restore the previous helper name
+RELATIVE_HELPER_NAME := $(firstword $(HELPER_STACK))

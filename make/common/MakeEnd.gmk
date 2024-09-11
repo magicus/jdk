@@ -38,3 +38,5 @@ else
 endif
 
 .PHONY: default all
+
+$(info :Exiting $(RELATIVE_MAKEFILE_NAME))

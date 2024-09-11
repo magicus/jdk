@@ -44,14 +44,19 @@ ifneq ($(words $(MAKEFILE_LIST)), 2)
   $(error $(THIS_MAKEFILE): This file is not supposed to be included)
 endif
 
+# We need spec.gmk to get $(TOPDIR)
 include $(SPEC)
-include MakeBase.gmk
+
+RELATIVE_MAKEFILE_NAME := $(patsubst make/%,%,$(patsubst $(TOPDIR)/%,%,$(THIS_MAKEFILE)))
+
+$(info :Entering $(RELATIVE_MAKEFILE_NAME))
+
+include $(TOPDIR)/make/common/MakeBase.gmk
 
 TARGETS :=
 
 ################################################################################
 # Hook to include the corresponding custom file, if present.
-RELATIVE_MAKEFILE_NAME := $(patsubst make/%,%,$(patsubst $(TOPDIR)/%,%,$(THIS_MAKEFILE)))
 
 CUSTOM_PRE_NAME := $(subst .gmk,-pre.gmk, $(RELATIVE_MAKEFILE_NAME))
 $(eval $(call IncludeCustomExtension, $(CUSTOM_PRE_NAME)))
