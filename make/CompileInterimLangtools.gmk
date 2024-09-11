@@ -23,11 +23,9 @@
 # questions.
 #
 
-# This must be the first rule
-default: all
+include MakeFileStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include JavaCompilation.gmk
@@ -148,5 +146,8 @@ TARGETS += $(BUILD_JAVAC_SERVER)
 
 ################################################################################
 
-
 all: $(TARGETS)
+
+################################################################################
+
+include MakeFileEnd.gmk

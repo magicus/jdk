@@ -23,14 +23,11 @@
 # questions.
 #
 
+include MakeFileStart.gmk
+
 ################################################################################
 # Generate classlist
 ################################################################################
-
-default: all
-
-include $(SPEC)
-include MakeBase.gmk
 
 include CopyFiles.gmk
 include JavaCompilation.gmk
@@ -149,3 +146,7 @@ TARGETS += $(COPY_JLI_TRACE)
 ################################################################################
 
 all: $(TARGETS)
+
+################################################################################
+
+include MakeFileEnd.gmk

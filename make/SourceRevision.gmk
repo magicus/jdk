@@ -23,10 +23,7 @@
 # questions.
 #
 
-include $(SPEC)
-include MakeBase.gmk
-
-$(eval $(call IncludeCustomExtension, SourceRevision-pre.gmk))
+include MakeFileStart.gmk
 
 ################################################################################
 # Keep track of what source revision is used to create the build, by creating
@@ -156,10 +153,6 @@ endif
 
 ################################################################################
 
-$(eval $(call IncludeCustomExtension, SourceRevision-post.gmk))
-
-################################################################################
-
 store-source-revision: $(STORE_SOURCE_REVISION_TARGET)
 
 create-source-revision-tracker: $(CREATE_SOURCE_REVISION_TRACKER_TARGET)
@@ -167,3 +160,7 @@ create-source-revision-tracker: $(CREATE_SOURCE_REVISION_TRACKER_TARGET)
 FRC: # Force target
 
 .PHONY: store-source-revision create-source-revision-tracker
+
+################################################################################
+
+include MakeFileEnd.gmk

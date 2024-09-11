@@ -23,4 +23,14 @@
 # questions.
 #
 
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
+
+################################################################################
+
 include JdkNativeCompilation.gmk
+
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk

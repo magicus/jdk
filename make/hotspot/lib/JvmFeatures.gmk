@@ -23,7 +23,10 @@
 # questions.
 #
 
-$(eval $(call IncludeCustomExtension, hotspot/lib/JvmFeatures.gmk))
+################################################################################
+
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 # Setup CFLAGS and EXCLUDES for the libjvm compilation, depending on which
@@ -275,3 +278,8 @@ ifeq ($(call check-jvm-feature, opt-size), true)
     BUILD_LIBJVM_systemDictionary.cpp_CXXFLAGS := -fno-optimize-sibling-calls
   endif
 endif
+
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk

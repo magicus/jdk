@@ -23,7 +23,8 @@
 # questions.
 #
 
-$(eval $(call IncludeCustomExtension, hotspot/lib/JvmOverrideFiles.gmk))
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
 
 ################################################################################
 # This file contains explicit overrides of CFLAGS and/or precompiled header
@@ -149,3 +150,8 @@ else ifeq ($(call isTargetOs, windows), true)
   BUILD_LIBJVM_jvmciCompilerToVMInit.cpp_OPTIMIZATION := NONE
 
 endif
+
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk

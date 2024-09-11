@@ -26,9 +26,6 @@
 include CopyFiles.gmk
 include LibCommon.gmk
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, modules/java.base/Lib.gmk))
-
 # Prepare the find cache.
 $(call FillFindCache, $(wildcard $(TOPDIR)/src/java.base/*/native))
 

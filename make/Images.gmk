@@ -23,10 +23,9 @@
 # questions.
 #
 
-default: all
+include MakeFileStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
 
 include CopyFiles.gmk
 include Execute.gmk
@@ -35,9 +34,6 @@ include Utils.gmk
 
 JDK_TARGETS :=
 JRE_TARGETS :=
-
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, Images-pre.gmk))
 
 ################################################################################
 
@@ -311,12 +307,6 @@ $(call SetupCopyDebuginfo,SYMBOLS)
 
 ################################################################################
 
-# Include custom post hook here to make it possible to augment the target lists
-# before actual target prerequisites are declared.
-$(eval $(call IncludeCustomExtension, Images-post.gmk))
-
-################################################################################
-
 $(JRE_TARGETS): $(JLINK_JRE_TARGETS)
 $(JDK_TARGETS): $(JLINK_JDK_TARGETS)
 
@@ -326,4 +316,8 @@ symbols: $(SYMBOLS_TARGETS)
 
 all: jdk jre symbols
 
-.PHONY: default all jdk jre symbols
+.PHONY: jdk jre symbols
+
+################################################################################
+
+include MakeFileEnd.gmk

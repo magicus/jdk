@@ -25,9 +25,6 @@
 
 include LauncherCommon.gmk
 
-# Hook to include the corresponding custom file, if present.
-$(eval $(call IncludeCustomExtension, modules/java.base/Launcher.gmk))
-
 JAVA_VERSION_INFO_RESOURCE := \
     $(TOPDIR)/src/java.base/windows/native/launcher/java.rc
 

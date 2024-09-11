@@ -23,16 +23,15 @@
 # questions.
 #
 
-default: all
+include MakeFileStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
+
 include Execute.gmk
+include HotspotCommon.gmk
 include JavaCompilation.gmk
 include JdkNativeCompilation.gmk
 include TextFileProcessing.gmk
-
-include HotspotCommon.gmk
 
 # The real work is done in these files
 
@@ -40,8 +39,6 @@ include gensrc/GensrcJfr.gmk
 include gensrc/GensrcAdlc.gmk
 include gensrc/GensrcDtrace.gmk
 include gensrc/GensrcJvmti.gmk
-
-$(eval $(call IncludeCustomExtension, hotspot/gensrc/GenerateSources.gmk))
 
 # While technically the rules below are "gendata" which can be done in parallel
 # with native compilation, let's keep it here for simplicity.
@@ -65,4 +62,6 @@ TARGETS += $(CREATE_HOTSPOT_LAUNCHER) $(CHMOD_HOTSPOT_LAUNCHER)
 
 all: $(TARGETS)
 
-.PHONY: all
+################################################################################
+
+include MakeFileEnd.gmk

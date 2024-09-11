@@ -23,11 +23,10 @@
 # questions.
 #
 
-# This must be the first rule
-default: all
+include MakeFileStart.gmk
 
-include $(SPEC)
-include MakeBase.gmk
+################################################################################
+
 include CopyFiles.gmk
 include Execute.gmk
 include JavaCompilation.gmk
@@ -109,4 +108,8 @@ else
 	$(info Xcode projects are only supported on macOS)
 endif
 
-.PHONY: default all build open
+.PHONY: build open
+
+################################################################################
+
+include MakeFileEnd.gmk

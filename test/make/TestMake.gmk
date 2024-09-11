@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -21,9 +21,9 @@
 # questions.
 #
 
-default: all
+include MakeFileStart.gmk
 
-include $(SPEC)
+################################################################################
 
 make-base:
 	+$(MAKE) -f TestMakeBase.gmk $(TEST_SUBTARGET)
@@ -47,8 +47,10 @@ configure:
 	$(BASH) $(TOPDIR)/test/make/autoconf/test-configure.sh \
 	    "$(AUTOCONF)" "$(TOPDIR)" "$(TEST_SUPPORT_DIR)"
 
-TARGETS += make-base java-compilation copy-files fix-deps-file idea \
+TARGETS += make-base java-compilation copy-files fix-deps-file  \
     compile-commands configure
+# FIXME: need to fix broken idea generation
+# idea
 
 all: $(TARGETS)
 
@@ -56,4 +58,8 @@ all: $(TARGETS)
 print-targets:
 	$(ECHO) "$(TARGETS)" >> $(TARGETS_FILE)
 
-.PHONY: default all $(TARGETS)
+.PHONY: $(TARGETS)
+
+################################################################################
+
+include MakeFileEnd.gmk

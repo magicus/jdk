@@ -23,6 +23,11 @@
 # questions.
 #
 
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
+
+################################################################################
+
 include CopyFiles.gmk
 include JdkNativeCompilation.gmk
 include Modules.gmk
@@ -239,3 +244,8 @@ ifeq ($(call isTargetOsType, unix)+$(MAKEFILE_PREFIX), true+Launcher)
     endif
   endif
 endif
+
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk

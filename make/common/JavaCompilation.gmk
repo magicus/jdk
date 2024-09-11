@@ -23,19 +23,18 @@
 # questions.
 #
 
-ifndef _JAVA_COMPILATION_GMK
-_JAVA_COMPILATION_GMK := 1
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
 
-ifeq ($(_MAKEBASE_GMK), )
-  $(error You must include MakeBase.gmk prior to including JavaCompilation.gmk)
-endif
+################################################################################
 
 include MakeIO.gmk
 
 # Java compilation needs SetupJarArchive and/or SetupZipArchive, if we're
 # generating a jar file or a source zip.
 include JarArchive.gmk
-include ZipArchive.gmk
+## FIXME
+#include ZipArchive.gmk
 
 ###
 ### Definitions for common release targets
@@ -540,7 +539,8 @@ define SetupJavaCompilationBody
           EXCLUDE_FILES := $$($1_EXCLUDE_FILES)))
 
       # Add zip to target list
-      $1 += $$($1_SRCZIP)
+      ## FIXME
+      #$1 += $$($1_SRCZIP)
     endif
   endif # Source files found
 endef
@@ -556,4 +556,7 @@ SetupJavaCompilationCompileTarget = \
 SetupJavaCompilationApiTarget = \
     $(strip $2)/_the.$(strip $1)_pubapi
 
-endif # _JAVA_COMPILATION_GMK
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk

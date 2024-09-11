@@ -221,7 +221,8 @@ else # HAS_SPEC=true
   # file.
   ##############################################################################
 
-  include $(SPEC)
+  # Before the spec is loaded, we can't use $(TOPDIR)
+  include $(ACTUAL_TOPDIR)/make/common/MakeFileStart.gmk
 
   # Our helper functions.
   include $(TOPDIR)/make/InitSupport.gmk
@@ -376,4 +377,6 @@ else # HAS_SPEC=true
 	$(call CompareBuildDoComparison)
 
   .PHONY: print-targets print-modules reconfigure main on-failure
+
+  include $(TOPDIR)/make/common/MakeFileEnd.gmk
 endif

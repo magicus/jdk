@@ -23,13 +23,10 @@
 # questions.
 #
 
-ifndef _TEST_FILES_COMPILATION_GMK
-_TEST_FILES_COMPILATION_GMK := 1
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
 
-ifeq ($(_MAKEBASE_GMK), )
-  $(error You must include MakeBase.gmk prior to including TestFilesCompilation.gmk)
-endif
-
+################################################################################
 
 include JdkNativeCompilation.gmk
 
@@ -142,4 +139,7 @@ define SetupTestFilesCompilationBody
 
 endef
 
-endif # _TEST_FILES_COMPILATION_GMK
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk
