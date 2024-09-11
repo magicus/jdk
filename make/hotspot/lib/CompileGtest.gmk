@@ -22,7 +22,7 @@
 # or visit www.oracle.com if you need additional information or have any
 # questions.
 #
-include MakeHelperStart.gmk
+include MakeIncludeStart.gmk
 ifeq ($(HELPER), include)
 
 ################################################################################
@@ -156,4 +156,4 @@ $(eval $(call SetupJdkExecutable, BUILD_GTEST_LAUNCHER, \
 ################################################################################
 
 endif # include guard
-include MakeHelperEnd.gmk
+include MakeIncludeEnd.gmk

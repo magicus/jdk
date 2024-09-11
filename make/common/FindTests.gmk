@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeHelperStart.gmk
+include MakeIncludeStart.gmk
 ifeq ($(HELPER), include)
 
 ################################################################################
@@ -103,4 +103,4 @@ ALL_NAMED_TESTS += failure-handler make
 ################################################################################
 
 endif # include guard
-include MakeHelperEnd.gmk
+include MakeIncludeEnd.gmk

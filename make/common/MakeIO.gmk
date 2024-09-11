@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeHelperStart.gmk
+include MakeIncludeStart.gmk
 ifeq ($(HELPER), include)
 
 ################################################################################
@@ -241,4 +241,4 @@ endif # HAS_FILE_FUNCTION
 ################################################################################
 
 endif # include guard
-include MakeHelperEnd.gmk
+include MakeIncludeEnd.gmk

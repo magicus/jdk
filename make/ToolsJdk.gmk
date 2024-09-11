@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeHelperStart.gmk
+include MakeIncludeStart.gmk
 ifeq ($(HELPER), include)
 
 ################################################################################
@@ -137,4 +137,4 @@ PANDOC_HTML_MANPAGE_FILTER := $(BUILDTOOLS_OUTPUTDIR)/manpages/pandoc-html-manpa
 ################################################################################
 
 endif # include guard
-include MakeHelperEnd.gmk
+include MakeIncludeEnd.gmk

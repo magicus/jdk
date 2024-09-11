@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeHelperStart.gmk
+include MakeIncludeStart.gmk
 ifeq ($(HELPER), include)
 
 ################################################################################
@@ -55,4 +55,4 @@ check-jvm-feature = \
 ################################################################################
 
 endif # include guard
-include MakeHelperEnd.gmk
+include MakeIncludeEnd.gmk

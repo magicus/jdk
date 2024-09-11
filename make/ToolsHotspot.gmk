@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeHelperStart.gmk
+include MakeIncludeStart.gmk
 ifeq ($(HELPER), include)
 
 ################################################################################
@@ -47,4 +47,4 @@ TOOL_JFR_GEN := $(JAVA_SMALL) -cp $(HOTSPOT_TOOLS_OUTPUTDIR) \
 ################################################################################
 
 endif # include guard
-include MakeHelperEnd.gmk
+include MakeIncludeEnd.gmk

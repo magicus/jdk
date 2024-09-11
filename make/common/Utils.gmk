@@ -23,7 +23,7 @@
 # questions.
 #
 
-include $(TOPDIR)/make/common/MakeHelperStart.gmk
+include $(TOPDIR)/make/common/MakeIncludeStart.gmk
 ifeq ($(HELPER), include)
 
 ################################################################################
@@ -398,5 +398,5 @@ FilterExcludedTranslations = \
 
 ################################################################################
 
-include $(TOPDIR)/make/common/MakeHelperEnd.gmk
+include $(TOPDIR)/make/common/MakeIncludeEnd.gmk
 endif # include guard

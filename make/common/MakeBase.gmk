@@ -25,7 +25,7 @@
 
 MAKEBASE_INCLUDED := true
 
-include $(TOPDIR)/make/common/MakeHelperStart.gmk
+include $(TOPDIR)/make/common/MakeIncludeStart.gmk
 ifeq ($(HELPER), include)
 
 ################################################################################
@@ -310,5 +310,5 @@ ExecuteWithLog = \
 
 ################################################################################
 
-include $(TOPDIR)/make/common/MakeHelperEnd.gmk
+include $(TOPDIR)/make/common/MakeIncludeEnd.gmk
 endif # include guard

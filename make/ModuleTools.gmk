@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeHelperStart.gmk
+include MakeIncludeStart.gmk
 ifeq ($(HELPER), include)
 
 ################################################################################
@@ -54,4 +54,4 @@ TOOL_ADD_PACKAGES_ATTRIBUTE := $(BUILD_JAVA) $(JAVA_FLAGS_SMALL_BUILDJDK) \
 ################################################################################
 
 endif # include guard
-include MakeHelperEnd.gmk
+include MakeIncludeEnd.gmk
