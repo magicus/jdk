@@ -48,5 +48,5 @@ $(eval $(call SetupExecute, jfr_gen_headers, \
 
 ################################################################################
 
-include MakeHelperEnd.gmk
 endif # include guard
+include MakeHelperEnd.gmk

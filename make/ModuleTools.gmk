@@ -53,5 +53,5 @@ TOOL_ADD_PACKAGES_ATTRIBUTE := $(BUILD_JAVA) $(JAVA_FLAGS_SMALL_BUILDJDK) \
 
 ################################################################################
 
-include MakeHelperEnd.gmk
 endif # include guard
+include MakeHelperEnd.gmk

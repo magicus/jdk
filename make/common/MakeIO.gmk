@@ -240,5 +240,5 @@ endif # HAS_FILE_FUNCTION
 
 ################################################################################
 
-include MakeHelperEnd.gmk
 endif # include guard
+include MakeHelperEnd.gmk

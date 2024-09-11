@@ -155,5 +155,5 @@ $(eval $(call SetupJdkExecutable, BUILD_GTEST_LAUNCHER, \
 
 ################################################################################
 
-include MakeHelperEnd.gmk
 endif # include guard
+include MakeHelperEnd.gmk

@@ -58,5 +58,5 @@ endif
 
 ################################################################################
 
-include MakeHelperEnd.gmk
 endif # include guard
+include MakeHelperEnd.gmk

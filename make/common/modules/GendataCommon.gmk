@@ -33,5 +33,5 @@ include ToolsJdk.gmk
 
 ################################################################################
 
-include MakeHelperEnd.gmk
 endif # include guard
+include MakeHelperEnd.gmk

@@ -54,5 +54,5 @@ check-jvm-feature = \
 
 ################################################################################
 
-include MakeHelperEnd.gmk
 endif # include guard
+include MakeHelperEnd.gmk

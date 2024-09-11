@@ -102,5 +102,5 @@ ALL_NAMED_TESTS += failure-handler make
 
 ################################################################################
 
-include MakeHelperEnd.gmk
 endif # include guard
+include MakeHelperEnd.gmk
