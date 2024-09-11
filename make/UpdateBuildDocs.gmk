@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This makefile updates the generated build html documentation.
@@ -51,4 +51,4 @@ $(eval $(call SetupProcessMarkdown, md_docs, \
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

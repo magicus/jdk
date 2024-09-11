@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -174,4 +174,4 @@ all: $(MICROBENCHMARK_JAR) $(BUILD_MICROBENCHMARK_LIBRARIES) $(COPY_MICROBENCHMA
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

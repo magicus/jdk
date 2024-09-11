@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -261,4 +261,4 @@ $(eval $(call SetupExecute, create_$(JMOD_FILE), \
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

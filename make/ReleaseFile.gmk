@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This makefile generates the "release" file into the exploded image. Jlink is
@@ -81,4 +81,4 @@ TARGETS += $(BASE_RELEASE_FILE)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

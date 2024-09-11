@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -106,4 +106,4 @@ images: $(IMAGES_TARGETS)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

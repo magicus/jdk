@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -1280,4 +1280,4 @@ all: run-test
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

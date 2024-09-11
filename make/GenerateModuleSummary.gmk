@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -52,4 +52,4 @@ all: $(GENGRAPHS_DIR)/jdk.dot $(GENGRAPHS_DIR)/module-summary.html $(SPEC_DOTFIL
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -60,4 +60,4 @@ $(eval $(call SetupJavaCompilation, BUILD_JIGSAW_TOOLS, \
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

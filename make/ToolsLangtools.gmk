@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -45,4 +45,4 @@ all: $(BUILD_TOOLS_LANGTOOLS)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

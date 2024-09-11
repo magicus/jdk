@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This makefile compiles and installs the hsdis library
@@ -202,4 +202,4 @@ TARGETS += install
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

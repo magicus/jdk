@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -105,4 +105,4 @@ endif
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

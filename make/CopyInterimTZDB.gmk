@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -51,4 +51,4 @@ all: $(COPY_INTERIM_TZDB)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

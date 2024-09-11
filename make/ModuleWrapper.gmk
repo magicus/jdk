@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This makefile is called from Main.gmk, through a macro in MakeHelpers.gmk
@@ -114,4 +114,4 @@ all: $(TARGETS)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

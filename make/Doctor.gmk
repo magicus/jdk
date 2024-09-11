@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # Help user diagnose possible errors and problems with the build environment.
@@ -142,4 +142,4 @@ all: doctor
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # Generate classlist
@@ -137,4 +137,4 @@ $(COPY_JLI_TRACE): $(CLASSLIST_FILE)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

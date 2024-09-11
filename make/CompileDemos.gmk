@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # Build demos for the JDK into $(SUPPORT_OUTPUTDIR)/demos/image.
@@ -255,4 +255,4 @@ images: $(IMAGES_TARGETS)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This file makes modifications to module-info.java files based on the build
@@ -99,4 +99,4 @@ endif
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This file builds the Java components of testlib.
@@ -86,4 +86,4 @@ all: build-test-lib
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

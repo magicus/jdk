@@ -22,7 +22,7 @@
 # or visit www.oracle.com if you need additional information or have any
 # questions.
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -57,4 +57,4 @@ jcov-image: $(JCOV_IMAGE_DIR)/release
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

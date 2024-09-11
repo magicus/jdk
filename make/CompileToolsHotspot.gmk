@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -44,4 +44,4 @@ $(eval $(call SetupJavaCompilation, BUILD_TOOLS_HOTSPOT, \
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

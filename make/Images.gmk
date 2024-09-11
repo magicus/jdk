@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -318,4 +318,4 @@ all: jdk jre symbols
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

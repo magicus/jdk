@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -62,4 +62,4 @@ TARGETS += $(CREATE_HOTSPOT_LAUNCHER) $(CHMOD_HOTSPOT_LAUNCHER)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

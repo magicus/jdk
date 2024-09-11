@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This file is responsible for extracting the x11 native struct offsets to
@@ -104,4 +104,4 @@ TARGETS += $(run_wrappergen) wrapper-information
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

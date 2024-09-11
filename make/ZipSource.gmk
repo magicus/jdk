@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -96,4 +96,4 @@ TARGETS += zip
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # Runs a tool on the exploded image to improve performance
@@ -43,4 +43,4 @@ $(eval $(call SetupExecute, optimize_image, \
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

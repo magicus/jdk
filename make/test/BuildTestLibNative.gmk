@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This file builds the native component of testlib.
@@ -87,4 +87,4 @@ all: build-test-lib-native
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

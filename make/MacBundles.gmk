@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -122,4 +122,4 @@ endif # macosx
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

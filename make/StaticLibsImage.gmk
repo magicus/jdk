@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This makefile creates an image of the optional static versions of certain JDK
@@ -74,4 +74,4 @@ static-libs-graal-image: $(STATIC_LIBS_TARGETS)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

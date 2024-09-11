@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -515,4 +515,4 @@ jcov-bundles: $(JCOV_TARGETS)
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

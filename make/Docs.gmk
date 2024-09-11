@@ -22,7 +22,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -806,4 +806,4 @@ all: docs-jdk-api-javadoc docs-jdk-api-graphs docs-javase-api-javadoc \
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

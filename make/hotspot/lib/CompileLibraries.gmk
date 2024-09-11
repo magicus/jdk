@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -41,4 +41,4 @@ include CopyToExplodedJdk.gmk
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This makefile creates a jdk image overlaid with statically linked core
@@ -47,4 +47,4 @@ $(eval $(call SetupCopyFiles, COPY_STATIC_LIBS, \
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

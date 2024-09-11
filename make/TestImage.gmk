@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 
@@ -52,4 +52,4 @@ all: prepare-test-image
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

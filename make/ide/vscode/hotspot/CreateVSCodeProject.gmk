@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # SedEscape
@@ -115,4 +115,4 @@ TARGETS := $(OUTPUTDIR)/jdk.code-workspace $(OUTPUTDIR)/.vscode/tasks.json \
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

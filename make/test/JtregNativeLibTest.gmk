@@ -23,7 +23,7 @@
 # questions.
 #
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This file builds the native component of the JTReg tests for testlibrary.
@@ -88,4 +88,4 @@ test-image: test-image-libtest-jtreg-native
 
 ################################################################################
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk

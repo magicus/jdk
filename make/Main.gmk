@@ -29,7 +29,7 @@
 
 ALL_TARGETS :=
 
-include MakeStart.gmk
+include MakeFileStart.gmk
 
 ################################################################################
 # This is the main makefile containing most actual top level targets. It needs
@@ -1444,4 +1444,4 @@ create-main-targets-include:
 
 FRC: # Force target
 
-include MakeEnd.gmk
+include MakeFileEnd.gmk
