@@ -57,7 +57,7 @@ ifeq ($(call isTargetOs, macosx), true)
 
   # This is only used on X11
   LIBAWT_EXCLUDES += \
-      $(TOPDIR)/src/$(MODULE)/unix/native/libawt/x11/awt \
+      x11/awt \
       #
 endif
 
@@ -297,7 +297,7 @@ ifeq ($(call isTargetOs, macosx), true)
   ##############################################################################
 
   LIBAWT_LWAWT_EXTRA_SRC := \
-      common/awt \
+      common/cups \
       libawt/awt/systemscale \
       libawt/font \
       libawt/java2d/opengl \
