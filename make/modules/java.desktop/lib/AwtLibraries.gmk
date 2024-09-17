@@ -44,9 +44,11 @@ ifeq ($(call isTargetOs, windows), true)
 endif
 
 ifeq ($(call isTargetOs, linux macosx), true)
-  # font and java2d/opengl are included in libawt_lwawt or libawt_xawt/libawt_headless instead
+  # cups, font and java2d/opengl are included in libawt_lwawt or
+  # libawt_xawt/libawt_headless instead.
   LIBAWT_EXCLUDES += \
       awt/utility \
+      cups \
       font \
       java2d/opengl \
       #
@@ -149,10 +151,11 @@ ifeq ($(call isTargetOs, windows macosx), false)
   ##############################################################################
 
   LIBAWT_HEADLESS_EXTRA_SRC := \
-      common/cups \
       libawt/awt/systemscale \
+      libawt/cups \
       libawt/font \
       libawt/java2d/opengl \
+      #
 
   LIBAWT_HEADLESS_EXCLUDES := headful
 
@@ -297,8 +300,8 @@ ifeq ($(call isTargetOs, macosx), true)
   ##############################################################################
 
   LIBAWT_LWAWT_EXTRA_SRC := \
-      common/cups \
       libawt/awt/systemscale \
+      libawt/cups \
       libawt/font \
       libawt/java2d/opengl \
       #
