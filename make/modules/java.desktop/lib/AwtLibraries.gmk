@@ -30,23 +30,9 @@ include CopyFiles.gmk
 # Note that this does not imply that the code they bring in belong to AWT.
 # This split is purely made to keep the size of the Makefiles reasonable.
 
-LIBAWT_DEFAULT_HEADER_DIRS := \
-    common/awt/utility \
-    libawt/awt/image \
-    libawt/awt/image/cvutils \
-    libawt/java2d \
-    libawt/java2d/loops \
-    libawt/java2d/pipe \
-    #
-
 ################################################################################
 ## Build libawt
 ################################################################################
-
-LIBAWT_EXTRA_SRC := \
-    common/awt/debug \
-    $(TOPDIR)/src/$(MODULE)/$(OPENJDK_TARGET_OS_TYPE)/native/common/awt \
-    #
 
 ifeq ($(call isTargetOs, windows), true)
   LIBAWT_EXTRA_SRC += \
@@ -57,12 +43,19 @@ ifeq ($(call isTargetOs, windows), true)
       #
 endif
 
-ifeq ($(call isTargetOs, linux macosx aix), true)
-  LIBAWT_EXCLUDE_FILES += awt_Font.c CUPSfuncs.c fontpath.c X11Color.c
-endif
-
 ifeq ($(call isTargetOs, macosx), true)
-  LIBAWT_EXCLUDE_FILES += initIDs.c img_colors.c
+  LIBAWT_EXCLUDE_FILES += rect.c img_colors.c
+
+  # This is only used on X11
+  LIBAWT_EXCLUDES := \
+      $(TOPDIR)/src/$(MODULE)/unix/native/libawt/x11/awt \
+      #
+
+  # On macOS, these are included in libawt_lwawt instead
+  LIBAWT_EXCLUDES += \
+      $(TOPDIR)/src/$(MODULE)/share/native/libawt/font \
+      $(TOPDIR)/src/$(MODULE)/share/native/libawt/java2d/opengl \
+      #
 endif
 
 ifeq ($(call isTargetOs, windows), true)
@@ -70,16 +63,17 @@ ifeq ($(call isTargetOs, windows), true)
 endif
 
 LIBAWT_EXTRA_HEADER_DIRS := \
-    $(LIBAWT_DEFAULT_HEADER_DIRS) \
-    $(call GetJavaHeaderDir, java.base) \
-    libawt/awt/medialib \
-    libawt/java2d/d3d \
-    libawt/java2d/opengl \
-    libawt/java2d/windows \
-    libawt/windows \
-    common/awt/medialib \
+    common \
+    libawt/awt \
+    libawt/awt/debug \
+    libawt/awt/image \
+    libawt/awt/image/cvutils \
+    libawt/java2d \
+    libawt/java2d/loops \
+    libawt/java2d/pipe \
+    libawt/medialib \
+    libfontmanager \
     libmlib_image \
-    include \
     #
 
 LIBAWT_CFLAGS := -D__MEDIALIB_OLD_NAMES -D__USE_J2D_NAMES -DMLIB_NO_LIBSUNMATH
@@ -101,6 +95,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBAWT, \
     NAME := awt, \
     EXTRA_SRC := $(LIBAWT_EXTRA_SRC), \
     EXCLUDE_FILES := $(LIBAWT_EXCLUDE_FILES), \
+    EXCLUDES := $(LIBAWT_EXCLUDES), \
     OPTIMIZATION := HIGHEST, \
     CFLAGS := $(LIBAWT_CFLAGS) $(X_CFLAGS), \
     CXXFLAGS := $(LIBAWT_CFLAGS) $(X_CFLAGS), \
@@ -292,25 +287,28 @@ ifeq ($(call isTargetOs, macosx), true)
   ##############################################################################
 
   LIBAWT_LWAWT_EXTRA_SRC := \
-      $(TOPDIR)/src/$(MODULE)/unix/native/common/awt \
-      $(TOPDIR)/src/$(MODULE)/share/native/common/font \
-      $(TOPDIR)/src/$(MODULE)/share/native/common/java2d \
+      common/awt \
+      libawt/awt/systemscale \
+      libawt/font \
+      libawt/java2d/opengl \
       #
 
   LIBAWT_LWAWT_EXTRA_HEADER_DIRS := \
-      $(LIBAWT_DEFAULT_HEADER_DIRS) \
-      libawt_lwawt/awt \
-      libawt_lwawt/font \
-      libawt_lwawt/java2d/opengl \
-      libawt_lwawt/java2d/metal \
-      include \
-      common/awt/debug \
-      common/java2d/opengl \
-      java.base:libjvm \
-      #
-
-  LIBAWT_LWAWT_EXCLUDE_FILES := fontpath.c awt_Font.c X11Color.c
-  LIBAWT_LWAWT_EXCLUDES := $(TOPDIR)/src/$(MODULE)/unix/native/common/awt/medialib
+    common \
+    include \
+    libawt_lwawt/awt \
+    libawt_lwawt/font \
+    libawt_lwawt/java2d/opengl \
+    libawt/awt \
+    libawt/awt/debug \
+    libawt/awt/image \
+    libawt/awt/image/cvutils \
+    libawt/java2d \
+    libawt/java2d/loops \
+    libawt/java2d/pipe \
+    libfontmanager \
+    java.base:libjvm \
+    #
 
   $(eval $(call SetupJdkLibrary, BUILD_LIBAWT_LWAWT, \
       NAME := awt_lwawt, \
@@ -376,7 +374,7 @@ ifeq ($(call isTargetOs, windows), true)
       #
 else
   LIBJAWT_EXTRA_HEADER_DIRS += \
-      common/awt \
+      libawt/awt \
       #
 endif
 

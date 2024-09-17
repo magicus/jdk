@@ -39,9 +39,7 @@ endif
 
 $(eval $(call SetupJdkLibrary, BUILD_LIBMLIB_IMAGE, \
     NAME := mlib_image, \
-    EXTRA_SRC := common/awt/medialib, \
     EXTRA_HEADER_DIRS := java.base:libjava, \
-    EXCLUDE_FILES := mlib_c_ImageBlendTable.c, \
     OPTIMIZATION := HIGHEST, \
     CFLAGS := -D__USE_J2D_NAMES -D__MEDIALIB_OLD_NAMES -DMLIB_NO_LIBSUNMATH \
         $(LIBMLIB_IMAGE_CFLAGS), \
@@ -81,9 +79,8 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBLCMS, \
     CFLAGS := -DCMS_DONT_USE_FAST_FLOOR -DCMS_NO_HALF_SUPPORT $(LCMS_CFLAGS), \
     CFLAGS_windows := -DCMS_IS_WINDOWS_, \
     EXTRA_HEADER_DIRS := \
-        common/awt/debug \
-        libawt/java2d \
-        java.base:libjvm, \
+        libawt/awt/debug \
+        libawt/java2d, \
     HEADERS_FROM_SRC := $(LIBLCMS_HEADERS_FROM_SRC), \
     DISABLED_WARNINGS_gcc := format-nonliteral stringop-truncation type-limits \
         unused-variable, \
@@ -136,15 +133,9 @@ TARGETS += $(BUILD_LIBJAVAJPEG)
 ################################################################################
 
 ifeq ($(ENABLE_HEADLESS_ONLY), false)
-  LIBSPLASHSCREEN_EXTRA_SRC := \
-      common/awt/systemscale \
-      #
-
   LIBSPLASHSCREEN_HEADER_DIRS := \
-      common/awt/utility \
-      libosxapp \
+      common \
       java.base:libjava \
-      java.base:libjvm \
       #
 
   ifeq ($(USE_EXTERNAL_LIBGIF), false)
@@ -155,6 +146,7 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
 
   ifeq ($(USE_EXTERNAL_LIBJPEG), false)
     LIBSPLASHSCREEN_EXTRA_SRC += libjavajpeg
+    LIBSPLASHSCREEN_EXCLUDE_FILES += imageioJPEG.c jpegdecoder.c
   endif
 
   ifeq ($(USE_EXTERNAL_LIBPNG), false)
@@ -211,7 +203,7 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
       NAME := splashscreen, \
       EXTRA_SRC := $(LIBSPLASHSCREEN_EXTRA_SRC), \
       EXCLUDE_SRC_PATTERNS := $(LIBSPLASHSCREEN_EXCLUDE_SRC_PATTERNS), \
-      EXCLUDE_FILES := imageioJPEG.c jpegdecoder.c pngtest.c, \
+      EXCLUDE_FILES := $(LIBSPLASHSCREEN_EXCLUDE_FILES), \
       EXCLUDES := $(LIBSPLASHSCREEN_EXCLUDES), \
       OPTIMIZATION := LOW, \
       CFLAGS := $(LIBSPLASHSCREEN_CFLAGS) \
@@ -286,11 +278,10 @@ endif
 ################################################################################
 
 ifeq ($(USE_EXTERNAL_HARFBUZZ), true)
-  LIBFONTMANAGER_EXTRA_SRC =
   LIBFONTMANAGER_LIBS += $(HARFBUZZ_LIBS)
   LIBFONTMANAGER_CFLAGS += $(HARFBUZZ_CFLAGS)
 else
-  LIBFONTMANAGER_EXTRA_SRC = libharfbuzz
+  LIBFONTMANAGER_EXTRA_SRC := libharfbuzz
 
   ifeq ($(call isTargetOs, windows), false)
     HARFBUZZ_CFLAGS += -DGETPAGESIZE -DHAVE_MPROTECT -DHAVE_PTHREAD \
@@ -334,12 +325,10 @@ else
 endif
 
 LIBFONTMANAGER_EXTRA_HEADER_DIRS := \
-    common/awt \
-    common/awt/utility \
-    common/font \
+    libawt/font \
     libawt/java2d \
-    libawt/java2d/pipe \
     libawt/java2d/loops \
+    libawt/java2d/pipe \
     #
 
 ifeq ($(FREETYPE_TO_USE), system)
@@ -361,16 +350,15 @@ ifneq ($(filter $(TOOLCHAIN_TYPE), gcc clang), )
 endif
 
 ifeq ($(call isTargetOs, windows), true)
-  LIBFONTMANAGER_EXCLUDE_FILES += X11FontScaler.c X11TextRenderer.c
   LIBFONTMANAGER_OPTIMIZATION := HIGHEST
-else ifeq ($(call isTargetOs, macosx), true)
-  LIBFONTMANAGER_EXCLUDE_FILES += X11FontScaler.c X11TextRenderer.c \
-      fontpath.c lcdglyph.c
-else
-  LIBFONTMANAGER_EXCLUDE_FILES += fontpath.c lcdglyph.c
 endif
 
 LIBFONTMANAGER_CFLAGS += $(X_CFLAGS) -DLE_STANDALONE -DHEADLESS
+
+ifeq ($(call isTargetOs, macosx), true)
+  # libfontmanager on macosx does not use the X11 code
+  LIBFONTMANAGER_EXCLUDES += x11
+endif
 
 # LDFLAGS clarification:
 #   Filter relevant linker flags disallowing unresolved symbols as we cannot
@@ -379,8 +367,8 @@ LIBFONTMANAGER_CFLAGS += $(X_CFLAGS) -DLE_STANDALONE -DHEADLESS
 $(eval $(call SetupJdkLibrary, BUILD_LIBFONTMANAGER, \
     NAME := fontmanager, \
     LINK_TYPE := C++, \
-    EXCLUDE_FILES := $(LIBFONTMANAGER_EXCLUDE_FILES) \
-        AccelGlyphCache.c, \
+    EXCLUDE_FILES := $(LIBFONTMANAGER_EXCLUDE_FILES), \
+    EXCLUDES := $(LIBFONTMANAGER_EXCLUDES), \
     CFLAGS := $(LIBFONTMANAGER_CFLAGS), \
     CXXFLAGS := $(LIBFONTMANAGER_CFLAGS), \
     OPTIMIZATION := $(LIBFONTMANAGER_OPTIMIZATION), \
