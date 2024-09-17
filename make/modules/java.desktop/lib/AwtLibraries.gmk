@@ -43,18 +43,21 @@ ifeq ($(call isTargetOs, windows), true)
       #
 endif
 
+ifeq ($(call isTargetOs, linux macosx), true)
+  # font and java2d/opengl are included in libawt_lwawt or libawt_xawt/libawt_headless instead
+  LIBAWT_EXCLUDES += \
+      awt/utility \
+      font \
+      java2d/opengl \
+      #
+endif
+
 ifeq ($(call isTargetOs, macosx), true)
-  LIBAWT_EXCLUDE_FILES += rect.c img_colors.c
+  LIBAWT_EXCLUDE_FILES += img_colors.c
 
   # This is only used on X11
-  LIBAWT_EXCLUDES := \
-      $(TOPDIR)/src/$(MODULE)/unix/native/libawt/x11/awt \
-      #
-
-  # On macOS, these are included in libawt_lwawt instead
   LIBAWT_EXCLUDES += \
-      $(TOPDIR)/src/$(MODULE)/share/native/libawt/font \
-      $(TOPDIR)/src/$(MODULE)/share/native/libawt/java2d/opengl \
+      $(TOPDIR)/src/$(MODULE)/unix/native/libawt/x11/awt \
       #
 endif
 
@@ -146,16 +149,26 @@ ifeq ($(call isTargetOs, windows macosx), false)
   ##############################################################################
 
   LIBAWT_HEADLESS_EXTRA_SRC := \
-      common/font \
-      common/java2d \
-      $(TOPDIR)/src/$(MODULE)/$(OPENJDK_TARGET_OS_TYPE)/native/common/awt \
-      #
+      common/cups \
+      libawt/awt/systemscale \
+      libawt/font \
+      libawt/java2d/opengl \
+
+  LIBAWT_HEADLESS_EXCLUDES := headful
 
   LIBAWT_HEADLESS_EXTRA_HEADER_DIRS := \
-      $(LIBAWT_DEFAULT_HEADER_DIRS) \
-      common/awt/debug \
-      common/font \
-      common/java2d/opengl \
+      common \
+      libawt_xawt/awt \
+      libawt_xawt/opengl \
+      libawt/awt \
+      libawt/awt/debug \
+      libawt/awt/image \
+      libawt/awt/image/cvutils \
+      libawt/java2d \
+      libawt/java2d/loops \
+      libawt/java2d/pipe \
+      libfontmanager \
+      libfontmanager/x11 \
       java.base:libjvm \
       #
 
@@ -169,8 +182,9 @@ ifeq ($(call isTargetOs, windows macosx), false)
 
   $(eval $(call SetupJdkLibrary, BUILD_LIBAWT_HEADLESS, \
       NAME := awt_headless, \
+      SRC :=   libawt_xawt, \
       EXTRA_SRC := $(LIBAWT_HEADLESS_EXTRA_SRC), \
-      EXCLUDES := medialib, \
+      EXCLUDES := $(LIBAWT_HEADLESS_EXCLUDES), \
       OPTIMIZATION := LOW, \
       CFLAGS := -DHEADLESS=true $(CUPS_CFLAGS) $(FONTCONFIG_CFLAGS) \
           $(X_CFLAGS), \
@@ -195,22 +209,18 @@ ifeq ($(call isTargetOs, windows macosx)+$(ENABLE_HEADLESS_ONLY), false+false)
   ##############################################################################
 
   LIBAWT_XAWT_EXTRA_SRC := \
-      common/awt \
-      common/java2d \
-      common/font \
+      $(LIBAWT_HEADLESS_EXTRA_SRC) \
+      libawt/awt/utility \
       #
 
+  LIBAWT_XAWT_EXCLUDES += headless
+
   LIBAWT_XAWT_EXTRA_HEADER_DIRS := \
-      $(LIBAWT_DEFAULT_HEADER_DIRS) \
-      libawt_xawt/awt \
+      $(LIBAWT_HEADLESS_EXTRA_HEADER_DIRS) \
       include \
-      common/awt/debug \
-      common/awt/systemscale \
-      common/font \
-      common/java2d/opengl \
-      common/java2d/x11 \
+      libawt_xawt/headful/awt \
+      libawt_xawt/x11 \
       libpipewire/include \
-      java.base:libjvm \
       #
 
   ifeq ($(call isTargetOs, linux), true)
@@ -231,7 +241,7 @@ ifeq ($(call isTargetOs, windows macosx)+$(ENABLE_HEADLESS_ONLY), false+false)
       NAME := awt_xawt, \
       EXTRA_SRC := $(LIBAWT_XAWT_EXTRA_SRC), \
       EXTRA_HEADER_DIRS := $(LIBAWT_XAWT_EXTRA_HEADER_DIRS), \
-      EXCLUDES := medialib debug, \
+      EXCLUDES := $(LIBAWT_XAWT_EXCLUDES), \
       OPTIMIZATION := LOW, \
       CFLAGS := -DXAWT -DXAWT_HACK $(LIBAWT_XAWT_CFLAGS) \
           $(FONTCONFIG_CFLAGS) $(CUPS_CFLAGS) $(X_CFLAGS), \
