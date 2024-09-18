@@ -57,9 +57,9 @@ endif
 ifeq ($(call isTargetOs, macosx), true)
   LIBAWT_EXCLUDE_FILES += img_colors.c
 
-  # This is only used on X11
+  # Don't include X11 code on macOS
   LIBAWT_EXCLUDES += \
-      x11/awt \
+      x11 \
       #
 endif
 
