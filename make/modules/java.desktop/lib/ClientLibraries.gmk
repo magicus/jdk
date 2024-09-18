@@ -138,7 +138,7 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
       java.base:libjava \
       #
 
-  ifneq ($(call isTargetOs, macosx), true)
+  ifeq ($(call isTargetOs, macosx), false)
     LIBSPLASHSCREEN_EXTRA_SRC += \
         libawt/awt/systemscale/
         #

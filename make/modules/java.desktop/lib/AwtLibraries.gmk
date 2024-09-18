@@ -43,7 +43,7 @@ ifeq ($(call isTargetOs, windows), true)
       #
 endif
 
-ifeq ($(call isTargetOs, linux macosx), true)
+ifeq ($(call isTargetOs, windows), false)
   # cups, font and java2d/opengl are included in libawt_lwawt or
   # libawt_xawt/libawt_headless instead.
   LIBAWT_EXCLUDES += \
