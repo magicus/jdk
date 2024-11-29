@@ -153,6 +153,17 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
                                    jbuf);
 
         awtHandle = dlopen(buf, RTLD_LAZY | RTLD_GLOBAL);
+
+        int (*initX11Symbols)(void) = dlsym(awtHandle, "initX11Symbols");
+        if (initX11Symbols == NULL) {
+            fprintf(stderr, "Failed to load symbol initX11Symbols: %s\n", dlerror());
+            return JNI_ERR;
+        }
+        int res = initX11Symbols();
+        if (res != 0) {
+            fprintf(stderr, "Failed to initialize X11 symbols\n");
+            return JNI_ERR;
+        }
     }
 
     return JNI_VERSION_1_2;
