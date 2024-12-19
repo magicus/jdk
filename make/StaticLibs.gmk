@@ -129,6 +129,7 @@ $(eval $(call SetupBuildLauncher, java, \
     EXTRA_RCFLAGS := $(JAVA_RCFLAGS), \
     VERSION_INFO_RESOURCE := $(JAVA_VERSION_INFO_RESOURCE), \
     OPTIMIZATION := HIGH, \
+    MACOSX_PRIVILEGED := true, \
     STATIC_LAUNCHER := true, \
     LDFLAGS := $(LDFLAGS_STATIC_JDK), \
     LIBS := $(STATIC_LIBS) $(EXTERNAL_LIBS), \
