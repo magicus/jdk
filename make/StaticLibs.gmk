@@ -167,7 +167,7 @@ $(eval $(call SetupJdkExecutable, BUILD_relauncher_javac, \
     CFLAGS := -DLAUNCHER_ARGS=$(LAUNCHER_ARGS), \
     LIBS_windows := shlwapi.lib, \
     OUTPUT_DIR := $(STATIC_LAUNCHER_OUTPUT_DIR), \
-    OBJECT_DIR := $(STATIC_LAUNCHER_OUTPUT_DIR)/wrappers/javac, \
+    OBJECT_DIR := $(STATIC_LAUNCHER_OUTPUT_DIR)/relaunchers/javac, \
 ))
 
 TARGETS += $(BUILD_relauncher_javac)
