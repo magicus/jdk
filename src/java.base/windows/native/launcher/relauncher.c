@@ -23,8 +23,6 @@
  * questions.
  */
 
-#include <ctype.h>
-#include <errno.h>
 #include <shlwapi.h>
 #include <stdio.h>
 #include <stdlib.h>
