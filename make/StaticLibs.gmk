@@ -48,8 +48,8 @@ ifneq ($(word 2, $(wildcard $(HOTSPOT_STATIC_LIB_PATH))), )
 endif
 
 # Find all modules with static libraries
-STATIC_LIB_MODULES := $(patsubst $(SUPPORT_OUTPUTDIR)/modules_static-libs/%, \
-    %, $(wildcard $(SUPPORT_OUTPUTDIR)/modules_static-libs/*))
+STATIC_LIB_MODULES := $(sort $(patsubst $(SUPPORT_OUTPUTDIR)/modules_static-libs/%, \
+    %, $(wildcard $(SUPPORT_OUTPUTDIR)/modules_static-libs/*)))
 
 # Filter out known broken libraries. This is a temporary measure until
 # proper support for these libraries can be provided.
@@ -153,6 +153,21 @@ static-launchers: $(java)
 # Build relaunchers (thin wrappers calling the java binary) for all other
 # JDK launchers.
 ################################################################################
+
+# Find all modules with launchers
+LAUNCHER_MODULES := $(sort $(patsubst $(SUPPORT_OUTPUTDIR)/modules_static-launchers/%, \
+    %, $(wildcard $(SUPPORT_OUTPUTDIR)/modules_static-launchers/*)))
+
+$(foreach module, $(LAUNCHER_MODULES), \
+    $(eval LAUNCHERS_$(module) := $(if $(wildcard \
+    $(SUPPORT_OUTPUTDIR)/modules_static-launchers/$(module)/module-included-launchers.txt), \
+    $(shell cat \
+    $(SUPPORT_OUTPUTDIR)/modules_static-launchers/$(module)/module-included-launchers.txt))) \
+)
+
+STATIC_LAUNCHERS := $(sort $(foreach module, $(LAUNCHER_MODULES), \
+    $(foreach launcher, $(LAUNCHERS_$(module)), \
+    $(module):$(launcher))))
 
 # FIXME: pick this up from the actual launchers
 LAUNCHER_ARGS_LINE := --add-modules ALL-DEFAULT -m jdk.compiler/com.sun.tools.javac.Main

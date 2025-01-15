@@ -74,6 +74,11 @@ define SetupBuildLauncherBody
 
   $1_MAIN_MODULE := $(MODULE)
 
+  # Record the fact that this launcher is part of the current module. This
+  # variable stores information about all created launchers, and is read by
+  # ModuleWrapper.
+  $$(MODULE)_INCLUDED_LAUNCHERS += $1
+
   $1_RELAUNCHER_ARGUMENTS :=
 
   ifneq ($$($1_MAIN_CLASS), )
