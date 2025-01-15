@@ -187,6 +187,15 @@ define SetupBuildLauncherBody
   ))
 
   $1 += $$(BUILD_LAUNCHER_$1)
+
+  $1_RELAUNCHER_ARGUMENTS_FILE := $$(SUPPORT_OUTPUTDIR)/static-native/relaunchers/$$(MODULE)/$1-relauncher-arguments.txt
+
+  $$($1_RELAUNCHER_ARGUMENTS_FILE):
+	$$(call MakeDir, $$(@D))
+	$$(ECHO) $$($1_RELAUNCHER_ARGUMENTS) > $$@
+
+  $1 += $$($1_RELAUNCHER_ARGUMENTS_FILE)
+
   TARGETS += $$($1)
 
   $$(BUILD_LAUNCHER_$1): $$(BUILD_PLIST_$1)
