@@ -154,10 +154,34 @@ static-launchers: $(java)
 # JDK launchers.
 ################################################################################
 
+RELAUNCHER_SRC := $(TOPDIR)/src/java.base/$(OPENJDK_TARGET_OS_TYPE)/native/launcher
+
+# $1: The module name
+# $2: The launcher name
+define SetupRelauncher
+  $1_$2_LAUNCHER_ARGS_LINE :=  $$(shell cat $$(SUPPORT_OUTPUTDIR)/static-native/relaunchers/$1/$2-relauncher-arguments.txt)
+  $1_$2_LAUNCHER_ARGS := '{ $$(strip $$(foreach a, $$($1_$2_LAUNCHER_ARGS_LINE), "$$a"$$(COMMA) )) }'
+
+  $$(eval $$(call SetupJdkExecutable, BUILD_relauncher_$2, \
+      NAME := $2, \
+      EXTRA_FILES := $$(RELAUNCHER_SRC)/relauncher.c, \
+      CFLAGS := -DLAUNCHER_ARGS=$$($1_$2_LAUNCHER_ARGS), \
+      LIBS_windows := shlwapi.lib, \
+      OUTPUT_DIR := $$(STATIC_LAUNCHER_OUTPUT_DIR), \
+      OBJECT_DIR := $$(STATIC_LAUNCHER_OUTPUT_DIR)/relaunchers/$2, \
+  ))
+
+  TARGETS += $$(BUILD_relauncher_$2)
+
+  RELAUNCHERS += $$(BUILD_relauncher_$2_TARGET)
+  static-launchers: $$(BUILD_relauncher_$2)
+endef
+
 # Find all modules with launchers
 LAUNCHER_MODULES := $(sort $(patsubst $(SUPPORT_OUTPUTDIR)/modules_static-launchers/%, \
     %, $(wildcard $(SUPPORT_OUTPUTDIR)/modules_static-launchers/*)))
 
+# Find launchers for each module
 $(foreach module, $(LAUNCHER_MODULES), \
     $(eval LAUNCHERS_$(module) := $(if $(wildcard \
     $(SUPPORT_OUTPUTDIR)/modules_static-launchers/$(module)/module-included-launchers.txt), \
@@ -165,31 +189,10 @@ $(foreach module, $(LAUNCHER_MODULES), \
     $(SUPPORT_OUTPUTDIR)/modules_static-launchers/$(module)/module-included-launchers.txt))) \
 )
 
-STATIC_LAUNCHERS := $(sort $(foreach module, $(LAUNCHER_MODULES), \
-    $(foreach launcher, $(LAUNCHERS_$(module)), \
-    $(module):$(launcher))))
-
-# FIXME: pick this up from the actual launchers
-LAUNCHER_ARGS_LINE := --add-modules ALL-DEFAULT -m jdk.compiler/com.sun.tools.javac.Main
-
-RELAUNCHER_SRC := $(TOPDIR)/src/java.base/$(OPENJDK_TARGET_OS_TYPE)/native/launcher
-
-LAUNCHER_ARGS := '{ $(strip $(foreach a, $(LAUNCHER_ARGS_LINE), "$a"$(COMMA) )) }'
-
-$(eval $(call SetupJdkExecutable, BUILD_relauncher_javac, \
-    NAME := javac, \
-    EXTRA_FILES := $(RELAUNCHER_SRC)/relauncher.c, \
-    CFLAGS := -DLAUNCHER_ARGS=$(LAUNCHER_ARGS), \
-    LIBS_windows := shlwapi.lib, \
-    OUTPUT_DIR := $(STATIC_LAUNCHER_OUTPUT_DIR), \
-    OBJECT_DIR := $(STATIC_LAUNCHER_OUTPUT_DIR)/relaunchers/javac, \
-))
-
-TARGETS += $(BUILD_relauncher_javac)
-
-RELAUNCHERS += $(BUILD_relauncher_javac_TARGET)
-
-static-launchers: $(BUILD_relauncher_javac)
+# For all launchers (except java), setup a relauncher build
+$(foreach module, $(LAUNCHER_MODULES), \
+    $(foreach launcher, $(filter-out java, $(LAUNCHERS_$(module))), \
+    $(eval $(call SetupRelauncher,$(module),$(launcher)))))
 
 ################################################################################
 #
