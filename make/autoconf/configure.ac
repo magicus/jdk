@@ -92,6 +92,8 @@ BASIC_SETUP_BUILD_ENV
 # Check if it's a pure open build or if custom sources are to be used.
 JDKOPT_SETUP_OPEN_OR_CUSTOM
 
+#### FIXME: test with zlib=system and freetype=system
+
 # These are needed to be able to create a configuration name (and thus the output directory)
 JDKOPT_SETUP_DEBUG_LEVEL
 HOTSPOT_SETUP_JVM_VARIANTS

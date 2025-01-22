@@ -486,6 +486,9 @@ GetJDKInstallRoot(char *path, jint pathsize, jboolean speculative)
     JLI_TraceLauncher("Attempt to get JDK installation root from launcher executable path\n");
 
     if (GetApplicationHome(path, pathsize)) {
+#ifdef STATIC_BUILD
+        return JNI_TRUE;
+#endif
         /* Is JDK co-located with the application? */
         JLI_Snprintf(libjava, sizeof(libjava), "%s/lib/" JAVA_DLL, path);
         if (access(libjava, F_OK) == 0) {
@@ -537,6 +540,7 @@ LoadJavaVM(const char *jvmpath, InvocationFunctions *ifn)
             return JNI_FALSE;
         }
     }
+#endif
 
     ifn->CreateJavaVM = (CreateJavaVM_t)
         dlsym(libjvm, "JNI_CreateJavaVM");
