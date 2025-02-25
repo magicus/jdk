@@ -131,6 +131,7 @@ $(eval $(call SetupBuildLauncher, java, \
     OPTIMIZATION := HIGH, \
     MACOSX_PRIVILEGED := true, \
     STATIC_LAUNCHER := true, \
+    CFLAGS := -DSTATIC_BUILD, \
     LDFLAGS := $(LDFLAGS_STATIC_JDK), \
     LIBS := $(STATIC_LIBS) $(EXTERNAL_LIBS), \
     LINK_TYPE := C++, \
