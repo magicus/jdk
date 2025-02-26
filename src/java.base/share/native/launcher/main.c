@@ -45,35 +45,17 @@
 // This is reported when requesting a full version
 static const char* launcher = LAUNCHER_NAME;
 
+// This is used as the name of the executable in the help message
+static char* progname = PROGNAME;
+
 #ifdef JAVA_ARGS
 static const char* jargs[] = JAVA_ARGS;
 #else
 static const char** jargs = NULL;
 #endif
 
-#ifdef STATIC_BUILD
-static char* progname = PROGNAME;
-static jboolean cpwildcard = JNI_TRUE;
-static jboolean disable_argfile = JNI_FALSE;
-#else
-
-// This is used as the name of the executable in the help message
-static const char* progname = PROGNAME;
-
-#  ifdef EXPAND_CLASSPATH_WILDCARDS
-static const jboolean cpwildcard = JNI_TRUE;
-#  else
-static const jboolean cpwildcard = JNI_FALSE;
-#  endif
-
-#  ifdef ENABLE_ARG_FILES
-static const jboolean disable_argfile = JNI_FALSE;
-#  else
-static const jboolean disable_argfile = JNI_TRUE;
-#  endif
-
-#endif // STATIC_BUILD
-
+static jboolean cpwildcard = CLASSPATH_WILDCARDS;
+static jboolean disable_argfile = DISABLE_ARGFILE;
 
 /*
  * Entry point.
