@@ -34,16 +34,11 @@
 #include "jli_util.h"
 #include "jni.h"
 
-#ifndef VERSION_STRING
-/* make sure the compilation fails */
-#error "VERSION_STRING must be defined"
-#endif
-
-/* Unused, but retained for JLI_Launch compatibility*/
+// Unused, but retained for JLI_Launch compatibility
 #define DOT_VERSION "0.0"
 
 // This is reported when requesting a full version
-static const char* launcher = LAUNCHER_NAME;
+static char* launcher = LAUNCHER_NAME;
 
 // This is used as the name of the executable in the help message
 static char* progname = PROGNAME;
