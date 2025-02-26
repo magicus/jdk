@@ -190,9 +190,9 @@ $(foreach module, $(LAUNCHER_MODULES), \
     $(SUPPORT_OUTPUTDIR)/modules_static-launchers/$(module)/module-included-launchers.txt))) \
 )
 
-# For all launchers (except java), setup a relauncher build
+# For all launchers (except java and javaw), setup a relauncher build
 $(foreach module, $(LAUNCHER_MODULES), \
-    $(foreach launcher, $(filter-out java, $(LAUNCHERS_$(module))), \
+    $(foreach launcher, $(filter-out java javaw, $(LAUNCHERS_$(module))), \
     $(eval $(call SetupRelauncher,$(module),$(launcher)))))
 
 ################################################################################
