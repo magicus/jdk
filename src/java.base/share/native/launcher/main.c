@@ -42,7 +42,7 @@
 /* Unused, but retained for JLI_Launch compatibility*/
 #define DOT_VERSION "0.0"
 
-// This is actually the branding name for the JDK
+// This is reported when requesting a full version
 static const char* launcher = LAUNCHER_NAME;
 
 #ifdef JAVA_ARGS
@@ -54,8 +54,10 @@ static const char** jargs = NULL;
 #ifdef STATIC_BUILD
 static char* progname = PROGNAME;
 static jboolean cpwildcard = JNI_TRUE;
-static jboolean disable_argfile = JNI_TRUE;
+static jboolean disable_argfile = JNI_FALSE;
 #else
+
+// This is used as the name of the executable in the help message
 static const char* progname = PROGNAME;
 
 #  ifdef EXPAND_CLASSPATH_WILDCARDS
@@ -69,6 +71,7 @@ static const jboolean disable_argfile = JNI_FALSE;
 #  else
 static const jboolean disable_argfile = JNI_TRUE;
 #  endif
+
 #endif // STATIC_BUILD
 
 
@@ -100,6 +103,13 @@ main(int argc, char **argv)
     jargc = (sizeof(jargs) / sizeof(char *)) > 1
         ? sizeof(jargs) / sizeof(char *)
         : 0; // ignore the null terminator index
+
+#ifdef STATIC_BUILD
+        // Relaunchers always give -DjavaLauncherArgFiles as the first argument, if present
+        if (argc > 1 && strcmp(argv[1], "-DjavaLauncherArgFiles=false") == 0) {
+            disable_argfile = JNI_TRUE;
+        }
+#endif
 
     JLI_InitArgProcessing(jargc > 0, disable_argfile);
 
@@ -140,6 +150,14 @@ main(int argc, char **argv)
         StdArg *stdargs = JLI_GetStdArgs();
         for (i = 0 ; i < margc ; i++) {
             margv[i] = stdargs[i].arg;
+#ifdef STATIC_BUILD
+            if (strcmp(margv[i], "-DjavaLauncherWildcards=false") == 0) {
+                cpwildcard = JNI_FALSE;
+            }
+            if (strncmp(margv[i], "-DjavaLauncherProgname=", 24) == 0) {
+                progname = margv[i] + 24;
+            }
+#endif
         }
         margv[i] = NULL;
     }
@@ -164,6 +182,14 @@ main(int argc, char **argv)
         }
         // Iterate the rest of command line
         for (i = 1; i < argc; i++) {
+#ifdef STATIC_BUILD
+            if (strcmp(argv[i], "-DjavaLauncherWildcards=false") == 0) {
+                cpwildcard = JNI_FALSE;
+            }
+            if (strncmp(argv[i], "-DjavaLauncherProgname=", 24) == 0) {
+                progname = argv[i] + 24;
+            }
+#endif
             JLI_List argsInFile = JLI_PreprocessArg(argv[i], JNI_TRUE);
             if (NULL == argsInFile) {
                 JLI_List_add(args, JLI_StringDup(argv[i]));
