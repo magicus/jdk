@@ -86,22 +86,23 @@ define SetupBuildLauncherBody
     $1_LAUNCHER_CLASS := -m $$($1_MAIN_MODULE)/$$($1_MAIN_CLASS)
   endif
 
-  ifeq ($$($1_EXPAND_CLASSPATH_WILDCARDS), true)
-    $1_CFLAGS += -DEXPAND_CLASSPATH_WILDCARDS
-  else
-    $1_RELAUNCHER_ARGUMENTS += -DjavaLauncherWildcards=false
-  endif
-
   ifeq ($$($1_ENABLE_ARG_FILES), true)
     $1_CFLAGS += -DENABLE_ARG_FILES
   else
     $1_RELAUNCHER_ARGUMENTS += -DjavaLauncherArgFiles=false
   endif
 
+  ifeq ($$($1_EXPAND_CLASSPATH_WILDCARDS), true)
+    $1_CFLAGS += -DEXPAND_CLASSPATH_WILDCARDS
+  else
+    $1_RELAUNCHER_ARGUMENTS += -DjavaLauncherWildcards=false
+  endif
+
+  $1_RELAUNCHER_ARGUMENTS += -DjavaLauncherProgname=$1
+
   ifeq ($(call isTargetOs, windows), true)
     ifeq ($$($1_WINDOWS_JAVAW), true)
       $1_CFLAGS += -DJAVAW
-      $1_RELAUNCHER_ARGUMENTS += -DjavaLauncherJavaw=true
     endif
   endif
 
