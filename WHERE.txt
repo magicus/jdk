@@ -1,0 +1,7 @@
+libawt-windows.txt:share/native/common/awt/utility/rect.c
+libawt_xawt-linux.txt:share/native/common/awt/utility/rect.c
+
+libawt-windows.txt:share/native/common/font/AccelGlyphCache.c
+libawt_headless-linux.txt:share/native/common/font/AccelGlyphCache.c
+libawt_lwawt-macos.txt:share/native/common/font/AccelGlyphCache.c
+libawt_xawt-linux.txt:share/native/common/font/AccelGlyphCache.c

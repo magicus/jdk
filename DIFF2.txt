@@ -1,0 +1,484 @@
+
+
+from: macosx/native/libawt/java2d/opengl/J2D_GL/cglext.h
+  to: macosx/native/libawt_lwawt/java2d/opengl/J2D_GL/cglext.h
+
+
+from: macosx/native/libawt/java2d/opengl/OGLFuncs_md.h
+  to: macosx/native/libawt_lwawt/java2d/opengl/OGLFuncs_md.h
+
+
+from: share/native/libawt/awt/debug/debug_assert.c
+  to: share/native/common/awt/debug/debug_assert.c
+
+
+from: share/native/libawt/awt/debug/debug_assert.h
+  to: share/native/common/awt/debug/debug_assert.h
+
+
+from: share/native/libawt/awt/debug/debug_mem.c
+  to: share/native/common/awt/debug/debug_mem.c
+
+
+from: share/native/libawt/awt/debug/debug_mem.h
+  to: share/native/common/awt/debug/debug_mem.h
+
+
+from: share/native/libawt/awt/debug/debug_trace.c
+  to: share/native/common/awt/debug/debug_trace.c
+
+
+from: share/native/libawt/awt/debug/debug_trace.h
+  to: share/native/common/awt/debug/debug_trace.h
+
+
+from: share/native/libawt/awt/debug/debug_util.c
+  to: share/native/common/awt/debug/debug_util.c
+
+
+from: share/native/libawt/awt/debug/debug_util.h
+  to: share/native/common/awt/debug/debug_util.h
+
+
+from: share/native/libmlib_image/mlib_ImageCopy_Bit.c
+  to: share/native/common/awt/medialib/mlib_ImageCopy_Bit.c
+
+
+from: share/native/libmlib_image/mlib_ImageCreate.c
+  to: share/native/common/awt/medialib/mlib_ImageCreate.c
+
+
+from: share/native/libmlib_image/mlib_sys.c
+  to: share/native/common/awt/medialib/mlib_sys.c
+
+
+from: share/native/libawt/awt/utility/rect.c
+  to: share/native/common/awt/utility/rect.c
+
+
+from: share/native/common/sizecalc.h
+  to: share/native/common/awt/utility/sizecalc.h
+
+
+from: share/native/libawt/font/AccelGlyphCache.c
+  to: share/native/common/font/AccelGlyphCache.c
+
+
+from: share/native/libawt/font/AccelGlyphCache.h
+  to: share/native/common/font/AccelGlyphCache.h
+
+
+from: share/native/libfontmanager/fontscalerdefs.h
+  to: share/native/common/font/fontscalerdefs.h
+
+
+from: share/native/libfontmanager/sunfontids.h
+  to: share/native/common/font/sunfontids.h
+
+
+from: share/native/libawt/java2d/opengl/J2D_GL/gl.h
+  to: share/native/common/java2d/opengl/J2D_GL/gl.h
+
+
+from: share/native/libawt/java2d/opengl/J2D_GL/glext.h
+  to: share/native/common/java2d/opengl/J2D_GL/glext.h
+
+
+from: share/native/libawt/java2d/opengl/J2D_GL/khrplatform.h
+  to: share/native/common/java2d/opengl/J2D_GL/khrplatform.h
+
+
+from: share/native/libawt/java2d/opengl/OGLBlitLoops.c
+  to: share/native/common/java2d/opengl/OGLBlitLoops.c
+
+
+from: share/native/libawt/java2d/opengl/OGLBlitLoops.h
+  to: share/native/common/java2d/opengl/OGLBlitLoops.h
+
+
+from: share/native/libawt/java2d/opengl/OGLBufImgOps.c
+  to: share/native/common/java2d/opengl/OGLBufImgOps.c
+
+
+from: share/native/libawt/java2d/opengl/OGLBufImgOps.h
+  to: share/native/common/java2d/opengl/OGLBufImgOps.h
+
+
+from: share/native/libawt/java2d/opengl/OGLContext.c
+  to: share/native/common/java2d/opengl/OGLContext.c
+
+
+from: share/native/libawt/java2d/opengl/OGLContext.h
+  to: share/native/common/java2d/opengl/OGLContext.h
+
+
+from: share/native/libawt/java2d/opengl/OGLFuncMacros.h
+  to: share/native/common/java2d/opengl/OGLFuncMacros.h
+
+
+from: share/native/libawt/java2d/opengl/OGLFuncs.c
+  to: share/native/common/java2d/opengl/OGLFuncs.c
+
+
+from: share/native/libawt/java2d/opengl/OGLFuncs.h
+  to: share/native/common/java2d/opengl/OGLFuncs.h
+
+
+from: share/native/libawt/java2d/opengl/OGLMaskBlit.c
+  to: share/native/common/java2d/opengl/OGLMaskBlit.c
+
+
+from: share/native/libawt/java2d/opengl/OGLMaskBlit.h
+  to: share/native/common/java2d/opengl/OGLMaskBlit.h
+
+
+from: share/native/libawt/java2d/opengl/OGLMaskFill.c
+  to: share/native/common/java2d/opengl/OGLMaskFill.c
+
+
+from: share/native/libawt/java2d/opengl/OGLMaskFill.h
+  to: share/native/common/java2d/opengl/OGLMaskFill.h
+
+
+from: share/native/libawt/java2d/opengl/OGLPaints.c
+  to: share/native/common/java2d/opengl/OGLPaints.c
+
+
+from: share/native/libawt/java2d/opengl/OGLPaints.h
+  to: share/native/common/java2d/opengl/OGLPaints.h
+
+
+from: share/native/libawt/java2d/opengl/OGLRenderQueue.c
+  to: share/native/common/java2d/opengl/OGLRenderQueue.c
+
+
+from: share/native/libawt/java2d/opengl/OGLRenderQueue.h
+  to: share/native/common/java2d/opengl/OGLRenderQueue.h
+
+
+from: share/native/libawt/java2d/opengl/OGLRenderer.c
+  to: share/native/common/java2d/opengl/OGLRenderer.c
+
+
+from: share/native/libawt/java2d/opengl/OGLRenderer.h
+  to: share/native/common/java2d/opengl/OGLRenderer.h
+
+
+from: share/native/libawt/java2d/opengl/OGLSurfaceData.c
+  to: share/native/common/java2d/opengl/OGLSurfaceData.c
+
+
+from: share/native/libawt/java2d/opengl/OGLSurfaceData.h
+  to: share/native/common/java2d/opengl/OGLSurfaceData.h
+
+
+from: share/native/libawt/java2d/opengl/OGLTextRenderer.c
+  to: share/native/common/java2d/opengl/OGLTextRenderer.c
+
+
+from: share/native/libawt/java2d/opengl/OGLTextRenderer.h
+  to: share/native/common/java2d/opengl/OGLTextRenderer.h
+
+
+from: share/native/libawt/java2d/opengl/OGLVertexCache.c
+  to: share/native/common/java2d/opengl/OGLVertexCache.c
+
+
+from: share/native/libawt/java2d/opengl/OGLVertexCache.h
+  to: share/native/common/java2d/opengl/OGLVertexCache.h
+
+
+from: share/native/libawt/medialib/awt_ImagingLib.c
+  to: share/native/libawt/awt/medialib/awt_ImagingLib.c
+
+
+from: share/native/libawt/medialib/awt_ImagingLib.h
+  to: share/native/libawt/awt/medialib/awt_ImagingLib.h
+
+
+from: unix/native/libawt/cups/CUPSfuncs.c
+  to: unix/native/common/awt/CUPSfuncs.c
+
+
+from: unix/native/libawt_xawt/awt/X11Color.c
+  to: unix/native/common/awt/X11Color.c
+
+
+from: unix/native/libawt/awt/awt.h
+  to: unix/native/common/awt/awt.h
+
+
+from: unix/native/libawt_xawt/awt/awt_Component.h
+  to: unix/native/common/awt/awt_Component.h
+
+
+from: unix/native/libawt/awt/awt_DrawingSurface.h
+  to: unix/native/common/awt/awt_DrawingSurface.h
+
+
+from: unix/native/libawt_xawt/awt/awt_Font.c
+  to: unix/native/common/awt/awt_Font.c
+
+
+from: unix/native/libawt_xawt/awt/awt_GraphicsEnv.h
+  to: unix/native/common/awt/awt_GraphicsEnv.h
+
+
+from: unix/native/libawt/awt/awt_Mlib.h
+  to: unix/native/common/awt/awt_Mlib.h
+
+
+from: unix/native/libawt_xawt/awt/awt_p.h
+  to: unix/native/common/awt/awt_p.h
+
+
+from: unix/native/libawt_xawt/awt/awt_util.h
+  to: unix/native/common/awt/awt_util.h
+
+
+from: unix/native/libawt/awt/color.h
+  to: unix/native/common/awt/color.h
+
+
+from: unix/native/libawt/awt/colordata.h
+  to: unix/native/common/awt/colordata.h
+
+
+from: unix/native/libawt_xawt/awt/fontpath.c
+  to: unix/native/common/awt/fontpath.c
+
+
+from: unix/native/libawt/awt/img_util_md.h
+  to: unix/native/common/awt/img_util_md.h
+
+
+from: unix/native/libawt/awt/systemscale/systemScale.c
+  to: unix/native/common/awt/systemscale/systemScale.c
+
+
+from: unix/native/libawt/awt/systemscale/systemScale.h
+  to: unix/native/common/awt/systemscale/systemScale.h
+
+
+from: unix/native/libawt/utility/rect.h
+  to: unix/native/common/awt/utility/rect.h
+
+
+from: unix/native/libfontmanager/x11/X11FontScaler.h
+  to: unix/native/common/font/X11FontScaler.h
+
+
+from: unix/native/libawt_xawt/opengl/GLXGraphicsConfig.c
+  to: unix/native/common/java2d/opengl/GLXGraphicsConfig.c
+
+
+from: unix/native/libawt_xawt/opengl/GLXGraphicsConfig.h
+  to: unix/native/common/java2d/opengl/GLXGraphicsConfig.h
+
+
+from: unix/native/libawt_xawt/opengl/GLXSurfaceData.c
+  to: unix/native/common/java2d/opengl/GLXSurfaceData.c
+
+
+from: unix/native/libawt_xawt/opengl/GLXSurfaceData.h
+  to: unix/native/common/java2d/opengl/GLXSurfaceData.h
+
+
+from: unix/native/libawt_xawt/opengl/J2D_GL/glx.h
+  to: unix/native/common/java2d/opengl/J2D_GL/glx.h
+
+
+from: unix/native/libawt_xawt/opengl/J2D_GL/glxext.h
+  to: unix/native/common/java2d/opengl/J2D_GL/glxext.h
+
+
+from: unix/native/libawt/java2d/opengl/OGLFuncs_md.h
+  to: unix/native/common/java2d/opengl/OGLFuncs_md.h
+
+
+from: unix/native/libawt_xawt/x11/X11FontScaler_md.c
+  to: unix/native/common/java2d/x11/X11FontScaler_md.c
+
+
+from: unix/native/libawt_xawt/x11/X11PMBlitLoops.c
+  to: unix/native/common/java2d/x11/X11PMBlitLoops.c
+
+
+from: unix/native/libawt_xawt/x11/X11Renderer.c
+  to: unix/native/common/java2d/x11/X11Renderer.c
+
+
+from: unix/native/libawt_xawt/x11/X11SurfaceData.c
+  to: unix/native/common/java2d/x11/X11SurfaceData.c
+
+
+from: unix/native/libawt_xawt/x11/X11SurfaceData.h
+  to: unix/native/common/java2d/x11/X11SurfaceData.h
+
+
+from: unix/native/libawt_xawt/x11/X11TextRenderer_md.c
+  to: unix/native/common/java2d/x11/X11TextRenderer_md.c
+
+
+from: unix/native/libawt/x11/awt/initIDs.c
+  to: unix/native/libawt/awt/initIDs.c
+
+
+from: unix/native/libawt_xawt/headless/HeadlessToolkit.c
+  to: unix/native/libawt_headless/awt/HeadlessToolkit.c
+
+
+from: unix/native/libawt_xawt/headful/awt/awt_AWTEvent.c
+  to: unix/native/libawt_xawt/awt/awt_AWTEvent.c
+
+
+from: unix/native/libawt_xawt/headful/awt/awt_DrawingSurface.c
+  to: unix/native/libawt_xawt/awt/awt_DrawingSurface.c
+
+
+from: unix/native/libawt_xawt/headful/awt/awt_Event.c
+  to: unix/native/libawt_xawt/awt/awt_Event.c
+
+
+from: unix/native/libawt_xawt/headful/awt/awt_GraphicsEnv.c
+  to: unix/native/libawt_xawt/awt/awt_GraphicsEnv.c
+
+
+from: unix/native/libawt_xawt/headful/awt/awt_InputMethod.c
+  to: unix/native/libawt_xawt/awt/awt_InputMethod.c
+
+
+from: unix/native/libawt_xawt/headful/awt/awt_Insets.c
+  to: unix/native/libawt_xawt/awt/awt_Insets.c
+
+
+from: unix/native/libawt_xawt/headful/awt/awt_Robot.c
+  to: unix/native/libawt_xawt/awt/awt_Robot.c
+
+
+from: unix/native/libawt_xawt/headful/awt/awt_UNIXToolkit.c
+  to: unix/native/libawt_xawt/awt/awt_UNIXToolkit.c
+
+
+from: unix/native/libawt_xawt/headful/awt/awt_util.c
+  to: unix/native/libawt_xawt/awt/awt_util.c
+
+
+from: unix/native/libawt_xawt/headful/awt/canvas.h
+  to: unix/native/libawt_xawt/awt/canvas.h
+
+
+from: unix/native/libawt_xawt/headful/awt/fp_pipewire.h
+  to: unix/native/libawt_xawt/awt/fp_pipewire.h
+
+
+from: unix/native/libawt_xawt/headful/awt/gtk3_interface.c
+  to: unix/native/libawt_xawt/awt/gtk3_interface.c
+
+
+from: unix/native/libawt_xawt/headful/awt/gtk3_interface.h
+  to: unix/native/libawt_xawt/awt/gtk3_interface.h
+
+
+from: unix/native/libawt_xawt/headful/awt/gtk_interface.c
+  to: unix/native/libawt_xawt/awt/gtk_interface.c
+
+
+from: unix/native/libawt_xawt/headful/awt/gtk_interface.h
+  to: unix/native/libawt_xawt/awt/gtk_interface.h
+
+
+from: unix/native/libawt_xawt/headful/awt/list.c
+  to: unix/native/libawt_xawt/awt/list.c
+
+
+from: unix/native/libawt_xawt/headful/awt/list.h
+  to: unix/native/libawt_xawt/awt/list.h
+
+
+from: unix/native/libawt_xawt/headful/awt/multiVis.c
+  to: unix/native/libawt_xawt/awt/multiVis.c
+
+
+from: unix/native/libawt_xawt/headful/awt/multiVis.h
+  to: unix/native/libawt_xawt/awt/multiVis.h
+
+
+from: unix/native/libawt_xawt/headful/awt/screencast_pipewire.c
+  to: unix/native/libawt_xawt/awt/screencast_pipewire.c
+
+
+from: unix/native/libawt_xawt/headful/awt/screencast_pipewire.h
+  to: unix/native/libawt_xawt/awt/screencast_pipewire.h
+
+
+from: unix/native/libawt_xawt/headful/awt/screencast_portal.c
+  to: unix/native/libawt_xawt/awt/screencast_portal.c
+
+
+from: unix/native/libawt_xawt/headful/awt/screencast_portal.h
+  to: unix/native/libawt_xawt/awt/screencast_portal.h
+
+
+from: unix/native/libawt_xawt/headful/awt/sun_awt_X11_GtkFileDialogPeer.c
+  to: unix/native/libawt_xawt/awt/sun_awt_X11_GtkFileDialogPeer.c
+
+
+from: unix/native/libawt_xawt/headful/awt/swing_GTKEngine.c
+  to: unix/native/libawt_xawt/awt/swing_GTKEngine.c
+
+
+from: unix/native/libawt_xawt/headful/awt/swing_GTKStyle.c
+  to: unix/native/libawt_xawt/awt/swing_GTKStyle.c
+
+
+from: unix/native/libawt_xawt/headful/awt/wsutils.h
+  to: unix/native/libawt_xawt/awt/wsutils.h
+
+
+from: unix/native/libawt_xawt/headful/java2d/x11/XRBackendNative.c
+  to: unix/native/libawt_xawt/java2d/x11/XRBackendNative.c
+
+
+from: unix/native/libawt_xawt/headful/java2d/x11/XRSurfaceData.c
+  to: unix/native/libawt_xawt/java2d/x11/XRSurfaceData.c
+
+
+from: unix/native/libawt_xawt/headful/xawt/XToolkit.c
+  to: unix/native/libawt_xawt/xawt/XToolkit.c
+
+
+from: unix/native/libawt_xawt/headful/xawt/XWindow.c
+  to: unix/native/libawt_xawt/xawt/XWindow.c
+
+
+from: unix/native/libawt_xawt/headful/xawt/XlibWrapper.c
+  to: unix/native/libawt_xawt/xawt/XlibWrapper.c
+
+
+from: unix/native/libawt_xawt/headful/xawt/awt_Desktop.c
+  to: unix/native/libawt_xawt/xawt/awt_Desktop.c
+
+
+from: unix/native/libawt_xawt/headful/xawt/awt_Taskbar.c
+  to: unix/native/libawt_xawt/xawt/awt_Taskbar.c
+
+
+from: unix/native/libawt_xawt/headful/xawt/awt_Taskbar.h
+  to: unix/native/libawt_xawt/xawt/awt_Taskbar.h
+
+
+from: unix/native/libawt_xawt/headful/xawt/gnome_interface.c
+  to: unix/native/libawt_xawt/xawt/gnome_interface.c
+
+
+from: unix/native/libawt_xawt/headful/xawt/gnome_interface.h
+  to: unix/native/libawt_xawt/xawt/gnome_interface.h
+
+
+from: unix/native/libfontmanager/x11/X11FontScaler.c
+  to: unix/native/libfontmanager/X11FontScaler.c
+
+
+from: unix/native/libfontmanager/x11/X11TextRenderer.c
+  to: unix/native/libfontmanager/X11TextRenderer.c
