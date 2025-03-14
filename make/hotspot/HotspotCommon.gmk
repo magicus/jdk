@@ -28,10 +28,6 @@ ifeq ($(INCLUDE), true)
 
 ################################################################################
 
-ifeq ($(JVM_VARIANT), )
-  $(error This makefile must be called with JVM_VARIANT set)
-endif
-
 JVM_VARIANT_OUTPUTDIR := $(HOTSPOT_OUTPUTDIR)/variant-$(JVM_VARIANT)
 JVM_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/libjvm
 JVM_SUPPORT_DIR := $(JVM_VARIANT_OUTPUTDIR)/support
@@ -43,14 +39,14 @@ JVM_LIB_OUTPUTDIR := $(LIB_OUTPUTDIR)/$(JVM_VARIANT)
 
 ################################################################################
 
-# Test if a feature is available in the present build of JVM_VARIANT. Will return
+# Test if a feature is active for this JVM compilation. Will return
 # 'true' or 'false'.
 # $1 - the feature to test for
 check-jvm-feature = \
   $(strip \
     $(if $(filter-out $(VALID_JVM_FEATURES), $1), \
       $(error Internal error: Invalid feature tested: $1)) \
-    $(if $(filter $1, $(JVM_FEATURES_$(JVM_VARIANT))), true, false))
+    $(if $(filter $1, $(JVM_FEATURES)), true, false))
 
 ################################################################################
 

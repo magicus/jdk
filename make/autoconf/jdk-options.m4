@@ -179,7 +179,7 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_JDK_OPTIONS],
 
   # Should we build the serviceability agent (SA)?
   INCLUDE_SA=true
-  if HOTSPOT_CHECK_JVM_VARIANT(zero); then
+  if test "x$JVM_VARIANT" = xzero; then
     INCLUDE_SA=false
   fi
   if test "x$OPENJDK_TARGET_OS" = xaix ; then
@@ -982,7 +982,7 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_FALLBACK_LINKER],
 [
   FALLBACK_LINKER_DEFAULT=false
 
-  if HOTSPOT_CHECK_JVM_VARIANT(zero); then
+  if test "x$JVM_VARIANT" = xzero; then
     FALLBACK_LINKER_DEFAULT=true
   fi
 

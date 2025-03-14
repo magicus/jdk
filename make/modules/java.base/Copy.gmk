@@ -84,15 +84,7 @@ endif
 
 ################################################################################
 # In jvm.cfg, the first listed KNOWN variant is the default.
-DEFAULT_CFG_VARIANT := $(JVM_VARIANT_MAIN)
-
-# Change the order to put the default variant first if present.
-ORDERED_CFG_VARIANTS := \
-    $(if $(filter $(DEFAULT_CFG_VARIANT), $(JVM_VARIANTS)), $(DEFAULT_CFG_VARIANT)) \
-    $(filter-out $(DEFAULT_CFG_VARIANT), $(JVM_VARIANTS))
-
-# Append imported JVMs
-ORDERED_CFG_VARIANTS += $(IMPORT_JVM_NAMES)
+ORDERED_CFG_VARIANTS := $(JVM_VARIANT) $(IMPORT_JVM_NAMES)
 
 JVMCFG := $(LIB_DST_DIR)/jvm.cfg
 

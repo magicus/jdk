@@ -349,16 +349,6 @@ PathList = \
   "$(subst $(SPACE),:,$(strip $(subst $(DQUOTE),,$1)))"
 
 ################################################################################
-# Check if a specified hotspot variant is being built, or at least one of a
-# list of variants. Will return 'true' or 'false'.
-# $1 - the variant to test for
-check-jvm-variant = \
-  $(strip \
-    $(if $(filter-out $(VALID_JVM_VARIANTS), $1), \
-      $(error Internal error: Invalid variant tested: $1)) \
-    $(if $(filter $1, $(JVM_VARIANTS)), true, false))
-
-################################################################################
 # Converts a space separated list to a comma separated list.
 #
 # Replacing double-comma with a single comma is to workaround the issue with

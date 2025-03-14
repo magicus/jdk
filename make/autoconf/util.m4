@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2024, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2025, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -378,6 +378,20 @@ AC_DEFUN([UTIL_DEPRECATED_ARG_ENABLE],
       [AC_MSG_WARN([Option --enable-$1 is deprecated and will be ignored.])])
 ])
 
+################################################################################
+# Register an --with-* argument as an alias for another argument.
+# $1: The name of the with argument for the new alias, not including --with-
+# $2: The full name of the argument of which to make this an alias, including
+#     --enable- or --with-.
+AC_DEFUN([UTIL_ALIASED_ARG_WITH],
+[
+  AC_ARG_WITH($1, [AS_HELP_STRING([--with-$1], [alias for $2])], [
+    # Use m4 to strip initial -- from target ($2), convert - to _, prefix with_
+    # to new alias name, and create a shell variable assignment,
+    # e.g.: with_old_style="$with_new_alias"
+    m4_translit(m4_bpatsubst($2, --), -, _)="$[with_]m4_translit($1, -, _)"
+  ])
+])
 ################################################################################
 # Register an --enable-* argument as an alias for another argument.
 # $1: The name of the enable argument for the new alias, not including --enable-

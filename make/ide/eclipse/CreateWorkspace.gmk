@@ -31,7 +31,6 @@ include Modules.gmk
 include TextFileProcessing.gmk
 include Utils.gmk
 
-JVM_VARIANT := $(JVM_VARIANT_MAIN)
 include hotspot/HotspotCommon.gmk
 include hotspot/lib/JvmFeatures.gmk
 include hotspot/lib/JvmOverrideFiles.gmk

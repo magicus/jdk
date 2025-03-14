@@ -58,15 +58,13 @@ $(foreach m, $(ALL_MODULES), \
 
 ifneq ($(filter static-libs-image, $(MAKECMDGOALS)), )
   # Copy libjvm static library to the image.
-  $(foreach v, $(JVM_VARIANTS), \
-    $(eval $(call SetupCopyFiles, COPY_STATIC_LIBS_$v, \
-        SRC := $(HOTSPOT_OUTPUTDIR)/variant-$v/libjvm/objs/static, \
-        DEST := $(IMAGE_DEST_DIR)/$v, \
-        FILES := $(wildcard $(HOTSPOT_OUTPUTDIR)/variant-$v/libjvm/objs/static/*$(STATIC_LIBRARY_SUFFIX)), \
-    )) \
-    $(eval TARGETS += $$(COPY_STATIC_LIBS_$v)) \
-    $(eval HOTSPOT_VARIANT_STATIC_LIBS_TARGETS += $$(COPY_STATIC_LIBS_$v)) \
-  )
+  $(eval $(call SetupCopyFiles, COPY_STATIC_LIBS_JVM, \
+      SRC := $(HOTSPOT_OUTPUTDIR)/variant-$(JVM_VARIANT)/libjvm/objs/static, \
+      DEST := $(IMAGE_DEST_DIR)/$(JVM_VARIANT), \
+      FILES := $(wildcard $(HOTSPOT_OUTPUTDIR)/variant-$(JVM_VARIANT)/libjvm/objs/static/*$(STATIC_LIBRARY_SUFFIX)), \
+  ))
+  TARGETS += $(COPY_STATIC_LIBS_JVM)
+  HOTSPOT_VARIANT_STATIC_LIBS_TARGETS += $(COPY_STATIC_LIBS_JVM)
 endif
 
 static-libs-image: $(HOTSPOT_VARIANT_STATIC_LIBS_TARGETS) $(STATIC_LIBS_TARGETS)

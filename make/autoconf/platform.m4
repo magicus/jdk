@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2024, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2025, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -669,7 +669,7 @@ AC_DEFUN([PLATFORM_CHECK_DEPRECATION],
   # Unfortunately, variants have not been parsed yet, so we have to check the configure option
   # directly. Allow only the directly specified Zero variant, treat any other mix as containing
   # something non-Zero.
-  if test "x$OPENJDK_TARGET_CPU" = xx86 && test "x$with_jvm_variants" != xzero; then
+  if test "x$OPENJDK_TARGET_CPU" = xx86 && test "x$with_jvm_variant" != xzero; then
     if test "x$enable_deprecated_ports" = "xyes"; then
       AC_MSG_WARN([The 32-bit x86 port is deprecated and may be removed in a future release.])
     else

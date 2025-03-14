@@ -32,7 +32,7 @@
 # Default features    == Features that are on by default in this configuration.
 # Enabled features    == Features requested by the user to be present.
 # Disabled features   == Features excluded from being used by the user.
-# Active features     == The exact set of features to be used for a JVM variant.
+# Active features     == The exact set of features to be used for this JVM.
 #
 # All valid features are considered available, unless listed as unavailable.
 # All available features will be turned on as default, unless listed in a filter.
@@ -388,19 +388,15 @@ AC_DEFUN_ONCE([JVM_FEATURES_PREPARE_PLATFORM],
 # to contain those features that are unavailable, or should be off by default,
 # for this particular JVM variant.
 #
-# arg 1: JVM variant
-#
 AC_DEFUN([JVM_FEATURES_PREPARE_VARIANT],
 [
-  variant=$1
-
-  # Check which features are unavailable for this JVM variant.
-  # This means that is not possible to build these features for this variant.
-  if test "x$variant" = "xminimal"; then
+  # Check which features are unavailable for the selected JVM variant.
+  # This means that is not possible to build these features.
+  if test "x$JVM_VARIANT" = "xminimal"; then
     JVM_FEATURES_VARIANT_UNAVAILABLE="cds zero"
-  elif test "x$variant" = "xcore"; then
+  elif test "x$JVM_VARIANT" = "xcore"; then
     JVM_FEATURES_VARIANT_UNAVAILABLE="cds minimal zero"
-  elif test "x$variant" = "xzero"; then
+  elif test "x$JVM_VARIANT" = "xzero"; then
     JVM_FEATURES_VARIANT_UNAVAILABLE="compiler1 compiler2 \
         jvmci minimal zgc"
   else
@@ -408,9 +404,9 @@ AC_DEFUN([JVM_FEATURES_PREPARE_VARIANT],
   fi
 
   # Check which features should be off by default for this JVM variant.
-  if test "x$variant" = "xclient"; then
+  if test "x$JVM_VARIANT" = "xclient"; then
     JVM_FEATURES_VARIANT_FILTER="compiler2 jvmci link-time-opt opt-size"
-  elif test "x$variant" = "xminimal"; then
+  elif test "x$JVM_VARIANT" = "xminimal"; then
     JVM_FEATURES_VARIANT_FILTER="cds compiler2 dtrace epsilongc g1gc \
         jfr jni-check jvmci jvmti management parallelgc services \
         shenandoahgc vm-structs zgc"
@@ -421,10 +417,10 @@ AC_DEFUN([JVM_FEATURES_PREPARE_VARIANT],
       JVM_FEATURES_VARIANT_FILTER="$JVM_FEATURES_VARIANT_FILTER \
           link-time-opt"
     fi
-  elif test "x$variant" = "xcore"; then
+  elif test "x$JVM_VARIANT" = "xcore"; then
     JVM_FEATURES_VARIANT_FILTER="compiler1 compiler2 jvmci \
         link-time-opt opt-size"
-  elif test "x$variant" = "xzero"; then
+  elif test "x$JVM_VARIANT" = "xzero"; then
     JVM_FEATURES_VARIANT_FILTER="jfr link-time-opt opt-size"
   else
     JVM_FEATURES_VARIANT_FILTER="link-time-opt opt-size"
@@ -435,15 +431,11 @@ AC_DEFUN([JVM_FEATURES_PREPARE_VARIANT],
 # Calculate the actual set of active JVM features for this JVM variant. Store
 # the result in JVM_FEATURES_ACTIVE.
 #
-# arg 1: JVM variant
-#
 AC_DEFUN([JVM_FEATURES_CALCULATE_ACTIVE],
 [
-  variant=$1
-
   # The default is set to all valid features except those unavailable or listed
   # in a filter.
-  if test "x$variant" != xcustom; then
+  if test "x$JVM_VARIANT" != xcustom; then
     UTIL_GET_NON_MATCHING_VALUES(default_for_variant, $JVM_FEATURES_VALID, \
         $JVM_FEATURES_PLATFORM_UNAVAILABLE $JVM_FEATURES_VARIANT_UNAVAILABLE \
         $JVM_FEATURES_PLATFORM_FILTER $JVM_FEATURES_VARIANT_FILTER)
@@ -457,7 +449,7 @@ AC_DEFUN([JVM_FEATURES_CALCULATE_ACTIVE],
   UTIL_GET_MATCHING_VALUES(enabled_but_unavailable, $JVM_FEATURES_ENABLED, \
       $JVM_FEATURES_PLATFORM_UNAVAILABLE $JVM_FEATURES_VARIANT_UNAVAILABLE)
   if test "x$enabled_but_unavailable" != x; then
-    AC_MSG_NOTICE([ERROR: Unavailable JVM features explicitly enabled for '$variant': '$enabled_but_unavailable'])
+    AC_MSG_NOTICE([ERROR: Unavailable JVM features explicitly enabled: '$enabled_but_unavailable'])
     AC_MSG_ERROR([Cannot continue])
   fi
 
@@ -465,12 +457,12 @@ AC_DEFUN([JVM_FEATURES_CALCULATE_ACTIVE],
   UTIL_GET_MATCHING_VALUES(enabled_but_default, $JVM_FEATURES_ENABLED, \
       $default_for_variant)
   if test "x$enabled_but_default" != x; then
-    AC_MSG_NOTICE([Default JVM features explicitly enabled for '$variant': '$enabled_but_default'])
+    AC_MSG_NOTICE([Default JVM features explicitly enabled: '$enabled_but_default'])
   fi
   UTIL_GET_MATCHING_VALUES(disabled_but_unavailable, $JVM_FEATURES_DISABLED, \
       $JVM_FEATURES_PLATFORM_UNAVAILABLE $JVM_FEATURES_VARIANT_UNAVAILABLE)
   if test "x$disabled_but_unavailable" != x; then
-    AC_MSG_NOTICE([Unavailable JVM features explicitly disabled for '$variant': '$disabled_but_unavailable'])
+    AC_MSG_NOTICE([Unavailable JVM features explicitly disabled: '$disabled_but_unavailable'])
   fi
 
   # JVM_FEATURES_ACTIVE is the set of all default features and all explicitly
@@ -508,23 +500,18 @@ AC_DEFUN([JVM_FEATURES_IS_ACTIVE],
 ################################################################################
 # Verify that the resulting set of features is consistent and legal.
 #
-# arg 1: JVM variant
-#
 AC_DEFUN([JVM_FEATURES_VERIFY],
 [
-  variant=$1
-
   if JVM_FEATURES_IS_ACTIVE(jvmci) && ! (JVM_FEATURES_IS_ACTIVE(compiler1) || \
       JVM_FEATURES_IS_ACTIVE(compiler2)); then
-    AC_MSG_ERROR([Specified JVM feature 'jvmci' requires feature 'compiler2' or 'compiler1' for variant '$variant'])
+    AC_MSG_ERROR([Specified JVM feature 'jvmci' requires feature 'compiler2' or 'compiler1'])
   fi
 
   if JVM_FEATURES_IS_ACTIVE(jvmti) && ! JVM_FEATURES_IS_ACTIVE(services); then
-    AC_MSG_ERROR([Specified JVM feature 'jvmti' requires feature 'services' for variant '$variant'])
+    AC_MSG_ERROR([Specified JVM feature 'jvmti' requires feature 'services'])
   fi
 
-  # For backwards compatibility, disable a feature "globally" if one variant
-  # is missing the feature.
+  # For backwards compatibility, some features also have a global variable
   if ! JVM_FEATURES_IS_ACTIVE(cds); then
     ENABLE_CDS="false"
   fi
@@ -537,15 +524,15 @@ AC_DEFUN([JVM_FEATURES_VERIFY],
 
   # Verify that we have at least one gc selected (i.e., feature named "*gc").
   if ! JVM_FEATURES_IS_ACTIVE(.*gc); then
-      AC_MSG_NOTICE([At least one gc needed for variant '$variant'.])
+      AC_MSG_NOTICE([At least one gc needed.])
       AC_MSG_NOTICE([Specified features: '$JVM_FEATURES_ACTIVE'])
       AC_MSG_ERROR([Cannot continue])
   fi
 ])
 
 ################################################################################
-# Set up all JVM features for each enabled JVM variant. Requires that
-# JVM_FEATURES_PARSE_OPTIONS has been called.
+# Set up all JVM features. Requires that JVM_FEATURES_PARSE_OPTIONS has been
+# called.
 #
 AC_DEFUN_ONCE([JVM_FEATURES_SETUP],
 [
@@ -559,42 +546,29 @@ AC_DEFUN_ONCE([JVM_FEATURES_SETUP],
   INCLUDE_JVMCI="true"
   INCLUDE_COMPILER2="false"
 
-  for variant in $JVM_VARIANTS; do
-    # Figure out if any features are unavailable, or should be filtered out
-    # by default, for this variant.
-    # Store the result in JVM_FEATURES_VARIANT_UNAVAILABLE and
-    # JVM_FEATURES_VARIANT_FILTER.
-    JVM_FEATURES_PREPARE_VARIANT($variant)
+  # Figure out if any features are unavailable, or should be filtered out
+  # by default, for this variant.
+  # Store the result in JVM_FEATURES_VARIANT_UNAVAILABLE and
+  # JVM_FEATURES_VARIANT_FILTER.
+  JVM_FEATURES_PREPARE_VARIANT
 
-    # Calculate the resulting set of enabled features for this variant.
-    # The result is stored in JVM_FEATURES_ACTIVE.
-    JVM_FEATURES_CALCULATE_ACTIVE($variant)
+  # Calculate the resulting set of enabled features for the selected variant.
+  # The result is stored in JVM_FEATURES_ACTIVE.
+  JVM_FEATURES_CALCULATE_ACTIVE
 
-    # Filter unsupported feature combinations from JVM_FEATURES_ACTIVE.
-    JVM_FEATURES_FILTER_UNSUPPORTED
+  # Filter unsupported feature combinations from JVM_FEATURES_ACTIVE.
+  JVM_FEATURES_FILTER_UNSUPPORTED
 
-    # Verify consistency for JVM_FEATURES_ACTIVE.
-    JVM_FEATURES_VERIFY($variant)
+  # Verify consistency for JVM_FEATURES_ACTIVE.
+  JVM_FEATURES_VERIFY
 
-    # Keep feature list sorted and free of duplicates
-    UTIL_SORT_LIST(JVM_FEATURES_ACTIVE, $JVM_FEATURES_ACTIVE)
-    AC_MSG_CHECKING([JVM features to use for variant '$variant'])
-    AC_MSG_RESULT(['$JVM_FEATURES_ACTIVE'])
+  # Keep feature list sorted and free of duplicates
+  UTIL_SORT_LIST(JVM_FEATURES_ACTIVE, $JVM_FEATURES_ACTIVE)
+  AC_MSG_CHECKING([JVM features to use])
+  AC_MSG_RESULT(['$JVM_FEATURES_ACTIVE'])
 
-    # Save this as e.g. JVM_FEATURES_server, using indirect variable
-    # referencing.
-    features_var_name=JVM_FEATURES_$variant
-    eval $features_var_name=\"$JVM_FEATURES_ACTIVE\"
-  done
-
-  # Unfortunately AC_SUBST does not work with non-literally named variables,
-  # so list all variants here.
-  AC_SUBST(JVM_FEATURES_server)
-  AC_SUBST(JVM_FEATURES_client)
-  AC_SUBST(JVM_FEATURES_minimal)
-  AC_SUBST(JVM_FEATURES_core)
-  AC_SUBST(JVM_FEATURES_zero)
-  AC_SUBST(JVM_FEATURES_custom)
+  JVM_FEATURES=$JVM_FEATURES_ACTIVE
+  AC_SUBST(JVM_FEATURES)
 
   AC_SUBST(INCLUDE_JVMCI)
   AC_SUBST(INCLUDE_COMPILER2)

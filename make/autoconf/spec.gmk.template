@@ -306,22 +306,14 @@ RUNTIME_NAME = $(PRODUCT_NAME) $(PRODUCT_SUFFIX)
 DEBUG_LEVEL := @DEBUG_LEVEL@
 HOTSPOT_DEBUG_LEVEL := @HOTSPOT_DEBUG_LEVEL@
 
-# Which JVM variants to build (space-separated list)
-JVM_VARIANTS := @JVM_VARIANTS@
-JVM_VARIANT_MAIN := @JVM_VARIANT_MAIN@
+# Which JVM variant to build
+JVM_VARIANT := @JVM_VARIANT@
 
-# Lists of features per variant. Only relevant for the variants listed in
-# JVM_VARIANTS.
-JVM_FEATURES_server := @JVM_FEATURES_server@
-JVM_FEATURES_client := @JVM_FEATURES_client@
-JVM_FEATURES_core := @JVM_FEATURES_core@
-JVM_FEATURES_minimal := @JVM_FEATURES_minimal@
-JVM_FEATURES_zero := @JVM_FEATURES_zero@
-JVM_FEATURES_custom := @JVM_FEATURES_custom@
+# Which JVM features to include
+JVM_FEATURES := @JVM_FEATURES@
 
 # Used for make-time verifications
 VALID_JVM_FEATURES := @VALID_JVM_FEATURES@
-VALID_JVM_VARIANTS := @VALID_JVM_VARIANTS@
 
 IMPORT_JVMS := @IMPORT_JVMS@
 IMPORT_JVM_NAMES := @IMPORT_JVM_NAMES@
