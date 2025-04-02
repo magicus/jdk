@@ -82,8 +82,8 @@ main(int argc, char **argv)
         : 0; // ignore the null terminator index
 
 #ifdef STATIC_BUILD
-        // Relaunchers always give -DjavaLauncherArgFiles as the first argument, if present
-        if (argc > 1 && strcmp(argv[1], "-DjavaLauncherArgFiles=false") == 0) {
+        // Relaunchers always give -J-DjavaLauncherArgFiles as the first argument, if present
+        if (argc > 1 && strcmp(argv[1], "-J-DjavaLauncherArgFiles=false") == 0) {
             disable_argfile = JNI_TRUE;
         }
 #endif
@@ -128,10 +128,10 @@ main(int argc, char **argv)
         for (i = 0 ; i < margc ; i++) {
             margv[i] = stdargs[i].arg;
 #ifdef STATIC_BUILD
-            if (strcmp(margv[i], "-DjavaLauncherWildcards=false") == 0) {
+            if (strcmp(margv[i], "-J-DjavaLauncherWildcards=false") == 0) {
                 cpwildcard = JNI_FALSE;
             }
-            if (strncmp(margv[i], "-DjavaLauncherProgname=", 24) == 0) {
+            if (strncmp(margv[i], "-J-DjavaLauncherProgname=", 26) == 0) {
                 progname = margv[i] + 24;
             }
 #endif
@@ -160,11 +160,27 @@ main(int argc, char **argv)
         // Iterate the rest of command line
         for (i = 1; i < argc; i++) {
 #ifdef STATIC_BUILD
-            if (strcmp(argv[i], "-DjavaLauncherWildcards=false") == 0) {
+            if (strcmp(argv[i], "-J-DjavaLauncherWildcards=false") == 0) {
                 cpwildcard = JNI_FALSE;
             }
-            if (strncmp(argv[i], "-DjavaLauncherProgname=", 24) == 0) {
+            if (strncmp(argv[i], "-J-DjavaLauncherProgname=", 26) == 0) {
                 progname = argv[i] + 24;
+            }
+            if (strncmp(argv[i], "-J-DjavaLauncherArgs=", 21) == 0) {
+              char* java_args_ptr = argv[i] + 21;
+              size_t java_args_len = strlen(argv[i]) - 21;
+
+              JLI_List java_args = JLI_List_new(java_args_len);
+              char* next_space;
+              while ((next_space = strchr(java_args_ptr, ' ')) != NULL) {
+                size_t next_arg_len = next_space - java_args_ptr;
+                JLI_List_addSubstring(java_args, java_args_ptr, next_arg_len);
+                java_args_ptr = next_space + 1;
+              }
+              JLI_List_add(java_args, java_args_ptr);
+
+              jargc = java_args->size;
+              jargs = (const char**) java_args->elements;
             }
 #endif
             JLI_List argsInFile = JLI_PreprocessArg(argv[i], JNI_TRUE);

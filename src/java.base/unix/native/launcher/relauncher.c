@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
 
         fprintf(stderr, "%s: executing: %s", program_name, java_path);
         for (int i = 0; java_args[i] != NULL; i++) {
-            fprintf(stderr, " %s", java_args[i]);
+            fprintf(stderr, " '%s'\n", java_args[i]);
         }
         fprintf(stderr, "\n");
     }
