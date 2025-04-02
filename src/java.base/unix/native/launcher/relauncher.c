@@ -98,9 +98,9 @@ int main(int argc, char *argv[]) {
     if (getenv("_JAVA_LAUNCHER_DEBUG")) {
         char *program_name = basename(argv[0]);
 
-        fprintf(stderr, "%s: executing: %s", program_name, java_path);
+        fprintf(stderr, "%s: executing: '%s' ", program_name, java_path);
         for (int i = 0; java_args[i] != NULL; i++) {
-            fprintf(stderr, " '%s'\n", java_args[i]);
+            fprintf(stderr, " '%s' ", java_args[i]);
         }
         fprintf(stderr, "\n");
     }

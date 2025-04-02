@@ -209,7 +209,7 @@ int main(int argc, char* argv[]) {
     if (GetEnvironmentVariable("_JAVA_LAUNCHER_DEBUG", NULL, 0)) {
         char *program_name = PathFindFileName(argv[0]);
 
-        fprintf(stderr, "%s: executing: %s %s\n", program_name, java_path, command_line);
+        fprintf(stderr, "%s: executing: '%s' '%s'\n", program_name, java_path, command_line);
     }
 
     STARTUPINFO si;
