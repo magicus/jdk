@@ -32,7 +32,8 @@ ifeq ($(INCLUDE), true)
 
 include CopyFiles.gmk
 
-# FIXME: jvmtiGen.java should move to make/src, jvmtiEnvFill.java should be removed.
+# FIXME: This really needs to move to hotspot tools, to avoid races with gensrc
+# tool compilation.
 JVMTI_TOOLS_SRCDIR := $(TOPDIR)/src/hotspot/share/prims
 JVMTI_TOOLS_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/tools/jvmti
 
@@ -41,12 +42,11 @@ $(eval $(call SetupJavaCompilation, BUILD_JVMTI_TOOLS, \
     SMALL_JAVA := false, \
     SRC := $(JVMTI_TOOLS_SRCDIR), \
     DISABLED_WARNINGS := rawtypes cast, \
-    INCLUDE_FILES := jvmtiGen.java jvmtiEnvFill.java, \
+    INCLUDE_FILES := jvmtiGen.java, \
     BIN := $(JVMTI_TOOLS_OUTPUTDIR), \
 ))
 
 TOOL_JVMTI_GEN := $(JAVA_SMALL) -cp $(JVMTI_TOOLS_OUTPUTDIR) jvmtiGen
-TOOL_JVMTI_ENV_FILL := $(JAVA_SMALL) -cp $(JVMTI_TOOLS_OUTPUTDIR) jvmtiEnvFill
 
 ################################################################################
 # Setup make rules for an xml transform for jvmti file generation.
@@ -97,29 +97,8 @@ define SetupJvmtiGeneration
   ))
 endef
 
-$(eval $(call SetupJvmtiGeneration, jvmtiEnter.cpp, jvmtiEnter.xsl, \
-    -PARAM majorversion $(VERSION_FEATURE) \
-    -PARAM interface jvmti))
-$(eval $(call SetupJvmtiGeneration, jvmtiEnterTrace.cpp, jvmtiEnter.xsl, \
-    -PARAM majorversion $(VERSION_FEATURE) \
-    -PARAM interface jvmti -PARAM trace Trace))
-$(eval $(call SetupJvmtiGeneration, jvmtiEnv.hpp, jvmtiHpp.xsl, \
+$(eval $(call SetupJvmtiGeneration, jvmti.html, jvmti.xsl, \
     -PARAM majorversion $(VERSION_FEATURE)))
-$(eval $(call SetupJvmtiGeneration, jvmti.h, jvmtiH.xsl, \
-    -PARAM majorversion $(VERSION_FEATURE)))
-
-################################################################################
-# Copy jvmti.h to include dir
-
-# The file is the same regardless of jvm variant. Only let one do the copy.
-ifeq ($(JVM_VARIANT), $(firstword $(JVM_VARIANTS)))
-  $(eval $(call SetupCopyFiles, COPY_JVMTI_H, \
-      DEST := $(SUPPORT_OUTPUTDIR)/modules_include/java.base, \
-      FILES := $(JVMTI_OUTPUTDIR)/jvmti.h, \
-  ))
-
-  TARGETS += $(COPY_JVMTI_H)
-endif
 
 ################################################################################
 

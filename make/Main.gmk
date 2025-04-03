@@ -215,6 +215,7 @@ ALL_TARGETS += $(LAUNCHER_TARGETS)
 
 HOTSPOT_VARIANT_TARGETS := $(addprefix hotspot-, $(JVM_VARIANTS))
 HOTSPOT_VARIANT_GENSRC_TARGETS := $(addsuffix -gensrc, $(HOTSPOT_VARIANT_TARGETS))
+HOTSPOT_VARIANT_GENDATA_TARGETS := $(addsuffix -gendata, $(HOTSPOT_VARIANT_TARGETS))
 HOTSPOT_VARIANT_LIBS_TARGETS := $(addsuffix -libs, $(HOTSPOT_VARIANT_TARGETS))
 HOTSPOT_VARIANT_STATIC_LIBS_TARGETS := $(addsuffix -static-libs, $(HOTSPOT_VARIANT_TARGETS))
 
@@ -226,6 +227,14 @@ define DeclareHotspotGensrcRecipe
 endef
 
 $(foreach v, $(JVM_VARIANTS), $(eval $(call DeclareHotspotGensrcRecipe,$v)))
+
+define DeclareHotspotGendataRecipe
+  hotspot-$1-gendata:
+	+($(CD) $(TOPDIR)/make/hotspot && $(MAKE) $(MAKE_ARGS) -f gendata/GenerateData.gmk \
+	    JVM_VARIANT=$1)
+endef
+
+$(foreach v, $(JVM_VARIANTS), $(eval $(call DeclareHotspotGendataRecipe,$v)))
 
 define DeclareHotspotLibsRecipe
   hotspot-$1-libs:
@@ -919,6 +928,7 @@ else
   # Declare dependencies between hotspot-<variant>* targets
   $(foreach v, $(JVM_VARIANTS), \
       $(eval hotspot-$v-gensrc: java.base-copy buildtools-hotspot) \
+      $(eval hotspot-$v-gendata: buildtools-hotspot) \
       $(eval hotspot-$v-libs: hotspot-$v-gensrc java.base-copy) \
       $(eval hotspot-$v-static-libs: hotspot-$v-gensrc java.base-copy) \
   )
@@ -926,6 +936,7 @@ else
   # If not already set, set the JVM variant target so that the JVM will be built.
   JVM_MAIN_LIB_TARGETS ?= hotspot-$(JVM_VARIANT_MAIN)-libs
   JVM_MAIN_GENSRC_TARGETS ?= hotspot-$(JVM_VARIANT_MAIN)-gensrc
+  JVM_MAIN_GENDATA_TARGETS ?= hotspot-$(JVM_VARIANT_MAIN)-gendata
 
   # Building one JVM variant is enough to start building the other libs
   $(LIBS_TARGETS): $(JVM_MAIN_LIB_TARGETS)
@@ -1121,7 +1132,7 @@ else
   docs-reference-api-javadoc: $(GENSRC_TARGETS)
 
   # If not already set, then set the JVM specific docs targets
-  JVM_DOCS_TARGETS ?= hotspot-$(JVM_VARIANT_MAIN)-gensrc
+  JVM_DOCS_TARGETS ?= hotspot-$(JVM_VARIANT_MAIN)-gendata
 
   # The gensrc steps for hotspot create html spec files.
   docs-jdk-specs: $(JVM_DOCS_TARGETS)
@@ -1152,7 +1163,7 @@ buildtools: buildtools-langtools interim-langtools \
 
 # Declare dependencies from hotspot-<variant> targets
 $(foreach v, $(JVM_VARIANTS), \
-  $(eval hotspot-$v: hotspot-$v-gensrc hotspot-$v-libs) \
+  $(eval hotspot-$v: hotspot-$v-gensrc hotspot-$v-libs hotspot-$v-gendata) \
 )
 hotspot: $(HOTSPOT_VARIANT_TARGETS)
 
@@ -1160,6 +1171,7 @@ hotspot: $(HOTSPOT_VARIANT_TARGETS)
 $(foreach v, $(JVM_VARIANTS), \
   $(eval hotspot-libs: hotspot-$v-libs) \
   $(eval hotspot-gensrc: hotspot-$v-gensrc) \
+  $(eval hotspot-gendata: hotspot-$v-gendata) \
   $(eval hotspot-static-libs: hotspot-$v-static-libs) \
 )
 
@@ -1327,7 +1339,7 @@ all-images: product-images static-jdk-image test-image all-docs-images
 all-bundles: product-bundles test-bundles docs-bundles static-libs-bundles
 
 ALL_TARGETS += buildtools hotspot hotspot-libs hotspot-static-libs \
-    hotspot-gensrc gensrc gendata \
+    hotspot-gensrc hotspot-gendata gensrc gendata \
     copy java libs static-libs launchers jmods \
     jdk.jdwp.agent-gensrc $(ALL_MODULES) demos \
     exploded-image-base exploded-image runnable-buildjdk \
