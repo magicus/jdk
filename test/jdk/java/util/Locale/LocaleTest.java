@@ -163,13 +163,13 @@ public class LocaleTest {
         {   "English (United States)", "French (France)", "Croatian (Croatia)", "Greek (Greece)", "Norwegian (Norway, Nynorsk)", "Italian", "xx (YY)" },
 
         // display language (French)
-        {   "anglais",  "fran\u00e7ais",   "croate", "grec",    "norv\u00e9gien",    "italien", "xx" },
+        {   "anglais",  "français",   "croate", "grec",    "norvégien",    "italien", "xx" },
         // display country (French)
         {   "\u00c9tats-Unis",    "France",   "Croatie",  "Gr\u00e8ce",   "Norv\u00e8ge", "",     "YY" },
         // display variant (French)
         {   "",     "",     "",     "",     "",     "",    "" },
         // display name (French)
-        {   "anglais (\u00c9tats-Unis)", "fran\u00e7ais (France)", "croate (Croatie)", "grec (Gr\u00e8ce)", "norv\u00e9gien (Norv\u00e8ge, Nynorsk)", "italien", "xx (YY)" },
+        {   "anglais (\u00c9tats-Unis)", "français (France)", "croate (Croatie)", "grec (Gr\u00e8ce)", "norvégien (Norv\u00e8ge, Nynorsk)", "italien", "xx (YY)" },
 
         // display language (Croatian)
         {   "engleski",  "francuski", "hrvatski", "gr\u010dki",    "norve\u0161ki", "talijanski", "xx" },
@@ -809,17 +809,17 @@ test commented out pending API-change approval
                                          "espagnol (Allemagne)",
                                         "Croatie",
                                         "Su\u00e8de",
-                                        "R\u00e9publique dominicaine",
+                                        "République dominicaine",
                                         "Belgique" };
         String[] spanishDisplayNames = { "alem\u00E1n (Canad\u00E1)",
-                                         "japon\u00E9s (Sud\u00E1frica)",
-                                         "ruso (M\u00e9xico)",
-                                         "ingl\u00E9s (Francia)",
+                                         "japonés (Sud\u00E1frica)",
+                                         "ruso (México)",
+                                         "inglés (Francia)",
                                          "espa\u00f1ol (Alemania)",
                                          "Croacia",
                                          "Suecia",
                                          "Rep\u00fablica Dominicana",
-                                         "B\u00E9lgica" };
+                                         "Bélgica" };
 
 
         // save the default locale and set to the new default to en_US

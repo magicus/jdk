@@ -59,11 +59,11 @@ public class Bug6317929 {
                                        "\"Eastern Standard Time\"");
         tzLocale = locales2Test[1];
         if (!Coral_Harbour.getDisplayName(false, TimeZone.LONG, tzLocale).equals
-           ("Nordamerikanische Ostk\u00fcsten-Normalzeit"))
+           ("Nordamerikanische Ostküsten-Normalzeit"))
             throw new RuntimeException("\n" + tzLocale + ": LONG, " +
                                        "non-daylight saving name for " +
                                        "America/Coral_Harbour should be " +
-                                       "\"Nordamerikanische Ostk\u00fcsten-Normalzeit\"");
+                                       "\"Nordamerikanische Ostküsten-Normalzeit\"");
         tzLocale = locales2Test[2];
         if (!Coral_Harbour.getDisplayName(false, TimeZone.LONG, tzLocale).equals
            ("hora est\u00e1ndar oriental"))
@@ -73,11 +73,11 @@ public class Bug6317929 {
                                        "\"hora est\u00e1ndar oriental\"");
         tzLocale = locales2Test[3];
         if (!Coral_Harbour.getDisplayName(false, TimeZone.LONG, tzLocale).equals
-           ("heure normale de l\u2019Est nord-am\u00e9ricain"))
+           ("heure normale de l\u2019Est nord-américain"))
             throw new RuntimeException("\n" + tzLocale + ": LONG, " +
                                        "non-daylight saving name for " +
                                        "America/Coral_Harbour should be " +
-                                       "\"heure normale de l\u2019Est nord-am\u00e9ricain\"");
+                                       "\"heure normale de l\u2019Est nord-américain\"");
         tzLocale = locales2Test[4];
         if (!Coral_Harbour.getDisplayName(false, TimeZone.LONG, tzLocale).equals
            ("Ora standard orientale USA"))

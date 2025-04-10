@@ -333,7 +333,7 @@ public class CurrencyTest {
     private static Stream<Arguments> displayNameProvider() {
         return Stream.of(
                 Arguments.of("USD", Locale.ENGLISH, "US Dollar"),
-                Arguments.of("FRF", Locale.FRENCH, "franc fran\u00e7ais"),
+                Arguments.of("FRF", Locale.FRENCH, "franc français"),
                 Arguments.of("DEM", Locale.GERMAN, "Deutsche Mark"),
                 Arguments.of("ESP", Locale.of("es"), "peseta espa\u00f1ola"),
                 Arguments.of("ITL", Locale.ITALIAN, "lira italiana"),

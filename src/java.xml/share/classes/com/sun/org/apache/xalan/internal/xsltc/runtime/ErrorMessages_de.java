@@ -99,7 +99,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * translated.
          */
         {BasisLibrary.RUN_TIME_COPY_ERR,
-        "Laufzeitfehler beim Ausf\u00FChren von <xsl:copy>."},
+        "Laufzeitfehler beim Ausführen von <xsl:copy>."},
 
         /*
          * Note to translators:  The substitution text refers to data types.
@@ -108,7 +108,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * {0}.
          */
         {BasisLibrary.DATA_CONVERSION_ERR,
-        "Ung\u00FCltige Konvertierung von \"{0}\" in \"{1}\"."},
+        "Ungültige Konvertierung von \"{0}\" in \"{1}\"."},
 
         /*
          * Note to translators:  This message is displayed if the function named
@@ -116,7 +116,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * is the acronym naming the product.
          */
         {BasisLibrary.EXTERNAL_FUNC_ERR,
-        "Externe Funktion \"{0}\" nicht unterst\u00FCtzt von XSLTC."},
+        "Externe Funktion \"{0}\" nicht unterstützt von XSLTC."},
 
         /*
          * Note to translators:  This message is displayed if two values are
@@ -133,7 +133,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * permitted for a call to this function.
          */
         {BasisLibrary.INVALID_ARGUMENT_ERR,
-        "Ung\u00FCltiger Argumenttyp \"{0}\" in Aufruf von \"{1}\""},
+        "Ungültiger Argumenttyp \"{0}\" in Aufruf von \"{1}\""},
 
         /*
          * Note to translators:  There is way of specifying a format for a
@@ -158,7 +158,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * support.
          */
         {BasisLibrary.AXIS_SUPPORT_ERR,
-        "Iterator f\u00FCr Achse \"{0}\" nicht unterst\u00FCtzt."},
+        "Iterator für Achse \"{0}\" nicht unterstützt."},
 
         /*
          * Note to translators:  The following represents an internal error
@@ -167,7 +167,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * support.
          */
         {BasisLibrary.TYPED_AXIS_SUPPORT_ERR,
-        "Iterator f\u00FCr typisierte Achse \"{0}\" nicht unterst\u00FCtzt."},
+        "Iterator für typisierte Achse \"{0}\" nicht unterstützt."},
 
         /*
          * Note to translators:  This message is reported if the stylesheet
@@ -194,7 +194,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * text is the name of the prefix.
          */
         {BasisLibrary.NAMESPACE_PREFIX_ERR,
-        "Namespace f\u00FCr Pr\u00E4fix \"{0}\" wurde nicht deklariert."},
+        "Namespace für Pr\u00E4fix \"{0}\" wurde nicht deklariert."},
 
         /*
          * Note to translators:  The following represents an internal error.
@@ -219,7 +219,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * declarations.
          */
         {BasisLibrary.NAMESPACES_SUPPORT_ERR,
-        "Der verwendete SAX-Parser unterst\u00FCtzt keine XML-Namespaces."},
+        "Der verwendete SAX-Parser unterstützt keine XML-Namespaces."},
 
         /*
          * Note to translators:  The substitution text is the URI that was in
@@ -234,7 +234,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * gives the element name.
          */
         {BasisLibrary.UNSUPPORTED_XSL_ERR,
-        "Nicht unterst\u00FCtztes XSL-Element \"{0}\""},
+        "Nicht unterstütztes XSL-Element \"{0}\""},
 
         /*
          * Note to translators:  The stylesheet referred to an extension to the
@@ -253,7 +253,7 @@ public class ErrorMessages_de extends ListResourceBundle {
          * the name of the translet class.
          */
         {BasisLibrary.UNKNOWN_TRANSLET_VERSION_ERR,
-        "Das angegebene Translet \"{0}\" wurde mit einer neueren Version von XSLTC als die verwendete Version der XSLTC-Laufzeit erstellt. Sie m\u00FCssen das Stylesheet neu kompilieren oder eine aktuellere Version von XSLTC verwenden, um dieses Translet auszuf\u00FChren."},
+        "Das angegebene Translet \"{0}\" wurde mit einer neueren Version von XSLTC als die verwendete Version der XSLTC-Laufzeit erstellt. Sie müssen das Stylesheet neu kompilieren oder eine aktuellere Version von XSLTC verwenden, um dieses Translet auszuführen."},
 
         /*
          * Note to translators:  An attribute whose effective value is required
@@ -275,10 +275,10 @@ public class ErrorMessages_de extends ListResourceBundle {
         "Ein Attribut, dessen Wert ein NCName sein muss, hatte den Wert \"{0}\""},
 
         {BasisLibrary.UNALLOWED_EXTENSION_FUNCTION_ERR,
-        "Verwendung der Erweiterungsfunktion \"{0}\" ist nicht zul\u00E4ssig, wenn die Erweiterungsfunktionen vom Feature f\u00FCr die sichere Verarbeitung oder der Eigenschaft \"jdk.xml.enableExtensionFunctions\" deaktiviert wurden. Setzen Sie \"jdk.xml.enableExtensionFunctions\" auf \"true\", um die Erweiterungsfunktionen zu aktivieren."},
+        "Verwendung der Erweiterungsfunktion \"{0}\" ist nicht zul\u00E4ssig, wenn die Erweiterungsfunktionen vom Feature für die sichere Verarbeitung oder der Eigenschaft \"jdk.xml.enableExtensionFunctions\" deaktiviert wurden. Setzen Sie \"jdk.xml.enableExtensionFunctions\" auf \"true\", um die Erweiterungsfunktionen zu aktivieren."},
 
         {BasisLibrary.UNALLOWED_EXTENSION_ELEMENT_ERR,
-        "Verwendung des Erweiterungselements \"{0}\" ist nicht zul\u00E4ssig, wenn die Erweiterungsfunktionen vom Feature f\u00FCr die sichere Verarbeitung oder der Eigenschaft \"jdk.xml.enableExtensionFunctions\" deaktiviert wurden. Setzen Sie \"jdk.xml.enableExtensionFunctions\" auf \"true\", um die Erweiterungsfunktionen zu aktivieren."},
+        "Verwendung des Erweiterungselements \"{0}\" ist nicht zul\u00E4ssig, wenn die Erweiterungsfunktionen vom Feature für die sichere Verarbeitung oder der Eigenschaft \"jdk.xml.enableExtensionFunctions\" deaktiviert wurden. Setzen Sie \"jdk.xml.enableExtensionFunctions\" auf \"true\", um die Erweiterungsfunktionen zu aktivieren."},
     };
     }
 

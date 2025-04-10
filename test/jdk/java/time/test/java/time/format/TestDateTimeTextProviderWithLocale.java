@@ -102,7 +102,7 @@ public class TestDateTimeTextProviderWithLocale extends AbstractTestPrinterParse
             {DAY_OF_WEEK, 7, TextStyle.SHORT, ptBR, "dom."},
 
             {DAY_OF_WEEK, 1, TextStyle.FULL, ptBR, "segunda-feira"},
-            {DAY_OF_WEEK, 2, TextStyle.FULL, ptBR, "ter\u00E7a-feira"},
+            {DAY_OF_WEEK, 2, TextStyle.FULL, ptBR, "terça-feira"},
             {DAY_OF_WEEK, 3, TextStyle.FULL, ptBR, "quarta-feira"},
             {DAY_OF_WEEK, 4, TextStyle.FULL, ptBR, "quinta-feira"},
             {DAY_OF_WEEK, 5, TextStyle.FULL, ptBR, "sexta-feira"},
@@ -124,7 +124,7 @@ public class TestDateTimeTextProviderWithLocale extends AbstractTestPrinterParse
 
             {MONTH_OF_YEAR, 1, TextStyle.FULL, ptBR, "janeiro"},
             {MONTH_OF_YEAR, 2, TextStyle.FULL, ptBR, "fevereiro"},
-            {MONTH_OF_YEAR, 3, TextStyle.FULL, ptBR, "mar\u00E7o"},
+            {MONTH_OF_YEAR, 3, TextStyle.FULL, ptBR, "março"},
             {MONTH_OF_YEAR, 4, TextStyle.FULL, ptBR, "abril"},
             {MONTH_OF_YEAR, 5, TextStyle.FULL, ptBR, "maio"},
             {MONTH_OF_YEAR, 6, TextStyle.FULL, ptBR, "junho"},

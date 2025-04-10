@@ -183,7 +183,7 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "\u0130\u015flev desteklenmiyor!"},
 
     { ER_CANNOT_OVERWRITE_CAUSE,
-      "Nedenin \u00fczerine yaz\u0131lamaz"},
+      "Nedenin üzerine yaz\u0131lamaz"},
 
     { ER_NO_DEFAULT_IMPL,
       "Varsay\u0131lan uygulama bulunamad\u0131"},
@@ -192,7 +192,7 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "ChunkedIntArray({0}) \u015fu an desteklenmiyor"},
 
     { ER_OFFSET_BIGGER_THAN_SLOT,
-      "G\u00f6reli konum yuvadan b\u00fcy\u00fck"},
+      "G\u00f6reli konum yuvadan büyük"},
 
     { ER_COROUTINE_NOT_AVAIL,
       "Coroutine kullan\u0131lam\u0131yor, id={0}"},
@@ -234,10 +234,10 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Desteklenmiyor: {0}"},
 
     { ER_NODE_NON_NULL,
-      "getDTMHandleFromNode i\u00e7in d\u00fc\u011f\u00fcm bo\u015f de\u011ferli olmamal\u0131d\u0131r"},
+      "getDTMHandleFromNode i\u00e7in dü\u011füm bo\u015f de\u011ferli olmamal\u0131d\u0131r"},
 
     { ER_COULD_NOT_RESOLVE_NODE,
-      "D\u00fc\u011f\u00fcm tan\u0131t\u0131c\u0131 de\u011fere \u00e7\u00f6z\u00fclemedi"},
+      "Dü\u011füm tan\u0131t\u0131c\u0131 de\u011fere \u00e7\u00f6zülemedi"},
 
     { ER_STARTPARSE_WHILE_PARSING,
        "Ayr\u0131\u015ft\u0131rma s\u0131ras\u0131nda startParse \u00e7a\u011fr\u0131lamaz"},
@@ -315,7 +315,7 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Bo\u015f de\u011fi\u015ftirgelerle URI kullan\u0131ma haz\u0131rlanamaz"},
 
     { ER_METHOD_NOT_SUPPORTED,
-      "Y\u00f6ntem hen\u00fcz desteklenmiyor"},
+      "Y\u00f6ntem henüz desteklenmiyor"},
 
     { ER_INCRSAXSRCFILTER_NOT_RESTARTABLE,
       "IncrementalSAXSource_Filter \u015fu an yeniden ba\u015flat\u0131labilir durumda de\u011fil"},
@@ -336,7 +336,7 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Hata yeri bilinmiyor"},
 
     { ER_PREFIX_MUST_RESOLVE,
-      "\u00d6nek bir ad alan\u0131na \u00e7\u00f6z\u00fclmelidir: {0}"},
+      "\u00d6nek bir ad alan\u0131na \u00e7\u00f6zülmelidir: {0}"},
 
     { ER_CREATEDOCUMENT_NOT_SUPPORTED,
       "XPathContext i\u00e7inde createDocument() desteklenmiyor!"},
@@ -351,7 +351,7 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Uyar\u0131: Belge \u00f6\u011fesinden \u00f6nce metin \u00e7\u0131k\u0131\u015f\u0131 olamaz!  Yoksay\u0131l\u0131yor..."},
 
     { ER_CANT_HAVE_MORE_THAN_ONE_ROOT,
-      "DOM \u00fczerinde birden fazla k\u00f6k olamaz!"},
+      "DOM üzerinde birden fazla k\u00f6k olamaz!"},
 
     { ER_ARG_LOCALNAME_NULL,
        "'localName' ba\u011f\u0131ms\u0131z de\u011fi\u015ftirgesi bo\u015f de\u011ferli"},
@@ -380,10 +380,10 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Kaynak [ {0} ] bulunamad\u0131.\n {1}" },
 
     {ER_RESOURCE_COULD_NOT_LOAD,
-      "Kaynak [ {0} ] y\u00fckleyemedi: {1} \n {2} \t {3}" },
+      "Kaynak [ {0} ] yükleyemedi: {1} \n {2} \t {3}" },
 
     {ER_BUFFER_SIZE_LESSTHAN_ZERO,
-      "Arabellek b\u00fcy\u00fckl\u00fc\u011f\u00fc <=0" },
+      "Arabellek büyüklü\u011fü <=0" },
 
     {ER_INVALID_UTF16_SURROGATE,
       "UTF-16 yerine kullan\u0131lan de\u011fer ge\u00e7ersiz: {0} ?" },
@@ -392,7 +392,7 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "G\u00c7 hatas\u0131" },
 
     {ER_ILLEGAL_ATTRIBUTE_POSITION,
-      "Alt d\u00fc\u011f\u00fcmlerden sonra ya da bir \u00f6\u011fe \u00fcretilmeden \u00f6nce {0} \u00f6zniteli\u011fi eklenemez. \u00d6znitelik yoksay\u0131lacak."},
+      "Alt dü\u011fümlerden sonra ya da bir \u00f6\u011fe üretilmeden \u00f6nce {0} \u00f6zniteli\u011fi eklenemez. \u00d6znitelik yoksay\u0131lacak."},
 
       /*
        * Note to translators:  The stylesheet contained a reference to a
@@ -421,10 +421,10 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "''{0}''=''{1}'' ad alan\u0131 bildirimi \u00f6\u011fenin d\u0131\u015f\u0131nda." },
 
     {ER_COULD_NOT_LOAD_RESOURCE,
-      "''{0}'' y\u00fcklenemedi (CLASSPATH de\u011fi\u015fkeninizi inceleyin), yaln\u0131zca varsay\u0131lanlar kullan\u0131l\u0131yor"},
+      "''{0}'' yüklenemedi (CLASSPATH de\u011fi\u015fkeninizi inceleyin), yaln\u0131zca varsay\u0131lanlar kullan\u0131l\u0131yor"},
 
     {ER_COULD_NOT_LOAD_METHOD_PROPERTY,
-      "''{1}'' \u00e7\u0131k\u0131\u015f y\u00f6ntemi i\u00e7in ''{0}'' \u00f6zellik dosyas\u0131 y\u00fcklenemedi (CLASSPATH de\u011fi\u015fkenini inceleyin)" }
+      "''{1}'' \u00e7\u0131k\u0131\u015f y\u00f6ntemi i\u00e7in ''{0}'' \u00f6zellik dosyas\u0131 yüklenemedi (CLASSPATH de\u011fi\u015fkenini inceleyin)" }
 
 
   };

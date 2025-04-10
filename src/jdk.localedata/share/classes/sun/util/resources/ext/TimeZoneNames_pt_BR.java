@@ -93,9 +93,9 @@ public final class TimeZoneNames_pt_BR extends TimeZoneNamesBundle {
         String CHAST[] = new String[] {"Fuso hor\u00e1rio padr\u00e3o de Chatham", "CHAST",
                                        "Hor\u00e1rio de luz natural de Chatham", "CHADT",
                                        "Hor\u00E1rio de Chatham", "CHAT"};
-        String CIT[] = new String[] {"Fuso hor\u00e1rio da Indon\u00e9sia Central", "WITA",
-                                     "Fuso hor\u00e1rio de ver\u00e3o da Indon\u00e9sia Central", "CIST",
-                                     "Hor\u00E1rio da Indon\u00E9sia Central", "WITA"};
+        String CIT[] = new String[] {"Fuso hor\u00e1rio da Indonésia Central", "WITA",
+                                     "Fuso hor\u00e1rio de ver\u00e3o da Indonésia Central", "CIST",
+                                     "Hor\u00E1rio da Indonésia Central", "WITA"};
         String CLT[] = new String[] {"Fuso hor\u00e1rio do Chile", "CLT",
                                      "Fuso hor\u00e1rio de ver\u00e3o do Chile", "CLST",
                                      "Hor\u00E1rio do Chile", "CLT"};
@@ -143,7 +143,7 @@ public final class TimeZoneNames_pt_BR extends TimeZoneNamesBundle {
                                           "Hor\u00E1rio de Gambier", "GAMT"};
         String GMT[] = new String[] {"Fuso hor\u00e1rio do meridiano de Greenwich", "GMT",
                                      "Fuso hor\u00e1rio do meridiano de Greenwich", "GMT",
-                                     "Hor\u00E1rio M\u00E9dio de Greenwich", "GMT"};
+                                     "Hor\u00E1rio Médio de Greenwich", "GMT"};
         String GMTBST[] = new String[] {"Fuso hor\u00e1rio do meridiano de Greenwich", "GMT",
                                         "Fuso hor\u00e1rio de ver\u00e3o da Gr\u00e3-Bretanha", "BST",
                                         "Hor\u00E1rio do Reino Unido", "BT"};
@@ -255,9 +255,9 @@ public final class TimeZoneNames_pt_BR extends TimeZoneNamesBundle {
         String WGT[] = new String[] {"Fuso hor\u00e1rio da Groenl\u00e2ndia Ocidental", "WGT",
                                      "Fuso hor\u00e1rio de ver\u00e3o da Groenl\u00e2ndia Ocidental", "WGST",
                                      "Hor\u00E1rio da Groenl\u00E2ndia Ocidental", "WGT"};
-        String WIT[] = new String[] {"Fuso hor\u00e1rio da Indon\u00e9sia Ocidental", "WIB",
-                                     "Fuso hor\u00e1rio de ver\u00e3o da Indon\u00e9sia Ocidental", "WIST",
-                                     "Hor\u00E1rio da Indon\u00E9sia Ocidental", "WIB"};
+        String WIT[] = new String[] {"Fuso hor\u00e1rio da Indonésia Ocidental", "WIB",
+                                     "Fuso hor\u00e1rio de ver\u00e3o da Indonésia Ocidental", "WIST",
+                                     "Hor\u00E1rio da Indonésia Ocidental", "WIB"};
         String WST_AUS[] = new String[] {"Hor\u00E1rio-Padr\u00E3o Ocidental (Austr\u00E1lia)", "AWST",
                                          "Fuso Hor\u00E1rio de Ver\u00E3o Ocidental (Austr\u00E1lia)", "AWDT",
                                          "Hor\u00E1rio Ocidental (Austr\u00E1lia)", "AWT"};
@@ -647,9 +647,9 @@ public final class TimeZoneNames_pt_BR extends TimeZoneNamesBundle {
             {"Asia/Irkutsk", IRKT},
             {"Asia/Istanbul", EET},
             {"Asia/Jakarta", WIT},
-            {"Asia/Jayapura", new String[] {"Fuso hor\u00e1rio da Indon\u00e9sia Oriental", "WIT",
-                                            "Fuso hor\u00e1rio de ver\u00e3o da Indon\u00e9sia Oriental", "EIST",
-                                            "Hor\u00E1rio da Indon\u00E9sia Oriental", "WIT"}},
+            {"Asia/Jayapura", new String[] {"Fuso hor\u00e1rio da Indonésia Oriental", "WIT",
+                                            "Fuso hor\u00e1rio de ver\u00e3o da Indonésia Oriental", "EIST",
+                                            "Hor\u00E1rio da Indonésia Oriental", "WIT"}},
             {"Asia/Kabul", new String[] {"Fuso hor\u00e1rio do Afeganist\u00e3o", "AFT",
                                          "Fuso hor\u00e1rio de ver\u00e3o do Afeganist\u00e3o", "AFST",
                                          "Hor\u00E1rio do Afeganist\u00E3o", "AFT"}},
@@ -730,9 +730,9 @@ public final class TimeZoneNames_pt_BR extends TimeZoneNamesBundle {
                                                  "Fuso hor\u00e1rio de ver\u00e3o de Yekaterinburgo", "YEKST",
                                                  "Hor\u00E1rio de Yekaterinburg", "YEKT"}},
             {"Asia/Yerevan", ARMT},
-            {"Atlantic/Azores", new String[] {"Fuso hor\u00e1rio das A\u00e7ores", "AZOT",
-                                              "Fuso hor\u00e1rio de ver\u00e3o das A\u00e7ores", "AZOST",
-                                              "Hor\u00E1rio de A\u00E7ores", "AZOT"}},
+            {"Atlantic/Azores", new String[] {"Fuso hor\u00e1rio das Açores", "AZOT",
+                                              "Fuso hor\u00e1rio de ver\u00e3o das Açores", "AZOST",
+                                              "Hor\u00E1rio de Açores", "AZOT"}},
             {"Atlantic/Bermuda", AST},
             {"Atlantic/Canary", WET},
             {"Atlantic/Cape_Verde", new String[] {"Fuso hor\u00e1rio de Cabo Verde", "CVT",
@@ -903,8 +903,8 @@ public final class TimeZoneNames_pt_BR extends TimeZoneNamesBundle {
             {"Japan", JST},
             {"Kwajalein", MHT},
             {"Libya", EET},
-            {"MET", new String[] {"Fuso hor\u00e1rio da Europa M\u00e9dia", "MET",
-                                  "Fuso hor\u00e1rio de ver\u00e3o da Europa M\u00e9dia", "MEST",
+            {"MET", new String[] {"Fuso hor\u00e1rio da Europa Média", "MET",
+                                  "Fuso hor\u00e1rio de ver\u00e3o da Europa Média", "MEST",
                                   "MET", "MET"}},
             {"Mexico/BajaNorte", PST},
             {"Mexico/BajaSur", MST},
@@ -930,8 +930,8 @@ public final class TimeZoneNames_pt_BR extends TimeZoneNamesBundle {
             {"Pacific/Efate", new String[] {"Fuso hor\u00e1rio de Vanuatu", "VUT",
                                             "Fuso hor\u00e1rio de ver\u00e3o de Vanuatu", "VUST",
                                             "Hor\u00E1rio de Vanuatu", "VUT"}},
-            {"Pacific/Enderbury", new String[] {"Fuso hor\u00e1rio das Ilhas F\u00e9nix", "PHOT",
-                                                "Fuso hor\u00e1rio de ver\u00e3o das Ilhas F\u00e9nix", "PHOST",
+            {"Pacific/Enderbury", new String[] {"Fuso hor\u00e1rio das Ilhas Fénix", "PHOT",
+                                                "Fuso hor\u00e1rio de ver\u00e3o das Ilhas Fénix", "PHOST",
                                                 "Hor\u00E1rio da Ilha Phoenix", "PHOT"}},
             {"Pacific/Fakaofo", new String[] {"Fuso hor\u00e1rio de Tokelau", "TKT",
                                               "Fuso hor\u00e1rio de ver\u00e3o de Tokelau", "TKST",
@@ -980,9 +980,9 @@ public final class TimeZoneNames_pt_BR extends TimeZoneNamesBundle {
             {"Pacific/Pitcairn", PITCAIRN},
             {"Pacific/Pohnpei", PONT},
             {"Pacific/Ponape", PONT},
-            {"Pacific/Port_Moresby", new String[] {"Fuso hor\u00e1rio de Papua-Nova Guin\u00e9", "PGT",
-                                                   "Fuso hor\u00e1rio de ver\u00e3o de Papua-Nova Guin\u00e9", "PGST",
-                                                   "Hor\u00E1rio de Papua-Nova Guin\u00E9", "PGT"}},
+            {"Pacific/Port_Moresby", new String[] {"Fuso hor\u00e1rio de Papua-Nova Guiné", "PGT",
+                                                   "Fuso hor\u00e1rio de ver\u00e3o de Papua-Nova Guiné", "PGST",
+                                                   "Hor\u00E1rio de Papua-Nova Guiné", "PGT"}},
             {"Pacific/Rarotonga", new String[] {"Fuso hor\u00e1rio das Ilhas Cook", "CKT",
                                                 "Fuso hor\u00e1rio de ver\u00e3o das Ilhas Cook", "CKHST",
                                                 "Hor\u00E1rio das Ilhas Cook", "CKT"}},

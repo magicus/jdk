@@ -65,11 +65,11 @@ public class CLDRDisplayNamesTest {
         },
         {
             "de-DE",
-            "Nordamerikanische Westk\u00fcsten-Normalzeit",
+            "Nordamerikanische Westküsten-Normalzeit",
             "PST",
-            "Nordamerikanische Westk\u00fcsten-Sommerzeit",
+            "Nordamerikanische Westküsten-Sommerzeit",
             "PDT",
-            //"Nordamerikanische Westk\u00fcstenzeit",
+            //"Nordamerikanische Westküstenzeit",
         //"PT",
         },
     };

@@ -26,7 +26,7 @@
  * @bug     6409829
  * @summary JSR 199: enforce the use of valid package and class names
  *                   in get{Java,}FileFor{Input,Output}
- * @author  Peter von der Ah\u00e9
+ * @author  Peter von der Ahé
  * @modules jdk.compiler/com.sun.tools.javac.file
  */
 
@@ -45,6 +45,6 @@ public class TestName {
         JavacFileManager.testName("java.lang.Foo Bar", !PACKAGE, !CLASS);
         JavacFileManager.testName("java.lang.Foo+Bar", !PACKAGE, !CLASS);
         JavacFileManager.testName("java.lang.Foo$Bar", PACKAGE, CLASS);
-        JavacFileManager.testName("Peter.von.der.Ah\u00e9", PACKAGE, CLASS);
+        JavacFileManager.testName("Peter.von.der.Ahé", PACKAGE, CLASS);
     }
 }

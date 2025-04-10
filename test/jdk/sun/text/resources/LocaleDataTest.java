@@ -102,7 +102,7 @@
  *        LocaleNames//US=United States
  *        LocaleNames//FR=France
  *        FormatData/fr_FR/MonthNames/0=janvier
- *        FormatData/fr_FR/MonthNames/1=f\u00e9vrier
+ *        FormatData/fr_FR/MonthNames/1=février
  *        LocaleNames/fr_FR/US=\u00c9tats-Unis
  *        LocaleNames/fr_FR/FR=France</pre>
  *

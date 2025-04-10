@@ -533,15 +533,15 @@ public class MessageRegression {
      */
     @Test
     public void Test4142938() {
-        String pat = "''Vous'' {0,choice,0#n''|1#}avez s\u00E9lectionne\u00E9 " +
+        String pat = "''Vous'' {0,choice,0#n''|1#}avez sélectionneé " +
             "{0,choice,0#aucun|1#{0}} client{0,choice,0#s|1#|2#s} " +
             "personnel{0,choice,0#s|1#|2#s}.";
         MessageFormat mf = new MessageFormat(pat);
 
         String[] PREFIX = {
-            "'Vous' n'avez s\u00E9lectionne\u00E9 aucun clients personnels.",
-            "'Vous' avez s\u00E9lectionne\u00E9 ",
-            "'Vous' avez s\u00E9lectionne\u00E9 "
+            "'Vous' n'avez sélectionneé aucun clients personnels.",
+            "'Vous' avez sélectionneé ",
+            "'Vous' avez sélectionneé "
         };
         String[] SUFFIX = {
             null,

@@ -252,7 +252,7 @@ public class XMLErrorResources_ca extends ListResourceBundle
        "S'ha produ\u00eft una excepci\u00f3 en crear una nova inst\u00e0ncia de l'agrupaci\u00f3 "},
 
     { ER_PATH_CONTAINS_INVALID_ESCAPE_SEQUENCE,
-       "La via d'acc\u00e9s cont\u00e9 una seq\u00fc\u00e8ncia d'escapament no v\u00e0lida "},
+       "La via d'acc\u00e9s cont\u00e9 una seqü\u00e8ncia d'escapament no v\u00e0lida "},
 
     { ER_SCHEME_REQUIRED,
        "Es necessita l'esquema "},

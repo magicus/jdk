@@ -46,11 +46,11 @@ public class Bug6271396 {
                                         "Australia/Lord_Howe should be " +
                                         "\"Heure standard de Lord Howe\"");
         if (!Lord_Howe.getDisplayName(true, TimeZone.LONG, tzLocale).equals
-           ("heure d\u2019\u00e9t\u00e9 de Lord Howe"))
+           ("heure d\u2019été de Lord Howe"))
              throw new RuntimeException("\n" + tzLocale + ": LONG, " +
                                         "daylight saving name for " +
                                         "Australia/Lord_Howe should be " +
-                                        "\"Heure d'\u00e9t\u00e9 de Lord Howe\"");
+                                        "\"Heure d'été de Lord Howe\"");
 
         tzLocale = Locale.TRADITIONAL_CHINESE;
         if (!Lord_Howe.getDisplayName(false, TimeZone.LONG, tzLocale).equals

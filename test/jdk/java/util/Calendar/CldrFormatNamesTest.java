@@ -93,7 +93,7 @@ public class CldrFormatNamesTest {
                 "d MMM y G",
                 "dd/MM/y GGGGG",
             },
-            "calendarname.islamic", "calendrier h\u00e9girien",
+            "calendarname.islamic", "calendrier hégirien",
         },
     };
 

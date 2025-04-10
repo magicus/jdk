@@ -114,7 +114,7 @@ public class TextClipErrorTest {
 
             final Shape badShape;
             if (SERIALIZE) {
-                final GlyphVector gv1 = font.createGlyphVector(frc, "\u00d6");
+                final GlyphVector gv1 = font.createGlyphVector(frc, "Ö");
                 final Shape textShape = gv1.getOutline();
 
                 final AffineTransform at1 = AffineTransform.getTranslateInstance(
