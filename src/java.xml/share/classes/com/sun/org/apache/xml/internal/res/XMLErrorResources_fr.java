@@ -190,19 +190,19 @@ public class XMLErrorResources_fr extends ListResourceBundle
       "Impossible de remplacer la cause"},
 
     { ER_NO_DEFAULT_IMPL,
-      "Aucune impl\u00E9mentation par d\u00E9faut trouv\u00E9e "},
+      "Aucune implémentation par défaut trouvée "},
 
     { ER_CHUNKEDINTARRAY_NOT_SUPPORTED,
       "ChunkedIntArray({0}) n''est actuellement pas pris en charge"},
 
     { ER_OFFSET_BIGGER_THAN_SLOT,
-      "D\u00E9calage sup\u00E9rieur \u00E0 l'emplacement"},
+      "Décalage supérieur \u00E0 l'emplacement"},
 
     { ER_COROUTINE_NOT_AVAIL,
       "Coroutine non disponible, id={0}"},
 
     { ER_COROUTINE_CO_EXIT,
-      "CoroutineManager a re\u00E7u la demande co_exit()"},
+      "CoroutineManager a reçu la demande co_exit()"},
 
     { ER_COJOINROUTINESET_FAILED,
       "Echec de co_joinCoroutineSet()"},
@@ -211,19 +211,19 @@ public class XMLErrorResources_fr extends ListResourceBundle
       "Erreur de param\u00E8tre de coroutine ({0})"},
 
     { ER_PARSER_DOTERMINATE_ANSWERS,
-      "\nINATTENDU : r\u00E9ponses doTerminate de l''analyseur - {0}"},
+      "\nINATTENDU : réponses doTerminate de l''analyseur - {0}"},
 
     { ER_NO_PARSE_CALL_WHILE_PARSING,
       "impossible d'appeler l'analyse lorsqu'elle est en cours"},
 
     { ER_TYPED_ITERATOR_AXIS_NOT_IMPLEMENTED,
-      "Erreur : it\u00E9rateur saisi pour l''axe {0} non impl\u00E9ment\u00E9"},
+      "Erreur : itérateur saisi pour l''axe {0} non implémenté"},
 
     { ER_ITERATOR_AXIS_NOT_IMPLEMENTED,
-      "Erreur : it\u00E9rateur pour l''axe {0} non impl\u00E9ment\u00E9 "},
+      "Erreur : itérateur pour l''axe {0} non implémenté "},
 
     { ER_ITERATOR_CLONE_NOT_SUPPORTED,
-      "Clone d'it\u00E9rateur non pris en charge"},
+      "Clone d'itérateur non pris en charge"},
 
     { ER_UNKNOWN_AXIS_TYPE,
       "Type de parcours d''axe inconnu : {0}"},
@@ -241,22 +241,22 @@ public class XMLErrorResources_fr extends ListResourceBundle
       "Le noeud doit \u00EAtre non NULL pour getDTMHandleFromNode"},
 
     { ER_COULD_NOT_RESOLVE_NODE,
-      "Impossible de r\u00E9soudre le noeud sur un descripteur"},
+      "Impossible de résoudre le noeud sur un descripteur"},
 
     { ER_STARTPARSE_WHILE_PARSING,
        "impossible d'appeler startParse lorsque l'analyse est en cours"},
 
     { ER_STARTPARSE_NEEDS_SAXPARSER,
-       "startParse n\u00E9cessite un SAXParser non NULL"},
+       "startParse nécessite un SAXParser non NULL"},
 
     { ER_COULD_NOT_INIT_PARSER,
        "impossible d'initialiser l'analyseur avec"},
 
     { ER_EXCEPTION_CREATING_POOL,
-       "exception lors de la cr\u00E9ation de l'instance du pool"},
+       "exception lors de la création de l'instance du pool"},
 
     { ER_PATH_CONTAINS_INVALID_ESCAPE_SEQUENCE,
-       "Le chemin d'acc\u00E8s contient une s\u00E9quence d'\u00E9chappement non valide"},
+       "Le chemin d'acc\u00E8s contient une séquence d'échappement non valide"},
 
     { ER_SCHEME_REQUIRED,
        "Mod\u00E8le obligatoire."},
@@ -271,7 +271,7 @@ public class XMLErrorResources_fr extends ListResourceBundle
        "Le chemin contient un caract\u00E8re non valide : {0}"},
 
     { ER_SCHEME_FROM_NULL_STRING,
-       "Impossible de d\u00E9finir le mod\u00E8le \u00E0 partir de la cha\u00EEne NULL"},
+       "Impossible de définir le mod\u00E8le \u00E0 partir de la cha\u00EEne NULL"},
 
     { ER_SCHEME_NOT_CONFORMANT,
        "Le mod\u00E8le n'est pas conforme."},
@@ -280,49 +280,49 @@ public class XMLErrorResources_fr extends ListResourceBundle
        "Le format de l'adresse de l'h\u00F4te n'est pas correct"},
 
     { ER_PORT_WHEN_HOST_NULL,
-       "Impossible de d\u00E9finir le port quand l'h\u00F4te est NULL"},
+       "Impossible de définir le port quand l'h\u00F4te est NULL"},
 
     { ER_INVALID_PORT,
-       "Num\u00E9ro de port non valide"},
+       "Numéro de port non valide"},
 
     { ER_FRAG_FOR_GENERIC_URI,
-       "Le fragment ne peut \u00EAtre d\u00E9fini que pour un URI g\u00E9n\u00E9rique"},
+       "Le fragment ne peut \u00EAtre défini que pour un URI générique"},
 
     { ER_FRAG_WHEN_PATH_NULL,
-       "Impossible de d\u00E9finir le fragment quand le chemin d'acc\u00E8s est NULL"},
+       "Impossible de définir le fragment quand le chemin d'acc\u00E8s est NULL"},
 
     { ER_FRAG_INVALID_CHAR,
        "Le fragment contient un caract\u00E8re non valide"},
 
     { ER_PARSER_IN_USE,
-      "L'analyseur est d\u00E9j\u00E0 utilis\u00E9"},
+      "L'analyseur est déj\u00E0 utilisé"},
 
     { ER_CANNOT_CHANGE_WHILE_PARSING,
       "Impossible de modifier {0} {1} pendant l''analyse"},
 
     { ER_SELF_CAUSATION_NOT_PERMITTED,
-      "Causalit\u00E9 circulaire non autoris\u00E9e"},
+      "Causalité circulaire non autorisée"},
 
     { ER_NO_USERINFO_IF_NO_HOST,
-      "Userinfo peut ne pas \u00EAtre sp\u00E9cifi\u00E9 si l'h\u00F4te ne l'est pas"},
+      "Userinfo peut ne pas \u00EAtre spécifié si l'h\u00F4te ne l'est pas"},
 
     { ER_NO_PORT_IF_NO_HOST,
-      "Le port peut ne pas \u00EAtre sp\u00E9cifi\u00E9 si l'h\u00F4te ne l'est pas"},
+      "Le port peut ne pas \u00EAtre spécifié si l'h\u00F4te ne l'est pas"},
 
     { ER_NO_QUERY_STRING_IN_PATH,
       "La cha\u00EEne de requ\u00EAte ne doit pas figurer dans un chemin et une cha\u00EEne de requ\u00EAte"},
 
     { ER_NO_FRAGMENT_STRING_IN_PATH,
-      "Le fragment ne doit pas \u00EAtre indiqu\u00E9 \u00E0 la fois dans le chemin et dans le fragment"},
+      "Le fragment ne doit pas \u00EAtre indiqué \u00E0 la fois dans le chemin et dans le fragment"},
 
     { ER_CANNOT_INIT_URI_EMPTY_PARMS,
       "Impossible d'initialiser l'URI avec des param\u00E8tres vides"},
 
     { ER_METHOD_NOT_SUPPORTED,
-      "La m\u00E9thode n'est pas encore prise en charge "},
+      "La méthode n'est pas encore prise en charge "},
 
     { ER_INCRSAXSRCFILTER_NOT_RESTARTABLE,
-      "IncrementalSAXSource_Filter ne peut actuellement pas \u00EAtre red\u00E9marr\u00E9"},
+      "IncrementalSAXSource_Filter ne peut actuellement pas \u00EAtre redémarré"},
 
     { ER_XMLRDR_NOT_BEFORE_STARTPARSE,
       "XMLReader pas avant la demande startParse"},
@@ -331,7 +331,7 @@ public class XMLErrorResources_fr extends ListResourceBundle
       "Parcours d''axe non pris en charge : {0}"},
 
     { ER_ERRORHANDLER_CREATED_WITH_NULL_PRINTWRITER,
-      "ListingErrorHandler cr\u00E9\u00E9 avec PrintWriter NULL."},
+      "ListingErrorHandler créé avec PrintWriter NULL."},
 
     { ER_SYSTEMID_UNKNOWN,
       "ID syst\u00E8me inconnu"},
@@ -340,19 +340,19 @@ public class XMLErrorResources_fr extends ListResourceBundle
       "Emplacement de l'erreur inconnu"},
 
     { ER_PREFIX_MUST_RESOLVE,
-      "Le pr\u00E9fixe doit \u00EAtre r\u00E9solu en espace de noms : {0}"},
+      "Le préfixe doit \u00EAtre résolu en espace de noms : {0}"},
 
     { ER_CREATEDOCUMENT_NOT_SUPPORTED,
       "createDocument() non pris en charge dans XPathContext."},
 
     { ER_CHILD_HAS_NO_OWNER_DOCUMENT,
-      "L'enfant de l'attribut ne poss\u00E8de pas de document propri\u00E9taire."},
+      "L'enfant de l'attribut ne poss\u00E8de pas de document propriétaire."},
 
     { ER_CHILD_HAS_NO_OWNER_DOCUMENT_ELEMENT,
-      "L'enfant de l'attribut ne poss\u00E8de pas d'\u00E9l\u00E9ment de document propri\u00E9taire."},
+      "L'enfant de l'attribut ne poss\u00E8de pas d'élément de document propriétaire."},
 
     { ER_CANT_OUTPUT_TEXT_BEFORE_DOC,
-      "Avertissement : impossible de g\u00E9n\u00E9rer une sortie du texte avant l'\u00E9l\u00E9ment de document. Non pris en compte..."},
+      "Avertissement : impossible de générer une sortie du texte avant l'élément de document. Non pris en compte..."},
 
     { ER_CANT_HAVE_MORE_THAN_ONE_ROOT,
       "Impossible d'avoir plus d'une racine sur un DOM."},
@@ -370,18 +370,18 @@ public class XMLErrorResources_fr extends ListResourceBundle
     // The prefix is the portion before the optional colon; the message indicates
     // that there is a problem with that part of the QNAME.
     { ER_ARG_PREFIX_INVALID,
-       "Le pr\u00E9fixe du QName doit \u00EAtre un NCName valide"},
+       "Le préfixe du QName doit \u00EAtre un NCName valide"},
 
     { ER_NAME_CANT_START_WITH_COLON,
       "Le nom ne peut pas commencer par deux-points"},
 
-    { "BAD_CODE", "Le param\u00E8tre createMessage \u00E9tait hors limites"},
-    { "FORMAT_FAILED", "Exception g\u00E9n\u00E9r\u00E9e pendant l'appel messageFormat"},
+    { "BAD_CODE", "Le param\u00E8tre createMessage était hors limites"},
+    { "FORMAT_FAILED", "Exception générée pendant l'appel messageFormat"},
     { "line", "Ligne n\u00B0"},
     { "column","Colonne n\u00B0"},
 
     {ER_SERIALIZER_NOT_CONTENTHANDLER,
-      "La classe de serializer ''{0}'' n''impl\u00E9mente pas org.xml.sax.ContentHandler."},
+      "La classe de serializer ''{0}'' n''implémente pas org.xml.sax.ContentHandler."},
 
     {ER_RESOURCE_COULD_NOT_FIND,
       "La ressource [ {0} ] est introuvable.\n {1}" },
@@ -393,13 +393,13 @@ public class XMLErrorResources_fr extends ListResourceBundle
       "Taille du tampon <=0" },
 
     {ER_INVALID_UTF16_SURROGATE,
-      "Substitut UTF-16 non valide d\u00E9tect\u00E9 : {0} ?" },
+      "Substitut UTF-16 non valide détecté : {0} ?" },
 
     {ER_OIERROR,
       "Erreur d'E-S" },
 
     {ER_ILLEGAL_ATTRIBUTE_POSITION,
-      "Impossible d''ajouter l''attribut {0} apr\u00E8s des noeuds enfant ou avant la production d''un \u00E9l\u00E9ment. L''attribut est ignor\u00E9."},
+      "Impossible d''ajouter l''attribut {0} apr\u00E8s des noeuds enfant ou avant la production d''un élément. L''attribut est ignoré."},
 
       /*
        * Note to translators:  The stylesheet contained a reference to a
@@ -407,7 +407,7 @@ public class XMLErrorResources_fr extends ListResourceBundle
        * text is the name of the prefix.
        */
     {ER_NAMESPACE_PREFIX,
-      "L''espace de noms du pr\u00E9fixe ''{0}'' n''a pas \u00E9t\u00E9 d\u00E9clar\u00E9." },
+      "L''espace de noms du préfixe ''{0}'' n''a pas été déclaré." },
       /*
        * Note to translators:  This message is reported if the stylesheet
        * being processed attempted to construct an XML document with an
@@ -415,7 +415,7 @@ public class XMLErrorResources_fr extends ListResourceBundle
        * specifies the name of the attribute.
        */
     {ER_STRAY_ATTRIBUTE,
-      "Attribut ''{0}'' \u00E0 l''ext\u00E9rieur de l''\u00E9l\u00E9ment." },
+      "Attribut ''{0}'' \u00E0 l''extérieur de l''élément." },
 
       /*
        * Note to translators:  As with the preceding message, a namespace
@@ -425,16 +425,16 @@ public class XMLErrorResources_fr extends ListResourceBundle
        * namespace declaration.
        */
     {ER_STRAY_NAMESPACE,
-      "La d\u00E9claration d''espace de noms ''{0}''=''{1}'' est \u00E0 l''ext\u00E9rieur de l''\u00E9l\u00E9ment." },
+      "La déclaration d''espace de noms ''{0}''=''{1}'' est \u00E0 l''extérieur de l''élément." },
 
     {ER_COULD_NOT_LOAD_RESOURCE,
-      "Impossible de charger ''{0}'' (v\u00E9rifier CLASSPATH), les valeurs par d\u00E9faut sont donc employ\u00E9es"},
+      "Impossible de charger ''{0}'' (vérifier CLASSPATH), les valeurs par défaut sont donc employées"},
 
     { ER_ILLEGAL_CHARACTER,
-       "Tentative de sortie d''un caract\u00E8re avec une valeur enti\u00E8re {0}, non repr\u00E9sent\u00E9 dans l''encodage de sortie sp\u00E9cifi\u00E9 pour {1}."},
+       "Tentative de sortie d''un caract\u00E8re avec une valeur enti\u00E8re {0}, non représenté dans l''encodage de sortie spécifié pour {1}."},
 
     {ER_COULD_NOT_LOAD_METHOD_PROPERTY,
-      "Impossible de charger le fichier de propri\u00E9t\u00E9s ''{0}'' pour la m\u00E9thode de sortie ''{1}'' (v\u00E9rifier CLASSPATH)" }
+      "Impossible de charger le fichier de propriétés ''{0}'' pour la méthode de sortie ''{1}'' (vérifier CLASSPATH)" }
 
 
   };

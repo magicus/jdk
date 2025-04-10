@@ -592,7 +592,7 @@ public class XSLTErrorResources_it extends ListResourceBundle
       "(StylesheetHandler) Impossibile trovare l''attributo href per {0}"},
 
     { ER_STYLESHEET_INCLUDES_ITSELF,
-      "(StylesheetHandler) {0} include s\u00E9 stesso direttamente o indirettamente."},
+      "(StylesheetHandler) {0} include sé stesso direttamente o indirettamente."},
 
     { ER_PROCESSINCLUDE_ERROR,
       "Errore di StylesheetHandler.processInclude: {0}"},
@@ -703,7 +703,7 @@ public class XSLTErrorResources_it extends ListResourceBundle
       "(StylesheetHandler) Le importazioni possono essere eseguite solo come primi elementi nel foglio di stile."},
 
     { ER_IMPORTING_ITSELF,
-      "(StylesheetHandler) {0} importa s\u00E9 stesso direttamente o indirettamente."},
+      "(StylesheetHandler) {0} importa sé stesso direttamente o indirettamente."},
 
     { ER_XMLSPACE_ILLEGAL_VAL,
       "(StylesheetHandler) xml:space ha un valore non valido {0}"},
@@ -779,7 +779,7 @@ public class XSLTErrorResources_it extends ListResourceBundle
       "Rilevato surrogato UTF-16 non valido: {0}?"},
 
     { ER_XSLATTRSET_USED_ITSELF,
-      "xsl:attribute-set {0} utilizza s\u00E9 stesso, il che pu\u00F2 causare un loop infinito."},
+      "xsl:attribute-set {0} utilizza sé stesso, il che pu\u00F2 causare un loop infinito."},
 
     { ER_CANNOT_MIX_XERCESDOM,
       "Impossibile unire input non Xerces-DOM con output Xerces-DOM."},
@@ -797,7 +797,7 @@ public class XSLTErrorResources_it extends ListResourceBundle
       "Chiamata di funzione non valida: non sono consentite chiamate recursive key()"},
 
     { ER_REFERENCING_ITSELF,
-      "La variabile {0} fa riferimento a s\u00E9 stessa direttamente o indirettamente."},
+      "La variabile {0} fa riferimento a sé stessa direttamente o indirettamente."},
 
     { ER_ILLEGAL_DOMSOURCE_INPUT,
       "Il nodo di input non pu\u00F2 essere nullo per un DOMSource per newTemplates."},

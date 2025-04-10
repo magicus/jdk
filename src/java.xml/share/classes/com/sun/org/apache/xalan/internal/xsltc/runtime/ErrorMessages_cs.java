@@ -199,7 +199,7 @@ public class ErrorMessages_cs extends ListResourceBundle {
          * DOMAdapter is a Java class in XSLTC.
          */
         {BasisLibrary.DOM_ADAPTER_INIT_ERR,
-        "DOMAdapter byl vytvo\u0159en s pou\u017eit\u00edm chybn\u00e9ho typu zdroje DOM."},
+        "DOMAdapter byl vytvo\u0159en s pou\u017eit\u00edm chybného typu zdroje DOM."},
 
         /*
          * Note to translators:  The following message indicates that the XML

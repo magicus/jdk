@@ -106,7 +106,7 @@ public class ErrorMessages_ca extends ListResourceBundle {
          * {0}.
          */
         {BasisLibrary.DATA_CONVERSION_ERR,
-        "La conversi\u00f3 de ''{0}'' a ''{1}'' no \u00e9s v\u00e0lida."},
+        "La conversi\u00f3 de ''{0}'' a ''{1}'' no és v\u00e0lida."},
 
         /*
          * Note to translators:  This message is displayed if the function named
@@ -122,7 +122,7 @@ public class ErrorMessages_ca extends ListResourceBundle {
          * unknown.
          */
         {BasisLibrary.EQUALITY_EXPR_ERR,
-        "L'expressi\u00f3 d'igualtat cont\u00e9 un tipus d'argument desconegut."},
+        "L'expressi\u00f3 d'igualtat conté un tipus d'argument desconegut."},
 
         /*
          * Note to translators:  The substitution text for {0} will be a data
@@ -131,7 +131,7 @@ public class ErrorMessages_ca extends ListResourceBundle {
          * permitted for a call to this function.
          */
         {BasisLibrary.INVALID_ARGUMENT_ERR,
-        "La crida a ''{1}'' cont\u00e9 un tipus d''argument ''{0}'' no v\u00e0lid."},
+        "La crida a ''{1}'' conté un tipus d''argument ''{0}'' no v\u00e0lid."},
 
         /*
          * Note to translators:  There is way of specifying a format for a
@@ -139,7 +139,7 @@ public class ErrorMessages_ca extends ListResourceBundle {
          * particular value using the specified pattern.
          */
         {BasisLibrary.FORMAT_NUMBER_ERR,
-        "S''ha intentat donar format al n\u00famero ''{0}'' mitjan\u00e7ant el patr\u00f3 ''{1}''."},
+        "S''ha intentat donar format al n\u00famero ''{0}'' mitjançant el patr\u00f3 ''{1}''."},
 
         /*
          * Note to translators:  The following represents an internal error
@@ -156,7 +156,7 @@ public class ErrorMessages_ca extends ListResourceBundle {
          * support.
          */
         {BasisLibrary.AXIS_SUPPORT_ERR,
-        "L''iterador de l''eix ''{0}'' no t\u00e9 suport."},
+        "L''iterador de l''eix ''{0}'' no té suport."},
 
         /*
          * Note to translators:  The following represents an internal error
@@ -165,7 +165,7 @@ public class ErrorMessages_ca extends ListResourceBundle {
          * support.
          */
         {BasisLibrary.TYPED_AXIS_SUPPORT_ERR,
-        "L''iterador de l''eix escrit ''{0}'' no t\u00e9 suport."},
+        "L''iterador de l''eix escrit ''{0}'' no té suport."},
 
         /*
          * Note to translators:  This message is reported if the stylesheet
@@ -199,7 +199,7 @@ public class ErrorMessages_ca extends ListResourceBundle {
          * DOMAdapter is a Java class in XSLTC.
          */
         {BasisLibrary.DOM_ADAPTER_INIT_ERR,
-        "DOMAdapter s'ha creat mitjan\u00e7ant un tipus incorrecte de DOM d'origen."},
+        "DOMAdapter s'ha creat mitjançant un tipus incorrecte de DOM d'origen."},
 
         /*
          * Note to translators:  The following message indicates that the XML

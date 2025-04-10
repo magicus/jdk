@@ -482,7 +482,7 @@ public static final String ER_IGNORABLE_WHITESPACE_NOT_HANDLED =
       "Error. No se ha encontrado la expresi\u00F3n de selecci\u00F3n xpath (-select)."},
 
   { ER_COULDNOT_FIND_ENDOP_AFTER_OPLOCATIONPATH,
-      "ERROR. No se ha encontrado ENDOP despu\u00E9s de OP_LOCATIONPATH"},
+      "ERROR. No se ha encontrado ENDOP después de OP_LOCATIONPATH"},
 
   { ER_ERROR_OCCURED,
      "Se ha producido un error."},
@@ -633,7 +633,7 @@ public static final String ER_IGNORABLE_WHITESPACE_NOT_HANDLED =
        "Este juego de nodos no puede realizar funciones de indexaci\u00F3n o recuento."},
 
   { ER_CANNOT_CALL_SETSHOULDCACHENODE,
-       "No se puede llamar a setShouldCacheNodes despu\u00E9s de haber llamado a nextNode."},
+       "No se puede llamar a setShouldCacheNodes después de haber llamado a nextNode."},
 
   { ER_ONLY_ALLOWS,
        "{0} s\u00F3lo permite {1} argumentos"},
@@ -645,7 +645,7 @@ public static final String ER_IGNORABLE_WHITESPACE_NOT_HANDLED =
   // The message indicates that such an expression was expected following the
   // characters '/' or '//', but was not found.
   { ER_EXPECTED_REL_LOC_PATH,
-      "Se esperaba una ruta de acceso de ubicaci\u00F3n relativa despu\u00E9s del token '/' o '//'."},
+      "Se esperaba una ruta de acceso de ubicaci\u00F3n relativa después del token '/' o '//'."},
 
   // Note to translators:  A location path is a form of XPath expression.
   // The message indicates that syntactically such an expression was expected,but
@@ -663,7 +663,7 @@ public static final String ER_IGNORABLE_WHITESPACE_NOT_HANDLED =
   // The message indicates that syntactically such an expression was expected
   // following the specified characters.
   { ER_EXPECTED_LOC_STEP,
-       "Se esperaba un paso de ubicaci\u00F3n despu\u00E9s del token '/' o '//'."},
+       "Se esperaba un paso de ubicaci\u00F3n después del token '/' o '//'."},
 
   // Note to translators:  A node test is part of an XPath expression that is
   // used to test for particular kinds of nodes.  In this case, a node test that
@@ -693,15 +693,15 @@ public static final String ER_IGNORABLE_WHITESPACE_NOT_HANDLED =
   // Note to translators: Do not translate ANY_UNORDERED_NODE_TYPE and
   // FIRST_ORDERED_NODE_TYPE.
   { ER_CANT_CONVERT_TO_SINGLENODE,
-       "El valor de XPathResult de la expresi\u00F3n XPath ''{0}'' tiene un valor de XPathResultType de {1} que no se puede convertir a un nodo \u00FAnico. El m\u00E9todo getSingleNodeValue se aplica s\u00F3lo a los tipos ANY_UNORDERED_NODE_TYPE y FIRST_ORDERED_NODE_TYPE."},
+       "El valor de XPathResult de la expresi\u00F3n XPath ''{0}'' tiene un valor de XPathResultType de {1} que no se puede convertir a un nodo \u00FAnico. El método getSingleNodeValue se aplica s\u00F3lo a los tipos ANY_UNORDERED_NODE_TYPE y FIRST_ORDERED_NODE_TYPE."},
 
   // Note to translators: Do not translate UNORDERED_NODE_SNAPSHOT_TYPE and
   // ORDERED_NODE_SNAPSHOT_TYPE.
   { ER_CANT_GET_SNAPSHOT_LENGTH,
-       "No se puede llamar al m\u00E9todo getSnapshotLength en la expresi\u00F3n XPathResult de XPath ''{0}'' porque el valor de su XPathResultType es {1}. Este m\u00E9todo se aplica s\u00F3lo a los tipos UNORDERED_NODE_SNAPSHOT_TYPE y ORDERED_NODE_SNAPSHOT_TYPE."},
+       "No se puede llamar al método getSnapshotLength en la expresi\u00F3n XPathResult de XPath ''{0}'' porque el valor de su XPathResultType es {1}. Este método se aplica s\u00F3lo a los tipos UNORDERED_NODE_SNAPSHOT_TYPE y ORDERED_NODE_SNAPSHOT_TYPE."},
 
   { ER_NON_ITERATOR_TYPE,
-       "No se puede llamar al m\u00E9todo iterateNext en el XPathResult de la expresi\u00F3n XPath ''{0}'' porque el valor de su XPathResultType es {1}. Este m\u00E9todo se aplica s\u00F3lo a los tipos UNORDERED_NODE_ITERATOR_TYPE y ORDERED_NODE_ITERATOR_TYPE."},
+       "No se puede llamar al método iterateNext en el XPathResult de la expresi\u00F3n XPath ''{0}'' porque el valor de su XPathResultType es {1}. Este método se aplica s\u00F3lo a los tipos UNORDERED_NODE_ITERATOR_TYPE y ORDERED_NODE_ITERATOR_TYPE."},
 
   // Note to translators: This message indicates that the document being operated
   // upon changed, so the iterator object that was being used to traverse the
@@ -730,7 +730,7 @@ public static final String ER_IGNORABLE_WHITESPACE_NOT_HANDLED =
   // Note to translators: Do not translate snapshotItem,
   // UNORDERED_NODE_SNAPSHOT_TYPE and ORDERED_NODE_SNAPSHOT_TYPE.
   { ER_NON_SNAPSHOT_TYPE,
-       "No se puede llamar al m\u00E9todo snapshotItem en la expresi\u00F3n XPathResult de XPath ''{0}'' porque el valor de su XPathResultType es {1}. Este m\u00E9todo se aplica s\u00F3lo a los tipos UNORDERED_NODE_SNAPSHOT_TYPE y ORDERED_NODE_SNAPSHOT_TYPE."},
+       "No se puede llamar al método snapshotItem en la expresi\u00F3n XPathResult de XPath ''{0}'' porque el valor de su XPathResultType es {1}. Este método se aplica s\u00F3lo a los tipos UNORDERED_NODE_SNAPSHOT_TYPE y ORDERED_NODE_SNAPSHOT_TYPE."},
 
   // Note to translators:  XPathEvaluator is a Java interface name.  An
   // XPathEvaluator is created with respect to a particular XML document, and in

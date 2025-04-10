@@ -210,13 +210,13 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "\nBEKLENMEYEN: Parser doTerminate yan\u0131t\u0131 {0}"},
 
     { ER_NO_PARSE_CALL_WHILE_PARSING,
-      "Ayr\u0131\u015ft\u0131rma s\u0131ras\u0131nda parse \u00e7a\u011fr\u0131lamaz"},
+      "Ayr\u0131\u015ft\u0131rma s\u0131ras\u0131nda parse ça\u011fr\u0131lamaz"},
 
     { ER_TYPED_ITERATOR_AXIS_NOT_IMPLEMENTED,
-      "Hata: {0} ekseni i\u00e7in tip atanm\u0131\u015f yineleyici ger\u00e7ekle\u015ftirilmedi"},
+      "Hata: {0} ekseni için tip atanm\u0131\u015f yineleyici gerçekle\u015ftirilmedi"},
 
     { ER_ITERATOR_AXIS_NOT_IMPLEMENTED,
-      "Hata: {0} ekseni i\u00e7in yineleyici ger\u00e7ekle\u015ftirilmedi"},
+      "Hata: {0} ekseni için yineleyici gerçekle\u015ftirilmedi"},
 
     { ER_ITERATOR_CLONE_NOT_SUPPORTED,
       "Yineleyici e\u015fkopyas\u0131 desteklenmiyor"},
@@ -234,37 +234,37 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Desteklenmiyor: {0}"},
 
     { ER_NODE_NON_NULL,
-      "getDTMHandleFromNode i\u00e7in dü\u011füm bo\u015f de\u011ferli olmamal\u0131d\u0131r"},
+      "getDTMHandleFromNode için dü\u011füm bo\u015f de\u011ferli olmamal\u0131d\u0131r"},
 
     { ER_COULD_NOT_RESOLVE_NODE,
-      "Dü\u011füm tan\u0131t\u0131c\u0131 de\u011fere \u00e7\u00f6zülemedi"},
+      "Dü\u011füm tan\u0131t\u0131c\u0131 de\u011fere ç\u00f6zülemedi"},
 
     { ER_STARTPARSE_WHILE_PARSING,
-       "Ayr\u0131\u015ft\u0131rma s\u0131ras\u0131nda startParse \u00e7a\u011fr\u0131lamaz"},
+       "Ayr\u0131\u015ft\u0131rma s\u0131ras\u0131nda startParse ça\u011fr\u0131lamaz"},
 
     { ER_STARTPARSE_NEEDS_SAXPARSER,
-       "startParse i\u00e7in bo\u015f de\u011ferli olmayan SAXParser gerekiyor"},
+       "startParse için bo\u015f de\u011ferli olmayan SAXParser gerekiyor"},
 
     { ER_COULD_NOT_INIT_PARSER,
        "Ayr\u0131\u015ft\u0131r\u0131c\u0131 bununla kullan\u0131ma haz\u0131rlanamad\u0131"},
 
     { ER_EXCEPTION_CREATING_POOL,
-       "Havuz i\u00e7in yeni \u00f6rnek yarat\u0131l\u0131rken kural d\u0131\u015f\u0131 durum"},
+       "Havuz için yeni \u00f6rnek yarat\u0131l\u0131rken kural d\u0131\u015f\u0131 durum"},
 
     { ER_PATH_CONTAINS_INVALID_ESCAPE_SEQUENCE,
-       "Yol ge\u00e7ersiz ka\u00e7\u0131\u015f dizisi i\u00e7eriyor"},
+       "Yol geçersiz kaç\u0131\u015f dizisi içeriyor"},
 
     { ER_SCHEME_REQUIRED,
        "\u015eema gerekli!"},
 
     { ER_NO_SCHEME_IN_URI,
-       "URI i\u00e7inde \u015fema bulunamad\u0131: {0}"},
+       "URI içinde \u015fema bulunamad\u0131: {0}"},
 
     { ER_NO_SCHEME_INURI,
-       "URI i\u00e7inde \u015fema bulunamad\u0131"},
+       "URI içinde \u015fema bulunamad\u0131"},
 
     { ER_PATH_INVALID_CHAR,
-       "Yol ge\u00e7ersiz karakter i\u00e7eriyor: {0}"},
+       "Yol geçersiz karakter içeriyor: {0}"},
 
     { ER_SCHEME_FROM_NULL_STRING,
        "Bo\u015f de\u011ferli dizgiden \u015fema tan\u0131mlanamaz"},
@@ -273,22 +273,22 @@ public class XMLErrorResources_tr extends ListResourceBundle
        "\u015eema uyumlu de\u011fil."},
 
     { ER_HOST_ADDRESS_NOT_WELLFORMED,
-       "Anasistem do\u011fru bi\u00e7imli bir adres de\u011fil"},
+       "Anasistem do\u011fru biçimli bir adres de\u011fil"},
 
     { ER_PORT_WHEN_HOST_NULL,
        "Anasistem bo\u015f de\u011ferliyken kap\u0131 tan\u0131mlanamaz"},
 
     { ER_INVALID_PORT,
-       "Kap\u0131 numaras\u0131 ge\u00e7ersiz"},
+       "Kap\u0131 numaras\u0131 geçersiz"},
 
     { ER_FRAG_FOR_GENERIC_URI,
-       "Par\u00e7a yaln\u0131zca soysal URI i\u00e7in tan\u0131mlanabilir"},
+       "Parça yaln\u0131zca soysal URI için tan\u0131mlanabilir"},
 
     { ER_FRAG_WHEN_PATH_NULL,
-       "Yol bo\u015f de\u011ferliyken par\u00e7a tan\u0131mlanamaz"},
+       "Yol bo\u015f de\u011ferliyken parça tan\u0131mlanamaz"},
 
     { ER_FRAG_INVALID_CHAR,
-       "Par\u00e7a ge\u00e7ersiz karakter i\u00e7eriyor"},
+       "Parça geçersiz karakter içeriyor"},
 
     { ER_PARSER_IN_USE,
       "Ayr\u0131\u015ft\u0131r\u0131c\u0131 kullan\u0131mda"},
@@ -297,7 +297,7 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Ayr\u0131\u015ft\u0131rma s\u0131ras\u0131nda {0} {1} de\u011fi\u015ftirilemez"},
 
     { ER_SELF_CAUSATION_NOT_PERMITTED,
-      "\u00d6znedenselli\u011fe izin verilmez"},
+      "Öznedenselli\u011fe izin verilmez"},
 
     { ER_NO_USERINFO_IF_NO_HOST,
       "Anasistem belirtilmediyse kullan\u0131c\u0131 bilgisi belirtilemez"},
@@ -309,7 +309,7 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Yol ve sorgu dizgisinde sorgu dizgisi belirtilemez"},
 
     { ER_NO_FRAGMENT_STRING_IN_PATH,
-      "Par\u00e7a hem yolda, hem de par\u00e7ada belirtilemez"},
+      "Parça hem yolda, hem de parçada belirtilemez"},
 
     { ER_CANNOT_INIT_URI_EMPTY_PARMS,
       "Bo\u015f de\u011fi\u015ftirgelerle URI kullan\u0131ma haz\u0131rlanamaz"},
@@ -336,19 +336,19 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Hata yeri bilinmiyor"},
 
     { ER_PREFIX_MUST_RESOLVE,
-      "\u00d6nek bir ad alan\u0131na \u00e7\u00f6zülmelidir: {0}"},
+      "Önek bir ad alan\u0131na ç\u00f6zülmelidir: {0}"},
 
     { ER_CREATEDOCUMENT_NOT_SUPPORTED,
-      "XPathContext i\u00e7inde createDocument() desteklenmiyor!"},
+      "XPathContext içinde createDocument() desteklenmiyor!"},
 
     { ER_CHILD_HAS_NO_OWNER_DOCUMENT,
-      "\u00d6zniteli\u011fin alt \u00f6\u011fesinin iye belgesi yok!"},
+      "Özniteli\u011fin alt \u00f6\u011fesinin iye belgesi yok!"},
 
     { ER_CHILD_HAS_NO_OWNER_DOCUMENT_ELEMENT,
-      "\u00d6zniteli\u011fin alt \u00f6\u011fesinin iye belge \u00f6\u011fesi yok!"},
+      "Özniteli\u011fin alt \u00f6\u011fesinin iye belge \u00f6\u011fesi yok!"},
 
     { ER_CANT_OUTPUT_TEXT_BEFORE_DOC,
-      "Uyar\u0131: Belge \u00f6\u011fesinden \u00f6nce metin \u00e7\u0131k\u0131\u015f\u0131 olamaz!  Yoksay\u0131l\u0131yor..."},
+      "Uyar\u0131: Belge \u00f6\u011fesinden \u00f6nce metin ç\u0131k\u0131\u015f\u0131 olamaz!  Yoksay\u0131l\u0131yor..."},
 
     { ER_CANT_HAVE_MORE_THAN_ONE_ROOT,
       "DOM üzerinde birden fazla k\u00f6k olamaz!"},
@@ -360,16 +360,16 @@ public class XMLErrorResources_tr extends ListResourceBundle
     // The localname is the portion after the optional colon; the message indicates
     // that there is a problem with that part of the QNAME.
     { ER_ARG_LOCALNAME_INVALID,
-       "QNAME i\u00e7indeki yerel ad (localname) ge\u00e7erli bir NCName olmal\u0131d\u0131r"},
+       "QNAME içindeki yerel ad (localname) geçerli bir NCName olmal\u0131d\u0131r"},
 
     // Note to translators:  A QNAME has the syntactic form [NCName:]NCName
     // The prefix is the portion before the optional colon; the message indicates
     // that there is a problem with that part of the QNAME.
     { ER_ARG_PREFIX_INVALID,
-       "QNAME i\u00e7indeki \u00f6nek ge\u00e7erli bir NCName olmal\u0131d\u0131r"},
+       "QNAME içindeki \u00f6nek geçerli bir NCName olmal\u0131d\u0131r"},
 
-    { "BAD_CODE", "createMessage i\u00e7in kullan\u0131lan de\u011fi\u015ftirge s\u0131n\u0131rlar\u0131n d\u0131\u015f\u0131nda"},
-    { "FORMAT_FAILED", "messageFormat \u00e7a\u011fr\u0131s\u0131 s\u0131ras\u0131nda kural d\u0131\u015f\u0131 durum yay\u0131nland\u0131"},
+    { "BAD_CODE", "createMessage için kullan\u0131lan de\u011fi\u015ftirge s\u0131n\u0131rlar\u0131n d\u0131\u015f\u0131nda"},
+    { "FORMAT_FAILED", "messageFormat ça\u011fr\u0131s\u0131 s\u0131ras\u0131nda kural d\u0131\u015f\u0131 durum yay\u0131nland\u0131"},
     { "line", "Sat\u0131r #"},
     { "column","Kolon #"},
 
@@ -386,13 +386,13 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "Arabellek büyüklü\u011fü <=0" },
 
     {ER_INVALID_UTF16_SURROGATE,
-      "UTF-16 yerine kullan\u0131lan de\u011fer ge\u00e7ersiz: {0} ?" },
+      "UTF-16 yerine kullan\u0131lan de\u011fer geçersiz: {0} ?" },
 
     {ER_OIERROR,
       "G\u00c7 hatas\u0131" },
 
     {ER_ILLEGAL_ATTRIBUTE_POSITION,
-      "Alt dü\u011fümlerden sonra ya da bir \u00f6\u011fe üretilmeden \u00f6nce {0} \u00f6zniteli\u011fi eklenemez. \u00d6znitelik yoksay\u0131lacak."},
+      "Alt dü\u011fümlerden sonra ya da bir \u00f6\u011fe üretilmeden \u00f6nce {0} \u00f6zniteli\u011fi eklenemez. Öznitelik yoksay\u0131lacak."},
 
       /*
        * Note to translators:  The stylesheet contained a reference to a
@@ -424,7 +424,7 @@ public class XMLErrorResources_tr extends ListResourceBundle
       "''{0}'' yüklenemedi (CLASSPATH de\u011fi\u015fkeninizi inceleyin), yaln\u0131zca varsay\u0131lanlar kullan\u0131l\u0131yor"},
 
     {ER_COULD_NOT_LOAD_METHOD_PROPERTY,
-      "''{1}'' \u00e7\u0131k\u0131\u015f y\u00f6ntemi i\u00e7in ''{0}'' \u00f6zellik dosyas\u0131 yüklenemedi (CLASSPATH de\u011fi\u015fkenini inceleyin)" }
+      "''{1}'' ç\u0131k\u0131\u015f y\u00f6ntemi için ''{0}'' \u00f6zellik dosyas\u0131 yüklenemedi (CLASSPATH de\u011fi\u015fkenini inceleyin)" }
 
 
   };

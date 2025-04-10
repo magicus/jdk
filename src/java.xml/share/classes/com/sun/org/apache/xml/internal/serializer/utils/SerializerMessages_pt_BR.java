@@ -96,7 +96,7 @@ public class SerializerMessages_pt_BR extends ListResourceBundle {
                 "Erro de E/S" },
 
             {   MsgKey.ER_ILLEGAL_ATTRIBUTE_POSITION,
-                "N\u00E3o \u00E9 poss\u00EDvel adicionar o atributo {0} depois dos n\u00F3s filhos ou antes que um elemento seja produzido. O atributo ser\u00E1 ignorado." },
+                "N\u00E3o é poss\u00EDvel adicionar o atributo {0} depois dos n\u00F3s filhos ou antes que um elemento seja produzido. O atributo ser\u00E1 ignorado." },
 
             /*
              * Note to translators:  The stylesheet contained a reference to a
@@ -123,52 +123,52 @@ public class SerializerMessages_pt_BR extends ListResourceBundle {
              * namespace declaration.
              */
             {   MsgKey.ER_STRAY_NAMESPACE,
-                "Declara\u00E7\u00E3o de namespace ''{0}''=''{1}'' fora do elemento." },
+                "Declaraç\u00E3o de namespace ''{0}''=''{1}'' fora do elemento." },
 
             {   MsgKey.ER_COULD_NOT_LOAD_RESOURCE,
                 "N\u00E3o foi poss\u00EDvel carregar ''{0}'' (verificar CLASSPATH); usando agora apenas os padr\u00F5es" },
 
             {   MsgKey.ER_ILLEGAL_CHARACTER,
-                "Tentativa de exibir um caractere de valor integral {0} que n\u00E3o est\u00E1 representado na codifica\u00E7\u00E3o de sa\u00EDda especificada de {1}." },
+                "Tentativa de exibir um caractere de valor integral {0} que n\u00E3o est\u00E1 representado na codificaç\u00E3o de sa\u00EDda especificada de {1}." },
 
             {   MsgKey.ER_COULD_NOT_LOAD_METHOD_PROPERTY,
-                "N\u00E3o foi poss\u00EDvel carregar o arquivo de propriedade ''{0}'' para o m\u00E9todo de sa\u00EDda ''{1}'' (verificar CLASSPATH)" },
+                "N\u00E3o foi poss\u00EDvel carregar o arquivo de propriedade ''{0}'' para o método de sa\u00EDda ''{1}'' (verificar CLASSPATH)" },
 
             {   MsgKey.ER_INVALID_PORT,
                 "N\u00FAmero de porta inv\u00E1lido" },
 
             {   MsgKey.ER_PORT_WHEN_HOST_NULL,
-                "A porta n\u00E3o pode ser definida quando o host \u00E9 nulo" },
+                "A porta n\u00E3o pode ser definida quando o host é nulo" },
 
             {   MsgKey.ER_HOST_ADDRESS_NOT_WELLFORMED,
-                "O host n\u00E3o \u00E9 um endere\u00E7o correto" },
+                "O host n\u00E3o é um endereço correto" },
 
             {   MsgKey.ER_SCHEME_NOT_CONFORMANT,
-                "O esquema n\u00E3o \u00E9 compat\u00EDvel." },
+                "O esquema n\u00E3o é compat\u00EDvel." },
 
             {   MsgKey.ER_SCHEME_FROM_NULL_STRING,
-                "N\u00E3o \u00E9 poss\u00EDvel definir o esquema de uma string nula" },
+                "N\u00E3o é poss\u00EDvel definir o esquema de uma string nula" },
 
             {   MsgKey.ER_PATH_CONTAINS_INVALID_ESCAPE_SEQUENCE,
-                "O caminho cont\u00E9m uma sequ\u00EAncia inv\u00E1lida de caracteres de escape" },
+                "O caminho contém uma sequ\u00EAncia inv\u00E1lida de caracteres de escape" },
 
             {   MsgKey.ER_PATH_INVALID_CHAR,
-                "O caminho cont\u00E9m um caractere inv\u00E1lido: {0}" },
+                "O caminho contém um caractere inv\u00E1lido: {0}" },
 
             {   MsgKey.ER_FRAG_INVALID_CHAR,
-                "O fragmento cont\u00E9m um caractere inv\u00E1lido" },
+                "O fragmento contém um caractere inv\u00E1lido" },
 
             {   MsgKey.ER_FRAG_WHEN_PATH_NULL,
-                "O fragmento n\u00E3o pode ser definido quando o caminho \u00E9 nulo" },
+                "O fragmento n\u00E3o pode ser definido quando o caminho é nulo" },
 
             {   MsgKey.ER_FRAG_FOR_GENERIC_URI,
-                "O fragmento s\u00F3 pode ser definido para um URI gen\u00E9rico" },
+                "O fragmento s\u00F3 pode ser definido para um URI genérico" },
 
             {   MsgKey.ER_NO_SCHEME_IN_URI,
                 "Nenhum esquema encontrado no URI" },
 
             {   MsgKey.ER_CANNOT_INIT_URI_EMPTY_PARMS,
-                "N\u00E3o \u00E9 poss\u00EDvel inicializar o URI com par\u00E2metros vazios" },
+                "N\u00E3o é poss\u00EDvel inicializar o URI com par\u00E2metros vazios" },
 
             {   MsgKey.ER_NO_FRAGMENT_STRING_IN_PATH,
                 "O fragmento n\u00E3o pode ser especificado no caminho nem no fragmento" },
@@ -180,13 +180,13 @@ public class SerializerMessages_pt_BR extends ListResourceBundle {
                 "A porta n\u00E3o pode ser especificada se o host n\u00E3o tiver sido especificado" },
 
             {   MsgKey.ER_NO_USERINFO_IF_NO_HOST,
-                "As informa\u00E7\u00F5es do usu\u00E1rio n\u00E3o podem ser especificadas se o host n\u00E3o tiver sido especificado" },
+                "As informaç\u00F5es do usu\u00E1rio n\u00E3o podem ser especificadas se o host n\u00E3o tiver sido especificado" },
 
             {   MsgKey.ER_XML_VERSION_NOT_SUPPORTED,
-                "Advert\u00EAncia: a vers\u00E3o do documento de sa\u00EDda deve ser obrigatoriamente ''{0}''. Esta vers\u00E3o do XML n\u00E3o \u00E9 suportada. A vers\u00E3o do documento de sa\u00EDda ser\u00E1 ''1.0''." },
+                "Advert\u00EAncia: a vers\u00E3o do documento de sa\u00EDda deve ser obrigatoriamente ''{0}''. Esta vers\u00E3o do XML n\u00E3o é suportada. A vers\u00E3o do documento de sa\u00EDda ser\u00E1 ''1.0''." },
 
             {   MsgKey.ER_SCHEME_REQUIRED,
-                "O esquema \u00E9 obrigat\u00F3rio!" },
+                "O esquema é obrigat\u00F3rio!" },
 
             /*
              * Note to translators:  The words 'Properties' and
@@ -197,38 +197,38 @@ public class SerializerMessages_pt_BR extends ListResourceBundle {
                 "O objeto Properties especificado para a SerializerFactory n\u00E3o tem uma propriedade ''{0}''." },
 
             {   MsgKey.ER_ENCODING_NOT_SUPPORTED,
-                "Advert\u00EAncia: a codifica\u00E7\u00E3o ''{0}'' n\u00E3o \u00E9 suportada pelo Java runtime." },
+                "Advert\u00EAncia: a codificaç\u00E3o ''{0}'' n\u00E3o é suportada pelo Java runtime." },
 
              {MsgKey.ER_FEATURE_NOT_FOUND,
-             "O par\u00E2metro ''{0}'' n\u00E3o \u00E9 reconhecido."},
+             "O par\u00E2metro ''{0}'' n\u00E3o é reconhecido."},
 
              {MsgKey.ER_FEATURE_NOT_SUPPORTED,
-             "O par\u00E2metro ''{0}'' \u00E9 reconhecido, mas o valor solicitado n\u00E3o pode ser definido."},
+             "O par\u00E2metro ''{0}'' é reconhecido, mas o valor solicitado n\u00E3o pode ser definido."},
 
              {MsgKey.ER_STRING_TOO_LONG,
-             "A string resultante \u00E9 muito longa para se ajustar a uma DOMString: ''{0}''."},
+             "A string resultante é muito longa para se ajustar a uma DOMString: ''{0}''."},
 
              {MsgKey.ER_TYPE_MISMATCH_ERR,
-             "O tipo de valor do nome deste par\u00E2metro \u00E9 incompat\u00EDvel com o tipo de valor esperado."},
+             "O tipo de valor do nome deste par\u00E2metro é incompat\u00EDvel com o tipo de valor esperado."},
 
              {MsgKey.ER_NO_OUTPUT_SPECIFIED,
              "O destino da sa\u00EDda dos dados a serem gravados era nulo."},
 
              {MsgKey.ER_UNSUPPORTED_ENCODING,
-             "Uma codifica\u00E7\u00E3o n\u00E3o suportada foi encontrada."},
+             "Uma codificaç\u00E3o n\u00E3o suportada foi encontrada."},
 
              {MsgKey.ER_UNABLE_TO_SERIALIZE_NODE,
              "N\u00E3o foi poss\u00EDvel serializar o n\u00F3."},
 
              {MsgKey.ER_CDATA_SECTIONS_SPLIT,
-             "A Se\u00E7\u00E3o CDATA cont\u00E9m um ou mais marcadores de t\u00E9rmino ']]>'."},
+             "A Seç\u00E3o CDATA contém um ou mais marcadores de término ']]>'."},
 
              {MsgKey.ER_WARNING_WF_NOT_CHECKED,
-                 "N\u00E3o foi poss\u00EDvel criar uma inst\u00E2ncia do verificador de Formato Correto. O par\u00E2metro formatado corretamente foi definido como verdadeiro, mas a verifica\u00E7\u00E3o de formato correto n\u00E3o pode ser executada."
+                 "N\u00E3o foi poss\u00EDvel criar uma inst\u00E2ncia do verificador de Formato Correto. O par\u00E2metro formatado corretamente foi definido como verdadeiro, mas a verificaç\u00E3o de formato correto n\u00E3o pode ser executada."
              },
 
              {MsgKey.ER_WF_INVALID_CHARACTER,
-                 "O n\u00F3 ''{0}'' cont\u00E9m caracteres XML inv\u00E1lidos."
+                 "O n\u00F3 ''{0}'' contém caracteres XML inv\u00E1lidos."
              },
 
              { MsgKey.ER_WF_INVALID_CHARACTER_IN_COMMENT,
@@ -236,11 +236,11 @@ public class SerializerMessages_pt_BR extends ListResourceBundle {
              },
 
              { MsgKey.ER_WF_INVALID_CHARACTER_IN_PI,
-                 "Um caractere XML inv\u00E1lido (Unicode: 0x{0}) foi encontrado nos dados da instru\u00E7\u00E3o de processamento."
+                 "Um caractere XML inv\u00E1lido (Unicode: 0x{0}) foi encontrado nos dados da instruç\u00E3o de processamento."
              },
 
              { MsgKey.ER_WF_INVALID_CHARACTER_IN_CDATA,
-                 "Um caractere XML inv\u00E1lido (Unicode: 0x {0}) foi encontrado no conte\u00FAdo da Se\u00E7\u00E3o CDATA."
+                 "Um caractere XML inv\u00E1lido (Unicode: 0x {0}) foi encontrado no conte\u00FAdo da Seç\u00E3o CDATA."
              },
 
              { MsgKey.ER_WF_INVALID_CHARACTER_IN_TEXT,
@@ -252,7 +252,7 @@ public class SerializerMessages_pt_BR extends ListResourceBundle {
              },
 
              { MsgKey.ER_WF_DASH_IN_COMMENT,
-                 "A string \"--\" n\u00E3o \u00E9 permitida nos coment\u00E1rios."
+                 "A string \"--\" n\u00E3o é permitida nos coment\u00E1rios."
              },
 
              {MsgKey.ER_WF_LT_IN_ATTVAL,
@@ -260,11 +260,11 @@ public class SerializerMessages_pt_BR extends ListResourceBundle {
              },
 
              {MsgKey.ER_WF_REF_TO_UNPARSED_ENT,
-                 "A refer\u00EAncia da entidade n\u00E3o submetida a parsing \"&{0};\" n\u00E3o \u00E9 permitida."
+                 "A refer\u00EAncia da entidade n\u00E3o submetida a parsing \"&{0};\" n\u00E3o é permitida."
              },
 
              {MsgKey.ER_WF_REF_TO_EXTERNAL_ENT,
-                 "A refer\u00EAncia da entidade externa \"&{0};\" n\u00E3o \u00E9 permitida em um valor do atributo."
+                 "A refer\u00EAncia da entidade externa \"&{0};\" n\u00E3o é permitida em um valor do atributo."
              },
 
              {MsgKey.ER_NS_PREFIX_CANNOT_BE_BOUND,
@@ -272,19 +272,19 @@ public class SerializerMessages_pt_BR extends ListResourceBundle {
              },
 
              {MsgKey.ER_NULL_LOCAL_ELEMENT_NAME,
-                 "O nome local do elemento \"{0}\" \u00E9 nulo."
+                 "O nome local do elemento \"{0}\" é nulo."
              },
 
              {MsgKey.ER_NULL_LOCAL_ATTR_NAME,
-                 "O nome local do atributo \"{0}\" \u00E9 nulo."
+                 "O nome local do atributo \"{0}\" é nulo."
              },
 
              { MsgKey.ER_ELEM_UNBOUND_PREFIX_IN_ENTREF,
-                 "O texto de substitui\u00E7\u00E3o do n\u00F3 \"{0}\" de entidade cont\u00E9m um n\u00F3 \"{1}\" de elemento com um prefixo desvinculado \"{2}\"."
+                 "O texto de substituiç\u00E3o do n\u00F3 \"{0}\" de entidade contém um n\u00F3 \"{1}\" de elemento com um prefixo desvinculado \"{2}\"."
              },
 
              { MsgKey.ER_ATTR_UNBOUND_PREFIX_IN_ENTREF,
-                 "O texto de substitui\u00E7\u00E3o do n\u00F3 \"{0}\" de entidade cont\u00E9m um n\u00F3 \"{1}\" de atributo com um prefixo desvinculado \"{2}\"."
+                 "O texto de substituiç\u00E3o do n\u00F3 \"{0}\" de entidade contém um n\u00F3 \"{1}\" de atributo com um prefixo desvinculado \"{2}\"."
              },
 
              { MsgKey.ER_WRITING_INTERNAL_SUBSET,

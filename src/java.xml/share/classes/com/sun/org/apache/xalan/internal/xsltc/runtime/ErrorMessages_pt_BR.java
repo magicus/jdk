@@ -116,7 +116,7 @@ public class ErrorMessages_pt_BR extends ListResourceBundle {
          * is the acronym naming the product.
          */
         {BasisLibrary.EXTERNAL_FUNC_ERR,
-        "Fun\u00E7\u00E3o externa ''{0}'' n\u00E3o suportada por XSLTC."},
+        "Funç\u00E3o externa ''{0}'' n\u00E3o suportada por XSLTC."},
 
         /*
          * Note to translators:  This message is displayed if two values are
@@ -149,7 +149,7 @@ public class ErrorMessages_pt_BR extends ListResourceBundle {
          * iterator.  (See definition of iterator above.)
          */
         {BasisLibrary.ITERATOR_CLONE_ERR,
-        "N\u00E3o \u00E9 poss\u00EDvel clonar o iterador ''{0}''."},
+        "N\u00E3o é poss\u00EDvel clonar o iterador ''{0}''."},
 
         /*
          * Note to translators:  The following represents an internal error
@@ -186,7 +186,7 @@ public class ErrorMessages_pt_BR extends ListResourceBundle {
          * namespace declaration.
          */
         {BasisLibrary.STRAY_NAMESPACE_ERR,
-        "Declara\u00E7\u00E3o de namespace ''{0}''=''{1}'' fora do elemento."},
+        "Declaraç\u00E3o de namespace ''{0}''=''{1}'' fora do elemento."},
 
         /*
          * Note to translators:  The stylesheet contained a reference to a
@@ -210,7 +210,7 @@ public class ErrorMessages_pt_BR extends ListResourceBundle {
          * DTD.
          */
         {BasisLibrary.PARSER_DTD_SUPPORT_ERR,
-        "O parser SAX que voc\u00EA est\u00E1 usando n\u00E3o trata eventos de declara\u00E7\u00E3o de DTD."},
+        "O parser SAX que voc\u00EA est\u00E1 usando n\u00E3o trata eventos de declaraç\u00E3o de DTD."},
 
         /*
          * Note to translators:  The following message indicates that the XML
@@ -275,7 +275,7 @@ public class ErrorMessages_pt_BR extends ListResourceBundle {
         "Um atributo cujo valor deve ser um NCName tinha o valor ''{0}''"},
 
         {BasisLibrary.UNALLOWED_EXTENSION_FUNCTION_ERR,
-        "O uso da fun\u00E7\u00E3o da extens\u00E3o ''{0}'' n\u00E3o ser\u00E1 permitido quando o recurso de processamento seguro for definido como verdadeiro."},
+        "O uso da funç\u00E3o da extens\u00E3o ''{0}'' n\u00E3o ser\u00E1 permitido quando o recurso de processamento seguro for definido como verdadeiro."},
 
         {BasisLibrary.UNALLOWED_EXTENSION_ELEMENT_ERR,
         "O uso do elemento da extens\u00E3o ''{0}'' n\u00E3o ser\u00E1 permitido quando o recurso de processamento seguro for definido como verdadeiro."},

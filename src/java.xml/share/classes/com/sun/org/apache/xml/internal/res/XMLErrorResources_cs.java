@@ -204,10 +204,10 @@ public class XMLErrorResources_cs extends ListResourceBundle
       "Selhala funkce co_joinCoroutineSet()"},
 
     { ER_COROUTINE_PARAM,
-      "Chyba parametru spole\u010dn\u00e9 rutiny ({0})"},
+      "Chyba parametru spole\u010dné rutiny ({0})"},
 
     { ER_PARSER_DOTERMINATE_ANSWERS,
-      "\nNeo\u010dek\u00e1van\u00e9: odpov\u011bdi funkce analyz\u00e1toru doTerminate {0}"},
+      "\nNeo\u010dek\u00e1vané: odpov\u011bdi funkce analyz\u00e1toru doTerminate {0}"},
 
     { ER_NO_PARSE_CALL_WHILE_PARSING,
       "b\u011bhem anal\u00fdzy nelze volat analyz\u00e1tor"},
@@ -249,28 +249,28 @@ public class XMLErrorResources_cs extends ListResourceBundle
        "nelze inicializovat analyz\u00e1tor s: "},
 
     { ER_EXCEPTION_CREATING_POOL,
-       "v\u00fdjimka p\u0159i vytv\u00e1\u0159en\u00ed nov\u00e9 instance spole\u010dn\u00e9 oblasti"},
+       "v\u00fdjimka p\u0159i vytv\u00e1\u0159en\u00ed nové instance spole\u010dné oblasti"},
 
     { ER_PATH_CONTAINS_INVALID_ESCAPE_SEQUENCE,
        "Cesta obsahuje neplatnou escape sekvenci"},
 
     { ER_SCHEME_REQUIRED,
-       "Je vy\u017eadov\u00e1no sch\u00e9ma!"},
+       "Je vy\u017eadov\u00e1no schéma!"},
 
     { ER_NO_SCHEME_IN_URI,
-       "V URI nebylo nalezeno \u017e\u00e1dn\u00e9 sch\u00e9ma: {0}"},
+       "V URI nebylo nalezeno \u017e\u00e1dné schéma: {0}"},
 
     { ER_NO_SCHEME_INURI,
-       "V URI nebylo nalezeno \u017e\u00e1dn\u00e9 sch\u00e9ma"},
+       "V URI nebylo nalezeno \u017e\u00e1dné schéma"},
 
     { ER_PATH_INVALID_CHAR,
        "Cesta obsahuje neplatn\u00fd znak: {0}"},
 
     { ER_SCHEME_FROM_NULL_STRING,
-       "Nelze nastavit sch\u00e9ma \u0159et\u011bzce s hodnotou null."},
+       "Nelze nastavit schéma \u0159et\u011bzce s hodnotou null."},
 
     { ER_SCHEME_NOT_CONFORMANT,
-       "Sch\u00e9ma nevyhovuje."},
+       "Schéma nevyhovuje."},
 
     { ER_HOST_ADDRESS_NOT_WELLFORMED,
        "Adresa hostitele m\u00e1 nespr\u00e1vn\u00fd form\u00e1t."},
@@ -279,10 +279,10 @@ public class XMLErrorResources_cs extends ListResourceBundle
        "M\u00e1-li hostitel hodnotu null, nelze nastavit port."},
 
     { ER_INVALID_PORT,
-       "Neplatn\u00e9 \u010d\u00edslo portu."},
+       "Neplatné \u010d\u00edslo portu."},
 
     { ER_FRAG_FOR_GENERIC_URI,
-       "Fragment lze nastavit jen u generick\u00e9ho URI."},
+       "Fragment lze nastavit jen u generického URI."},
 
     { ER_FRAG_WHEN_PATH_NULL,
        "M\u00e1-li cesta hodnotu null, nelze nastavit fragment."},
@@ -333,7 +333,7 @@ public class XMLErrorResources_cs extends ListResourceBundle
       "Nezn\u00e1m\u00fd identifik\u00e1tor SystemId"},
 
     { ER_LOCATION_UNKNOWN,
-      "Chyba se vyskytla na nezn\u00e1m\u00e9m m\u00edst\u011b"},
+      "Chyba se vyskytla na nezn\u00e1mém m\u00edst\u011b"},
 
     { ER_PREFIX_MUST_RESOLVE,
       "P\u0159edponu mus\u00ed b\u00fdt mo\u017eno p\u0159elo\u017eit do oboru n\u00e1zv\u016f: {0}"},
@@ -380,7 +380,7 @@ public class XMLErrorResources_cs extends ListResourceBundle
       "Nelze naj\u00edt zdroj [ {0} ].\n {1}" },
 
     {ER_RESOURCE_COULD_NOT_LOAD,
-      "Nelze zav\u00e9st zdroj [ {0} ]: {1} \n {2} \t {3}" },
+      "Nelze zavést zdroj [ {0} ]: {1} \n {2} \t {3}" },
 
     {ER_BUFFER_SIZE_LESSTHAN_ZERO,
       "Velikost vyrovn\u00e1vac\u00ed pam\u011bti <=0" },
@@ -421,7 +421,7 @@ public class XMLErrorResources_cs extends ListResourceBundle
       "Deklarace oboru n\u00e1zv\u016f ''{0}''=''{1}'' je vn\u011b prvku." },
 
     {ER_COULD_NOT_LOAD_RESOURCE,
-      "Nelze zav\u00e9st ''{0}'' (zkontrolujte prom\u011bnnou CLASSPATH), proto se pou\u017e\u00edvaj\u00ed pouze v\u00fdchoz\u00ed hodnoty"},
+      "Nelze zavést ''{0}'' (zkontrolujte prom\u011bnnou CLASSPATH), proto se pou\u017e\u00edvaj\u00ed pouze v\u00fdchoz\u00ed hodnoty"},
 
     {ER_COULD_NOT_LOAD_METHOD_PROPERTY,
       "Nelze na\u010d\u00edst soubor vlastnost\u00ed ''{0}'' pro v\u00fdstupn\u00ed metodu ''{1}'' (zkontrolujte prom\u011bnnou CLASSPATH)." }

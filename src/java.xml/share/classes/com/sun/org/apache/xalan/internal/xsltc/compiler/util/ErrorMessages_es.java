@@ -144,7 +144,7 @@ public class ErrorMessages_es extends ListResourceBundle {
          * Java keyword.
          */
         {ErrorMsg.METHOD_NOT_FOUND_ERR,
-        "No se ha encontrado el m\u00E9todo externo ''{0}'' (debe ser p\u00FAblico)."},
+        "No se ha encontrado el método externo ''{0}'' (debe ser p\u00FAblico)."},
 
         /*
          * Note to translators:  The word "method" here refers to a Java method.
@@ -153,7 +153,7 @@ public class ErrorMessages_es extends ListResourceBundle {
          * arguments or return type could be found.
          */
         {ErrorMsg.ARGUMENT_CONVERSION_ERR,
-        "No se puede convertir el tipo de argumento/retorno en la llamada al m\u00E9todo ''{0}''"},
+        "No se puede convertir el tipo de argumento/retorno en la llamada al método ''{0}''"},
 
         /*
          * Note to translators:  The file or URI named in the substitution text
@@ -966,7 +966,7 @@ public class ErrorMessages_es extends ListResourceBundle {
          * should not be translated.
          */
         {ErrorMsg.OUTLINE_ERR_DELETED_TARGET,
-         "Error interno de XSLTC: todav\u00EDa se hace referencia a una instrucci\u00F3n que formaba parte de un bloque de c\u00F3digo de bytes delimitado en el m\u00E9todo original."
+         "Error interno de XSLTC: todav\u00EDa se hace referencia a una instrucci\u00F3n que formaba parte de un bloque de c\u00F3digo de bytes delimitado en el método original."
         },
 
 
@@ -977,7 +977,7 @@ public class ErrorMessages_es extends ListResourceBundle {
          *
          */
         {ErrorMsg.OUTLINE_ERR_METHOD_TOO_BIG,
-         "Error interno de XSLTC: un m\u00E9todo en el translet excede la limitaci\u00F3n de Java Virtual Machine de longitud de un m\u00E9todo de 64 kilobytes. Normalmente, esto lo causan plantillas en una hoja de estilos demasiado grandes. Pruebe a reestructurar la hoja de estilos para utilizar plantillas m\u00E1s peque\u00F1as."
+         "Error interno de XSLTC: un método en el translet excede la limitaci\u00F3n de Java Virtual Machine de longitud de un método de 64 kilobytes. Normalmente, esto lo causan plantillas en una hoja de estilos demasiado grandes. Pruebe a reestructurar la hoja de estilos para utilizar plantillas m\u00E1s peque\u00F1as."
         },
     };
 

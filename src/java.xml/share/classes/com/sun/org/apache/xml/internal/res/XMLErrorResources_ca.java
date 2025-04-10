@@ -180,7 +180,7 @@ public class XMLErrorResources_ca extends ListResourceBundle
     {"ER0000" , "{0}" },
 
     { ER_FUNCTION_NOT_SUPPORTED,
-      "Aquesta funci\u00f3 no t\u00e9 suport. "},
+      "Aquesta funci\u00f3 no té suport. "},
 
     { ER_CANNOT_OVERWRITE_CAUSE,
       "No es pot sobreescriure una causa "},
@@ -189,10 +189,10 @@ public class XMLErrorResources_ca extends ListResourceBundle
       "No s'ha trobat cap implementaci\u00f3 per defecte "},
 
     { ER_CHUNKEDINTARRAY_NOT_SUPPORTED,
-      "En l''actualitat ChunkedIntArray({0}) no t\u00e9 suport "},
+      "En l''actualitat ChunkedIntArray({0}) no té suport "},
 
     { ER_OFFSET_BIGGER_THAN_SLOT,
-      "El despla\u00e7ament \u00e9s m\u00e9s gran que la ranura "},
+      "El desplaçament és més gran que la ranura "},
 
     { ER_COROUTINE_NOT_AVAIL,
       "Coroutine no est\u00e0 disponible, id={0} "},
@@ -219,19 +219,19 @@ public class XMLErrorResources_ca extends ListResourceBundle
       "Error: l''iterador de l''eix {0} no s''ha implementat "},
 
     { ER_ITERATOR_CLONE_NOT_SUPPORTED,
-      "El clonatge de l'iterador no t\u00e9 suport "},
+      "El clonatge de l'iterador no té suport "},
 
     { ER_UNKNOWN_AXIS_TYPE,
       "Tipus de commutaci\u00f3 de l''eix desconeguda: {0} "},
 
     { ER_AXIS_NOT_SUPPORTED,
-      "La commutaci\u00f3 de l''eix no t\u00e9 suport: {0} "},
+      "La commutaci\u00f3 de l''eix no té suport: {0} "},
 
     { ER_NO_DTMIDS_AVAIL,
-      "No hi ha m\u00e9s ID de DTM disponibles "},
+      "No hi ha més ID de DTM disponibles "},
 
     { ER_NOT_SUPPORTED,
-      "No t\u00e9 suport: {0} "},
+      "No té suport: {0} "},
 
     { ER_NODE_NON_NULL,
       "El node no ha de ser nul per a getDTMHandleFromNode "},
@@ -252,7 +252,7 @@ public class XMLErrorResources_ca extends ListResourceBundle
        "S'ha produ\u00eft una excepci\u00f3 en crear una nova inst\u00e0ncia de l'agrupaci\u00f3 "},
 
     { ER_PATH_CONTAINS_INVALID_ESCAPE_SEQUENCE,
-       "La via d'acc\u00e9s cont\u00e9 una seqü\u00e8ncia d'escapament no v\u00e0lida "},
+       "La via d'accés conté una seqü\u00e8ncia d'escapament no v\u00e0lida "},
 
     { ER_SCHEME_REQUIRED,
        "Es necessita l'esquema "},
@@ -264,31 +264,31 @@ public class XMLErrorResources_ca extends ListResourceBundle
        "No s'ha trobat cap esquema a l'URI "},
 
     { ER_PATH_INVALID_CHAR,
-       "La via d'acc\u00e9s cont\u00e9 un car\u00e0cter no v\u00e0lid {0} "},
+       "La via d'accés conté un car\u00e0cter no v\u00e0lid {0} "},
 
     { ER_SCHEME_FROM_NULL_STRING,
        "No es pot establir un esquema des d'una cadena nul\u00b7la "},
 
     { ER_SCHEME_NOT_CONFORMANT,
-       "L'esquema no t\u00e9 conformitat. "},
+       "L'esquema no té conformitat. "},
 
     { ER_HOST_ADDRESS_NOT_WELLFORMED,
-       "El sistema principal no t\u00e9 una adre\u00e7a ben formada "},
+       "El sistema principal no té una adreça ben formada "},
 
     { ER_PORT_WHEN_HOST_NULL,
-       "El port no es pot establir quan el sistema principal \u00e9s nul "},
+       "El port no es pot establir quan el sistema principal és nul "},
 
     { ER_INVALID_PORT,
        "N\u00famero de port no v\u00e0lid "},
 
     { ER_FRAG_FOR_GENERIC_URI,
-       "El fragment nom\u00e9s es pot establir per a un URI gen\u00e8ric "},
+       "El fragment només es pot establir per a un URI gen\u00e8ric "},
 
     { ER_FRAG_WHEN_PATH_NULL,
-       "El fragment no es pot establir si la via d'acc\u00e9s \u00e9s nul\u00b7la "},
+       "El fragment no es pot establir si la via d'accés és nul\u00b7la "},
 
     { ER_FRAG_INVALID_CHAR,
-       "El fragment cont\u00e9 un car\u00e0cter no v\u00e0lid "},
+       "El fragment conté un car\u00e0cter no v\u00e0lid "},
 
     { ER_PARSER_IN_USE,
       "L'analitzador ja s'est\u00e0 utilitzant "},
@@ -306,16 +306,16 @@ public class XMLErrorResources_ca extends ListResourceBundle
       "No es pot especificar el port si no s'especifica el sistema principal "},
 
     { ER_NO_QUERY_STRING_IN_PATH,
-      "No es pot especificar una cadena de consulta en la via d'acc\u00e9s i la cadena de consulta "},
+      "No es pot especificar una cadena de consulta en la via d'accés i la cadena de consulta "},
 
     { ER_NO_FRAGMENT_STRING_IN_PATH,
-      "No es pot especificar un fragment tant en la via d'acc\u00e9s com en el fragment "},
+      "No es pot especificar un fragment tant en la via d'accés com en el fragment "},
 
     { ER_CANNOT_INIT_URI_EMPTY_PARMS,
       "No es pot inicialitzar l'URI amb par\u00e0metres buits "},
 
     { ER_METHOD_NOT_SUPPORTED,
-      "Aquest m\u00e8tode encara no t\u00e9 suport "},
+      "Aquest m\u00e8tode encara no té suport "},
 
     { ER_INCRSAXSRCFILTER_NOT_RESTARTABLE,
       "Ara mateix no es pot reiniciar IncrementalSAXSource_Filter "},
@@ -324,7 +324,7 @@ public class XMLErrorResources_ca extends ListResourceBundle
       "XMLReader no es pot produir abans de la petici\u00f3 d'startParse "},
 
     { ER_AXIS_TRAVERSER_NOT_SUPPORTED,
-      "La commutaci\u00f3 de l''eix no t\u00e9 suport: {0} "},
+      "La commutaci\u00f3 de l''eix no té suport: {0} "},
 
     { ER_ERRORHANDLER_CREATED_WITH_NULL_PRINTWRITER,
       "S''ha creat ListingErrorHandler amb PrintWriter nul "},
@@ -339,22 +339,22 @@ public class XMLErrorResources_ca extends ListResourceBundle
       "El prefix s''ha de resoldre en un espai de noms: {0} "},
 
     { ER_CREATEDOCUMENT_NOT_SUPPORTED,
-      "createDocument() no t\u00e9 suport a XPathContext "},
+      "createDocument() no té suport a XPathContext "},
 
     { ER_CHILD_HAS_NO_OWNER_DOCUMENT,
-      "El subordinat de l'atribut no t\u00e9 un document de propietari. "},
+      "El subordinat de l'atribut no té un document de propietari. "},
 
     { ER_CHILD_HAS_NO_OWNER_DOCUMENT_ELEMENT,
-      "El subordinat de l'atribut no t\u00e9 un element de document de propietari. "},
+      "El subordinat de l'atribut no té un element de document de propietari. "},
 
     { ER_CANT_OUTPUT_TEXT_BEFORE_DOC,
       "Av\u00eds: no es pot produir text abans de l'element de document. Es passa per alt. "},
 
     { ER_CANT_HAVE_MORE_THAN_ONE_ROOT,
-      "No hi pot haver m\u00e9s d'una arrel en un DOM. "},
+      "No hi pot haver més d'una arrel en un DOM. "},
 
     { ER_ARG_LOCALNAME_NULL,
-       "L'argument 'localName' \u00e9s nul. "},
+       "L'argument 'localName' és nul. "},
 
     // Note to translators:  A QNAME has the syntactic form [NCName:]NCName
     // The localname is the portion after the optional colon; the message indicates
@@ -392,7 +392,7 @@ public class XMLErrorResources_ca extends ListResourceBundle
       "Error d'E/S " },
 
     {ER_ILLEGAL_ATTRIBUTE_POSITION,
-      "No es pot afegir l''atribut {0} despr\u00e9s dels nodes subordinats o abans que es produeixi un element. Es passar\u00e0 per alt l''atribut. "},
+      "No es pot afegir l''atribut {0} després dels nodes subordinats o abans que es produeixi un element. Es passar\u00e0 per alt l''atribut. "},
 
       /*
        * Note to translators:  The stylesheet contained a reference to a

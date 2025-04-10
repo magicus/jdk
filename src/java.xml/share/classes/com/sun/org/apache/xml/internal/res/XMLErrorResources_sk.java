@@ -183,7 +183,7 @@ public class XMLErrorResources_sk extends ListResourceBundle
       "Funkcia nie je podporovan\u00e1!"},
 
     { ER_CANNOT_OVERWRITE_CAUSE,
-      "Nie je mo\u017en\u00e9 prep\u00edsa\u0165 pr\u00ed\u010dinu"},
+      "Nie je mo\u017ené prep\u00edsa\u0165 pr\u00ed\u010dinu"},
 
     { ER_NO_DEFAULT_IMPL,
       "Nebola n\u00e1jden\u00e1 \u017eiadna predvolen\u00e1 implement\u00e1cia "},
@@ -225,19 +225,19 @@ public class XMLErrorResources_sk extends ListResourceBundle
       "Nezn\u00e1my typ pret\u00ednania os\u00ed: {0}"},
 
     { ER_AXIS_NOT_SUPPORTED,
-      "Pret\u00ednanie os\u00ed nie je podporovan\u00e9: {0}"},
+      "Pret\u00ednanie os\u00ed nie je podporované: {0}"},
 
     { ER_NO_DTMIDS_AVAIL,
-      "\u017diadne \u010fal\u0161ie DTM ID nie s\u00fa dostupn\u00e9"},
+      "\u017diadne \u010fal\u0161ie DTM ID nie s\u00fa dostupné"},
 
     { ER_NOT_SUPPORTED,
-      "Nie je podporovan\u00e9: {0}"},
+      "Nie je podporované: {0}"},
 
     { ER_NODE_NON_NULL,
       "Pre getDTMHandleFromNode mus\u00ed by\u0165 uzol nenulov\u00fd"},
 
     { ER_COULD_NOT_RESOLVE_NODE,
-      "Nebolo mo\u017en\u00e9 ur\u010di\u0165 uzol na spracovanie"},
+      "Nebolo mo\u017ené ur\u010di\u0165 uzol na spracovanie"},
 
     { ER_STARTPARSE_WHILE_PARSING,
        "startParse nem\u00f4\u017ee by\u0165 volan\u00fd po\u010das vykon\u00e1vania anal\u00fdzy"},
@@ -246,7 +246,7 @@ public class XMLErrorResources_sk extends ListResourceBundle
        "startParse potrebuje nenulov\u00fd SAXParser"},
 
     { ER_COULD_NOT_INIT_PARSER,
-       "nebolo mo\u017en\u00e9 inicializova\u0165 syntaktick\u00fd analyz\u00e1tor pomocou"},
+       "nebolo mo\u017ené inicializova\u0165 syntaktick\u00fd analyz\u00e1tor pomocou"},
 
     { ER_EXCEPTION_CREATING_POOL,
        "v\u00fdnimka vytv\u00e1rania novej in\u0161tancie oblasti"},
@@ -255,22 +255,22 @@ public class XMLErrorResources_sk extends ListResourceBundle
        "Cesta obsahuje neplatn\u00fa \u00fanikov\u00fa sekvenciu"},
 
     { ER_SCHEME_REQUIRED,
-       "Je po\u017eadovan\u00e1 sch\u00e9ma!"},
+       "Je po\u017eadovan\u00e1 schéma!"},
 
     { ER_NO_SCHEME_IN_URI,
-       "V URI sa nena\u0161la \u017eiadna sch\u00e9ma: {0}"},
+       "V URI sa nena\u0161la \u017eiadna schéma: {0}"},
 
     { ER_NO_SCHEME_INURI,
-       "V URI nebola n\u00e1jden\u00e1 \u017eiadna sch\u00e9ma"},
+       "V URI nebola n\u00e1jden\u00e1 \u017eiadna schéma"},
 
     { ER_PATH_INVALID_CHAR,
        "Cesta obsahuje neplatn\u00fd znak: {0}"},
 
     { ER_SCHEME_FROM_NULL_STRING,
-       "Nie je mo\u017en\u00e9 stanovi\u0165 sch\u00e9mu z nulov\u00e9ho re\u0165azca"},
+       "Nie je mo\u017ené stanovi\u0165 schému z nulového re\u0165azca"},
 
     { ER_SCHEME_NOT_CONFORMANT,
-       "Nezhodn\u00e1 sch\u00e9ma."},
+       "Nezhodn\u00e1 schéma."},
 
     { ER_HOST_ADDRESS_NOT_WELLFORMED,
        "Hostite\u013e nie je spr\u00e1vne form\u00e1tovan\u00e1 adresa"},
@@ -279,10 +279,10 @@ public class XMLErrorResources_sk extends ListResourceBundle
        "Nem\u00f4\u017ee by\u0165 stanoven\u00fd port, ak je hostite\u013e null"},
 
     { ER_INVALID_PORT,
-       "Neplatn\u00e9 \u010d\u00edslo portu"},
+       "Neplatné \u010d\u00edslo portu"},
 
     { ER_FRAG_FOR_GENERIC_URI,
-       "Fragment m\u00f4\u017ee by\u0165 stanoven\u00fd len pre v\u0161eobecn\u00e9 URI"},
+       "Fragment m\u00f4\u017ee by\u0165 stanoven\u00fd len pre v\u0161eobecné URI"},
 
     { ER_FRAG_WHEN_PATH_NULL,
        "Ak je cesta nulov\u00e1, nem\u00f4\u017ee by\u0165 stanoven\u00fd fragment"},
@@ -294,13 +294,13 @@ public class XMLErrorResources_sk extends ListResourceBundle
       "Syntaktick\u00fd analyz\u00e1tor je u\u017e pou\u017e\u00edvan\u00fd"},
 
     { ER_CANNOT_CHANGE_WHILE_PARSING,
-      "Nie je mo\u017en\u00e9 zmeni\u0165 {0} {1} po\u010das vykon\u00e1vania anal\u00fdzy"},
+      "Nie je mo\u017ené zmeni\u0165 {0} {1} po\u010das vykon\u00e1vania anal\u00fdzy"},
 
     { ER_SELF_CAUSATION_NOT_PERMITTED,
-      "Samozapr\u00ed\u010dinenie nie je povolen\u00e9"},
+      "Samozapr\u00ed\u010dinenie nie je povolené"},
 
     { ER_NO_USERINFO_IF_NO_HOST,
-      "Ak nebol zadan\u00fd hostite\u013e, mo\u017eno nebolo zadan\u00e9 userinfo"},
+      "Ak nebol zadan\u00fd hostite\u013e, mo\u017eno nebolo zadané userinfo"},
 
     { ER_NO_PORT_IF_NO_HOST,
       "Ak nebol zadan\u00fd hostite\u013e, mo\u017eno nebol zadan\u00fd port"},
@@ -312,7 +312,7 @@ public class XMLErrorResources_sk extends ListResourceBundle
       "Fragment nem\u00f4\u017ee by\u0165 zadan\u00fd v ceste, ani vo fragmente"},
 
     { ER_CANNOT_INIT_URI_EMPTY_PARMS,
-      "Nie je mo\u017en\u00e9 inicializova\u0165 URI s pr\u00e1zdnymi parametrami"},
+      "Nie je mo\u017ené inicializova\u0165 URI s pr\u00e1zdnymi parametrami"},
 
     { ER_METHOD_NOT_SUPPORTED,
       "Met\u00f3da e\u0161te nie je podporovan\u00e1 "},
@@ -324,7 +324,7 @@ public class XMLErrorResources_sk extends ListResourceBundle
       "XMLReader nepredch\u00e1dza po\u017eiadavke na startParse"},
 
     { ER_AXIS_TRAVERSER_NOT_SUPPORTED,
-      "Pret\u00ednanie os\u00ed nie je podporovan\u00e9: {0}"},
+      "Pret\u00ednanie os\u00ed nie je podporované: {0}"},
 
     { ER_ERRORHANDLER_CREATED_WITH_NULL_PRINTWRITER,
       "ListingErrorHandler vytvoren\u00fd s nulov\u00fdm PrintWriter!"},
@@ -336,10 +336,10 @@ public class XMLErrorResources_sk extends ListResourceBundle
       "Nezn\u00e1me miesto v\u00fdskytu chyby"},
 
     { ER_PREFIX_MUST_RESOLVE,
-      "Predpona sa mus\u00ed rozl\u00ed\u0161i\u0165 do n\u00e1zvov\u00e9ho priestoru: {0}"},
+      "Predpona sa mus\u00ed rozl\u00ed\u0161i\u0165 do n\u00e1zvového priestoru: {0}"},
 
     { ER_CREATEDOCUMENT_NOT_SUPPORTED,
-      "createDocument() nie je podporovan\u00e9 XPathContext!"},
+      "createDocument() nie je podporované XPathContext!"},
 
     { ER_CHILD_HAS_NO_OWNER_DOCUMENT,
       "Potomok atrib\u00fatu nem\u00e1 dokument vlastn\u00edka!"},
@@ -351,7 +351,7 @@ public class XMLErrorResources_sk extends ListResourceBundle
       "Upozornenie: nemo\u017eno vypusti\u0165 text pred elementom dokumentu!  Ignorovanie..."},
 
     { ER_CANT_HAVE_MORE_THAN_ONE_ROOT,
-      "Nie je mo\u017en\u00e9 ma\u0165 viac, ne\u017e jeden kore\u0148 DOM!"},
+      "Nie je mo\u017ené ma\u0165 viac, ne\u017e jeden kore\u0148 DOM!"},
 
     { ER_ARG_LOCALNAME_NULL,
        "Argument 'localName' je null"},
@@ -386,13 +386,13 @@ public class XMLErrorResources_sk extends ListResourceBundle
       "Ve\u013ekos\u0165 vyrovn\u00e1vacej pam\u00e4te <=0" },
 
     {ER_INVALID_UTF16_SURROGATE,
-      "Bolo zisten\u00e9 neplatn\u00e9 nahradenie UTF-16: {0} ?" },
+      "Bolo zistené neplatné nahradenie UTF-16: {0} ?" },
 
     {ER_OIERROR,
       "chyba IO" },
 
     {ER_ILLEGAL_ATTRIBUTE_POSITION,
-      "Nie je mo\u017en\u00e9 prida\u0165 atrib\u00fat {0} po uzloch potomka alebo pred vytvoren\u00edm elementu.  Atrib\u00fat bude ignorovan\u00fd."},
+      "Nie je mo\u017ené prida\u0165 atrib\u00fat {0} po uzloch potomka alebo pred vytvoren\u00edm elementu.  Atrib\u00fat bude ignorovan\u00fd."},
 
       /*
        * Note to translators:  The stylesheet contained a reference to a
@@ -418,10 +418,10 @@ public class XMLErrorResources_sk extends ListResourceBundle
        * namespace declaration.
        */
     {ER_STRAY_NAMESPACE,
-      "Deklar\u00e1cia n\u00e1zvov\u00e9ho priestoru ''{0}''=''{1}'' je mimo elementu." },
+      "Deklar\u00e1cia n\u00e1zvového priestoru ''{0}''=''{1}'' je mimo elementu." },
 
     {ER_COULD_NOT_LOAD_RESOURCE,
-      "Nedalo sa na\u010d\u00edta\u0165 ''{0}'' (skontrolujte CLASSPATH), pou\u017e\u00edvaj\u00fa sa predvolen\u00e9 hodnoty"},
+      "Nedalo sa na\u010d\u00edta\u0165 ''{0}'' (skontrolujte CLASSPATH), pou\u017e\u00edvaj\u00fa sa predvolené hodnoty"},
 
     {ER_COULD_NOT_LOAD_METHOD_PROPERTY,
       "Nedal sa na\u010d\u00edta\u0165 s\u00fabor vlastnost\u00ed ''{0}'' pre v\u00fdstupn\u00fa met\u00f3du ''{1}'' (skontrolujte CLASSPATH)" }

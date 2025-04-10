@@ -147,7 +147,7 @@ public class ErrorMessages_sk extends ListResourceBundle {
          * iterator.  (See definition of iterator above.)
          */
         {BasisLibrary.ITERATOR_CLONE_ERR,
-        "Nie je mo\u017en\u00e9 klonova\u0165 iter\u00e1tor ''{0}''."},
+        "Nie je mo\u017ené klonova\u0165 iter\u00e1tor ''{0}''."},
 
         /*
          * Note to translators:  The following represents an internal error
@@ -184,7 +184,7 @@ public class ErrorMessages_sk extends ListResourceBundle {
          * namespace declaration.
          */
         {BasisLibrary.STRAY_NAMESPACE_ERR,
-        "Deklar\u00e1cia n\u00e1zvov\u00e9ho priestoru ''{0}''=''{1}'' je mimo elementu."},
+        "Deklar\u00e1cia n\u00e1zvového priestoru ''{0}''=''{1}'' je mimo elementu."},
 
         /*
          * Note to translators:  The stylesheet contained a reference to a
@@ -199,7 +199,7 @@ public class ErrorMessages_sk extends ListResourceBundle {
          * DOMAdapter is a Java class in XSLTC.
          */
         {BasisLibrary.DOM_ADAPTER_INIT_ERR,
-        "DOMAdapter bol vytvoren\u00fd pomocou nespr\u00e1vneho typu zdrojov\u00e9ho DOM."},
+        "DOMAdapter bol vytvoren\u00fd pomocou nespr\u00e1vneho typu zdrojového DOM."},
 
         /*
          * Note to translators:  The following message indicates that the XML
@@ -217,14 +217,14 @@ public class ErrorMessages_sk extends ListResourceBundle {
          * declarations.
          */
         {BasisLibrary.NAMESPACES_SUPPORT_ERR,
-        "Analyz\u00e1tor SAX, ktor\u00fd pou\u017e\u00edvate, nem\u00e1 podporu pre n\u00e1zvov\u00e9 priestory XML."},
+        "Analyz\u00e1tor SAX, ktor\u00fd pou\u017e\u00edvate, nem\u00e1 podporu pre n\u00e1zvové priestory XML."},
 
         /*
          * Note to translators:  The substitution text is the URI that was in
          * error.
          */
         {BasisLibrary.CANT_RESOLVE_RELATIVE_URI_ERR,
-        "Nebolo mo\u017en\u00e9 rozl\u00ed\u0161i\u0165 referenciu URI ''{0}''."}
+        "Nebolo mo\u017ené rozl\u00ed\u0161i\u0165 referenciu URI ''{0}''."}
     };
 
     }

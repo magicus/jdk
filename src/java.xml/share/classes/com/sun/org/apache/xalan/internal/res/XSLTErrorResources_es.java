@@ -830,13 +830,13 @@ public class XSLTErrorResources_es extends ListResourceBundle
       "No se ha podido crear la extensi\u00F3n: {0} debido a: {1}"},
 
     { ER_INSTANCE_MTHD_CALL_REQUIRES,
-      "La llamada del m\u00E9todo de instancia al m\u00E9todo {0} necesita una instancia de objeto como primer argumento"},
+      "La llamada del método de instancia al método {0} necesita una instancia de objeto como primer argumento"},
 
     { ER_INVALID_ELEMENT_NAME,
       "Se ha especificado un nombre de elemento no v\u00E1lido {0}"},
 
     { ER_ELEMENT_NAME_METHOD_STATIC,
-      "El m\u00E9todo del nombre del elemento debe ser est\u00E1tico {0}"},
+      "El método del nombre del elemento debe ser est\u00E1tico {0}"},
 
     { ER_EXTENSION_FUNC_UNKNOWN,
              "La funci\u00F3n de extensi\u00F3n {0} : {1} es desconocida"},
@@ -845,10 +845,10 @@ public class XSLTErrorResources_es extends ListResourceBundle
              "Hay m\u00E1s de una mejor coincidencia para el constructor de {0}"},
 
     { ER_MORE_MATCH_METHOD,
-             "Hay m\u00E1s de una mejor coincidencia para el m\u00E9todo {0}"},
+             "Hay m\u00E1s de una mejor coincidencia para el método {0}"},
 
     { ER_MORE_MATCH_ELEMENT,
-             "Hay m\u00E1s de una mejor coincidencia para el m\u00E9todo de elemento {0}"},
+             "Hay m\u00E1s de una mejor coincidencia para el método de elemento {0}"},
 
     { ER_INVALID_CONTEXT_PASSED,
              "Se ha transferido un contexto no v\u00E1lido para evaluar {0}"},
@@ -969,7 +969,7 @@ public class XSLTErrorResources_es extends ListResourceBundle
         "El valor para {0} debe ser igual a s\u00ED o no."},
 
     { ER_FAILED_CALLING_METHOD,
-        "Fallo al llamar al m\u00E9todo {0}"},
+        "Fallo al llamar al método {0}"},
 
     { ER_FAILED_CREATING_ELEMTMPL,
         "Fallo al crear la instancia ElemTemplateElement"},
@@ -1307,7 +1307,7 @@ public class XSLTErrorResources_es extends ListResourceBundle
     // place other than on an element.  The substitution text specifies the name of
     // the attribute.
     { WG_ILLEGAL_ATTRIBUTE_POSITION,
-      "No se puede agregar el atributo {0} despu\u00E9s de nodos secundarios o antes de que se produzca un elemento. Se ignorar\u00E1 el atributo."},
+      "No se puede agregar el atributo {0} después de nodos secundarios o antes de que se produzca un elemento. Se ignorar\u00E1 el atributo."},
 
     { NO_MODIFICATION_ALLOWED_ERR,
       "Se ha realizado un intento de modificar un objeto en el que no est\u00E1n permitidas las modificaciones."
@@ -1392,7 +1392,7 @@ public class XSLTErrorResources_es extends ListResourceBundle
   { "optionDIAG", "   [-DIAG (Imprimir tiempo total en milisegundos para la transformaci\u00F3n.)]"},
   { "optionINCREMENTAL",  "   [-INCREMENTAL (para solicitar la construcci\u00F3n DTM incremental, defina http://xml.apache.org/xalan/features/incremental en true.)]"},
   {  "optionNOOPTIMIMIZE",  "   [-NOOPTIMIMIZE (para solicitar que no se produzca ning\u00FAn procesamiento de optimizaci\u00F3n de hoja de estilo, defina http://xml.apache.org/xalan/features/optimize en false.)]"},
-  { "optionRL",  "   [-RL recursionlimit (afirmar l\u00EDmite num\u00E9rico en la profundidad de recursi\u00F3n de la hoja de estilo.)]"},
+  { "optionRL",  "   [-RL recursionlimit (afirmar l\u00EDmite numérico en la profundidad de recursi\u00F3n de la hoja de estilo.)]"},
   {   "optionXO",  "   [-XO [transletName] (asignar el nombre al translet generado)]"},
   {  "optionXD", "   [-XD destinationDirectory (especificar un directorio de destino para translet)]"},
   {  "optionXJ",  "   [-XJ jarfile (empaqueta las clases de translet en un archivo jar llamado <archivo jar>)]"},

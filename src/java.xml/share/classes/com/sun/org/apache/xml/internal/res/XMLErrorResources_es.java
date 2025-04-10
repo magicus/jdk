@@ -286,7 +286,7 @@ public class XMLErrorResources_es extends ListResourceBundle
        "N\u00FAmero de puerto no v\u00E1lido"},
 
     { ER_FRAG_FOR_GENERIC_URI,
-       "S\u00F3lo se puede definir el fragmento para un URI gen\u00E9rico"},
+       "S\u00F3lo se puede definir el fragmento para un URI genérico"},
 
     { ER_FRAG_WHEN_PATH_NULL,
        "No se puede definir el fragmento si la ruta de acceso es nula"},
@@ -319,7 +319,7 @@ public class XMLErrorResources_es extends ListResourceBundle
       "No se puede inicializar el URI con par\u00E1metros vac\u00EDos"},
 
     { ER_METHOD_NOT_SUPPORTED,
-      "M\u00E9todo no soportado a\u00FAn "},
+      "Método no soportado a\u00FAn "},
 
     { ER_INCRSAXSRCFILTER_NOT_RESTARTABLE,
       "IncrementalSAXSource_Filter no se puede reiniciar actualmente"},
@@ -399,7 +399,7 @@ public class XMLErrorResources_es extends ListResourceBundle
       "Error de ES" },
 
     {ER_ILLEGAL_ATTRIBUTE_POSITION,
-      "No se puede agregar el atributo {0} despu\u00E9s de nodos secundarios o antes de que se produzca un elemento. Se ignorar\u00E1 el atributo."},
+      "No se puede agregar el atributo {0} después de nodos secundarios o antes de que se produzca un elemento. Se ignorar\u00E1 el atributo."},
 
       /*
        * Note to translators:  The stylesheet contained a reference to a
@@ -434,7 +434,7 @@ public class XMLErrorResources_es extends ListResourceBundle
        "Intento de realizar la salida del car\u00E1cter del valor integral {0}, que no est\u00E1 representado en la codificaci\u00F3n de salida de {1}."},
 
     {ER_COULD_NOT_LOAD_METHOD_PROPERTY,
-      "No se ha podido cargar el archivo de propiedades ''{0}'' para el m\u00E9todo de salida ''{1}'' (compruebe la CLASSPATH)" }
+      "No se ha podido cargar el archivo de propiedades ''{0}'' para el método de salida ''{1}'' (compruebe la CLASSPATH)" }
 
 
   };

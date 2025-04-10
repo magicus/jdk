@@ -39,7 +39,7 @@ public class SerializerMessages_cs extends ListResourceBundle {
         "Nelze naj\u00edt zdroj [ {0} ].\n {1}"},
 
       { MsgKey.ER_RESOURCE_COULD_NOT_LOAD,
-        "Nelze zav\u00e9st zdroj [ {0} ]: {1} \n {2} \n {3}"},
+        "Nelze zavést zdroj [ {0} ]: {1} \n {2} \n {3}"},
 
       { MsgKey.ER_BUFFER_SIZE_LESSTHAN_ZERO,
         "Velikost vyrovn\u00e1vac\u00ed pam\u011bti <=0"},
@@ -61,14 +61,14 @@ public class SerializerMessages_cs extends ListResourceBundle {
         "Deklarace oboru n\u00e1zv\u016f ''{0}''=''{1}'' je vn\u011b prvku."},
 
       { MsgKey.ER_COULD_NOT_LOAD_RESOURCE,
-        "Nelze zav\u00e9st ''{0}'' (zkontrolujte prom\u011bnnou CLASSPATH), proto se pou\u017e\u00edvaj\u00ed pouze v\u00fdchoz\u00ed hodnoty"},
+        "Nelze zavést ''{0}'' (zkontrolujte prom\u011bnnou CLASSPATH), proto se pou\u017e\u00edvaj\u00ed pouze v\u00fdchoz\u00ed hodnoty"},
 
         // ER_ILLEGAL_CHARACTER needs translation
       { MsgKey.ER_COULD_NOT_LOAD_METHOD_PROPERTY,
         "Nelze na\u010d\u00edst soubor vlastnost\u00ed ''{0}'' pro v\u00fdstupn\u00ed metodu ''{1}'' (zkontrolujte prom\u011bnnou CLASSPATH)."},
 
       { MsgKey.ER_INVALID_PORT,
-        "Neplatn\u00e9 \u010d\u00edslo portu."},
+        "Neplatné \u010d\u00edslo portu."},
 
       { MsgKey.ER_PORT_WHEN_HOST_NULL,
         "M\u00e1-li hostitel hodnotu null, nelze nastavit port."},
@@ -77,10 +77,10 @@ public class SerializerMessages_cs extends ListResourceBundle {
         "Adresa hostitele m\u00e1 nespr\u00e1vn\u00fd form\u00e1t."},
 
       { MsgKey.ER_SCHEME_NOT_CONFORMANT,
-        "Sch\u00e9ma nevyhovuje."},
+        "Schéma nevyhovuje."},
 
       { MsgKey.ER_SCHEME_FROM_NULL_STRING,
-        "Nelze nastavit sch\u00e9ma \u0159et\u011bzce s hodnotou null."},
+        "Nelze nastavit schéma \u0159et\u011bzce s hodnotou null."},
 
       { MsgKey.ER_PATH_CONTAINS_INVALID_ESCAPE_SEQUENCE,
         "Cesta obsahuje neplatnou escape sekvenci"},
@@ -95,10 +95,10 @@ public class SerializerMessages_cs extends ListResourceBundle {
         "M\u00e1-li cesta hodnotu null, nelze nastavit fragment."},
 
       { MsgKey.ER_FRAG_FOR_GENERIC_URI,
-        "Fragment lze nastavit jen u generick\u00e9ho URI."},
+        "Fragment lze nastavit jen u generického URI."},
 
       { MsgKey.ER_NO_SCHEME_IN_URI,
-        "V URI nebylo nalezeno \u017e\u00e1dn\u00e9 sch\u00e9ma: {0}"},
+        "V URI nebylo nalezeno \u017e\u00e1dné schéma: {0}"},
 
       { MsgKey.ER_CANNOT_INIT_URI_EMPTY_PARMS,
         "URI nelze inicializovat s pr\u00e1zdn\u00fdmi parametry."},
@@ -116,7 +116,7 @@ public class SerializerMessages_cs extends ListResourceBundle {
         "Nen\u00ed-li ur\u010den hostitel, nelze zadat \u00fadaje o u\u017eivateli."},
 
       { MsgKey.ER_SCHEME_REQUIRED,
-        "Je vy\u017eadov\u00e1no sch\u00e9ma!"},
+        "Je vy\u017eadov\u00e1no schéma!"},
 
       /*
        * Note to translators:  The words 'Properties' and
@@ -127,7 +127,7 @@ public class SerializerMessages_cs extends ListResourceBundle {
           "Objekt vlastnost\u00ed p\u0159edan\u00fd faktorii SerializerFactory neobsahuje vlastnost ''{0}''. " },
 
       {   MsgKey.ER_ENCODING_NOT_SUPPORTED,
-          "Varov\u00e1n\u00ed: K\u00f3dov\u00e1n\u00ed ''{0}'' nen\u00ed v b\u011bhov\u00e9m prost\u0159ed\u00ed Java podporov\u00e1no." },
+          "Varov\u00e1n\u00ed: K\u00f3dov\u00e1n\u00ed ''{0}'' nen\u00ed v b\u011bhovém prost\u0159ed\u00ed Java podporov\u00e1no." },
 
        {MsgKey.ER_FEATURE_NOT_FOUND,
        "Parametr ''{0}'' nebyl rozpozn\u00e1n."},
@@ -142,23 +142,23 @@ public class SerializerMessages_cs extends ListResourceBundle {
        "Typ hodnoty pro tento n\u00e1zev parametru nen\u00ed kompatibiln\u00ed s o\u010dek\u00e1van\u00fdm typem hodnoty."},
 
        {MsgKey.ER_NO_OUTPUT_SPECIFIED,
-       "C\u00edlov\u00e9 um\u00edst\u011bn\u00ed v\u00fdstupu pro data ur\u010den\u00e1 k z\u00e1pisu je rovno hodnot\u011b Null. "},
+       "C\u00edlové um\u00edst\u011bn\u00ed v\u00fdstupu pro data ur\u010den\u00e1 k z\u00e1pisu je rovno hodnot\u011b Null. "},
 
        {MsgKey.ER_UNSUPPORTED_ENCODING,
-       "Bylo nalezeno nepodporovan\u00e9 k\u00f3dov\u00e1n\u00ed."},
+       "Bylo nalezeno nepodporované k\u00f3dov\u00e1n\u00ed."},
 
        {MsgKey.ER_UNABLE_TO_SERIALIZE_NODE,
-       "Nelze prov\u00e9st serializaci uzlu. "},
+       "Nelze provést serializaci uzlu. "},
 
        {MsgKey.ER_CDATA_SECTIONS_SPLIT,
        "Sekce CDATA obsahuje jednu nebo v\u00edce ukon\u010dovac\u00edch zna\u010dek ']]>'."},
 
        {MsgKey.ER_WARNING_WF_NOT_CHECKED,
-           "Nelze vytvo\u0159it instanci modulu pro kontrolu spr\u00e1vn\u00e9ho utvo\u0159en\u00ed. Parametr spr\u00e1vn\u00e9ho utvo\u0159en\u00ed byl nastaven na hodnotu true, nepoda\u0159ilo se v\u0161ak zkontrolovat spr\u00e1vnost utvo\u0159en\u00ed. "
+           "Nelze vytvo\u0159it instanci modulu pro kontrolu spr\u00e1vného utvo\u0159en\u00ed. Parametr spr\u00e1vného utvo\u0159en\u00ed byl nastaven na hodnotu true, nepoda\u0159ilo se v\u0161ak zkontrolovat spr\u00e1vnost utvo\u0159en\u00ed. "
        },
 
        {MsgKey.ER_WF_INVALID_CHARACTER,
-           "Uzel ''{0}'' obsahuje neplatn\u00e9 znaky XML. "
+           "Uzel ''{0}'' obsahuje neplatné znaky XML. "
        },
 
        { MsgKey.ER_WF_INVALID_CHARACTER_IN_COMMENT,

@@ -698,10 +698,10 @@ public static final String ER_IGNORABLE_WHITESPACE_NOT_HANDLED =
   // Note to translators: Do not translate UNORDERED_NODE_SNAPSHOT_TYPE and
   // ORDERED_NODE_SNAPSHOT_TYPE.
   { ER_CANT_GET_SNAPSHOT_LENGTH,
-       "Impossibile richiamare il metodo getSnapshotLength nell''XPathResult dell''espressione XPath ''{0}'' poich\u00E9 il valore di XPathResultType \u00E8 {1}. Questo metodo \u00E8 valido solo per i tipi UNORDERED_NODE_SNAPSHOT_TYPE e ORDERED_NODE_SNAPSHOT_TYPE."},
+       "Impossibile richiamare il metodo getSnapshotLength nell''XPathResult dell''espressione XPath ''{0}'' poiché il valore di XPathResultType \u00E8 {1}. Questo metodo \u00E8 valido solo per i tipi UNORDERED_NODE_SNAPSHOT_TYPE e ORDERED_NODE_SNAPSHOT_TYPE."},
 
   { ER_NON_ITERATOR_TYPE,
-       "Impossibile richiamare il metodo iterateNext nell''XPathResult dell''espressione XPath ''{0}'' poich\u00E9 il valore di XPathResultType \u00E8 {1}. Questo metodo \u00E8 valido solo per i tipi UNORDERED_NODE_ITERATOR_TYPE e ORDERED_NODE_ITERATOR_TYPE."},
+       "Impossibile richiamare il metodo iterateNext nell''XPathResult dell''espressione XPath ''{0}'' poiché il valore di XPathResultType \u00E8 {1}. Questo metodo \u00E8 valido solo per i tipi UNORDERED_NODE_ITERATOR_TYPE e ORDERED_NODE_ITERATOR_TYPE."},
 
   // Note to translators: This message indicates that the document being operated
   // upon changed, so the iterator object that was being used to traverse the
@@ -730,7 +730,7 @@ public static final String ER_IGNORABLE_WHITESPACE_NOT_HANDLED =
   // Note to translators: Do not translate snapshotItem,
   // UNORDERED_NODE_SNAPSHOT_TYPE and ORDERED_NODE_SNAPSHOT_TYPE.
   { ER_NON_SNAPSHOT_TYPE,
-       "Impossibile richiamare il metodo snapshotItem nell''XPathResult dell''espressione XPath ''{0}'' poich\u00E9 il valore di XPathResultType \u00E8 {1}. Questo metodo \u00E8 valido solo per i tipi UNORDERED_NODE_SNAPSHOT_TYPE e ORDERED_NODE_SNAPSHOT_TYPE."},
+       "Impossibile richiamare il metodo snapshotItem nell''XPathResult dell''espressione XPath ''{0}'' poiché il valore di XPathResultType \u00E8 {1}. Questo metodo \u00E8 valido solo per i tipi UNORDERED_NODE_SNAPSHOT_TYPE e ORDERED_NODE_SNAPSHOT_TYPE."},
 
   // Note to translators:  XPathEvaluator is a Java interface name.  An
   // XPathEvaluator is created with respect to a particular XML document, and in

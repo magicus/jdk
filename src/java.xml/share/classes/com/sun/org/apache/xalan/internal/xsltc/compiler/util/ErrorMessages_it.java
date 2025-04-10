@@ -861,7 +861,7 @@ public class ErrorMessages_it extends ListResourceBundle {
          * specifies the name the processor used instead.
          */
         {ErrorMsg.TRANSLET_NAME_JAVA_CONFLICT,
-         "Impossibile utilizzare il nome ''{0}'' per la classe di translet poich\u00E9 contiene caratteri non consentiti nel nome della classe Java. Verr\u00E0 utilizzato il nome ''{1}''."},
+         "Impossibile utilizzare il nome ''{0}'' per la classe di translet poiché contiene caratteri non consentiti nel nome della classe Java. Verr\u00E0 utilizzato il nome ''{1}''."},
 
         /*
          * Note to translators:  The following message is used as a header.
