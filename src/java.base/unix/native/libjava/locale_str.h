@@ -87,7 +87,7 @@
     "zh", "zh_CN",
 #ifdef __linux__
     "bokmal", "nb_NO",
-    "bokm\xE5l", "nb_NO",
+    FIXME"bokm\xE5l", "nb_NO",
     "catalan", "ca_ES",
     "croatian", "hr_HR",
     "czech", "cs_CZ",
@@ -98,7 +98,7 @@
     "eesti", "et_EE",
     "estonian", "et_EE",
     "finnish", "fi_FI",
-    "fran\xE7\x61is", "fr_FR",
+    MOREINFILE "fran\xE7\x61is", "fr_FR",
     "french", "fr_FR",
     "galego", "gl_ES",
     "galician", "gl_ES",

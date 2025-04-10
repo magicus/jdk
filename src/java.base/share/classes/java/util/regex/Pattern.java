@@ -165,7 +165,7 @@ import jdk.internal.util.regex.Grapheme;
  *     <td headers="matches predef non_digit">A non-digit: {@code [^0-9]}</td></tr>
  * <tr><th style="vertical-align:top; font-weight:normal" id="horiz_white">{@code \h}</th>
  *     <td headers="matches predef horiz_white">A horizontal whitespace character:
- *     <code>[ \t\xA0&#92;u1680&#92;u180e&#92;u2000-&#92;u200a&#92;u202f&#92;u205f&#92;u3000]</code></td></tr>
+ FIXME *     <code>[ \t\xA0&#92;u1680&#92;u180e&#92;u2000-&#92;u200a&#92;u202f&#92;u205f&#92;u3000]</code></td></tr>
  * <tr><th style="vertical-align:top; font-weight:normal" id="non_horiz_white">{@code \H}</th>
  *     <td headers="matches predef non_horiz_white">A non-horizontal whitespace character: {@code [^\h]}</td></tr>
  * <tr><th style="vertical-align:top; font-weight:normal" id="white">{@code \s}</th>
@@ -175,7 +175,7 @@ import jdk.internal.util.regex.Grapheme;
  * <tr><th style="vertical-align:top; font-weight:normal" id="non_white">{@code \S}</th>
  *     <td headers="matches predef non_white">A non-whitespace character: {@code [^\s]}</td></tr>
  * <tr><th style="vertical-align:top; font-weight:normal" id="vert_white">{@code \v}</th>
- *     <td headers="matches predef vert_white">A vertical whitespace character: <code>[\n\x0B\f\r\x85&#92;u2028&#92;u2029]</code>
+ MORELINES IN THIS FILE*     <td headers="matches predef vert_white">A vertical whitespace character: <code>[\n\x0B\f\r\x85&#92;u2028&#92;u2029]</code>
  *     </td></tr>
  * <tr><th style="vertical-align:top; font-weight:normal" id="non_vert_white">{@code \V}</th>
  *     <td headers="matches predef non_vert_white">A non-vertical whitespace character: {@code [^\v]}</td></tr>
