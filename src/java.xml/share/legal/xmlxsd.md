@@ -3,7 +3,9 @@
 ### W3C Software and Document license
 <pre>
 From: https://www.w3.org/copyright/software-license-2023/
-Copied on 2024/10/15
+Copied on 2025/04/10
+
+This work is being provided by the copyright holders under the following license.
 
 License
 
@@ -15,18 +17,18 @@ for any purpose and without fee or royalty is hereby granted, provided that you
 include the following on ALL copies of the work or portions thereof, including
 modifications:
 
-    The full text of this NOTICE in a location viewable to users of the
+  * The full text of this NOTICE in a location viewable to users of the
     redistributed or derivative work.
-    Any pre-existing intellectual property disclaimers, notices, or terms and
+  * Any pre-existing intellectual property disclaimers, notices, or terms and
     conditions. If none exist, the W3C software and document short notice should
     be included.
-    Notice of any changes or modifications, through a copyright statement on the
+  * Notice of any changes or modifications, through a copyright statement on the
     new code or document such as "This software or document includes material
     copied from or derived from [title and URI of the W3C document]. Copyright ©
     [$year-of-document] World Wide Web Consortium.
     https://www.w3.org/copyright/software-license-2023/"
 
-Disclaimers §anchor
+Disclaimers
 
 THIS WORK IS PROVIDED "AS IS," AND COPYRIGHT HOLDERS MAKE NO REPRESENTATIONS OR
 WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO, WARRANTIES OF
