@@ -37,5 +37,9 @@
   */
 
 module jdk.graal.compiler {
+    requires java.logging;
     requires jdk.internal.vm.ci;
+    requires org.graalvm.collections;
+    requires org.graalvm.truffle.compiler;
+    requires org.graalvm.word;
 }

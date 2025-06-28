@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,9 +30,22 @@ module jdk.internal.vm.ci {
     exports jdk.vm.ci.runtime to
         jdk.graal.compiler,
         jdk.graal.compiler.management;
-    exports jdk.vm.ci.meta to jdk.graal.compiler;
-    exports jdk.vm.ci.code to jdk.graal.compiler;
+    exports jdk.vm.ci.code to
+        jdk.graal.compiler,
+        org.graalvm.truffle.compiler;
+    exports jdk.vm.ci.meta to
+        jdk.graal.compiler,
+        org.graalvm.truffle.compiler;
+    exports jdk.vm.ci.aarch64 to jdk.graal.compiler;
+    exports jdk.vm.ci.amd64 to jdk.graal.compiler;
+    exports jdk.vm.ci.code.site to jdk.graal.compiler;
+    exports jdk.vm.ci.code.stack to jdk.graal.compiler;
+    exports jdk.vm.ci.common to jdk.graal.compiler;
     exports jdk.vm.ci.hotspot to jdk.graal.compiler;
+    exports jdk.vm.ci.hotspot.aarch64 to jdk.graal.compiler;
+    exports jdk.vm.ci.hotspot.amd64 to jdk.graal.compiler;
+    exports jdk.vm.ci.hotspot.riscv64 to jdk.graal.compiler;
+    exports jdk.vm.ci.riscv64 to jdk.graal.compiler;
 
     uses jdk.vm.ci.services.JVMCIServiceLocator;
     uses jdk.vm.ci.hotspot.HotSpotJVMCIBackendFactory;
