@@ -218,8 +218,7 @@ module java.base {
         jdk.jshell,
         jdk.nio.mapmode,
         jdk.unsupported,
-        jdk.internal.vm.ci,
-        jdk.graal.compiler;
+        jdk.internal.vm.ci;
     exports jdk.internal.module to
         java.instrument,
         java.management.rmi,
