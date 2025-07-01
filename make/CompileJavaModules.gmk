@@ -132,7 +132,7 @@ TARGETS += $($(MODULE))
 # dependency declaration to that by using the *_MODFILELIST variable.
 $($(MODULE)_MODFILELIST): $(foreach d, $(call FindDepsForModule, $(MODULE)), \
     $(call SetupJavaCompilationApiTarget, $d, \
-        $(if $($d_BIN), $($d_BIN), $(JDK_OUTPUTDIR)/modules/$d)))
+        $(if $($d_BIN), $($d_BIN)/$d, $(JDK_OUTPUTDIR)/modules/$d)))
 
 ################################################################################
 # If this is an imported module, copy the pre built classes and resources into

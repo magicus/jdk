@@ -389,7 +389,7 @@ $(eval $(call SetupTarget, generate-summary, \
 ################################################################################
 # Jmod targets
 
-JMOD_MODULES := $(ALL_MODULES)
+JMOD_MODULES := $(filter-out $(JMOD_MODULES_FILTER), $(ALL_MODULES))
 JMOD_TARGETS := $(addsuffix -jmod, $(JMOD_MODULES))
 
 define DeclareJmodRecipe

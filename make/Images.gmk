@@ -38,6 +38,8 @@ JRE_TARGETS :=
 
 ################################################################################
 
+MODULES_FILTER += $(JMOD_MODULES_FILTER)
+
 # All modules for the current target platform.
 ALL_MODULES := $(call FindAllModules) $(EXTRA_MODULES)
 
