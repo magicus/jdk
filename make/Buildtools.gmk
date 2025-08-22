@@ -35,7 +35,7 @@ include TextFileProcessing.gmk
 
 $(eval $(call SetupJavaCompilation, java.base-buildtools, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/java.base, \
+    SRC := $(TOPDIR)/make/src/java.base, \
     BIN := $(SUPPORT_OUTPUTDIR)/buildtools/java.base, \
     DISABLED_WARNINGS := options, \
     JAVAC_FLAGS := \
@@ -48,7 +48,7 @@ java.base-buildtools: $(java.base-buildtools)
 
 $(eval $(call SetupJavaCompilation, java.desktop-buildtools, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/java.desktop, \
+    SRC := $(TOPDIR)/make/src/java.desktop, \
     BIN := $(SUPPORT_OUTPUTDIR)/buildtools/java.desktop, \
     DISABLED_WARNINGS := options, \
     JAVAC_FLAGS := \
@@ -59,7 +59,7 @@ $(eval $(call SetupJavaCompilation, java.desktop-buildtools, \
 
 $(eval $(call SetupJavaCompilation, jdk.compiler-buildtools, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/jdk.compiler, \
+    SRC := $(TOPDIR)/make/src/jdk.compiler, \
     BIN := $(SUPPORT_OUTPUTDIR)/buildtools/jdk.compiler, \
     DISABLED_WARNINGS := options, \
     JAVAC_FLAGS := \
@@ -70,7 +70,7 @@ $(eval $(call SetupJavaCompilation, jdk.compiler-buildtools, \
 
 $(eval $(call SetupJavaCompilation, jdk.jdi-buildtools, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/jdk.jdi, \
+    SRC := $(TOPDIR)/make/src/jdk.jdi, \
     BIN := $(SUPPORT_OUTPUTDIR)/buildtools/jdk.jdi, \
     DISABLED_WARNINGS := options, \
     JAVAC_FLAGS := \
@@ -81,7 +81,7 @@ $(eval $(call SetupJavaCompilation, jdk.jdi-buildtools, \
 
 $(eval $(call SetupJavaCompilation, hotspot-buildtools, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/hotspot, \
+    SRC := $(TOPDIR)/make/src/hotspot, \
     BIN := $(SUPPORT_OUTPUTDIR)/buildtools/hotspot, \
     DISABLED_WARNINGS := options, \
     JAVAC_FLAGS := \
@@ -93,10 +93,10 @@ $(eval $(call SetupJavaCompilation, hotspot-buildtools, \
 $(eval $(call SetupJavaCompilation, interim-buildtools, \
     COMPILER := bootjdk, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/jdk.internal.build, \
+    SRC := $(TOPDIR)/make/src/jdk.internal.build, \
     INCLUDES := \
-        org/openjdk/buildtools/compilepropertieslangtools \
-        org/openjdk/buildtools/propertiesparser, \
+        jdk/internal/buildtools/compilepropertieslangtools \
+        jdk/internal/buildtools/propertiesparser, \
     COPY := .properties, \
     BIN := $(SUPPORT_OUTPUTDIR)/buildtools/interim, \
 ))
@@ -105,7 +105,7 @@ interim-buildtools: $(interim-buildtools)
 
 BUILD_TOOLS_SRC_DIRS := \
     $(call FindAllToolsDirs) \
-    $(TOPDIR)/make/buildtools/jdk.internal.build \
+    $(TOPDIR)/make/src/jdk.internal.build \
     $(BUILDTOOLS_OUTPUTDIR)/interim_tzdb_classes \
     #
 
@@ -113,10 +113,10 @@ $(eval $(call SetupJavaCompilation2, BUILD_TOOLS_JDK, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
     SRC := $(BUILD_TOOLS_SRC_DIRS), \
     EXCLUDES := \
-        org/openjdk/buildtools/classlist \
-        org/openjdk/buildtools/jigsaw \
-        org/openjdk/buildtools/depend \
-        org/openjdk/buildtools/symbolgenerator \
+        jdk/internal/buildtools/classlist \
+        jdk/internal/buildtools/jigsaw \
+        jdk/internal/buildtools/depend \
+        jdk/internal/buildtools/symbolgenerator \
         , \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/classes, \
     DISABLED_WARNINGS := options, \
@@ -130,7 +130,7 @@ TARGETS += $(BUILD_TOOLS_JDK)
 
 $(eval $(call SetupCopyFiles, COPY_NIMBUS_TEMPLATES, \
     SRC := $(TOPDIR)/src/java.desktop/share/classes/javax/swing/plaf/nimbus, \
-    DEST := $(BUILDTOOLS_OUTPUTDIR)/classes/org/openjdk/buildtools/generatenimbus/resources, \
+    DEST := $(BUILDTOOLS_OUTPUTDIR)/classes/jdk/internal/buildtools/generatenimbus/resources, \
     FILES := $(wildcard $(TOPDIR)/src/java.desktop/share/classes/javax/swing/plaf/nimbus/*.template), \
 ))
 
@@ -140,8 +140,8 @@ TARGETS += $(COPY_NIMBUS_TEMPLATES)
 
 $(eval $(call SetupJavaCompilation2, COMPILE_DEPEND, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/jdk.internal.build, \
-    INCLUDES := org/openjdk/buildtools/depend, \
+    SRC := $(TOPDIR)/make/src/jdk.internal.build, \
+    INCLUDES := jdk/internal/buildtools/depend, \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/depend, \
     DISABLED_WARNINGS := options, \
 ))

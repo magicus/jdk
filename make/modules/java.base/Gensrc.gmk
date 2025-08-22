@@ -118,7 +118,7 @@ TOOL_INTPOLY = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     jdk.internal.buildtools.intpoly.FieldGen
 
 INTPOLY_GEN_DONE := $(GENSRC_DIR)/_intpoly-gensrc.marker
-INTPOLY_HEADER := $(TOPDIR)/src/java.base/share/tools/org/openjdk/buildtools/intpoly/header.txt
+INTPOLY_HEADER := $(TOPDIR)/src/java.base/jdk/internal/buildtools/intpoly/header.txt
 $(INTPOLY_GEN_DONE): $(INTPLOY_HEADER) $(BUILD_TOOLS_JDK)
 	$(call MakeDir, $(GENSRC_DIR))
 	$(call LogInfo, Generating fixed-field math classes for java.base)

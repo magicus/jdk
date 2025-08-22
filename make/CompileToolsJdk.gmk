@@ -35,7 +35,7 @@ include TextFileProcessing.gmk
 # Use += to be able to add to this from a custom extension
 BUILD_TOOLS_SRC_DIRS += \
     $(call FindAllToolsDirs) \
-    $(TOPDIR)/make/buildtools/jdk.internal.build \
+    $(TOPDIR)/make/src/jdk.internal.build \
     $(BUILDTOOLS_OUTPUTDIR)/interim_tzdb_classes \
     #
 
@@ -43,11 +43,11 @@ $(eval $(call SetupJavaCompilation, BUILD_TOOLS_JDK, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
     SRC := $(BUILD_TOOLS_SRC_DIRS), \
     EXCLUDES := \
-        org/openjdk/buildtools/classlist \
-        org/openjdk/buildtools/deps \
-        org/openjdk/buildtools/docs \
-        org/openjdk/buildtools/jigsaw \
-        org/openjdk/buildtools/depend, \
+        jdk/internal/buildtools/classlist \
+        jdk/internal/buildtools/deps \
+        jdk/internal/buildtools/docs \
+        jdk/internal/buildtools/jigsaw \
+        jdk/internal/buildtools/depend, \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/classes, \
     DISABLED_WARNINGS := dangling-doc-comments options, \
     JAVAC_FLAGS := \
@@ -62,7 +62,7 @@ TARGETS += $(BUILD_TOOLS_JDK)
 
 $(eval $(call SetupCopyFiles, COPY_NIMBUS_TEMPLATES, \
     SRC := $(TOPDIR)/src/java.desktop/share/classes/javax/swing/plaf/nimbus, \
-    DEST := $(BUILDTOOLS_OUTPUTDIR)/classes/org/openjdk/buildtools/generatenimbus/resources, \
+    DEST := $(BUILDTOOLS_OUTPUTDIR)/classes/jdk/internal/buildtools/generatenimbus/resources, \
     FILES := $(wildcard $(TOPDIR)/src/java.desktop/share/classes/javax/swing/plaf/nimbus/*.template), \
 ))
 
@@ -80,8 +80,8 @@ TARGETS += $(COPY_CLDRCONVERTER_PROPERTIES)
 
 $(eval $(call SetupJavaCompilation, COMPILE_DEPEND, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/jdk.internal.build, \
-    INCLUDES := org/openjdk/buildtools/depend, \
+    SRC := $(TOPDIR)/make/src/jdk.internal.build, \
+    INCLUDES := jdk/internal/buildtools/depend, \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/depend, \
     DISABLED_WARNINGS := options, \
     JAVAC_FLAGS := \
