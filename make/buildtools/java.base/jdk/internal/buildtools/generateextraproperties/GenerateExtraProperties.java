@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package build.tools.generateextraproperties;
+package jdk.internal.buildtools.generateextraproperties;
 
 import java.io.IOException;
 import java.nio.file.Files;

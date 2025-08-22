@@ -37,6 +37,12 @@ INDICCONJUNCTBREAKTEMP := $(MODULE_SRC)/share/classes/jdk/internal/util/regex/In
 INDICCONJUNCTBREAKPROPS := $(MODULE_SRC)/share/data/unicodedata/DerivedCoreProperties.txt
 INDICCONJUNCTBREAKPARAMS := InCB=Linker InCB=Extend InCB=Consonant
 
+TOOL_GENERATEEXTRAPROPERTIES = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
+    jdk.internal.buildtools.generateextraproperties.GenerateExtraProperties
+
+TOOL_GENERATECASEFOLDING = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
+    jdk.internal.buildtools.generatecharacter.CaseFolding
+
 $(GENSRC_INDICCONJUNCTBREAK): $(BUILD_TOOLS_JDK) $(INDICCONJUNCTBREAKTEMP) $(INDICCONJUNCTBREAKPROPS)
 	$(call LogInfo, Generating $@)
 	$(call MakeTargetDir)

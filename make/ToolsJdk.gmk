@@ -39,38 +39,5 @@ BUILD_TOOLS_JDK := $(call SetupJavaCompilationCompileTarget, \
 
 ################################################################################
 
-# used by build system for many modules
-TOOL_COMPILEPROPERTIES = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    jdk.internal.buildtools.compileproperties.CompileProperties
-
-# used by build system for all modules
-TOOL_GENMODULEINFOSOURCE = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    jdk.internal.buildtools.module.GenModuleInfoSource
-
-# used by build system for zip files
-TOOL_MAKEZIPREPRODUCIBLE = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    jdk.internal.buildtools.makezipreproducible.MakeZipReproducible
-
-# used by build system for docs
-TOOL_FIXUPPANDOC = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    jdk.internal.buildtools.fixuppandoc.Main
-
-### FIXME: changed in main
-TOOL_GENERATEEXTRAPROPERTIES = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generateextraproperties.GenerateExtraProperties
-
-### FIXME: changed in main
-TOOL_GENERATECASEFOLDING = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generatecharacter.CaseFolding
-
-##########################################################################################
-
-# Executable javascript filter for man page generation using pandoc.
-
-PANDOC_TROFF_MANPAGE_FILTER := $(BUILDTOOLS_OUTPUTDIR)/manpages/pandoc-troff-manpage-filter
-PANDOC_HTML_MANPAGE_FILTER := $(BUILDTOOLS_OUTPUTDIR)/manpages/pandoc-html-manpage-filter
-
-################################################################################
-
 endif # include guard
 include MakeIncludeEnd.gmk

@@ -116,12 +116,12 @@ define SetupCompilePropertiesBody
   $1_EXEC_MARKER := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/_the.$1.exec
 
   ifeq ($$($1_TYPE), langtools)
-    $1_TOOL := -cp $(BUILDTOOLS_OUTPUTDIR)/langtools_tools_classes \
-    compileproperties.CompileProperties
+    $1_TOOL := -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
+    jdk.internal.buildtools.compileproperties.CompileProperties
     $1_TOOL_DEPS := $(BUILD_TOOLS_LANGTOOLS)
   else
-    $1_TOOL := -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.compileproperties.CompileProperties
+    $1_TOOL := -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
+    jdk.internal.buildtools.compilepropertieslangtools.CompileProperties
     $1_TOOL_DEPS := $(BUILD_TOOLS_JDK)
   endif
 

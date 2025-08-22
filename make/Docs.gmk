@@ -57,6 +57,8 @@ include $(TOPDIR)/make/conf/javadoc.conf
 
 MODULES_SOURCE_PATH := $(call PathList, $(call GetModuleSrcPath) )
 
+TOOL_FIXUPPANDOC = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
+    jdk.internal.buildtools.fixuppandoc.Main
 
 # In order to get a specific ordering it's necessary to specify the total
 # ordering of tags as the tags are otherwise ordered in order of definition.

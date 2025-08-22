@@ -200,6 +200,9 @@ ifeq ($(call isTargetOsType, unix)+$(MAKEFILE_PREFIX), true+Launcher)
       # PANDOC_TROFF_MANPAGE_FILTER, a wrapper around
       # PANDOC_TROFF_MANPAGE_FILTER_JAVASCRIPT. This is created by buildtools-jdk.
 
+      PANDOC_TROFF_MANPAGE_FILTER := $(BUILDTOOLS_OUTPUTDIR)/manpages/pandoc-troff-manpage-filter
+      PANDOC_HTML_MANPAGE_FILTER := $(BUILDTOOLS_OUTPUTDIR)/manpages/pandoc-html-manpage-filter
+
       # We should also depend on the source code for the filter
       PANDOC_TROFF_MANPAGE_FILTER_SOURCE := $(call FindFiles, \
           $(TOPDIR)/make/buildtools/jdk.internal.build/org/openjdk/buildtools/pandocfilter)
