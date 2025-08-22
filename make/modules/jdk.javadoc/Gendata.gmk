@@ -78,7 +78,7 @@ $(JDK_JAVADOC_DIR)/_element_lists.marker: \
 	    $(JAVA_SMALL) $(INTERIM_LANGTOOLS_ARGS) \
 	        $(COMPILECREATESYMBOLS_ADD_EXPORTS) \
 	        -classpath $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javadoc \
-	        build.tools.symbolgenerator.CreateSymbols \
+	        jdk.internal.buildtools.symbolgenerator.CreateSymbols \
 	        build-javadoc-data \
 	        $(CT_DATA_DESCRIPTION) \
 	        $(ELEMENT_LISTS_DIR) \
@@ -89,7 +89,7 @@ $(JDK_JAVADOC_DIR)/_element_lists.marker: \
 	    $(JAVA_SMALL) $(INTERIM_LANGTOOLS_ARGS) \
 	        $(COMPILECREATESYMBOLS_ADD_EXPORTS) \
 	        -classpath $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javadoc \
-	        build.tools.symbolgenerator.JavadocElementList \
+	        jdk.internal.buildtools.symbolgenerator.JavadocElementList \
 	        $(ELEMENT_LISTS_DIR)/element-list-$(JDK_SOURCE_TARGET_VERSION).txt \
 	        $(JAVADOC_MODULESOURCEPATH) \
 	        $(JAVADOC_MODULES) \

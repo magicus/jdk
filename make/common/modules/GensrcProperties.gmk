@@ -121,7 +121,7 @@ define SetupCompilePropertiesBody
     $1_TOOL_DEPS := $(BUILD_TOOLS_LANGTOOLS)
   else
     $1_TOOL := -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.compileproperties.CompileProperties
+    jdk.internal.buildtools.compileproperties.CompileProperties
     $1_TOOL_DEPS := $(BUILD_TOOLS_JDK)
   endif
 

@@ -67,18 +67,18 @@ JAVADOC_TAGS := \
     -tag param \
     -tag return \
     -tag throws \
-    -taglet build.tools.taglet.JSpec\$$JLS \
-    -taglet build.tools.taglet.JSpec\$$JVMS \
-    -taglet build.tools.taglet.ModuleGraph \
-    -taglet build.tools.taglet.SealedGraph \
-    -taglet build.tools.taglet.ToolGuide \
+    -taglet jdk.internal.buildtools.taglet.JSpec\$$JLS \
+    -taglet jdk.internal.buildtools.taglet.JSpec\$$JVMS \
+    -taglet jdk.internal.buildtools.taglet.ModuleGraph \
+    -taglet jdk.internal.buildtools.taglet.SealedGraph \
+    -taglet jdk.internal.buildtools.taglet.ToolGuide \
     -tag since \
     -tag serialData \
     -tag factory \
     -tag spec \
     -tag see \
-    -taglet build.tools.taglet.ExtLink \
-    -taglet build.tools.taglet.Incubating \
+    -taglet jdk.internal.buildtools.taglet.ExtLink \
+    -taglet jdk.internal.buildtools.taglet.Incubating \
     -tagletpath $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
     $(CUSTOM_JAVADOC_TAGS) \
     #

@@ -25,7 +25,7 @@
 
 javac -d . ../../../../../make/jdk/src/classes/build/tools/spp/Spp.java
 
-SPP=build.tools.spp.Spp
+SPP=jdk.internal.buildtools.spp.Spp
 
 # Generates unsafe access tests for objects and all primitive types
 # $1 = package name to Unsafe, sun.misc | jdk.internal.misc

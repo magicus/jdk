@@ -25,4 +25,4 @@
 # Simple wrapper script to call Java with the pandoc filter
 
 @@JAVA_SMALL@@ -cp @@BUILDTOOLS_OUTPUTDIR@@/jdk_tools_classes \
-    build.tools.pandocfilter.PandocManPageTroffFilter
+    jdk.internal.buildtools.pandocfilter.PandocManPageTroffFilter

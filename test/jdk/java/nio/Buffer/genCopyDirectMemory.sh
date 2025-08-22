@@ -28,7 +28,7 @@ javac -d . ../../../../../make/jdk/src/classes/build/tools/spp/Spp.java
 gen() {
     out=CopyDirect$2Memory.java
     rm -f $out
-    java  build.tools.spp.Spp -K$1 -Dtype=$1 -DType=$2 -DFulltype=$3 -iCopyDirect-X-Memory.java.template -o$out
+    java  jdk.internal.buildtools.spp.Spp -K$1 -Dtype=$1 -DType=$2 -DFulltype=$3 -iCopyDirect-X-Memory.java.template -o$out
 }
 
 gen byte Byte Byte

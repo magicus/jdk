@@ -46,7 +46,7 @@ esac
 
 javac -d . ../../../../../../../make/jdk/src/classes/build/tools/spp/Spp.java
 
-SPP=build.tools.spp.Spp
+SPP=jdk.internal.buildtools.spp.Spp
 
 typeprefix=
 
@@ -211,4 +211,3 @@ do
 done
 
 rm -fr build
-

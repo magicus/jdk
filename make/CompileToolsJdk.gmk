@@ -97,7 +97,7 @@ DEPEND_SERVICE_PROVIDER := $(BUILDTOOLS_OUTPUTDIR)/depend/META-INF/services/com.
 
 $(DEPEND_SERVICE_PROVIDER):
 	$(call MakeDir, $(BUILDTOOLS_OUTPUTDIR)/depend/META-INF/services)
-	$(ECHO) build.tools.depend.Depend > $@
+	$(ECHO) jdk.internal.buildtools.depend.Depend > $@
 
 TARGETS += $(COMPILE_DEPEND) $(DEPEND_SERVICE_PROVIDER)
 

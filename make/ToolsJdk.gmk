@@ -41,94 +41,94 @@ BUILD_TOOLS_JDK := $(call SetupJavaCompilationCompileTarget, \
 
 TOOL_COMPILEFONTCONFIG = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
     --add-exports java.desktop/sun.awt=ALL-UNNAMED \
-    build.tools.compilefontconfig.CompileFontConfig
+    jdk.internal.buildtools.compilefontconfig.CompileFontConfig
 
 TOOL_GENERATECHARACTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generatecharacter.GenerateCharacter
+    jdk.internal.buildtools.generatecharacter.GenerateCharacter
 
 TOOL_CHARACTERNAME = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generatecharacter.CharacterName
+    jdk.internal.buildtools.generatecharacter.CharacterName
 
 TOOL_DTDBUILDER = $(JAVA_SMALL) -Ddtd_home=$(TOPDIR)/src/java.desktop/share/data/dtdbuilder \
     -Djava.awt.headless=true \
-    -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes build.tools.dtdbuilder.DTDBuilder
+    -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes jdk.internal.buildtools.dtdbuilder.DTDBuilder
 
 TOOL_GENERATEBREAKITERATORDATA = $(JAVA_SMALL) \
     -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generatebreakiteratordata.GenerateBreakIteratorData
+    jdk.internal.buildtools.generatebreakiteratordata.GenerateBreakIteratorData
 
 TOOL_GENERATECURRENCYDATA = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generatecurrencydata.GenerateCurrencyData
+    jdk.internal.buildtools.generatecurrencydata.GenerateCurrencyData
 
 TOOL_TZDB = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.tzdb.TzdbZoneRulesCompiler
+    jdk.internal.buildtools.tzdb.TzdbZoneRulesCompiler
 
 TOOL_BLOCKED_CERTS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
     --add-exports java.base/sun.security.util=ALL-UNNAMED \
-    build.tools.blockedcertsconverter.BlockedCertsConverter
+    jdk.internal.buildtools.blockedcertsconverter.BlockedCertsConverter
 
 TOOL_MAKEJAVASECURITY = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.makejavasecurity.MakeJavaSecurity
+    jdk.internal.buildtools.makejavasecurity.MakeJavaSecurity
 
 TOOL_GENERATECACERTS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
     -Dkeystore.pkcs12.certProtectionAlgorithm=NONE \
     -Dkeystore.pkcs12.macAlgorithm=NONE \
-    build.tools.generatecacerts.GenerateCacerts
+    jdk.internal.buildtools.generatecacerts.GenerateCacerts
 
 TOOL_GENERATEEXTRAPROPERTIES = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generateextraproperties.GenerateExtraProperties
+    jdk.internal.buildtools.generateextraproperties.GenerateExtraProperties
 
 TOOL_GENERATECASEFOLDING = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generatecharacter.CaseFolding
+    jdk.internal.buildtools.generatecharacter.CaseFolding
 
 TOOL_MAKEZIPREPRODUCIBLE = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.makezipreproducible.MakeZipReproducible
+    jdk.internal.buildtools.makezipreproducible.MakeZipReproducible
 
 # TODO: There are references to the jdwpgen.jar in jdk/make/netbeans/jdwpgen/build.xml
 # and nbproject/project.properties in the same dir. Needs to be looked at.
-TOOL_JDWPGEN = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes build.tools.jdwpgen.Main
+TOOL_JDWPGEN = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes jdk.internal.buildtools.jdwpgen.Main
 
 # TODO: Lots of files in jdk/make/tools/CharsetMapping dir
 TOOL_CHARSETMAPPING = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.charsetmapping.Main $(LOG_INFO)
+    jdk.internal.buildtools.charsetmapping.Main $(LOG_INFO)
 
-TOOL_SPP = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes build.tools.spp.Spp
+TOOL_SPP = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes jdk.internal.buildtools.spp.Spp
 
 # Nimbus is used somewhere in the swing build.
 TOOL_GENERATENIMBUS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generatenimbus.Generator
+    jdk.internal.buildtools.generatenimbus.Generator
 
 TOOL_WRAPPERGENERATOR = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.x11wrappergen.WrapperGenerator
+    jdk.internal.buildtools.x11wrappergen.WrapperGenerator
 
 TOOL_AWT_TOBIN = $(JAVA_SMALL) -Djava.awt.headless=true -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.icondata.awt.ToBin
+    jdk.internal.buildtools.icondata.awt.ToBin
 
 TOOL_OSX_TOBIN = $(JAVA_SMALL) -Djava.awt.headless=true -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.icondata.osxapp.ToBin
+    jdk.internal.buildtools.icondata.osxapp.ToBin
 
 TOOL_CLDRCONVERTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.cldrconverter.CLDRConverter
+    jdk.internal.buildtools.cldrconverter.CLDRConverter
 
 TOOL_INTPOLY = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.intpoly.FieldGen
+    jdk.internal.buildtools.intpoly.FieldGen
 
 TOOL_GENERATELSREQUIVMAPS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.generatelsrequivmaps.EquivMapsGenerator
+    jdk.internal.buildtools.generatelsrequivmaps.EquivMapsGenerator
 
 TOOL_GENMODULEINFOSOURCE = $(JAVA_SMALL) $(INTERIM_LANGTOOLS_BOOTCLASSPATH) \
     -cp $(call PathList, $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes) \
-    build.tools.module.GenModuleInfoSource
+    jdk.internal.buildtools.module.GenModuleInfoSource
 
 TOOL_GENCLASSLOADERMAP = $(JAVA_SMALL) $(INTERIM_LANGTOOLS_BOOTCLASSPATH) \
     -cp $(call PathList, $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes) \
-    build.tools.module.GenModuleLoaderMap
+    jdk.internal.buildtools.module.GenModuleLoaderMap
 
 TOOL_PUBLICSUFFIXLIST = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.publicsuffixlist.GeneratePublicSuffixList
+    jdk.internal.buildtools.publicsuffixlist.GeneratePublicSuffixList
 
 TOOL_FIXUPPANDOC = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    build.tools.fixuppandoc.Main
+    jdk.internal.buildtools.fixuppandoc.Main
 
 ################################################################################
 
