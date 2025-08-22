@@ -31,7 +31,7 @@ ifeq ($(INCLUDE), true)
 GENDATA_TZDB :=
 
 TOOL_TZDB = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.tzdb.TzdbZoneRulesCompiler
+    jdk.internal.buildtools.tzdb.TzdbZoneRulesCompiler
 #
 # Time zone data file creation
 #

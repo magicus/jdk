@@ -31,7 +31,7 @@ ifeq ($(INCLUDE), true)
 ################################################################################
 
 TOOL_GENERATECHARACTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.generatecharacter.GenerateCharacter
+    jdk.internal.buildtools.generatecharacter.GenerateCharacter
 
 GENSRC_CHARACTERDATA :=
 

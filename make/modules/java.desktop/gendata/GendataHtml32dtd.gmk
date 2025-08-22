@@ -32,7 +32,7 @@ GENDATA_HTML32DTD :=
 
 TOOL_DTDBUILDER = $(JAVA_SMALL) -Ddtd_home=$(TOPDIR)/src/java.desktop/share/data/dtdbuilder \
     -Djava.awt.headless=true \
-    -cp $(BUILDTOOLS_OUTPUTDIR)/classes org.openjdk.buildtools.dtdbuilder.DTDBuilder
+    -cp $(BUILDTOOLS_OUTPUTDIR)/classes jdk.internal.buildtools.dtdbuilder.DTDBuilder
 
 HTML32DTD = $(JDK_OUTPUTDIR)/modules/java.desktop/javax/swing/text/html/parser/html32.bdtd
 $(HTML32DTD): $(BUILD_TOOLS_JDK)

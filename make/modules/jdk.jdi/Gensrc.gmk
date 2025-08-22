@@ -33,7 +33,7 @@ include GensrcCommon.gmk
 # an HTML documentation file (jdwp-protocol.html).
 
 TOOL_JDWPGEN = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.jdwpgen.Main
+    jdk.internal.buildtools.jdwpgen.Main
 
 JDWP_SPEC_FILE := $(TOPDIR)/src/java.se/share/data/jdwp/jdwp.spec
 HEADER_FILE := $(SUPPORT_OUTPUTDIR)/headers/jdk.jdwp.agent/JDWPCommands.h

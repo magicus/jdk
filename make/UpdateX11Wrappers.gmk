@@ -44,7 +44,7 @@ ifeq ($(COMPILE_TYPE), cross)
 endif
 
 TOOL_WRAPPERGENERATOR = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.x11wrappergen.WrapperGenerator
+    jdk.internal.buildtools.x11wrappergen.WrapperGenerator
 
 BITS := $(OPENJDK_TARGET_CPU_BITS)
 

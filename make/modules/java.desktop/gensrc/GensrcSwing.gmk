@@ -31,7 +31,7 @@ ifeq ($(INCLUDE), true)
 ################################################################################
 
 TOOL_GENERATENIMBUS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.generatenimbus.Generator
+    jdk.internal.buildtools.generatenimbus.Generator
 
 NIMBUS_PACKAGE = javax.swing.plaf
 NIMBUS_GENSRC_DIR = $(SUPPORT_OUTPUTDIR)/gensrc/java.desktop/javax/swing/plaf/nimbus

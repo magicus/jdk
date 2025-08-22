@@ -35,11 +35,11 @@ include $(TOPDIR)/make/ToolsJdk.gmk
 
 # shared by java.base and jdk.charsets
 TOOL_CHARSETMAPPING = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.charsetmapping.Main $(LOG_INFO)
+    jdk.internal.buildtools.charsetmapping.Main $(LOG_INFO)
 
 # shared by java.base and jdk.localedata
 TOOL_CLDRCONVERTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.cldrconverter.CLDRConverter
+    jdk.internal.buildtools.cldrconverter.CLDRConverter
 
 ################################################################################
 # Sets up a rule that creates a version.properties file in the gensrc output

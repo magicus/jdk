@@ -29,7 +29,7 @@ include GensrcCommon.gmk
 
 # Used by GensrcBuffer.gmk, GensrcCharsetCoder.gmk and GensrcVarHandles.gmk
 TOOL_SPP = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.spp.Spp
+    jdk.internal.buildtools.spp.Spp
 
 include gensrc/GensrcBuffer.gmk
 include gensrc/GensrcCharacterData.gmk
@@ -102,7 +102,7 @@ TARGETS += $(LIST_RESOURCE_BUNDLE) $(SUN_UTIL) $(SECURITY_RESOURCES) $(KEYTOOL_R
 ################################################################################
 
 TOOL_GENERATELSREQUIVMAPS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.generatelsrequivmaps.EquivMapsGenerator
+    jdk.internal.buildtools.generatelsrequivmaps.EquivMapsGenerator
 
 GENSRC_LSREQUIVMAPS := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/util/locale/LocaleEquivalentMaps.java
 
@@ -115,7 +115,7 @@ TARGETS += $(GENSRC_LSREQUIVMAPS)
 ################################################################################
 
 TOOL_INTPOLY = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.intpoly.FieldGen
+    jdk.internal.buildtools.intpoly.FieldGen
 
 INTPOLY_GEN_DONE := $(GENSRC_DIR)/_intpoly-gensrc.marker
 INTPOLY_HEADER := $(TOPDIR)/src/java.base/share/tools/org/openjdk/buildtools/intpoly/header.txt

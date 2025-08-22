@@ -35,7 +35,7 @@ include gendata/GendataTZDB.gmk
 ################################################################################
 
 TOOL_CHARACTERNAME = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.generatecharacter.CharacterName
+    jdk.internal.buildtools.generatecharacter.CharacterName
 
 GENDATA_UNINAME := $(JDK_OUTPUTDIR)/modules/java.base/java/lang/uniName.dat
 
@@ -50,7 +50,7 @@ TARGETS += $(GENDATA_UNINAME)
 GENDATA_CURDATA := $(JDK_OUTPUTDIR)/modules/java.base/java/util/currency.data
 
 TOOL_GENERATECURRENCYDATA = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.generatecurrencydata.GenerateCurrencyData
+    jdk.internal.buildtools.generatecurrencydata.GenerateCurrencyData
 
 $(GENDATA_CURDATA): $(MODULE_SRC)/share/data/currency/CurrencyData.properties $(BUILD_TOOLS_JDK)
 	$(call MakeDir, $(@D))
@@ -66,7 +66,7 @@ TARGETS += $(GENDATA_CURDATA)
 TOOL_GENERATECACERTS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     -Dkeystore.pkcs12.certProtectionAlgorithm=NONE \
     -Dkeystore.pkcs12.macAlgorithm=NONE \
-    org.openjdk.buildtools.generatecacerts.GenerateCacerts
+    jdk.internal.buildtools.generatecacerts.GenerateCacerts
 
 ifneq ($(CACERTS_SRC), )
   GENDATA_CACERTS_SRC := $(CACERTS_SRC)
@@ -99,7 +99,7 @@ endif
 # RESTRICTED_PKGS_SRC is optionally set in custom extension for this makefile
 
 TOOL_MAKEJAVASECURITY = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.makejavasecurity.MakeJavaSecurity
+    jdk.internal.buildtools.makejavasecurity.MakeJavaSecurity
 
 $(GENDATA_JAVA_SECURITY): $(BUILD_TOOLS_JDK) $(GENDATA_JAVA_SECURITY_SRC) $(RESTRICTED_PKGS_SRC)
 	$(call LogInfo, Generating java.security)

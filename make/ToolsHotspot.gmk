@@ -42,7 +42,7 @@ BUILD_TOOLS_HOTSPOT := $(call SetupJavaCompilationCompileTarget, \
 ################################################################################
 
 TOOL_JFR_GEN := $(JAVA_SMALL) -cp $(HOTSPOT_TOOLS_OUTPUTDIR) \
-    org.openjdk.buildtools.jfr.GenerateJfrFiles
+    jdk.internal.buildtools.jfr.GenerateJfrFiles
 
 ################################################################################
 

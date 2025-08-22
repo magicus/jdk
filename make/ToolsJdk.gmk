@@ -41,19 +41,19 @@ BUILD_TOOLS_JDK := $(call SetupJavaCompilationCompileTarget, \
 
 # used by build system for many modules
 TOOL_COMPILEPROPERTIES = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.compileproperties.CompileProperties
+    jdk.internal.buildtools.compileproperties.CompileProperties
 
 # used by build system for all modules
 TOOL_GENMODULEINFOSOURCE = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.module.GenModuleInfoSource
+    jdk.internal.buildtools.module.GenModuleInfoSource
 
 # used by build system for zip files
 TOOL_MAKEZIPREPRODUCIBLE = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.makezipreproducible.MakeZipReproducible
+    jdk.internal.buildtools.makezipreproducible.MakeZipReproducible
 
 # used by build system for docs
 TOOL_FIXUPPANDOC = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.fixuppandoc.Main
+    jdk.internal.buildtools.fixuppandoc.Main
 
 ### FIXME: changed in main
 TOOL_GENERATEEXTRAPROPERTIES = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \

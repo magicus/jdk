@@ -49,7 +49,7 @@ VARDEPS_FILE := $(call DependOnVariable, VARDEPS_VALUE)
 
 TOOL_GENCLASSLOADERMAP = $(JAVA_SMALL) \
     -cp $(call PathList, $(BUILDTOOLS_OUTPUTDIR)/classes) \
-    org.openjdk.buildtools.moduleloadermap.GenModuleLoaderMap
+    jdk.internal.buildtools.moduleloadermap.GenModuleLoaderMap
 
 ################################################################################
 

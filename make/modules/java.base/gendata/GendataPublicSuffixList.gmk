@@ -29,7 +29,7 @@ ifeq ($(INCLUDE), true)
 ################################################################################
 
 TOOL_PUBLICSUFFIXLIST = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.publicsuffixlist.GeneratePublicSuffixList
+    jdk.internal.buildtools.publicsuffixlist.GeneratePublicSuffixList
 
 GENDATA_PUBLICSUFFIXLIST_SRC += $(MODULE_SRC)/share/data/publicsuffixlist/public_suffix_list.dat
 GENDATA_PUBLICSUFFIXLIST := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/security/public_suffix_list.dat

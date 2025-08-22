@@ -30,7 +30,7 @@ ifeq ($(INCLUDE), true)
 
 TOOL_BLOCKED_CERTS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     --add-exports java.base/sun.security.util=ALL-UNNAMED \
-    org.openjdk.buildtools.blockedcertsconverter.BlockedCertsConverter
+    jdk.internal.buildtools.blockedcertsconverter.BlockedCertsConverter
 
 GENDATA_BLOCKED_CERTS_SRC += $(MODULE_SRC)/share/data/blockedcertsconverter/blocked.certs.pem
 GENDATA_BLOCKED_CERTS := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/security/blocked.certs

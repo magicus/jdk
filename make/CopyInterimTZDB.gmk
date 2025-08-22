@@ -34,7 +34,7 @@ include CopyFiles.gmk
 define tzdb_copyfiles
 	$(call MakeTargetDir)
 	$(RM) '$@'
-	$(SED) -e "s/package java.time.zone/package org.openjdk.buildtools.tzdb/" \
+	$(SED) -e "s/package java.time.zone/package jdk.internal.buildtools.tzdb/" \
         < $(<) > $@
 endef
 

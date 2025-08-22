@@ -25,4 +25,4 @@
 # Simple wrapper script to call Java with the pandoc filter
 
 @@JAVA_SMALL@@ -cp @@BUILDTOOLS_OUTPUTDIR@@/jdk_tools_classes \
-    org.openjdk.buildtools.pandocfilter.PandocManPageHtmlFilter
+    jdk.internal.buildtools.pandocfilter.PandocManPageHtmlFilter

@@ -32,7 +32,7 @@ ifeq ($(INCLUDE), true)
 ################################################################################
 
 TOOL_WRAPPERGENERATOR = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
-    org.openjdk.buildtools.x11wrappergen.WrapperGenerator
+    jdk.internal.buildtools.x11wrappergen.WrapperGenerator
 
 # Put the generated Java classes used to interface X11 from awt here.
 GENSRC_X11WRAPPERS_OUTPUTDIR := $(SUPPORT_OUTPUTDIR)/gensrc/java.desktop/sun/awt/X11
