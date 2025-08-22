@@ -117,7 +117,7 @@ define SetupCompilePropertiesBody
 
   ifeq ($$($1_TYPE), langtools)
     $1_TOOL := -cp $(BUILDTOOLS_OUTPUTDIR)/langtools_tools_classes \
-    compileproperties.CompileProperties
+    jdk.internal.buildtools.compilepropertieslangtools.CompileProperties
     $1_TOOL_DEPS := $(BUILD_TOOLS_LANGTOOLS)
   else
     $1_TOOL := -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
