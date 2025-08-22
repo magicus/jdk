@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2025, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -23,10 +23,15 @@
 # questions.
 #
 
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
+
+################################################################################
+
 include Execute.gmk
 include TextFileProcessing.gmk
-# Still needed to be able to depend on BUILD_TOOLS_JD
-include ToolsJdk.gmk
+# Still needed to be able to depend on BUILD_TOOLS_JDK
+include $(TOPDIR)/make/ToolsJdk.gmk
 
 # shared by java.base and jdk.charsets
 TOOL_CHARSETMAPPING = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
@@ -45,8 +50,13 @@ TOOL_CLDRCONVERTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
 define SetupVersionProperties
   $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/$$(strip $2):
 	$$(call MakeTargetDir)
-	$(PRINTF) "jdk=$(VERSION_NUMBER)\nfull=$(VERSION_STRING)\nrelease=$(VERSION_SHORT)\n" \
-	    > $$@
+	$(PRINTF) "jdk=%s\nfull=%s\nrelease=%s\n" \
+	    $(VERSION_NUMBER) $(VERSION_STRING) $(VERSION_SHORT) > $$@
 
   $$(strip $1) += $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/$$(strip $2)
 endef
+
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk

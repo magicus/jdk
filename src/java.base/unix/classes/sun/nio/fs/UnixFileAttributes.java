@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,7 @@ import java.nio.file.attribute.GroupPrincipal;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.UserPrincipal;
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -58,6 +58,7 @@ class UnixFileAttributes
     private long    st_ctime_nsec;
     private long    st_birthtime_sec;
     private long    st_birthtime_nsec;
+    private boolean birthtime_available;
 
     // created lazily
     private volatile UserPrincipal owner;
@@ -80,8 +81,11 @@ class UnixFileAttributes
         return attrs;
     }
 
-    // get the UnixFileAttributes for a given file. Returns null if the file does not exist.
-    static UnixFileAttributes getIfExists(UnixPath path) throws UnixException {
+    // get the UnixFileAttributes for a given file.
+    // Returns null if the file does not exist.
+    static UnixFileAttributes getIfExists(UnixPath path)
+        throws UnixException
+    {
         UnixFileAttributes attrs = new UnixFileAttributes();
         int errno = UnixNativeDispatcher.stat2(path, attrs);
         if (errno == 0) {
@@ -91,6 +95,26 @@ class UnixFileAttributes
         } else {
             throw new UnixException(errno);
         }
+    }
+
+    // get the UnixFileAttributes for a given file, optionally following links.
+    // Returns null if the file does not exist.
+    static UnixFileAttributes getIfExists(UnixPath path, boolean followLinks)
+        throws UnixException
+    {
+        UnixFileAttributes attrs = new UnixFileAttributes();
+        int flag = (followLinks) ? 0 : UnixConstants.AT_SYMLINK_NOFOLLOW;
+        try {
+            UnixNativeDispatcher.fstatat(UnixConstants.AT_FDCWD,
+                                         path.asByteArray(), flag, attrs);
+        } catch (UnixException x) {
+            if (x.errno() == UnixConstants.ENOENT)
+                return null;
+
+            throw x;
+        }
+
+        return attrs;
     }
 
     // get the UnixFileAttributes for an open file
@@ -163,10 +187,10 @@ class UnixFileAttributes
 
     @Override
     public FileTime creationTime() {
-        if (UnixNativeDispatcher.birthtimeSupported()) {
+        if (UnixNativeDispatcher.birthtimeSupported() && birthtime_available) {
             return toFileTime(st_birthtime_sec, st_birthtime_nsec);
         } else {
-            // return last modified when birth time not supported
+            // return last modified when birth time unsupported or unavailable
             return lastModifiedTime();
         }
     }
@@ -238,7 +262,7 @@ class UnixFileAttributes
     @Override
     public Set<PosixFilePermission> permissions() {
         int bits = (st_mode & UnixConstants.S_IAMB);
-        HashSet<PosixFilePermission> perms = new HashSet<>();
+        EnumSet<PosixFilePermission> perms = EnumSet.noneOf(PosixFilePermission.class);
 
         if ((bits & UnixConstants.S_IRUSR) > 0)
             perms.add(PosixFilePermission.OWNER_READ);

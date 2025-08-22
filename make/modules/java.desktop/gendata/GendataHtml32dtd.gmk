@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2025, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,13 @@
 # questions.
 #
 
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
+
+################################################################################
+
+GENDATA_HTML32DTD :=
+
 TOOL_DTDBUILDER = $(JAVA_SMALL) -Ddtd_home=$(TOPDIR)/src/java.desktop/share/data/dtdbuilder \
     -Djava.awt.headless=true \
     -cp $(BUILDTOOLS_OUTPUTDIR)/classes org.openjdk.buildtools.dtdbuilder.DTDBuilder
@@ -35,3 +42,8 @@ $(HTML32DTD): $(BUILD_TOOLS_JDK)
 	($(TOOL_DTDBUILDER) html32 > $@) || exit 1
 
 TARGETS += $(HTML32DTD)
+
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2023, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2025, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -23,9 +23,12 @@
 # questions.
 #
 
-#
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
+
+################################################################################
 # Rules to create $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/lang/CharacterData*.java
-#
+################################################################################
 
 TOOL_GENERATECHARACTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
     org.openjdk.buildtools.generatecharacter.GenerateCharacter
@@ -69,3 +72,8 @@ $(eval $(call SetupCharacterData,CharacterData0E, -string -plane 14, 11 4 1))
 $(GENSRC_CHARACTERDATA): $(BUILD_TOOLS_JDK)
 
 TARGETS += $(GENSRC_CHARACTERDATA)
+
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk
