@@ -32,7 +32,7 @@ include JavaCompilation.gmk
 ################################################################################
 # Build tools needed for the JFR source code generation
 
-HOTSPOT_TOOLS_SRCDIR := $(TOPDIR)/make/src/classes
+HOTSPOT_TOOLS_SRCDIR := $(TOPDIR)/make/src/hotspot
 
 HOTSPOT_TOOLS_OUTPUTDIR := $(BUILDTOOLS_OUTPUTDIR)/buildtools/hotspot_tools_classes
 

@@ -47,7 +47,7 @@ import org.junit.jupiter.api.Test;
  *          jdk.compiler/com.sun.tools.javac.main
  *          jdk.compiler/com.sun.tools.javac.util
  *
- * @compile ${test.root}/../../make/langtools/src/classes/build/tools/symbolgenerator/CreateSymbols.java
+ * @compile ${test.root}/../../make/src/jdk.compiler/jdk/internal/buildtools/symbolgenerator/CreateSymbols.java
  *
  * @run junit CreateSymbolsReproducibleTest
  */

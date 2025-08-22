@@ -40,7 +40,7 @@ import java.util.*;
 class NativeMethodFinder {
 
     // ct.sym uses this fake name for the restricted annotation instead
-    // see make/langtools/src/classes/build/tools/symbolgenerator/CreateSymbols.java
+    // see make/src/jdk.compiler/jdk/internal/buildtools/symbolgenerator/CreateSymbols.java
     private static final String RESTRICTED_NAME = "Ljdk/internal/javac/Restricted+Annotation;";
 
     private final Map<MethodRef, Boolean> cache = new HashMap<>();

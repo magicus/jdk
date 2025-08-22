@@ -60,7 +60,7 @@ public class CanHandleClassFilesTest {
         for (Path d = testSrc; d != null; d = d.getParent()) {
             if (Files.exists(d.resolve("TEST.ROOT"))) {
                 d = d.getParent().getParent();
-                Path test = d.resolve("make/langtools/src/classes/build/tools/symbolgenerator/CreateSymbols.java");
+                Path test = d.resolve("make/src/jdk.compiler/jdk/internal/buildtools/symbolgenerator/CreateSymbols.java");
                 if (Files.exists(test)) {
                     createSymbols = test;
                     includeList = d.resolve("src/jdk.compiler/share/data/symbols/include.list");

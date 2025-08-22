@@ -104,7 +104,7 @@ import toolbox.ToolBox;
  *
  *     java ElementStructureTest generate-hashes $LANGTOOLS_DIR/src/jdk.compiler/share/data/symbols/include.list (<classes-for-N> N)+
  *
- * Where <classes-for-N> is the file produced by make/src/classes/build/tools/symbolgenerator/Probe.java.
+ * Where <classes-for-N> is the file produced by make/src/jdk.compiler/jdk/internal/buildtools/symbolgenerator/Probe.java.
  * So, to produce hashes for 6, 7 and 8, this command can be used:
  *
  *     java ElementStructureTest generate-hashes classes-6 6 classes-7 7 classes-8 8

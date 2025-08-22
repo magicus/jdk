@@ -23,7 +23,7 @@
 # questions.
 #
 
-javac -d . ../../../../../../../make/jdk/src/classes/build/tools/spp/Spp.java
+javac -d . ../../../../../../../make/src/java.base/jdk/internal/buildtools/spp/Spp.java
 
 genBin() {
   for MS in "Heap" "Direct"

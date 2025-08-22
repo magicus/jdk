@@ -40,7 +40,7 @@ endef
 
 $(eval $(call SetupCopyFiles, COPY_INTERIM_TZDB, \
     SRC := $(TOPDIR)/src/java.base/share/classes/java/time/zone, \
-    DEST := $(BUILDTOOLS_OUTPUTDIR)/interim_tzdb_classes/build/tools/tzdb, \
+    DEST := $(BUILDTOOLS_OUTPUTDIR)/interim_tzdb_classes/jdk/internal/buildtools/tzdb, \
     FILES := ZoneRules.java ZoneOffsetTransition.java ZoneOffsetTransitionRule.java Ser.java, \
     MACRO := tzdb_copyfiles, \
 ))

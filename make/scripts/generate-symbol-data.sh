@@ -72,5 +72,5 @@ $1/bin/java --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
             --add-exports jdk.compiler/com.sun.tools.javac.jvm=ALL-UNNAMED \
             --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED \
             --add-modules jdk.jdeps \
-            ../../../../../make/langtools/src/classes/build/tools/symbolgenerator/CreateSymbols.java \
+            ../../../../../make/src/jdk.compiler/jdk/internal/buildtools/symbolgenerator/CreateSymbols.java \
             build-description-incremental symbols include.list

@@ -47,7 +47,7 @@ Log false "Generating Vector API tests, $(date)\n"
 
 # Compile SPP
 Log true "Compiling SPP... "
-compilation=$(${JAVAC} -d . "${JDK_SRC_HOME}/make/jdk/src/classes/build/tools/spp/Spp.java")
+compilation=$(${JAVAC} -d . "${JDK_SRC_HOME}/make/src/java.base/jdk/internal/buildtools/spp/Spp.java")
 Log false "$compilation\n"
 Log true "done\n"
 

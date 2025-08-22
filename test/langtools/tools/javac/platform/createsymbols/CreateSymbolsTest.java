@@ -49,7 +49,7 @@ public class CreateSymbolsTest {
         Path compileDir = testClasses.resolve("data");
         deleteRecursively(compileDir);
         Files.createDirectories(compileDir);
-        Path createSymbols = findFile("../../make/langtools/src/classes/build/tools/symbolgenerator/CreateSymbols.java");
+        Path createSymbols = findFile("../../make/src/jdk.compiler/jdk/internal/buildtools/symbolgenerator/CreateSymbols.java");
 
         if (createSymbols == null) {
             System.err.println("Warning: cannot find CreateSymbols, skipping.");

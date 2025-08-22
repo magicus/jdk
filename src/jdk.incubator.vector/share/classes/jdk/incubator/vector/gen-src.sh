@@ -44,7 +44,7 @@ case $* in
 --help|*)       echo "Usage: $0 [--generate [file] | --clean | --revert | --list]"; exit 1;;
 esac
 
-javac -d . ../../../../../../../make/jdk/src/classes/build/tools/spp/Spp.java
+javac -d . ../../../../../../../make/src/java.base/jdk/internal/buildtools/spp/Spp.java
 
 SPP=jdk.internal.buildtools.spp.Spp
 

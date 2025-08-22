@@ -65,7 +65,7 @@ public class MakeJavaSecurityTest {
     private static Path getMakeJavaSecPath() {
         String testRoot = System.getProperty("test.root", ".");
         Path toolPath = Paths.get(testRoot).getParent().getParent();
-        toolPath = toolPath.resolve("make/jdk/src/classes/build/tools" +
+        toolPath = toolPath.resolve("make/src/java.base/jdk/internal/buildtools" +
                 "/makejavasecurity/MakeJavaSecurity.java");
 
         Asserts.assertTrue(Files.exists(toolPath),

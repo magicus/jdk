@@ -59,8 +59,8 @@ COMPILECREATESYMBOLS_ADD_EXPORTS := \
 $(eval $(call SetupJavaCompilation, COMPILE_CREATE_SYMBOLS, \
     TARGET_RELEASE := $(TARGET_RELEASE_NEWJDK), \
     COMPILER := buildjdk, \
-    SRC := $(TOPDIR)/make/langtools/src/classes, \
-    INCLUDES := build/tools/symbolgenerator, \
+    SRC := $(TOPDIR)/make/src/jdk.compiler, \
+    INCLUDES := jdk/internal/buildtools/symbolgenerator, \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javac, \
     DISABLED_WARNINGS := options, \
     JAVAC_FLAGS := \

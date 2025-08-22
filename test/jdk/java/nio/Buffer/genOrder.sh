@@ -23,7 +23,7 @@
 # questions.
 #
 
-javac -d . ../../../../../make/jdk/src/classes/build/tools/spp/Spp.java
+javac -d . ../../../../../make/src/java.base/jdk/internal/buildtools/spp/Spp.java
 gen() {
     out=Order$2.java
     rm -f $out

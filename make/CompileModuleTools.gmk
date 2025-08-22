@@ -45,10 +45,10 @@ endif
 $(eval $(call SetupJavaCompilation, BUILD_JIGSAW_TOOLS, \
     TARGET_RELEASE := $(TARGET_RELEASE), \
     COMPILER := $(COMPILER), \
-    SRC := $(TOPDIR)/make/jdk/src/classes, \
-    INCLUDES := build/tools/deps \
-                build/tools/docs \
-                build/tools/jigsaw, \
+    SRC := $(TOPDIR)/make/src/FIXME/, \
+    INCLUDES := jdk/internal/buildtools/deps \
+                jdk/internal/buildtools/docs \
+                jdk/internal/buildtools/jigsaw, \
     COPY := .properties .html, \
     BIN := $(TOOLS_CLASSES_DIR), \
     DISABLED_WARNINGS := fallthrough, \

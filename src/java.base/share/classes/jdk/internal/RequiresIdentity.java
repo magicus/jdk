@@ -40,7 +40,7 @@ import static java.lang.annotation.ElementType.TYPE_PARAMETER;
  *
  * Note this internal annotation is handled specially by the javac compiler.
  * To work properly with {@code --release older-release}, it requires special
- * handling in {@code make/langtools/src/classes/build/tools/symbolgenerator/CreateSymbols.java}
+ * handling in {@code make/src/jdk.compiler/jdk/internal/buildtools/symbolgenerator/CreateSymbols.java}
  * and {@code src/jdk.compiler/share/classes/com/sun/tools/javac/jvm/ClassReader.java}.
  *
  * @since 25
