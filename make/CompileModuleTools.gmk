@@ -45,7 +45,7 @@ endif
 $(eval $(call SetupJavaCompilation, BUILD_JIGSAW_TOOLS, \
     TARGET_RELEASE := $(TARGET_RELEASE), \
     COMPILER := $(COMPILER), \
-    SRC := $(TOPDIR)/make/buildtools/make, \
+    SRC := $(TOPDIR)/make/buildtools/jdk.internal.build, \
     INCLUDES := org/openjdk/buildtools/jigsaw, \
     COPY := .properties .html, \
     BIN := $(TOOLS_CLASSES_DIR), \

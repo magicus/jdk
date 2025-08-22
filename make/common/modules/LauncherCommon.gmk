@@ -202,7 +202,7 @@ ifeq ($(call isTargetOsType, unix)+$(MAKEFILE_PREFIX), true+Launcher)
 
       # We should also depend on the source code for the filter
       PANDOC_TROFF_MANPAGE_FILTER_SOURCE := $(call FindFiles, \
-          $(TOPDIR)/make/buildtools/make/org/openjdk/buildtools/pandocfilter)
+          $(TOPDIR)/make/buildtools/jdk.internal.build/org/openjdk/buildtools/pandocfilter)
 
       # The norm in man pages is to display code literals as bold, but pandoc
       # "correctly" converts these constructs (encoded in markdown using `...`

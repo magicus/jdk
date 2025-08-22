@@ -93,7 +93,7 @@ $(eval $(call SetupJavaCompilation, hotspot-buildtools, \
 $(eval $(call SetupJavaCompilation, interim-buildtools, \
     COMPILER := bootjdk, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/make, \
+    SRC := $(TOPDIR)/make/buildtools/jdk.internal.build, \
     INCLUDES := \
         org/openjdk/buildtools/compilepropertieslangtools \
         org/openjdk/buildtools/propertiesparser, \
@@ -105,7 +105,7 @@ interim-buildtools: $(interim-buildtools)
 
 BUILD_TOOLS_SRC_DIRS := \
     $(call FindAllToolsDirs) \
-    $(TOPDIR)/make/buildtools/make \
+    $(TOPDIR)/make/buildtools/jdk.internal.build \
     $(BUILDTOOLS_OUTPUTDIR)/interim_tzdb_classes \
     #
 
@@ -140,7 +140,7 @@ TARGETS += $(COPY_NIMBUS_TEMPLATES)
 
 $(eval $(call SetupJavaCompilation2, COMPILE_DEPEND, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/make, \
+    SRC := $(TOPDIR)/make/buildtools/jdk.internal.build, \
     INCLUDES := org/openjdk/buildtools/depend, \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/depend, \
     DISABLED_WARNINGS := options, \

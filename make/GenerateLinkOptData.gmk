@@ -38,7 +38,7 @@ include JavaCompilation.gmk
 
 $(eval $(call SetupJavaCompilation, CLASSLIST_JAR, \
     SMALL_JAVA := false, \
-    SRC := $(TOPDIR)/make/buildtools/make, \
+    SRC := $(TOPDIR)/make/buildtools/jdk.internal.build, \
     INCLUDES := org/openjdk/buildtools/classlist, \
     DISABLED_WARNINGS := dangling-doc-comments, \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/classlist_classes, \

@@ -35,7 +35,7 @@ include TextFileProcessing.gmk
 # Use += to be able to add to this from a custom extension
 BUILD_TOOLS_SRC_DIRS += \
     $(call FindAllToolsDirs) \
-    $(TOPDIR)/make/buildtools/make \
+    $(TOPDIR)/make/buildtools/jdk.internal.build \
     $(BUILDTOOLS_OUTPUTDIR)/interim_tzdb_classes \
     #
 
@@ -80,7 +80,7 @@ TARGETS += $(COPY_CLDRCONVERTER_PROPERTIES)
 
 $(eval $(call SetupJavaCompilation, COMPILE_DEPEND, \
     TARGET_RELEASE := $(TARGET_RELEASE_BOOTJDK), \
-    SRC := $(TOPDIR)/make/buildtools/make, \
+    SRC := $(TOPDIR)/make/buildtools/jdk.internal.build, \
     INCLUDES := org/openjdk/buildtools/depend, \
     BIN := $(BUILDTOOLS_OUTPUTDIR)/depend, \
     DISABLED_WARNINGS := options, \

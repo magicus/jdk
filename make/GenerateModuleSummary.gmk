@@ -31,7 +31,7 @@ include $(TOPDIR)/make/ModuleTools.gmk
 
 GENGRAPHS_DIR := $(IMAGES_OUTPUTDIR)/gengraphs
 SPEC_DOTFILES_DIR := $(GENGRAPHS_DIR)/spec-dotfiles
-TOOLS_MODULE_SRCDIR := $(TOPDIR)/make/buildtools/make/org/openjdk/buildtools/jigsaw
+TOOLS_MODULE_SRCDIR := $(TOPDIR)/make/buildtools/jdk.internal.build/org/openjdk/buildtools/jigsaw
 
 $(GENGRAPHS_DIR)/jdk.dot: $(BUILD_JIGSAW_TOOLS)
 	$(call MakeTargetDir)
