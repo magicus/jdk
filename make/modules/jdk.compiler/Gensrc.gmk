@@ -53,7 +53,7 @@ BUILD_TOOLS_LANGTOOLS := $(call SetupJavaCompilationCompileTarget, \
 #
 
 TOOL_PARSEPROPERTIES_CMD := $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/langtools_tools_classes \
-    propertiesparser.PropertiesParser
+    jdk.internal.buildtools.propertiesparser.PropertiesParser
 
 PARSEPROPERTIES_PACKAGE := com/sun/tools/javac/resources
 PARSEPROPERTIES_FILES := compiler.properties launcher.properties
