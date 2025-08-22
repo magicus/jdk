@@ -80,8 +80,8 @@ TARGETS += $(PARSEPROPERTIES)
 # Generate FlagsEnum from Flags constants
 #
 
-TOOL_FLAGSGENERATOR_CMD := $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/langtools_tools_classes \
-    flagsgenerator.FlagsGenerator
+TOOL_FLAGSGENERATOR_CMD := $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/classes \
+    jdk.internal.buildtools.flagsgenerator.FlagsGenerator
 
 FLAGS_SRC := \
     $(MODULE_SRC)/share/classes/com/sun/tools/javac/code/Flags.java

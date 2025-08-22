@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package flagsgenerator;
+package jdk.internal.buildtools.flagsgenerator;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.util.JavacTask;
