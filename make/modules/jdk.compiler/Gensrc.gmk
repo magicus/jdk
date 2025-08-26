@@ -79,20 +79,18 @@ TARGETS += $(PARSEPROPERTIES)
 # Generate FlagsEnum from Flags constants
 #
 
-TOOL_FLAGSGENERATOR_CMD := $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/langtools_tools_classes \
-    flagsgenerator.FlagsGenerator
-
 FLAGS_SRC := \
     $(MODULE_SRC)/share/classes/com/sun/tools/javac/code/Flags.java
 
 FLAGS_OUT := \
     $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/com/sun/tools/javac/code/FlagsEnum.java
 
-$(eval $(call SetupExecute, FLAGSGENERATOR, \
-    WARN := Generating FlagsEnum, \
-    DEPS := $(FLAGS_SRC) $(BUILD_TOOLS_LANGTOOLS), \
+$(eval $(call SetupRunBuildTool, FLAGSGENERATOR, \
+    BUILDTOOL := flagsgenerator.FlagsGenerator, \
+    DEPS := $(FLAGS_SRC), \
+    INFO := Generating FlagsEnum, \
     OUTPUT_FILE := $(FLAGS_OUT), \
-    COMMAND := $(TOOL_FLAGSGENERATOR_CMD) $(FLAGS_SRC) $(FLAGS_OUT), \
+    ARGUMENTS := $(FLAGS_SRC) $(FLAGS_OUT), \
 ))
 
 TARGETS += $(FLAGSGENERATOR)
