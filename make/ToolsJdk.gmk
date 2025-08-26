@@ -39,96 +39,81 @@ BUILD_TOOLS_JDK := $(call SetupJavaCompilationCompileTarget, \
 
 ################################################################################
 
-TOOL_COMPILEFONTCONFIG = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    --add-exports java.desktop/sun.awt=ALL-UNNAMED \
-    jdk.internal.buildtools.compilefontconfig.CompileFontConfig
+BuildTool = \
+  $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/$(strip $1)/classes \
+      $(BUILDTOOL_OPTS_$(strip $1)_$(strip $2)) \
+      jdk.internal.buildtools.$(1)
+endef
 
-TOOL_GENERATECHARACTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.generatecharacter.GenerateCharacter
+BUILDTOOL_OPTS_java.desktop_compilefontconfig.CompileFontConfig := \
+    --add-exports java.desktop/sun.awt=ALL-UNNAMED
+TOOL_COMPILEFONTCONFIG := $(call BuildTool, java.desktop, compilefontconfig.CompileFontConfig)
 
-TOOL_CHARACTERNAME = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.generatecharacter.CharacterName
+TOOL_GENERATECHARACTER := $(call BuildTool, java.base, generatecharacter.GenerateCharacter)
 
-TOOL_DTDBUILDER = $(JAVA_SMALL) -Ddtd_home=$(TOPDIR)/src/java.desktop/share/data/dtdbuilder \
-    -Djava.awt.headless=true \
-    -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes jdk.internal.buildtools.dtdbuilder.DTDBuilder
+TOOL_CHARACTERNAME := $(call BuildTool, java.base, generatecharacter.CharacterName)
 
-TOOL_GENERATEBREAKITERATORDATA = $(JAVA_SMALL) \
-    -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.generatebreakiteratordata.GenerateBreakIteratorData
+BUILDTOOL_OPTS_java.desktop_dtdbuilder.DTDBuilder := \
+    -Ddtd_home=$(TOPDIR)/src/java.desktop/share/data/dtdbuilder \
+    -Djava.awt.headless=true
+TOOL_DTDBUILDER := $(call BuildTool, java.desktop, dtdbuilder.DTDBuilder)
 
-TOOL_GENERATECURRENCYDATA = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.generatecurrencydata.GenerateCurrencyData
+TOOL_GENERATEBREAKITERATORDATA := $(call BuildTool, java.base, generatebreakiteratordata.GenerateBreakIteratorData)
 
-TOOL_TZDB = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.tzdb.TzdbZoneRulesCompiler
+TOOL_GENERATECURRENCYDATA := $(call BuildTool, java.base, generatecurrencydata.GenerateCurrencyData)
 
-TOOL_BLOCKED_CERTS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    --add-exports java.base/sun.security.util=ALL-UNNAMED \
-    jdk.internal.buildtools.blockedcertsconverter.BlockedCertsConverter
+TOOL_TZDB := $(call BuildTool, java.base, tzdb.TzdbZoneRulesCompiler)
 
-TOOL_MAKEJAVASECURITY = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.makejavasecurity.MakeJavaSecurity
+BUILDTOOL_OPTS_java.base_blockedcertsconverter.BlockedCertsConverter := \
+    --add-exports java.base/sun.security.util=ALL-UNNAMED
+TOOL_BLOCKED_CERTS := $(call BuildTool, java.base, blockedcertsconverter.BlockedCertsConverter)
 
-TOOL_GENERATECACERTS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+TOOL_MAKEJAVASECURITY := $(call BuildTool, java.base, makejavasecurity.MakeJavaSecurity)
+
+BUILDTOOL_OPTS_java.base_generatecacerts.GenerateCacerts := \
     -Dkeystore.pkcs12.certProtectionAlgorithm=NONE \
-    -Dkeystore.pkcs12.macAlgorithm=NONE \
-    jdk.internal.buildtools.generatecacerts.GenerateCacerts
+    -Dkeystore.pkcs12.macAlgorithm=NONE
+TOOL_GENERATECACERTS := $(call BuildTool, java.base, generatecacerts.GenerateCacerts)
 
-TOOL_GENERATEEXTRAPROPERTIES = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.generateextraproperties.GenerateExtraProperties
+TOOL_GENERATEEXTRAPROPERTIES := $(call BuildTool, java.base, generateextraproperties.GenerateExtraProperties)
 
-TOOL_GENERATECASEFOLDING = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.generatecharacter.CaseFolding
+TOOL_GENERATECASEFOLDING := $(call BuildTool, java.base, generatecharacter.CaseFolding)
 
-TOOL_MAKEZIPREPRODUCIBLE = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.makezipreproducible.MakeZipReproducible
+TOOL_MAKEZIPREPRODUCIBLE := $(call BuildTool, jdk.internal.build, makezipreproducible.MakeZipReproducible)
 
-# TODO: There are references to the jdwpgen.jar in jdk/make/netbeans/jdwpgen/build.xml
-# and nbproject/project.properties in the same dir. Needs to be looked at.
-TOOL_JDWPGEN = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes jdk.internal.buildtools.jdwpgen.Main
+TOOL_JDWPGEN := $(call BuildTool, jdk.jdi, jdwpgen.Main)
 
-# TODO: Lots of files in jdk/make/tools/CharsetMapping dir
-TOOL_CHARSETMAPPING = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.charsetmapping.Main $(LOG_INFO)
+BUILDTOOL_OPTS_java.base_charsetmapping.Main := \
+    $(LOG_INFO)
+TOOL_CHARSETMAPPING := $(call BuildTool, jdk.internal.build, charsetmapping.Main)
 
-TOOL_SPP = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes jdk.internal.buildtools.spp.Spp
+TOOL_SPP := $(call BuildTool, java.base, spp.Spp)
 
-# Nimbus is used somewhere in the swing build.
-TOOL_GENERATENIMBUS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.generatenimbus.Generator
+TOOL_GENERATENIMBUS := $(call BuildTool, java.desktop, generatenimbus.Generator)
 
-TOOL_WRAPPERGENERATOR = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.x11wrappergen.WrapperGenerator
+TOOL_WRAPPERGENERATOR := $(call BuildTool, java.desktop, x11wrappergen.WrapperGenerator)
 
-TOOL_AWT_TOBIN = $(JAVA_SMALL) -Djava.awt.headless=true -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.icondata.awt.ToBin
+BUILDTOOL_OPTS_java.desktop_icondata.awt.ToBin := \
+    -Djava.awt.headless=true
+TOOL_AWT_TOBIN := $(call BuildTool, java.desktop, icondata.awt.ToBin)
 
-TOOL_OSX_TOBIN = $(JAVA_SMALL) -Djava.awt.headless=true -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.icondata.osxapp.ToBin
+BUILDTOOL_OPTS_java.desktop_icondata.osxapp.ToBin := \
+    -Djava.awt.headless=true
+TOOL_OSX_TOBIN := $(call BuildTool, java.desktop, icondata.osxapp.ToBin)
 
-TOOL_CLDRCONVERTER = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.cldrconverter.CLDRConverter
+TOOL_CLDRCONVERTER := $(call BuildTool, jdk.internal.build, cldrconverter.CLDRConverter)
 
-TOOL_INTPOLY = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.intpoly.FieldGen
+TOOL_INTPOLY := $(call BuildTool, java.base, intpoly.FieldGen)
 
-TOOL_GENERATELSREQUIVMAPS = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.generatelsrequivmaps.EquivMapsGenerator
+TOOL_GENERATELSREQUIVMAPS := $(call BuildTool, java.base, generatelsrequivmaps.EquivMapsGenerator)
 
-TOOL_GENMODULEINFOSOURCE = $(JAVA_SMALL) $(INTERIM_LANGTOOLS_BOOTCLASSPATH) \
-    -cp $(call PathList, $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes) \
-    jdk.internal.buildtools.module.GenModuleInfoSource
+TOOL_GENMODULEINFOSOURCE := $(call BuildTool, jdk.internal.build, module.GenModuleInfoSource)
 
-TOOL_GENCLASSLOADERMAP = $(JAVA_SMALL) $(INTERIM_LANGTOOLS_BOOTCLASSPATH) \
-    -cp $(call PathList, $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes) \
-    jdk.internal.buildtools.module.GenModuleLoaderMap
+TOOL_GENCLASSLOADERMAP := $(call BuildTool, jdk.internal.build, module.GenModuleLoaderMap)
 
-TOOL_PUBLICSUFFIXLIST = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.publicsuffixlist.GeneratePublicSuffixList
+TOOL_PUBLICSUFFIXLIST := $(call BuildTool, java.base, publicsuffixlist.GeneratePublicSuffixList)
 
-TOOL_FIXUPPANDOC = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.fixuppandoc.Main
+TOOL_FIXUPPANDOC := $(call BuildTool, jdk.internal.build, fixuppandoc.Main)
 
 ################################################################################
 
