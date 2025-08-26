@@ -30,6 +30,7 @@ ifeq ($(INCLUDE), true)
 # Setup make rules for JFR gensrc file generation.
 ################################################################################
 
+include BuildToolsCommon.gmk
 include $(TOPDIR)/make/ToolsHotspot.gmk
 
 JFR_SRCDIR := $(TOPDIR)/src/hotspot/share/jfr/metadata
@@ -39,11 +40,14 @@ JFR_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/gensrc/jfrfiles
 METADATA_XML := $(JFR_SRCDIR)/metadata.xml
 METADATA_XSD := $(JFR_SRCDIR)/metadata.xsd
 
-$(eval $(call SetupExecute, jfr_gen_headers, \
+$(eval $(call SetupRunBuildTool, jfr_gen_headers, \
+    BUILDTOOL := jfr.GenerateJfrFiles, \
+    MODULE := hotspot, \
+    DEPS := $(METADATA_XML) $(METADATA_XSD), \
     INFO := Generating JFR header files, \
-    DEPS := $(METADATA_XML) $(METADATA_XSD) $(BUILD_TOOLS_HOTSPOT), \
     OUTPUT_DIR := $(JFR_OUTPUTDIR), \
-    COMMAND := $(TOOL_JFR_GEN) --mode headers --xml $(METADATA_XML) --xsd $(METADATA_XSD) --output $(JFR_OUTPUTDIR), \
+    ARGUMENTS := --mode headers --xml $(METADATA_XML) --xsd $(METADATA_XSD) \
+        --output $(JFR_OUTPUTDIR), \
 ))
 
 TARGETS += $(jfr_gen_headers)

@@ -25,6 +25,7 @@
 
 ################################################################################
 
+include BuildToolsCommon.gmk
 include Execute.gmk
 include $(TOPDIR)/make/ToolsHotspot.gmk
 
@@ -37,12 +38,14 @@ JFR_DATA_SUPPORTDIR := $(SUPPORT_OUTPUTDIR)/gendata/jdk.jfr
 METADATA_XML := $(JFR_SRCDIR)/metadata.xml
 METADATA_XSD := $(JFR_SRCDIR)/metadata.xsd
 
-$(eval $(call SetupExecute, jfr_gen_metadata, \
+$(eval $(call SetupRunBuildTool, jfr_gen_metadata, \
+    BUILDTOOL := jfr.GenerateJfrFiles, \
+    MODULE := hotspot, \
+    DEPS := $(METADATA_XML) $(METADATA_XSD), \
     INFO := Generating JFR metadata, \
-    DEPS := $(METADATA_XML) $(METADATA_XSD) $(BUILD_TOOLS_HOTSPOT), \
     OUTPUT_FILE := $(JFR_DATA_OUTPUTFILE), \
-    SUPPORT_DIR := $(JFR_DATA_SUPPORTDIR), \
-    COMMAND := $(TOOL_JFR_GEN) --mode metadata --xml $(METADATA_XML) --xsd $(METADATA_XSD) --output $(JFR_DATA_OUTPUTFILE), \
+    ARGUMENTS := --mode metadata --xml $(METADATA_XML) --xsd $(METADATA_XSD) \
+        --output $(JFR_DATA_OUTPUTFILE), \
 ))
 
 TARGETS += $(jfr_gen_metadata)

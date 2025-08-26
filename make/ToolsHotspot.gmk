@@ -44,15 +44,5 @@ BUILD_TOOLS_HOTSPOT := $(foreach m, $(BUILDTOOLS_MODULES), \
 
 ################################################################################
 
-BuildTool = \
-  $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/$(strip $1)/classes \
-      $(BUILDTOOL_OPTS_$(strip $1)_$(strip $2)) \
-      jdk.internal.buildtools.$(1)
-endef
-
-TOOL_JFR_GEN := $(call BuildTool, hotspot, jfr.GenerateJfrFiles)
-
-################################################################################
-
 endif # include guard
 include MakeIncludeEnd.gmk
