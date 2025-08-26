@@ -25,6 +25,7 @@
 
 ################################################################################
 
+include BuildToolsCommon.gmk
 include GensrcCommon.gmk
 include GensrcProperties.gmk
 include Execute.gmk
@@ -52,9 +53,6 @@ BUILD_TOOLS_LANGTOOLS := $(call SetupJavaCompilationCompileTarget, \
 # Compile properties files into enum-like classes using the propertiesparser tool
 #
 
-TOOL_PARSEPROPERTIES_CMD := $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/langtools_tools_classes \
-    jdk.internal.buildtools.propertiesparser.PropertiesParser
-
 PARSEPROPERTIES_PACKAGE := com/sun/tools/javac/resources
 PARSEPROPERTIES_FILES := compiler.properties launcher.properties
 
@@ -66,11 +64,12 @@ PARSEPROPERTIES_ARGS := $(foreach file, $(PARSEPROPERTIES_SRC), \
     -compile $(file) \
     $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/$(PARSEPROPERTIES_PACKAGE)/)
 
-$(eval $(call SetupExecute, PARSEPROPERTIES, \
-    WARN := Generating classes for $(PARSEPROPERTIES_FILES), \
-    DEPS := $(PARSEPROPERTIES_SRC) $(BUILD_TOOLS_LANGTOOLS), \
+$(eval $(call SetupRunBuildTool, PARSEPROPERTIES, \
+    BUILDTOOL := propertiesparser.PropertiesParser, \
+    DEPS := $(PARSEPROPERTIES_SRC), \
+    INFO := Generating classes for $(PARSEPROPERTIES_FILES), \
     OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE), \
-    COMMAND := $(TOOL_PARSEPROPERTIES_CMD) $(PARSEPROPERTIES_ARGS), \
+    ARGUMENTS := $(PARSEPROPERTIES_ARGS), \
 ))
 
 TARGETS += $(PARSEPROPERTIES)
