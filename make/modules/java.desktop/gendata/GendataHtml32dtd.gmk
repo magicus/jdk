@@ -28,16 +28,19 @@ ifeq ($(INCLUDE), true)
 
 ################################################################################
 
-GENDATA_HTML32DTD :=
-
 HTML32DTD = $(JDK_OUTPUTDIR)/modules/java.desktop/javax/swing/text/html/parser/html32.bdtd
-$(HTML32DTD): $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Generating HTML DTD file)
-	$(call MakeTargetDir)
-	$(RM) $@
-	($(TOOL_DTDBUILDER) html32 > $@) || exit 1
 
-TARGETS += $(HTML32DTD)
+$(eval $(call SetupRunBuildTool, GENERATE_HTML32DTD, \
+    BUILDTOOL := dtdbuilder.DTDBuilder, \
+    INFO :=  Generating HTML DTD file, \
+    OUTPUT_FILE := $(HTML32DTD), \
+    ARGUMENTS :=  html32 > $(HTML32DTD), \
+    JAVA_OPTS := -Djava.awt.headless=true \
+        -Ddtd_home=$(TOPDIR)/src/java.desktop/share/data/dtdbuilder, \
+    PRE_COMMAND := $(RM) $(HTML32DTD), \
+))
+
+TARGETS += $(GENERATE_HTML32DTD)
 
 ################################################################################
 
