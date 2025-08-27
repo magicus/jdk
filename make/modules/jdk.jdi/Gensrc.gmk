@@ -25,6 +25,7 @@
 
 ################################################################################
 
+include BuildToolsCommon.gmk
 include GensrcCommon.gmk
 
 ################################################################################
@@ -40,25 +41,27 @@ HTML_FILE := $(SUPPORT_OUTPUTDIR)/gensrc/jdk.jdi/jdwp-protocol.html
 # Both the header and java file are created using the same recipe. By declaring
 # this rule and adding header file to dependencies for java file, both are
 # rebuilt if either is missing
-$(HEADER_FILE): $(JDWP_SPEC_FILE) $(BUILD_TOOLS_JDK)
+$(HEADER_FILE): $(JDWP_SPEC_FILE)
 
-# Touch the target of this rule at the end to avoid triggering false rebuilds
-$(JAVA_FILE): $(JDWP_SPEC_FILE) $(BUILD_TOOLS_JDK) $(HEADER_FILE)
-	$(call LogInfo, Creating JDWP.java and JDWPCommands.h from jdwp.spec)
-	$(call MakeDir, $(@D) $(SUPPORT_OUTPUTDIR)/headers/jdk.jdwp.agent)
-	$(RM) $@ $(SUPPORT_OUTPUTDIR)/headers/jdk.jdwp.agent/JDWPCommands.h
-	$(TOOL_JDWPGEN) $< -jdi $@ -include \
-	    $(SUPPORT_OUTPUTDIR)/headers/jdk.jdwp.agent/JDWPCommands.h
-	$(TOUCH) $@
+$(eval $(call SetupRunBuildTool, GEN_JDWP_JAVA_FILE, \
+    BUILDTOOL := jdwpgen.Main, \
+    DEPS := $(JDWP_SPEC_FILE) $(HEADER_FILE), \
+    INFO := Creating JDWP.java and JDWPCommands.h from jdwp.spec, \
+    OUTPUT_FILE := $(JAVA_FILE), \
+    ARGUMENTS := $(JDWP_SPEC_FILE) -jdi $(JAVA_FILE) -include $(HEADER_FILE), \
+    PRE_COMMAND := $(RM) $(JAVA_FILE) $(HEADER_FILE), \
+))
 
-$(HTML_FILE): $(JDWP_SPEC_FILE) \
-    $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Creating $(@F) from jdwp.spec)
-	$(call MakeDir, $(@D))
-	$(RM) $@
-	$(TOOL_JDWPGEN) $< -doc $@
+$(eval $(call SetupRunBuildTool, GEN_JDWP_HTML_FILE, \
+    BUILDTOOL := jdwpgen.Main, \
+    DEPS := $(JDWP_SPEC_FILE), \
+    INFO := Creating jdwp-protocol.html from jdwp.spec, \
+    OUTPUT_FILE := $(HTML_FILE), \
+    ARGUMENTS := $(JDWP_SPEC_FILE) -doc $(HTML_FILE), \
+    PRE_COMMAND := $(RM) $(HTML_FILE), \
+))
 
-TARGETS += $(JAVA_FILE) $(HEADER_FILE) $(HTML_FILE)
+TARGETS += $(GEN_JDWP_JAVA_FILE) $(HEADER_FILE) $(GEN_JDWP_HTML_FILE)
 
 ################################################################################
 
