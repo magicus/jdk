@@ -28,6 +28,8 @@ ifeq ($(INCLUDE), true)
 
 ################################################################################
 
+include BuildToolsCommon.gmk
+
 FONTCONFIG_DATA_DIR := $(MODULE_SRC)/$(OPENJDK_TARGET_OS)/data/fontconfig
 FONTCONFIG_SRC_FILE := $(FONTCONFIG_DATA_DIR)/fontconfig.properties
 
@@ -50,14 +52,19 @@ ifneq ($(wildcard $(FONTCONFIG_SRC_FILE)), )
   TARGETS += $(FONTCONFIG_OUT_FILE)
 
   # Generate binary representation
-  $(FONTCONFIG_OUT_BIN_FILE): $(FONTCONFIG_SRC_FILE) $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Compiling fontconfig.properties to binary)
-	$(call MakeTargetDir)
-	$(RM) $@
-	$(TOOL_COMPILEFONTCONFIG) $(FONTCONFIG_VERBOSE_FLAG) $< $@
-	$(CHMOD) 444 $@
+  $(eval $(call SetupRunBuildTool, COMPILE_FONT_CONFIG, \
+      BUILDTOOL := compilefontconfig.CompileFontConfig, \
+      DEPS := $(FONTCONFIG_SRC_FILE), \
+      INFO := Compiling fontconfig.properties to binary, \
+      OUTPUT_FILE := $(FONTCONFIG_OUT_BIN_FILE), \
+      ARGUMENTS := $(FONTCONFIG_VERBOSE_FLAG) $(FONTCONFIG_SRC_FILE) \
+          $(FONTCONFIG_OUT_BIN_FILE), \
+      JAVA_OPTS := --add-exports java.desktop/sun.awt=ALL-UNNAMED, \
+      PRE_COMMAND := $(RM) $(FONTCONFIG_OUT_BIN_FILE), \
+      POST_COMMAND := $(CHMOD) 444 $(FONTCONFIG_OUT_BIN_FILE), \
+  ))
 
-  TARGETS += $(FONTCONFIG_OUT_BIN_FILE)
+  TARGETS += $(COMPILE_FONT_CONFIG)
 
 endif
 
