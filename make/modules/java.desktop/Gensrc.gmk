@@ -25,6 +25,7 @@
 
 ################################################################################
 
+include BuildToolsCommon.gmk
 include GensrcCommon.gmk
 
 ifeq ($(call isTargetOs, windows), false)

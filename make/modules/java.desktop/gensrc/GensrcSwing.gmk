@@ -30,21 +30,19 @@ ifeq ($(INCLUDE), true)
 # Generate java files for javax.swing.plaf package
 ################################################################################
 
-NIMBUS_PACKAGE = javax.swing.plaf
-NIMBUS_GENSRC_DIR = $(SUPPORT_OUTPUTDIR)/gensrc/java.desktop/javax/swing/plaf/nimbus
-NIMBUS_SKIN_FILE = $(MODULE_SRC)/share/classes/javax/swing/plaf/nimbus/skin.laf
+NIMBUS_GENSRC_DIR := $(SUPPORT_OUTPUTDIR)/gensrc/java.desktop
+NIMBUS_SKIN_FILE := $(MODULE_SRC)/share/classes/javax/swing/plaf/nimbus/skin.laf
 
-$(SUPPORT_OUTPUTDIR)/gensrc/java.desktop/_the.generated_nimbus: $(NIMBUS_SKIN_FILE) $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Generating Nimbus source files)
-	$(call MakeTargetDir)
-	$(TOOL_GENERATENIMBUS) $(LOG_DEBUG) \
-	    -skinFile $(NIMBUS_SKIN_FILE) -buildDir $(SUPPORT_OUTPUTDIR)/gensrc/java.desktop \
-	    -packagePrefix $(NIMBUS_PACKAGE).nimbus -lafName Nimbus
-	$(TOUCH) $@
+$(eval $(call SetupRunBuildTool, GENERATE_NIMBUS, \
+    BUILDTOOL := generatenimbus.Generator, \
+    INFO :=  Generating Nimbus source files, \
+    DEPS := $(NIMBUS_SKIN_FILE), \
+    OUTPUT_DIR := $(NIMBUS_GENSRC_DIR), \
+    ARGUMENTS := -skinFile $(NIMBUS_SKIN_FILE) -buildDir $(NIMBUS_GENSRC_DIR) \
+        -packagePrefix javax.swing.plaf.nimbus -lafName Nimbus $(LOG_DEBUG), \
+))
 
-GENSRC_SWING_NIMBUS := $(SUPPORT_OUTPUTDIR)/gensrc/java.desktop/_the.generated_nimbus
-
-TARGETS += $(GENSRC_SWING_NIMBUS)
+TARGETS += $(GENERATE_NIMBUS)
 
 ################################################################################
 
