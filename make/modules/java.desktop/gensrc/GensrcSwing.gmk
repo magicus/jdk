@@ -35,8 +35,8 @@ NIMBUS_SKIN_FILE := $(MODULE_SRC)/share/classes/javax/swing/plaf/nimbus/skin.laf
 
 $(eval $(call SetupRunBuildTool, GENERATE_NIMBUS, \
     BUILDTOOL := generatenimbus.Generator, \
-    INFO :=  Generating Nimbus source files, \
     DEPS := $(NIMBUS_SKIN_FILE), \
+    INFO :=  Generating Nimbus source files, \
     OUTPUT_DIR := $(NIMBUS_GENSRC_DIR), \
     ARGUMENTS := -skinFile $(NIMBUS_SKIN_FILE) -buildDir $(NIMBUS_GENSRC_DIR) \
         -packagePrefix javax.swing.plaf.nimbus -lafName Nimbus $(LOG_DEBUG), \
