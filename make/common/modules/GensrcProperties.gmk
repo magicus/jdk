@@ -111,41 +111,41 @@ define SetupCompilePropertiesBody
       $$(addsuffix _SPACE_$$($1_CLASS), \
       $$(addprefix _SPACE_, $$($1_JAVAS)))))
 
-  $1_TARGET := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/_the.$1.marker
-  $1_CMDLINE_FILE := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/_the.$1.cmdline
-  $1_EXEC_MARKER := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/_the.$1.exec
+  $1_OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)
+
+  $1_CMDLINE_FILE := $$($1_OUTPUT_DIR)/_the.$1.cmdline
 
   ifeq ($$($1_TYPE), langtools)
-    $1_TOOL := -cp $(BUILDTOOLS_OUTPUTDIR)/langtools_tools_classes \
-    jdk.internal.buildtools.compilepropertieslangtools.CompileProperties
-    $1_TOOL_DEPS := $(BUILD_TOOLS_LANGTOOLS)
+    $1_TOOL_PACKAGE = compilepropertieslangtools
   else
-    $1_TOOL := -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
-    jdk.internal.buildtools.compileproperties.CompileProperties
-    $1_TOOL_DEPS := $(BUILD_TOOLS_JDK)
+    $1_TOOL_PACKAGE = compilepropertie
   endif
 
   ifeq ($(findstring $(LOG_LEVEL), debug trace), )
     $1_QUIET := -quiet
   endif
 
-  # Now setup the rule for the generation of the resource bundles.
-  $$($1_TARGET): $$($1_SRC_FILES) $$($1_JAVAS) $$($1_TOOL_DEPS)
-	$$(call LogWarn, Compiling $$(words $$($1_SRC_FILES)) properties into resource bundles for $(MODULE))
-	$$(call MakeDir, $$(@D) $$($1_DIRS))
+  $$($1_CMDLINE_FILE):
 	$$(eval $$(call ListPathsSafely, $1_CMDLINE, $$($1_CMDLINE_FILE)))
-	$$(call ExecuteWithLog, $$($1_EXEC_MARKER), \
-	    $(JAVA_SMALL) $$($1_TOOL) $$($1_QUIET) @$$($1_CMDLINE_FILE))
-	$(TOUCH) $$@
+
+  $$(eval $$(call SetupRunBuildTool, COMPILE_PROPERTIES_$1, \
+      BUILDTOOL := $$($1_TOOL_PACKAGE).CompileProperties, \
+      MODULE := jdk.internal.build, \
+      DEPS := $$($1_SRC_FILES) $$($1_JAVAS) $$($$($1_CMDLINE_FILE)), \
+      INFO := Compiling $$(words $$($1_SRC_FILES)) properties into resource bundles for $(MODULE)), \
+      OUTPUT_DIR := $$($1_OUTPUT_DIR), \
+      ARGUMENTS := $$($1_QUIET) @$$($1_CMDLINE_FILE), \
+      PRE_COMMAND := $$(call MakeDir, $$($1_DIRS)), \
+  ))
 
   $$($1_JAVAS): $$($1_SRC_FILES)
 
   # Create zh_HK versions of all zh_TW files created above
   $$(eval $$(call SetupCopy-zh_HK,$1_HK,$$(filter %_zh_TW.java, $$($1_JAVAS))))
   # The zh_HK copy must wait for the compile properties tool to run
-  $$($1_HK): $$($1_TARGET)
+  $$($1_HK): $$(COMPILE_PROPERTIES_$1)
 
-  $1 += $$($1_JAVAS) $$($1_TARGET) $$($1_HK)
+  $1 += $$($1_JAVAS) $$(COMPILE_PROPERTIES_$1) $$($1_HK)
 endef
 
 ################################################################################
