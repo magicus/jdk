@@ -31,6 +31,7 @@ ifeq ($(INCLUDE), true)
 # from resource bundle properties files.
 ################################################################################
 
+include BuildToolsCommon.gmk
 include JavaCompilation.gmk
 
 ################################################################################
