@@ -28,8 +28,6 @@ ifeq ($(INCLUDE), true)
 
 ################################################################################
 
-include BuildToolsCommon.gmk
-
 FONTCONFIG_DATA_DIR := $(MODULE_SRC)/$(OPENJDK_TARGET_OS)/data/fontconfig
 FONTCONFIG_SRC_FILE := $(FONTCONFIG_DATA_DIR)/fontconfig.properties
 

@@ -25,6 +25,7 @@
 
 ################################################################################
 
+include BuildToolsCommon.gmk
 include GendataCommon.gmk
 include gendata/GendataFontConfig.gmk
 include gendata/GendataHtml32dtd.gmk
