@@ -25,30 +25,32 @@
 
 ################################################################################
 
+include BuildToolsCommon.gmk
 include GensrcCommon.gmk
 
 ################################################################################
 
 CLDR_DATA_DIR := $(TOPDIR)/make/data/cldr/common
 GENSRC_DIR := $(SUPPORT_OUTPUTDIR)/gensrc/jdk.localedata
-CLDR_GEN_DONE := $(GENSRC_DIR)/_cldr-gensrc.marker
 TZ_DATA_DIR := $(TOPDIR)/src/java.base/share/data/tzdata
-
-$(CLDR_GEN_DONE): $(wildcard $(CLDR_DATA_DIR)/dtd/*.dtd) \
+CLDR_INPUT_FILES := $(wildcard $(CLDR_DATA_DIR)/dtd/*.dtd) \
     $(wildcard $(CLDR_DATA_DIR)/main/*.xml) \
-    $(wildcard $(CLDR_DATA_DIR)/supplemental/*.xml) \
-    $(BUILD_TOOLS_JDK)
-	$(call MakeDir, $(GENSRC_DIR))
-	$(call LogInfo, Processing CLDR data for jdk.localedata)
-	$(call ExecuteWithLog, $@, \
-	    $(TOOL_CLDRCONVERTER) -base $(CLDR_DATA_DIR) \
-	    -baselocales "en-US" \
-	    -year $(COPYRIGHT_YEAR) \
-	    -o $(GENSRC_DIR) \
-	    -tzdatadir $(TZ_DATA_DIR) \
-	    -utf8)
-	$(TOUCH) $@
+    $(wildcard $(CLDR_DATA_DIR)/supplemental/*.xml)
 
-TARGETS += $(CLDR_GEN_DONE)
+$(eval $(call SetupRunBuildTool, GEN_CLDR_DATA, \
+    BUILDTOOL := cldrconverter.CLDRConverter, \
+    MODULE := jdk.internal.build, \
+    DEPS := $(CLDR_INPUT_FILES), \
+    INFO := Processing CLDR data for jdk.localedata, \
+    OUTPUT_DIR := $(GENSRC_DIR), \
+    ARGUMENTS := -base $(CLDR_DATA_DIR) \
+        -baselocales "en-US" \
+        -year $(COPYRIGHT_YEAR) \
+        -o $(GENSRC_DIR) \
+        -tzdatadir $(TZ_DATA_DIR) \
+        -utf8, \
+))
+
+TARGETS += $(GEN_CLDR_DATA)
 
 ################################################################################
