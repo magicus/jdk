@@ -51,6 +51,10 @@ GENERATOR_SOURCE_FILE := $(X11WRAPPERS_OUTPUT)/src/data_generator.c
 GENSRC_X11WRAPPERS_DATADIR := $(TOPDIR)/src/java.desktop/unix/data/x11wrappergen
 WRAPPER_OUTPUT_FILE := $(GENSRC_X11WRAPPERS_DATADIR)/sizes-$(BITS).txt
 
+TOOL_WRAPPERGENERATOR := $(JAVA_SMALL) \
+    -cp $(BUILDTOOLS_OUTPUTDIR)/java.desktop/classes \
+    jdk.internal.buildtools.java.desktop
+
 # Generate the C code for the program that will output the offset file.
 $(eval $(call SetupExecute, gensrc_generator, \
     INFO := Generating X11 wrapper data generator source code, \
