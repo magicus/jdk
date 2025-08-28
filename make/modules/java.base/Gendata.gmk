@@ -57,21 +57,28 @@ $(GENDATA_CURDATA): $(MODULE_SRC)/share/data/currency/CurrencyData.properties $(
 TARGETS += $(GENDATA_CURDATA)
 
 ################################################################################
-
-ifneq ($(CACERTS_SRC), )
-  GENDATA_CACERTS_SRC := $(CACERTS_SRC)
-else
-  GENDATA_CACERTS_SRC := $(MODULE_SRC)/share/data/cacerts/
-endif
-GENDATA_CACERTS := $(SUPPORT_OUTPUTDIR)/modules_libs/java.base/security/cacerts
-
-$(GENDATA_CACERTS): $(BUILD_TOOLS_JDK) $(wildcard $(GENDATA_CACERTS_SRC)/*)
-	$(call LogInfo, Generating cacerts)
-	$(call MakeTargetDir)
-	$(TOOL_GENERATECACERTS) $(GENDATA_CACERTS_SRC) $@
+# If CACERTS_FILE is set in configure it will be copied in
+# make/modules/java.base/Copy.gmk instead of generated here.
 
 ifeq ($(CACERTS_FILE), )
-  TARGETS += $(GENDATA_CACERTS)
+  ifneq ($(CACERTS_SRC), )
+    CACERTS_INPUT_DIR := $(CACERTS_SRC)
+  else
+    CACERTS_INPUT_DIR := $(MODULE_SRC)/share/data/cacerts/
+  endif
+  CACERTS_OUTPUT := $(SUPPORT_OUTPUTDIR)/modules_libs/java.base/security/cacerts
+
+  $(eval $(call SetupRunBuildTool, GEN_CACERTS, \
+      BUILDTOOL := generatecacerts.GenerateCacerts, \
+      DEPS := $(wildcard $(CACERTS_INPUT_DIR)/*), \
+      INFO := Generating cacerts, \
+      OUTPUT_FILE := $(CACERTS_OUTPUT), \
+      ARGUMENTS := $(CACERTS_INPUT_DIR) $(CACERTS_OUTPUT), \
+      JAVA_OPTS := -Dkeystore.pkcs12.certProtectionAlgorithm=NONE \
+          -Dkeystore.pkcs12.macAlgorithm=NONE, \
+  ))
+
+  TARGETS += $(GEN_CACERTS)
 endif
 
 ################################################################################

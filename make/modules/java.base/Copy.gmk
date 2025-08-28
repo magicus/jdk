@@ -122,13 +122,13 @@ TARGETS += $(JVMCFG)
 
 # CACERTS_FILE is optionally set in configure to override the default cacerts
 # which is otherwise generated in Gendata-java.base.gmk
-CACERTS_DST := $(LIB_DST_DIR)/security/cacerts
+ifneq ($(CACERTS_FILE), )
+  CACERTS_DST := $(LIB_DST_DIR)/security/cacerts
 
-$(CACERTS_DST): $(CACERTS_FILE)
+  $(CACERTS_DST): $(CACERTS_FILE)
 	$(call LogInfo, Copying $(patsubst $(OUTPUTDIR)/%, %, $@))
 	$(call install-file)
 
-ifneq ($(CACERTS_FILE), )
   TARGETS += $(CACERTS_DST)
 endif
 
