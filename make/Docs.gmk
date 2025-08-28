@@ -635,6 +635,10 @@ ifeq ($(ENABLE_PANDOC), true)
   # For all markdown files in $module/share/specs directories, convert them to
   # html, if we have pandoc (otherwise we'll just skip this).
 
+  TOOL_FIXUPPANDOC := $(JAVA_SMALL) \
+      -cp $(BUILDTOOLS_OUTPUTDIR)/jdk.internal.build/classes \
+      jdk.internal.buildtools.fixuppandoc.Main
+
   GLOBAL_SPECS_DEFAULT_CSS_FILE := $(DOCS_OUTPUTDIR)/resources/jdk-default.css
   # Unset the following to suppress the link to the tool guides
   NAV_LINK_GUIDES := --nav-link-guides
