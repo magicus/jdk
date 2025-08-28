@@ -28,15 +28,19 @@ ifeq ($(INCLUDE), true)
 
 ################################################################################
 
-GENDATA_BLOCKED_CERTS_SRC += $(MODULE_SRC)/share/data/blockedcertsconverter/blocked.certs.pem
-GENDATA_BLOCKED_CERTS := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/security/blocked.certs
+GENDATA_BLOCKED_CERTS_INPUT += $(MODULE_SRC)/share/data/blockedcertsconverter/blocked.certs.pem
+GENDATA_BLOCKED_CERTS_OUTPUT := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/security/blocked.certs
 
-$(GENDATA_BLOCKED_CERTS): $(BUILD_TOOLS_JDK) $(GENDATA_BLOCKED_CERTS_SRC)
-	$(call LogInfo, Generating blocked certs)
-	$(call MakeDir, $(@D))
-	($(CAT) $(GENDATA_BLOCKED_CERTS_SRC) | $(TOOL_BLOCKED_CERTS) > $@) || exit 1
+$(eval $(call SetupRunBuildTool, GEN_BLOCKED_CERTS, \
+    BUILDTOOL := blockedcertsconverter.BlockedCertsConverter, \
+    DEPS := $(GENDATA_BLOCKED_CERTS_INPUT), \
+    INFO := Generating blocked certs, \
+    OUTPUT_FILE := $(GENDATA_BLOCKED_CERTS_OUTPUT), \
+    ARGUMENTS := < $(GENDATA_BLOCKED_CERTS_INPUT) > $(GENDATA_BLOCKED_CERTS_OUTPUT), \
+    JAVA_OPTS := --add-exports java.base/sun.security.util=ALL-UNNAMED, \
+))
 
-TARGETS += $(GENDATA_BLOCKED_CERTS)
+TARGETS += $(GEN_BLOCKED_CERTS)
 
 ################################################################################
 
