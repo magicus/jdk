@@ -35,13 +35,18 @@ include gendata/GendataTZDB.gmk
 
 ################################################################################
 
-GENDATA_UNINAME := $(JDK_OUTPUTDIR)/modules/java.base/java/lang/uniName.dat
+CHARACTERNAME_INPUT := $(MODULE_SRC)/share/data/unicodedata/UnicodeData.txt
+CHARACTERNAME_OUTPUT := $(JDK_OUTPUTDIR)/modules/java.base/java/lang/uniName.dat
 
-$(GENDATA_UNINAME): $(MODULE_SRC)/share/data/unicodedata/UnicodeData.txt $(BUILD_TOOLS_JDK)
-	$(call MakeDir, $(@D))
-	$(TOOL_CHARACTERNAME) $< $@
+$(eval $(call SetupRunBuildTool, GEN_CHARACTERNAME, \
+    BUILDTOOL := generatecharacter.CharacterName, \
+    DEPS := $(CHARACTERNAME_INPUT), \
+    INFO := Generating unicode character names, \
+    OUTPUT_FILE := $(CHARACTERNAME_OUTPUT), \
+    ARGUMENTS := $(CHARACTERNAME_INPUT) $(CHARACTERNAME_OUTPUT), \
+))
 
-TARGETS += $(GENDATA_UNINAME)
+TARGETS += $(GEN_CHARACTERNAME)
 
 ################################################################################
 
