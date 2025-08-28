@@ -113,17 +113,16 @@ TARGETS += $(GEN_LSREQUIVMAPS)
 
 ################################################################################
 
-INTPOLY_GEN_DONE := $(GENSRC_DIR)/_intpoly-gensrc.marker
-INTPOLY_HEADER := $(TOPDIR)/make/src/java.base/jdk/internal/buildtools/intpoly/header.txt
-$(INTPOLY_GEN_DONE): $(INTPLOY_HEADER) $(BUILD_TOOLS_JDK)
-	$(call MakeDir, $(GENSRC_DIR))
-	$(call LogInfo, Generating fixed-field math classes for java.base)
-	$(call ExecuteWithLog, $@, \
-	    $(TOOL_INTPOLY) \
-	    $(INTPOLY_HEADER) \
-	    $(GENSRC_DIR)) $(LOG_DEBUG)
-	$(TOUCH) $@
+INTPOLY_HEADER := $(MODULE_SRC)/share/data/intpoly/header.txt
 
-TARGETS += $(INTPOLY_GEN_DONE)
+$(eval $(call SetupRunBuildTool, GEN_INTPOLY, \
+    BUILDTOOL := intpoly.FieldGen, \
+    DEPS := $(INTPOLY_HEADER), \
+    INFO := Generating fixed-field math classes for java.base, \
+    OUTPUT_DIR := $(GENSRC_DIR), \
+    ARGUMENTS := $(INTPOLY_HEADER) $(GENSRC_DIR) $(LOG_DEBUG), \
+))
+
+TARGETS += $(GEN_INTPOLY)
 
 ################################################################################
