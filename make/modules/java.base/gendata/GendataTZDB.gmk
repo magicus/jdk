@@ -27,24 +27,24 @@ include MakeIncludeStart.gmk
 ifeq ($(INCLUDE), true)
 
 ################################################################################
-
-GENDATA_TZDB :=
-
 #
 # Time zone data file creation
 #
-TZDATA_DIR := $(MODULE_SRC)/share/data/tzdata
-TZDATA_TZFILE := africa antarctica asia australasia europe northamerica southamerica backward etcetera gmt jdk11_backward
-TZDATA_TZFILES := $(wildcard $(TZDATA_DIR)/*)
+TZDATA_INPUT_DIR := $(MODULE_SRC)/share/data/tzdata
+TZDATA_OUTPUT := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/tzdb.dat
+TZDATA_FILENAMES := africa antarctica asia australasia europe northamerica southamerica backward etcetera gmt jdk11_backward
+TZDATA_INPUT_FILES := $(wildcard $(TZDATA_INPUT_DIR)/*)
 
-GENDATA_TZDB_DAT := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/tzdb.dat
+$(eval $(call SetupRunBuildTool, GEN_TZDATA, \
+    BUILDTOOL := tzdb.TzdbZoneRulesCompiler, \
+    DEPS := $(TZDATA_INPUT_FILES), \
+    INFO := Generating tzdb.dat, \
+    OUTPUT_FILE := $(TZDATA_OUTPUT), \
+    ARGUMENTS := -srcdir $(TZDATA_INPUT_DIR) -dstfile $(TZDATA_OUTPUT) $(TZDATA_FILENAMES), \
+    PRE_COMMAND := $(RM) $(TZDATA_OUTPUT), \
+))
 
-$(GENDATA_TZDB_DAT): $(TZDATA_TZFILES)
-	$(call MakeTargetDir)
-	$(RM) $(GENDATA_TZDB_DAT)
-	$(TOOL_TZDB) -srcdir $(TZDATA_DIR) -dstfile $(GENDATA_TZDB_DAT) $(TZDATA_TZFILE)
-
-TARGETS += $(GENDATA_TZDB_DAT)
+TARGETS += $(GEN_TZDATA)
 
 ################################################################################
 
