@@ -50,9 +50,9 @@ include Modules.gmk
 ################################################################################
 # Define this here since jdk/make/Tools.gmk cannot be included from the top
 # make directory. Should probably move some tools away from the jdk repo.
-TOOL_GENMODULEINFOSOURCE = $(JAVA_SMALL) \
+TOOL_GENMODULEINFOSOURCE := $(JAVA_SMALL) \
     $(INTERIM_LANGTOOLS_ARGS) \
-    -cp "$(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes" \
+    -cp $(BUILDTOOLS_OUTPUTDIR)/jdk.internal.build/classes \
     jdk.internal.buildtools.module.GenModuleInfoSource
 
 ################################################################################
