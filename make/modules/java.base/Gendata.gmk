@@ -83,23 +83,25 @@ endif
 
 ################################################################################
 
-GENDATA_JAVA_SECURITY_SRC := $(MODULE_SRC)/share/conf/security/java.security
-GENDATA_JAVA_SECURITY := $(SUPPORT_OUTPUTDIR)/modules_conf/java.base/security/java.security
+GENDATA_JAVA_SECURITY_INPUT := $(MODULE_SRC)/share/conf/security/java.security
+GENDATA_JAVA_SECURITY_OUTPUT := $(SUPPORT_OUTPUTDIR)/modules_conf/java.base/security/java.security
 
 ifeq ($(UNLIMITED_CRYPTO), true)
-    CRYPTO.POLICY := unlimited
+  CRYPTO_POLICY := unlimited
 else
-    CRYPTO.POLICY := limited
+  CRYPTO_POLICY := limited
 endif
 
-# RESTRICTED_PKGS_SRC is optionally set in custom extension for this makefile
+$(eval $(call SetupRunBuildTool, GEN_JAVA_SECURITY, \
+    BUILDTOOL := makejavasecurity.MakeJavaSecurity, \
+    DEPS := $(GENDATA_JAVA_SECURITY_INPUT), \
+    INFO := Generating java.security, \
+    OUTPUT_FILE := $(GENDATA_JAVA_SECURITY_OUTPUT), \
+    ARGUMENTS := $(GENDATA_JAVA_SECURITY_INPUT) \
+        $(GENDATA_JAVA_SECURITY_OUTPUT) $(OPENJDK_TARGET_OS) \
+        $(OPENJDK_TARGET_CPU_ARCH) $(CRYPTO_POLICY), \
+))
 
-$(GENDATA_JAVA_SECURITY): $(BUILD_TOOLS_JDK) $(GENDATA_JAVA_SECURITY_SRC) $(RESTRICTED_PKGS_SRC)
-	$(call LogInfo, Generating java.security)
-	$(call MakeTargetDir)
-	$(TOOL_MAKEJAVASECURITY) $(GENDATA_JAVA_SECURITY_SRC) $@ $(OPENJDK_TARGET_OS) \
-	    $(OPENJDK_TARGET_CPU_ARCH) $(CRYPTO.POLICY) $(RESTRICTED_PKGS_SRC)
-
-TARGETS += $(GENDATA_JAVA_SECURITY)
+TARGETS += $(GEN_JAVA_SECURITY)
 
 ################################################################################
