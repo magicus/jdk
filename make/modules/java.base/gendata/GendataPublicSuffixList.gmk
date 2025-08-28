@@ -31,14 +31,17 @@ ifeq ($(INCLUDE), true)
 GENDATA_PUBLICSUFFIXLIST_SRC += $(MODULE_SRC)/share/data/publicsuffixlist/public_suffix_list.dat
 GENDATA_PUBLICSUFFIXLIST := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/security/public_suffix_list.dat
 
-$(GENDATA_PUBLICSUFFIXLIST): $(GENDATA_PUBLICSUFFIXLIST_SRC) $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Generating public suffix list)
-	$(call MakeDir, $(@D))
-	$(RM) $@
-	$(TOOL_PUBLICSUFFIXLIST) $< $@
-	$(CHMOD) 444 $@
+$(eval $(call SetupRunBuildTool, GEN_PUBLICSUFFIXLIST, \
+    BUILDTOOL := publicsuffixlist.GeneratePublicSuffixList, \
+    DEPS := $(GENDATA_PUBLICSUFFIXLIST_SRC), \
+    INFO := Generating public suffix list, \
+    OUTPUT_FILE := $(GENDATA_PUBLICSUFFIXLIST), \
+    ARGUMENTS := $(GENDATA_PUBLICSUFFIXLIST_SRC) $(GENDATA_PUBLICSUFFIXLIST) , \
+    PRE_COMMAND := RM $(GENDATA_PUBLICSUFFIXLIST), \
+    POST_COMMAND := $(CHMOD) 444 $(GENDATA_PUBLICSUFFIXLIST), \
+))
 
-TARGETS += $(GENDATA_PUBLICSUFFIXLIST)
+TARGETS += $(GEN_PUBLICSUFFIXLIST)
 
 ################################################################################
 
