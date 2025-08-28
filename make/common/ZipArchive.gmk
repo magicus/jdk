@@ -31,6 +31,10 @@ ifeq ($(INCLUDE), true)
 # Depends on build tools for MakeZipReproducible
 include $(TOPDIR)/make/ToolsJdk.gmk
 
+TOOL_MAKEZIPREPRODUCIBLE := $(JAVA_SMALL) \
+    -cp $(BUILDTOOLS_OUTPUTDIR)/jdk.internal.build/classes \
+    jdk.internal.buildtools.makezipreproducible.MakeZipReproducible
+
 # Setup make rules for creating a zip archive.
 #
 # Parameter 1 is the name of the rule. This name is used as variable prefix,
