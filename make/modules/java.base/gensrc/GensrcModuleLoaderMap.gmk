@@ -40,6 +40,9 @@ $(strip \
   $(subst $(COMMA)$(COMMA),$(COMMA),$(subst $(SPACE),$(COMMA),$(strip $1))) \
 )
 endef
+
+################################################################################
+
 BOOT_MODULES_LIST := $(call SubstComma, $(BOOT_MODULES))
 PLATFORM_MODULES_LIST := $(call SubstComma, $(PLATFORM_MODULES))
 NATIVE_ACCESS_MODULES_LIST := $(call SubstComma, $(NATIVE_ACCESS_MODULES))
@@ -47,20 +50,23 @@ NATIVE_ACCESS_MODULES_LIST := $(call SubstComma, $(NATIVE_ACCESS_MODULES))
 VARDEPS_VALUE := $(BOOT_MODULES_LIST) $(PLATFORM_MODULES_LIST) $(NATIVE_ACCESS_MODULES_LIST)
 VARDEPS_FILE := $(call DependOnVariable, VARDEPS_VALUE)
 
-################################################################################
+MODULE_LOADER_MAP_OUTPUT := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/module/ModuleLoaderMap.java
+MODULE_LOADER_MAP_INPUT := $(TOPDIR)/src/java.base/share/classes/jdk/internal/module/ModuleLoaderMap.java
 
-$(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/module/ModuleLoaderMap.java: \
-    $(TOPDIR)/src/java.base/share/classes/jdk/internal/module/ModuleLoaderMap.java \
-    $(VARDEPS_FILE) $(BUILD_TOOLS_JDK)
-	$(call MakeTargetDir)
-	$(RM) $@ $@.tmp
-	$(TOOL_GENCLASSLOADERMAP) -boot $(BOOT_MODULES_LIST) \
-	     -platform $(PLATFORM_MODULES_LIST) \
-	     -native-access $(NATIVE_ACCESS_MODULES_LIST) \
-	     -o $@.tmp $<
-	$(MV) $@.tmp $@
+$(eval $(call SetupRunBuildTool, GEN_MODULE_LOADER_MAP, \
+    BUILDTOOL := moduleloadermap.GenModuleLoaderMap, \
+    DEPS := $(MODULE_LOADER_MAP_INPUT) $(VARDEPS_FILE), \
+    INFO := Generating module loader map, \
+    OUTPUT_FILE := $(MODULE_LOADER_MAP_OUTPUT), \
+    ARGUMENTS := -boot $(BOOT_MODULES_LIST) \
+        -platform $(PLATFORM_MODULES_LIST) \
+        -native-access $(NATIVE_ACCESS_MODULES_LIST) \
+        -o $(MODULE_LOADER_MAP_OUTPUT).tmp $(MODULE_LOADER_MAP_INPUT), \
+    PRE_COMMAND := $(RM) $(MODULE_LOADER_MAP_OUTPUT) $(MODULE_LOADER_MAP_OUTPUT).tmp, \
+    POST_COMMAND := $(MV) $(MODULE_LOADER_MAP_OUTPUT).tmp $(MODULE_LOADER_MAP_OUTPUT), \
+))
 
-TARGETS += $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/module/ModuleLoaderMap.java
+TARGETS += $(GEN_MODULE_LOADER_MAP)
 
 ################################################################################
 
