@@ -31,35 +31,39 @@ ifeq ($(INCLUDE), true)
 # $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/regex/
 ################################################################################
 
-GENSRC_INDICCONJUNCTBREAK := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/regex/IndicConjunctBreak.java
+INDICCONJUNCTBREAK_TEMPLATE := \
+    $(MODULE_SRC)/share/classes/jdk/internal/util/regex/IndicConjunctBreak.java.template
+INDICCONJUNCTBREAK_INPUT := \
+    $(MODULE_SRC)/share/data/unicodedata/DerivedCoreProperties.txt
+INDICCONJUNCTBREAK_OUTPUT := \
+    $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/regex/IndicConjunctBreak.java
 
-INDICCONJUNCTBREAKTEMP := $(MODULE_SRC)/share/classes/jdk/internal/util/regex/IndicConjunctBreak.java.template
-INDICCONJUNCTBREAKPROPS := $(MODULE_SRC)/share/data/unicodedata/DerivedCoreProperties.txt
-INDICCONJUNCTBREAKPARAMS := InCB=Linker InCB=Extend InCB=Consonant
+$(eval $(call SetupRunBuildTool, GEN_INDICCONJUNCTBREAK, \
+    BUILDTOOL := generateextraproperties.GenerateExtraProperties, \
+    DEPS := $(INDICCONJUNCTBREAK_INPUT) $(INDICCONJUNCTBREAK_TEMPLATE), \
+    INFO := Generating regex IndicConjunctBreak, \
+    OUTPUT_FILE := $(INDICCONJUNCTBREAK_OUTPUT), \
+    ARGUMENTS := $(INDICCONJUNCTBREAK_TEMPLATE) $(INDICCONJUNCTBREAK_INPUT) \
+        $(INDICCONJUNCTBREAK_OUTPUT) InCB=Linker InCB=Extend InCB=Consonant, \
+))
 
-$(GENSRC_INDICCONJUNCTBREAK): $(BUILD_TOOLS_JDK) $(INDICCONJUNCTBREAKTEMP) $(INDICCONJUNCTBREAKPROPS)
-	$(call LogInfo, Generating $@)
-	$(call MakeTargetDir)
-	$(TOOL_GENERATEEXTRAPROPERTIES) \
-	    $(INDICCONJUNCTBREAKTEMP) \
-	    $(INDICCONJUNCTBREAKPROPS) \
-	    $(GENSRC_INDICCONJUNCTBREAK) \
-	    $(INDICCONJUNCTBREAKPARAMS)
-
-TARGETS += $(GENSRC_INDICCONJUNCTBREAK)
+TARGETS += $(GEN_INDICCONJUNCTBREAK)
 
 ################################################################################
 
-CASEFOLDING_TEMPLATE := $(MODULE_SRC)/share/classes/jdk/internal/util/regex/CaseFolding.java.template
+CASEFOLDING_TEMPLATE := \
+    $(MODULE_SRC)/share/classes/jdk/internal/util/regex/CaseFolding.java.template
 CASEFOLDING_INPUT := $(MODULE_SRC)/share/data/unicodedata/CaseFolding.txt
-CASEFOLDING_OUTPUT := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/regex/CaseFolding.java
+CASEFOLDING_OUTPUT := \
+    $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/regex/CaseFolding.java
 
 $(eval $(call SetupRunBuildTool, GEN_CASEFOLDING, \
     BUILDTOOL := generatecharacter.CaseFolding, \
     DEPS := $(CASEFOLDING_INPUT) $(CASEFOLDING_TEMPLATE), \
     INFO := Generating regex case folding, \
     OUTPUT_FILE := $(CASEFOLDING_OUTPUT), \
-    ARGUMENTS := $(CASEFOLDING_TEMPLATE) $(CASEFOLDING_INPUT) $(CASEFOLDING_OUTPUT), \
+    ARGUMENTS := $(CASEFOLDING_TEMPLATE) $(CASEFOLDING_INPUT) \
+        $(CASEFOLDING_OUTPUT), \
 ))
 
 TARGETS += $(GEN_CASEFOLDING)
