@@ -50,16 +50,20 @@ TARGETS += $(GEN_CHARACTERNAME)
 
 ################################################################################
 
-GENDATA_CURDATA := $(JDK_OUTPUTDIR)/modules/java.base/java/util/currency.data
+CURRENCYDATA_OUTPUT := $(JDK_OUTPUTDIR)/modules/$(MODULE)/java/util/currency.data
+CURRENCYDATA_INPUT := $(MODULE_SRC)/share/data/currency/CurrencyData.properties
 
-$(GENDATA_CURDATA): $(MODULE_SRC)/share/data/currency/CurrencyData.properties $(BUILD_TOOLS_JDK)
-	$(call MakeDir, $(@D))
-	$(RM) $@
-	$(TOOL_GENERATECURRENCYDATA) -o $@.tmp -i $<
-	$(MV) $@.tmp $@
-	$(CHMOD) 444 $@
+$(eval $(call SetupRunBuildTool, GEN_CURRENCYDATA, \
+    BUILDTOOL := generatecurrencydata.GenerateCurrencyData, \
+    DEPS := $(CURRENCYDATA_INPUT), \
+    INFO := Generating currency data, \
+    OUTPUT_FILE := $(CURRENCYDATA_OUTPUT), \
+    ARGUMENTS := -o $(CURRENCYDATA_OUTPUT).tmp -i $(CURRENCYDATA_INPUT), \
+    PRE_COMMAND := $(RM) $(CURRENCYDATA_OUTPUT), \
+    POST_COMMAND := $(MV) $(CURRENCYDATA_OUTPUT).tmp $(CURRENCYDATA_OUTPUT) && $(CHMOD) 444 $(CURRENCYDATA_OUTPUT), \
+))
 
-TARGETS += $(GENDATA_CURDATA)
+TARGETS += $(GEN_CURRENCYDATA)
 
 ################################################################################
 # If CACERTS_FILE is set in configure it will be copied in
