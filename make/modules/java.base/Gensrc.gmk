@@ -98,13 +98,18 @@ TARGETS += $(LIST_RESOURCE_BUNDLE) $(SUN_UTIL) $(SECURITY_RESOURCES) $(KEYTOOL_R
 
 ################################################################################
 
-GENSRC_LSREQUIVMAPS := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/util/locale/LocaleEquivalentMaps.java
+LSREQUIVMAPS_OUTPUT := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/util/locale/LocaleEquivalentMaps.java
+LSREQUIVMAPS_INPUT := $(MODULE_SRC)/share/data/lsrdata/language-subtag-registry.txt
 
-$(GENSRC_LSREQUIVMAPS): $(MODULE_SRC)/share/data/lsrdata/language-subtag-registry.txt $(BUILD_TOOLS_JDK)
-	$(call MakeDir, $(@D))
-	$(TOOL_GENERATELSREQUIVMAPS) $< $@ $(COPYRIGHT_YEAR)
+$(eval $(call SetupRunBuildTool, GEN_LSREQUIVMAPS, \
+    BUILDTOOL := generatelsrequivmaps.EquivMapsGenerator, \
+    DEPS := $(LSREQUIVMAPS_INPUT), \
+    INFO := Generating locale LSR maps, \
+    OUTPUT_FILE := $(LSREQUIVMAPS_OUTPUT), \
+    ARGUMENTS := $(LSREQUIVMAPS_INPUT) $(LSREQUIVMAPS_OUTPUT) $(COPYRIGHT_YEAR), \
+))
 
-TARGETS += $(GENSRC_LSREQUIVMAPS)
+TARGETS += $(GEN_LSREQUIVMAPS)
 
 ################################################################################
 
