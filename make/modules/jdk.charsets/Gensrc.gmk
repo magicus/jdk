@@ -27,13 +27,15 @@
 # Generate files using the charsetmapping tool
 ################################################################################
 
+include BuildToolsCommon.gmk
 include GensrcCommon.gmk
 
 CHARSET_DATA_DIR := $(TOPDIR)/make/data/charsetmapping
-
-CHARSET_GENSRC_JAVA_DIR_CS := $(SUPPORT_OUTPUTDIR)/gensrc/jdk.charsets/sun/nio/cs/ext
+CHARSET_GENSRC_JAVA_DIR_CS := \
+    $(SUPPORT_OUTPUTDIR)/gensrc/jdk.charsets/sun/nio/cs/ext
 CHARSET_DONE_CS := $(CHARSET_GENSRC_JAVA_DIR_CS)/_the.charsetmapping
-CHARSET_COPYRIGHT_HEADER := $(TOPDIR)/make/src/jdk.internal.build/jdk/internal/buildtools/charsetmapping
+CHARSET_COPYRIGHT_HEADER := \
+    $(TOPDIR)/make/src/jdk.internal.build/jdk/internal/buildtools/charsetmapping
 CHARSET_TEMPLATES := \
     $(CHARSET_DATA_DIR)/SingleByte-X.java.template \
     $(CHARSET_DATA_DIR)/DoubleByte-X.java.template
@@ -41,46 +43,58 @@ CHARSET_EXTENDED_JAVA_TEMPLATES := \
     $(MODULE_SRC)/share/classes/sun/nio/cs/ext/ExtendedCharsets.java.template
 CHARSET_EXTENDED_JAVA_DIR := $(MODULE_SRC)/share/classes/sun/nio/cs/ext
 CHARSET_STANDARD_OS := stdcs-$(OPENJDK_TARGET_OS)
+SJIS0213_INPUT := $(CHARSET_DATA_DIR)/sjis0213.map
+SJIS0213_OUTPUT := $(CHARSET_GENSRC_JAVA_DIR_CS)/sjis0213.dat
 
-$(CHARSET_DONE_CS)-extcs: $(CHARSET_DATA_DIR)/charsets \
-    $(wildcard $(CHARSET_DATA_DIR)/$(CHARSET_STANDARD_OS)) \
-    $(CHARSET_TEMPLATES) $(CHARSET_EXTENDED_JAVA_TEMPLATES) \
-    $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Generating jdk.charsets extcs)
-	$(call MakeDir, $(@D))
-	$(TOOL_CHARSETMAPPING) $(CHARSET_DATA_DIR) $(CHARSET_GENSRC_JAVA_DIR_CS) \
-	    extcs charsets  $(CHARSET_STANDARD_OS) \
-	    $(CHARSET_EXTENDED_JAVA_TEMPLATES) \
-	    $(CHARSET_EXTENDED_JAVA_DIR) \
-	    $(CHARSET_COPYRIGHT_HEADER) \
-	    $(LOG_DEBUG)
-	$(TOUCH) '$@'
+$(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_EXTCS, \
+    BUILDTOOL := charsetmapping.Main, \
+    MODULE := jdk.internal.build, \
+    DEPS := $(CHARSET_DATA_DIR)/charsets \
+        $(wildcard $(CHARSET_DATA_DIR)/$(CHARSET_STANDARD_OS)) \
+        $(CHARSET_TEMPLATES) $(CHARSET_EXTENDED_JAVA_TEMPLATES), \
+    INFO := Generating jdk.charsets extcs, \
+    OUTPUT_DIR := $(CHARSET_GENSRC_JAVA_DIR_CS), \
+    ARGUMENTS := $(CHARSET_DATA_DIR) $(CHARSET_GENSRC_JAVA_DIR_CS) \
+        extcs charsets  $(CHARSET_STANDARD_OS) \
+        $(CHARSET_EXTENDED_JAVA_TEMPLATES) \
+        $(CHARSET_EXTENDED_JAVA_DIR) \
+        $(CHARSET_COPYRIGHT_HEADER) \
+        $(LOG_DEBUG), \
+))
 
-$(CHARSET_DONE_CS)-hkscs: $(CHARSET_COPYRIGHT_HEADER)/HKSCS.java \
-    $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Generating jdk.charsets hkscs)
-	$(call MakeDir, $(@D))
-	$(TOOL_CHARSETMAPPING) $(CHARSET_DATA_DIR) $(CHARSET_GENSRC_JAVA_DIR_CS) hkscs '$<'
-	$(TOUCH) '$@'
+TARGETS += $(GEN_CHARSET_MAPPING_EXTCS)
 
-$(CHARSET_DONE_CS)-euctw: $(CHARSET_COPYRIGHT_HEADER)/EUC_TW.java \
-    $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Generating jdk.charsets euctw)
-	$(call MakeDir, $(@D))
-	$(TOOL_CHARSETMAPPING) $(CHARSET_DATA_DIR) $(CHARSET_GENSRC_JAVA_DIR_CS) euctw '$<'
-	$(TOUCH) '$@'
+$(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_HKSCS, \
+    BUILDTOOL := charsetmapping.Main, \
+    MODULE := jdk.internal.build, \
+    DEPS := $(CHARSET_COPYRIGHT_HEADER)/HKSCS.java, \
+    INFO := Generating jdk.charsets hkscs, \
+    OUTPUT_DIR := $(CHARSET_GENSRC_JAVA_DIR_CS), \
+    ARGUMENTS := $(CHARSET_DATA_DIR) $(CHARSET_GENSRC_JAVA_DIR_CS) hkscs '$(CHARSET_COPYRIGHT_HEADER)/HKSCS.java', \
+))
 
-$(CHARSET_GENSRC_JAVA_DIR_CS)/sjis0213.dat: $(CHARSET_DATA_DIR)/sjis0213.map \
-    $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Generating $(patsubst $(OUTPUTDIR)/%, %, $@))
-	$(call MakeDir, $(@D))
-	$(TOOL_CHARSETMAPPING) '$<' '$@' sjis0213
+TARGETS += $(GEN_CHARSET_MAPPING_HKSCS)
 
-TARGETS += \
-    $(CHARSET_DONE_CS)-extcs \
-    $(CHARSET_DONE_CS)-hkscs \
-    $(CHARSET_DONE_CS)-euctw \
-    $(CHARSET_GENSRC_JAVA_DIR_CS)/sjis0213.dat \
-    #
+$(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_EUCTW, \
+    BUILDTOOL := charsetmapping.Main, \
+    MODULE := jdk.internal.build, \
+    DEPS := $(CHARSET_COPYRIGHT_HEADER)/EUC_TW.java, \
+    INFO := Generating jdk.charsets euctw, \
+    OUTPUT_DIR := $(CHARSET_GENSRC_JAVA_DIR_CS), \
+    ARGUMENTS := $(CHARSET_DATA_DIR) $(CHARSET_GENSRC_JAVA_DIR_CS) euctw '$(CHARSET_COPYRIGHT_HEADER)/EUC_TW.java', \
+))
+
+TARGETS += $(GEN_CHARSET_MAPPING_EUCTW)
+
+$(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_SJIS0213, \
+    BUILDTOOL := charsetmapping.Main, \
+    MODULE := jdk.internal.build, \
+    DEPS := $(SJIS0213_INPUT), \
+    INFO := Generating sjis0213.dat, \
+    OUTPUT_FILE := $(SJIS0213_OUTPUT), \
+    ARGUMENTS := '$(SJIS0213_INPUT)' '$(SJIS0213_OUTPUT)' sjis0213, \
+))
+
+TARGETS += $(GEN_CHARSET_MAPPING_SJIS0213)
 
 ################################################################################
