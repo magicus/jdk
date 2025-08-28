@@ -50,20 +50,19 @@ TARGETS += $(GENSRC_INDICCONJUNCTBREAK)
 
 ################################################################################
 
-GENSRC_CASEFOLDING := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/regex/CaseFolding.java
+CASEFOLDING_TEMPLATE := $(MODULE_SRC)/share/classes/jdk/internal/util/regex/CaseFolding.java.template
+CASEFOLDING_INPUT := $(MODULE_SRC)/share/data/unicodedata/CaseFolding.txt
+CASEFOLDING_OUTPUT := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/regex/CaseFolding.java
 
-CASEFOLDINGTEMP := $(MODULE_SRC)/share/classes/jdk/internal/util/regex/CaseFolding.java.template
-CASEFOLDINGTXT := $(MODULE_SRC)/share/data/unicodedata/CaseFolding.txt
+$(eval $(call SetupRunBuildTool, GEN_CASEFOLDING, \
+    BUILDTOOL := generatecharacter.CaseFolding, \
+    DEPS := $(CASEFOLDING_INPUT) $(CASEFOLDING_TEMPLATE), \
+    INFO := Generating regex case folding, \
+    OUTPUT_FILE := $(CASEFOLDING_OUTPUT), \
+    ARGUMENTS := $(CASEFOLDING_TEMPLATE) $(CASEFOLDING_INPUT) $(CASEFOLDING_OUTPUT), \
+))
 
-$(GENSRC_CASEFOLDING): $(BUILD_TOOLS_JDK) $(CASEFOLDINGTEMP) $(CASEFOLDINGTXT)
-	$(call LogInfo, Generating $@)
-	$(call MakeTargetDir)
-	$(TOOL_GENERATECASEFOLDING) \
-	    $(CASEFOLDINGTEMP) \
-	    $(CASEFOLDINGTXT) \
-	    $(GENSRC_CASEFOLDING)
-
-TARGETS += $(GENSRC_CASEFOLDING)
+TARGETS += $(GEN_CASEFOLDING)
 
 ################################################################################
 
