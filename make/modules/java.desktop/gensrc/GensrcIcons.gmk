@@ -70,7 +70,7 @@ define SetupGensrcAWTIcon
 	$(ECHO) "package sun.awt;" > $$@.tmp
 	$(ECHO) "public class $$($1_NAME32) {" >> $$@.tmp
 	$(ECHO) "public static int[] $$($1_SHORTNAME) = { " >> $$@.tmp
-	$(CAT) $$< | $(TOOL_AWT_TOBIN) >> $$@.tmp
+	$(TOOL_AWT_TOBIN) < $$< >> $$@.tmp
 	$(ECHO) "}; }" >> $$@.tmp
 	$(MV) $$@.tmp $$@
 
@@ -81,7 +81,7 @@ define SetupGensrcAWTIcon
 	$(ECHO) "package sun.awt;" > $$@.tmp
 	$(ECHO) "public class $$($1_NAME64) {" >> $$@.tmp
 	$(ECHO) "public static long[] $$($1_SHORTNAME) = { " >> $$@.tmp
-	$(CAT) $$< | $(TOOL_AWT_TOBIN) >> $$@.tmp
+	$(TOOL_AWT_TOBIN) < $$< >> $$@.tmp
 	$(ECHO) "}; }" >> $$@.tmp
 	$(MV) $$@.tmp $$@
 
@@ -98,16 +98,26 @@ ifeq ($(call isTargetOs, macosx), true)
 
   GENSRC_OSX_ICONS_DST := $(SUPPORT_OUTPUTDIR)/headers/java.desktop
   GENSRC_OSX_ICONS := $(GENSRC_OSX_ICONS_DST)/AWTIconData.h
+  GENSRC_OSX_ICONS_DATA := $(GENSRC_OSX_ICONS).data
 
   GENSRC_OSX_ICONS_SRC ?= $(MODULE_SRC)/macosx/data/macosxicons/JavaApp.icns
 
+  $(eval $(call SetupRunBuildTool, GEN_OSX_ICONDATA, \
+      BUILDTOOL := icondataosx.ToBin, \
+      DEPS := $(GENSRC_OSX_ICONS_SRC), \
+      INFO := Generating AWTIconData.h data, \
+      OUTPUT_FILE := $(GENSRC_OSX_ICONS_DATA), \
+      ARGUMENTS := < $(GENSRC_OSX_ICONS_SRC) > $(GENSRC_OSX_ICONS_DATA), \
+      JAVA_OPTS := -Djava.awt.headless=true, \
+      PRE_COMMAND := $(RM) $(GENSRC_OSX_ICONS_DATA), \
+  ))
 
-  $(GENSRC_OSX_ICONS): $(GENSRC_OSX_ICONS_SRC) $(BUILD_TOOLS_JDK)
+  $(GENSRC_OSX_ICONS): $(GEN_OSX_ICONDATA)
 	$(call LogInfo, Generating $(patsubst $(OUTPUTDIR)/%, %, $@))
 	$(call MakeDir, $(@D))
 	$(RM) $@ $@.tmp
 	$(ECHO) "static unsigned char sAWTIconData[] = { " >> $@.tmp
-	$(CAT) $< | $(TOOL_OSX_TOBIN) >> $@.tmp
+	$(CAT) $(GENSRC_OSX_ICONS_DATA) >> $@.tmp
 	$(ECHO) "};" >> $@.tmp
 	$(MV) $@.tmp $@
 
