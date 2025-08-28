@@ -30,10 +30,9 @@ ifeq ($(INCLUDE), true)
 # Rules to create $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/lang/CharacterData*.java
 ################################################################################
 
-GENSRC_CHARACTERDATA :=
-
-CHARACTERDATA_TEMPLATES = $(MODULE_SRC)/share/classes/java/lang
-UNICODEDATA = $(MODULE_SRC)/share/data/unicodedata
+CHARACTERDATA_TEMPLATE_DIR := $(MODULE_SRC)/share/classes/java/lang
+CHARACTERDATA_INPUT_DIR := $(MODULE_SRC)/share/data/unicodedata
+CHARACTERDATA_OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/java/lang
 
 ifneq ($(DEBUG_LEVEL), release)
   ifeq ($(ALLOW_ABSOLUTE_PATHS_IN_OUTPUT), true)
@@ -41,23 +40,31 @@ ifneq ($(DEBUG_LEVEL), release)
   endif
 endif
 
-define SetupCharacterData
-  $(SUPPORT_OUTPUTDIR)/gensrc/java.base/java/lang/$1.java: \
-      $(CHARACTERDATA_TEMPLATES)/$1.java.template
-	$$(call LogInfo, Generating $1.java)
-	$$(call MakeDir, $$(@D))
-	$(TOOL_GENERATECHARACTER) $2 $(DEBUG_OPTION) \
-	    -template $(CHARACTERDATA_TEMPLATES)/$1.java.template \
-	    -spec $(UNICODEDATA)/UnicodeData.txt \
-	    -specialcasing $(UNICODEDATA)/SpecialCasing.txt \
-	    -proplist $(UNICODEDATA)/PropList.txt \
-	    -derivedprops $(UNICODEDATA)/DerivedCoreProperties.txt \
-	    -emojidata $(UNICODEDATA)/emoji/emoji-data.txt \
-	    -o $(SUPPORT_OUTPUTDIR)/gensrc/java.base/java/lang/$1.java \
-	    -usecharforbyte $3
+################################################################################
 
-  GENSRC_CHARACTERDATA += $(SUPPORT_OUTPUTDIR)/gensrc/java.base/java/lang/$1.java
+define SetupCharacterData
+  $1_OUTPUT := $$(CHARACTERDATA_OUTPUT_DIR)/$1.java
+
+  $$(eval $$(call SetupRunBuildTool, CHARACTERDATA_$1, \
+      BUILDTOOL := generatecharacter.GenerateCharacter, \
+      DEPS := $$(CHARACTERDATA_TEMPLATE_DIR)/$1.java.template, \
+      INFO := Generating $1.java, \
+      OUTPUT_FILE := $$($1_OUTPUT), \
+      ARGUMENTS := $2 $$(DEBUG_OPTION) \
+          -template $$(CHARACTERDATA_TEMPLATE_DIR)/$1.java.template \
+          -spec $$(CHARACTERDATA_INPUT_DIR)/UnicodeData.txt \
+          -specialcasing $$(CHARACTERDATA_INPUT_DIR)/SpecialCasing.txt \
+          -proplist $$(CHARACTERDATA_INPUT_DIR)/PropList.txt \
+          -derivedprops $$(CHARACTERDATA_INPUT_DIR)/DerivedCoreProperties.txt \
+          -emojidata $$(CHARACTERDATA_INPUT_DIR)/emoji/emoji-data.txt \
+          -o $$($1_OUTPUT) \
+          -usecharforbyte $3, \
+  ))
+
+  TARGETS += $$(CHARACTERDATA_$1)
 endef
+
+################################################################################
 
 $(eval $(call SetupCharacterData,CharacterDataLatin1, , -latin1 8))
 $(eval $(call SetupCharacterData,CharacterData00, -string -plane 0, 11 4 1))
@@ -65,10 +72,6 @@ $(eval $(call SetupCharacterData,CharacterData01, -string -plane 1, 11 4 1))
 $(eval $(call SetupCharacterData,CharacterData02, -string -plane 2, 11 4 1))
 $(eval $(call SetupCharacterData,CharacterData03, -string -plane 3, 11 4 1))
 $(eval $(call SetupCharacterData,CharacterData0E, -string -plane 14, 11 4 1))
-
-$(GENSRC_CHARACTERDATA): $(BUILD_TOOLS_JDK)
-
-TARGETS += $(GENSRC_CHARACTERDATA)
 
 ################################################################################
 
