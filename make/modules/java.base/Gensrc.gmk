@@ -27,6 +27,8 @@
 
 include BuildToolsCommon.gmk
 include GensrcCommon.gmk
+include GensrcProperties.gmk
+include GensrcStreamPreProcessing.gmk
 
 include gensrc/GensrcBuffer.gmk
 include gensrc/GensrcCharacterData.gmk
@@ -71,8 +73,6 @@ $(eval $(call SetupRunBuildTool, GEN_CLDR_DATA, \
 TARGETS += $(GEN_CLDR_DATA)
 
 ################################################################################
-
-include GensrcProperties.gmk
 
 $(eval $(call SetupCompileProperties, LIST_RESOURCE_BUNDLE, \
     SRC_DIRS := $(MODULE_SRC)/share/classes/sun/launcher/resources, \

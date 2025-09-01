@@ -1,0 +1,91 @@
+#
+# Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+# This code is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License version 2 only, as
+# published by the Free Software Foundation.  Oracle designates this
+# particular file as subject to the "Classpath" exception as provided
+# by Oracle in the LICENSE file that accompanied this code.
+#
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
+#
+# You should have received a copy of the GNU General Public License version
+# 2 along with this work; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+# or visit www.oracle.com if you need additional information or have any
+# questions.
+#
+
+include MakeIncludeStart.gmk
+ifeq ($(INCLUDE), true)
+
+################################################################################
+# This file defines macros that sets up rules for running the spp.Spp build tool
+################################################################################
+
+include BuildToolsCommon.gmk
+
+################################################################################
+# Setup make rules that runs the spp.Spp build tool on an input file.
+#
+# Parameter 1 is the name of the rule. This name is used as variable prefix,
+# and the targets generated are listed in a variable by that name.
+#
+# Remaining parameters are named arguments. These include:
+#   BEGIN_END Set to true to exclude everything outside #begin/#end (default: false)
+#   SUBST_EMPTY_LINES Set to false to not generate empty lines for removed lines (default: true)
+#   SOURCE_FILE The input file to process (required)
+#   OUTPUT_FILE The output file (required)
+#   KEYS One or more keys to control the generation (optional)
+#   REPLACEMENTS one or more text replacement patterns, using the syntax:
+#       VAR=VALUE [VAR=VALUE] ...
+#
+SetupStreamPreProcessing = $(NamedParamsMacroTemplate)
+define SetupStreamPreProcessingBody
+  # Verify arguments
+  ifeq ($$($1_SOURCE_FILE), )
+    $$(error Must specify SOURCE_FILE (in $1))
+  endif
+  ifeq ($$($1_OUTPUT_FILE), )
+    $$(error Must specify OUTPUT_FILE (in $1))
+  endif
+
+  $1_COMMAND_LINE :=
+  ifeq ($$($1_BEGIN_END), true)
+    $1_COMMAND_LINE += -be
+  endif
+
+  ifeq ($$($1_SUBST_EMPTY_LINES), false)
+    $1_COMMAND_LINE += -nel
+  endif
+
+  $1_COMMAND_LINE += $$(foreach k, $$($1_KEYS), -K$$k)
+  $1_COMMAND_LINE += $$(foreach d, $$($1_REPLACEMENTS), -D$$d)
+
+  $1_COMMAND_LINE += -i$$($1_SOURCE_FILE) -o$$($1_OUTPUT_FILE).tmp
+
+  $$(eval $$(call SetupRunBuildTool, RUN_SPP_$1, \
+      BUILDTOOL := spp.Spp, \
+      MODULE := java.base, \
+      DEPS := $$($1_SOURCE_FILE), \
+      INFO := Preprocessing $$(notdir $$($1_SOURCE_FILE)) for $(MODULE), \
+      OUTPUT_FILE := $$($1_OUTPUT_FILE), \
+      ARGUMENTS := $$($1_COMMAND_LINE), \
+      PRE_COMMAND := $(RM) $$($1_OUTPUT_FILE).tmp $$($1_OUTPUT_FILE), \
+      POST_COMMAND := $(MV) $$($1_OUTPUT_FILE).tmp $$($1_OUTPUT_FILE), \
+  ))
+
+  $1 += $$(RUN_SPP_$1)
+endef
+
+################################################################################
+
+endif # include guard
+include MakeIncludeEnd.gmk
