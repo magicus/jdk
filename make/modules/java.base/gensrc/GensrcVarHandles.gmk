@@ -121,13 +121,16 @@ endef
 # Generate all VarHandle related classes
 
 $(foreach t, $(PRIMITIVE_TYPES) reference, \
-  $(eval $(call GenerateVarHandle,$t)))
+  $(eval $(call GenerateVarHandle,$t)) \
+)
 
 $(foreach t, $(NON_BYTE_NUMBER_TYPES), \
-  $(eval $(call GenerateVarHandleByteArray,$t)))
+  $(eval $(call GenerateVarHandleByteArray,$t)) \
+)
 
 $(foreach t, $(PRIMITIVE_TYPES), \
-  $(eval $(call GenerateVarHandleMemorySegment,$t)))
+  $(eval $(call GenerateVarHandleMemorySegment,$t)) \
+)
 
 ################################################################################
 
