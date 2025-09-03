@@ -214,7 +214,6 @@ define SetupStreamPreProcessingBody
       MODULE := java.base, \
       DEPS := $$($1_SOURCE_FILE), \
       INFO := $$($1_INFO), \
-      DEPS := $$($1_SOURCE_FILE) $$(BUILD_TOOLS_JDK), \
       OUTPUT_FILE := $$($1_OUTPUT_FILE), \
       ARGUMENTS := $$($1_COMMAND_LINE), \
       PRE_COMMAND := $$(RM) $$($1_OUTPUT_FILE).tmp $$($1_OUTPUT_FILE), \
