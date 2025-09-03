@@ -42,18 +42,18 @@ define SetupGenScopedSnippets
 
   $$(eval $$(call SetupStreamPreProcessing, GEN_SCOPED_SNIPPET_$1, \
       SOURCE_FILE := $$(SCOPED_INPUT_DIR)/X-ScopedMemoryAccess-bin.java.template, \
-      OUTPUT_FILE := $$(1_SCOPED_SNIPPET_FILE), \
+      OUTPUT_FILE := $$($1_SCOPED_SNIPPET_FILE), \
       INFO := Generating snippets for ScopedMemoryAccess ($1), \
       SUBST_EMPTY_LINES := false, \
       KEYS := \
           $1 \
           CAS \
-          $(if $(filter byte, $2), byte) \
-          $(if $(filter float double, $2), floatingPoint) \
-          $(if $(filter char short int long, $2), Unaligned) \
-          $(if $(filter boolean byte char short, $2), ShorterThanInt)
-          $(if $(filter-out boolean, $2), AtomicAdd) \
-          $(if $(filter-out float double, $2), Bitwise), \
+          $$(if $$(filter byte, $1), byte) \
+          $$(if $$(filter float double, $1), floatingPoint) \
+          $$(if $$(filter char short int long, $1), Unaligned) \
+          $$(if $$(filter boolean byte char short, $1), ShorterThanInt) \
+          $$(if $$(filter-out boolean, $1), AtomicAdd) \
+          $$(if $$(filter-out float double, $1), Bitwise), \
       REPLACEMENTS := \
           type=$1 \
           Type=$$(call Conv, $1, Type), \
@@ -67,8 +67,8 @@ endef
 # Setup generation of snippet files, one for each primitive type. This will
 # populate SCOPED_SNIPPET_FILES.
 SCOPED_SNIPPET_FILES :=
-$$(foreach t, $$(PRIMITIVE_TYPES), \
-  $$(eval $$(call SetupGenScopedSnippets,$t)) \
+$(foreach t, $(PRIMITIVE_TYPES), \
+  $(eval $(call SetupGenScopedSnippets,$t)) \
 )
 
 # Setup a rule for generating the ScopedMemoryAccess java class by incorporating

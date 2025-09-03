@@ -36,7 +36,7 @@ VARHANDLES_OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/java/lang/invoke
 #
 # arg $1: type for this varhandle
 define GenerateVarHandle
-  VARHANDLE_$1_type := $$(if $$(filter reference, $1), Object, $1)
+  VARHANDLE_$1_type := $$(strip $$(if $$(filter reference, $1), Object, $1))
   VARHANDLE_$1_Type := $$(call Conv, $1, Type)
 
   $$(eval $$(call SetupStreamPreProcessing, GEN_VARHANDLE_$1, \
@@ -48,8 +48,8 @@ define GenerateVarHandle
           $$(VARHANDLE_$1_type) \
           CAS \
           $$(if $$(filter byte short char, $1), ShorterThanInt) \
-          $$(if $$(filter-out boolean, $1), AtomicAdd) \
-          $$(if $$(filter-out float double, $1), Bitwise), \
+          $$(if $$(filter-out boolean reference, $1), AtomicAdd) \
+          $$(if $$(filter-out float double reference, $1), Bitwise), \
       REPLACEMENTS := \
           type=$$(VARHANDLE_$1_type) \
           Type=$$(VARHANDLE_$1_Type), \
@@ -61,12 +61,12 @@ endef
 # Setup a rule for generating a VarHandleByteArray java class
 #
 # arg $1: type for this varhandle
-efine GenerateVarHandleByteArray
+define GenerateVarHandleByteArray
   VARHANDLE_BYTEARRAY_$1_Type := $$(call Conv, $1, Type)
 
   $$(eval $$(call SetupStreamPreProcessing, GEN_VARHANDLE_BYTEARRAY_$1, \
       SOURCE_FILE := $$(VARHANDLES_INPUT_DIR)/X-VarHandleByteArrayView.java.template, \
-      OUTPUT_FILE := $$(VARHANDLES_OUTPUT_DIR)/VarHandleByteArrayAs$$(VARHANDLE_BYTEARRAY_$1_Type)s.java, \, \
+      OUTPUT_FILE := $$(VARHANDLES_OUTPUT_DIR)/VarHandleByteArrayAs$$(VARHANDLE_BYTEARRAY_$1_Type)s.java, \
       INFO := Generating VarHandleByteArray class for $1, \
       SUBST_EMPTY_LINES := false, \
       KEYS := \
@@ -95,14 +95,14 @@ define GenerateVarHandleMemorySegment
 
   $$(eval $$(call SetupStreamPreProcessing, GEN_VARHANDLE_SEGMENT_$1, \
       SOURCE_FILE := $$(VARHANDLES_INPUT_DIR)/X-VarHandleSegmentView.java.template, \
-      OUTPUT_FILE := $$(VARHANDLES_OUTPUT_DIR)/VarHandleSegmentAs$$(VARHANDLE_SEGMENT_$1_Type)s.java, \, \
+      OUTPUT_FILE := $$(VARHANDLES_OUTPUT_DIR)/VarHandleSegmentAs$$(VARHANDLE_SEGMENT_$1_Type)s.java, \
       INFO := Generating VarHandleSegment class for $1, \
       SUBST_EMPTY_LINES := false, \
       KEYS := \
           $1 \
           $$(if $$(filter int long float double, $1), CAS) \
           $$(if $$(filter boolean byte, $1), byte) \
-          $$(if $$(filter float double, $1), floatingPoint)
+          $$(if $$(filter float double, $1), floatingPoint) \
           $$(if $$(filter boolean byte short char, $1), ShorterThanInt) \
           $$(if $$(filter int long, $1), AtomicAdd) \
           $$(if $$(filter int long, $1), Bitwise), \

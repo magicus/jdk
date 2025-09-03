@@ -48,7 +48,7 @@ PRIMITIVE_TYPES := boolean $(NUMBER_TYPES)
 # arg $3: byte order (only needed for certain aspects)
 #
 Conv = \
-  $(strip $(call Conv_$(strip $2),$(strip $1)))
+  $(strip $(call Conv_$(strip $2),$(strip $1),$(strip $3)))
 
 ################################################################################
 # Conv_<aspect> implementations
@@ -201,12 +201,12 @@ define SetupStreamPreProcessingBody
   endif
 
   $1_COMMAND_LINE += $$(foreach k, $$($1_KEYS), -K$$k)
-  $1_COMMAND_LINE += $$(foreach d, $$($1_REPLACEMENTS), -D$$d)
+  $1_COMMAND_LINE += $$(subst $$$$(SPACE), ,$$(foreach d, $$($1_REPLACEMENTS), -D$$d))
 
   $1_COMMAND_LINE += -i$$($1_SOURCE_FILE) -o$$($1_OUTPUT_FILE).tmp
 
   ifeq ($$($1_INFO), )
-      $1_INFO := Preprocessing $$(notdir $$($1_SOURCE_FILE)) for $(MODULE)
+    $1_INFO := Preprocessing $$(notdir $$($1_SOURCE_FILE)) for $(MODULE)
   endif
 
   $$(eval $$(call SetupRunBuildTool, RUN_SPP_$1, \
@@ -214,10 +214,11 @@ define SetupStreamPreProcessingBody
       MODULE := java.base, \
       DEPS := $$($1_SOURCE_FILE), \
       INFO := $$($1_INFO), \
+      DEPS := $$($1_SOURCE_FILE) $$(BUILD_TOOLS_JDK), \
       OUTPUT_FILE := $$($1_OUTPUT_FILE), \
       ARGUMENTS := $$($1_COMMAND_LINE), \
-      PRE_COMMAND := $(RM) $$($1_OUTPUT_FILE).tmp $$($1_OUTPUT_FILE), \
-      POST_COMMAND := $(MV) $$($1_OUTPUT_FILE).tmp $$($1_OUTPUT_FILE), \
+      PRE_COMMAND := $$(RM) $$($1_OUTPUT_FILE).tmp $$($1_OUTPUT_FILE), \
+      POST_COMMAND := $$(MV) $$($1_OUTPUT_FILE).tmp $$($1_OUTPUT_FILE), \
   ))
 
   $1 += $$(RUN_SPP_$1)
