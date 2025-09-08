@@ -112,7 +112,7 @@ define generate-preproc-src
 	    ( $(AWK) '/@@END_COPYRIGHT@@/{exit}1' $< && \
 	      $(CPP) $(CPP_FLAGS) $(SYSROOT_CFLAGS) $(CFLAGS_JDKLIB) $(CPP_FILEPREFIX) $< \
 	          2> >($(GREP) -v '^$(<F)$$' >&2) \
-	          | $(AWK) '/@@START_HERE@@/,0' \
+	          | $(AWK) '/@@START_HERE@@/$(COMMA)0' \
 	          |  $(SED) -e 's/@@START_HERE@@/\/\/ AUTOMATICALLY GENERATED FILE - DO NOT EDIT/' \
 	          -e 's/PREFIX_//' -e 's/^#.*//' \
 	    ) > $@ \

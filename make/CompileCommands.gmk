@@ -44,7 +44,7 @@ $(OUTPUTDIR)/compile_commands.json: $(wildcard $(MAKESUPPORT_OUTPUTDIR)/compile-
 	$(RM) $@
 	$(FIND) $(MAKESUPPORT_OUTPUTDIR)/compile-commands/ -name \*.json | \
 	    $(SORT) | $(XARGS) $(CAT) >> $@.tmp
-	$(SED) -e '1s/^/[\$(NEWLINE)/' -e '$(DOLLAR)s/,\s\{0,\}$(DOLLAR)/\$(NEWLINE)]/' $@.tmp > $@
+	$(SED) -e '1s/^/[\$(NEWLINE)/' -e '$(DOLLAR)s/$(COMMA)\s\{0$(COMMA)\}$(DOLLAR)/\$(NEWLINE)]/' $@.tmp > $@
 	$(RM) $@.tmp
 
 TARGETS += $(OUTPUTDIR)/compile_commands.json

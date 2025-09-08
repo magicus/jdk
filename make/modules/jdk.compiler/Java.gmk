@@ -30,7 +30,7 @@
 # DISABLED_WARNINGS_java should not be augmented.
 
 DOCLINT += -Xdoclint:all/protected \
-    '-Xdoclint/package:-com.sun.tools.*,-jdk.internal.*,sun.tools.serialver.resources.*'
+    '-Xdoclint/package:-com.sun.tools.*$(COMMA)-jdk.internal.*$(COMMA)sun.tools.serialver.resources.*'
 JAVAC_FLAGS += -XDstringConcat=inline
 CLEAN_FILES += $(wildcard \
     $(patsubst %, $(TOPDIR)/src/jdk.compiler/share/classes/%/*.properties, \

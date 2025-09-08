@@ -30,6 +30,6 @@
 # DISABLED_WARNINGS_java should not be augmented.
 
 DOCLINT += -Xdoclint:all/protected \
-    '-Xdoclint/package:java.*,javax.*'
+    '-Xdoclint/package:java.*$(COMMA)javax.*'
 
 ################################################################################

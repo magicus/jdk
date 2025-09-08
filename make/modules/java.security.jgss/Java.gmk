@@ -28,6 +28,6 @@
 DISABLED_WARNINGS_java += dangling-doc-comments this-escape
 
 DOCLINT += -Xdoclint:all/protected \
-    '-Xdoclint/package:java.*,javax.*'
+    '-Xdoclint/package:java.*$(COMMA)javax.*'
 
 ################################################################################

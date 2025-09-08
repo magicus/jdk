@@ -48,7 +48,7 @@ SYMBOL_FILES := $(wildcard $(MODULE_SRC)/share/data/symbols/*)
 CT_DATA_DESCRIPTION += $(MODULE_SRC)/share/data/symbols/symbols
 
 COMPILECREATESYMBOLS_ADD_EXPORTS := \
-    --add-modules jdk.compiler,jdk.jdeps \
+    --add-modules jdk.compiler$(COMMA)jdk.jdeps \
     --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
     --add-exports jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED \
     --add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED \

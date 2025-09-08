@@ -762,7 +762,7 @@ define SetupAOTBody
 	      cd $$($1_AOT_JDK_OUTPUT_DIR); \
 	      $(JAR) --extract --file $(TEST_IMAGE_DIR)/setup_aot/TestSetupAOT.jar; \
 	      $$(FIXPATH) $(JDK_UNDER_TEST)/bin/java $$($1_VM_OPTIONS) \
-	          -Xlog:class+load,aot,aot+class=debug:file=$$($1_AOT_JDK_CACHE).log  -Xlog:cds*=error -Xlog:aot*=error  \
+	          -Xlog:class+load$(COMMA)aot$(COMMA)aot+class=debug:file=$$($1_AOT_JDK_CACHE).log  -Xlog:cds*=error -Xlog:aot*=error  \
 	          -XX:AOTMode=record -XX:AOTCacheOutput=$$($1_AOT_JDK_CACHE) \
 	          TestSetupAOT $$($1_AOT_JDK_OUTPUT_DIR) > $$($1_AOT_JDK_LOG) \
 	  ))
@@ -774,7 +774,7 @@ define SetupAOTBody
 	      cd $$($1_AOT_JDK_OUTPUT_DIR); \
 	      $(JAR) --extract --file $(TEST_IMAGE_DIR)/setup_aot/TestSetupAOT.jar; \
 	      $$(FIXPATH) $(JDK_UNDER_TEST)/bin/java $$($1_VM_OPTIONS) \
-	          -Xlog:class+load,aot,aot+class=debug:file=$$($1_AOT_JDK_CONF).log  -Xlog:cds*=error -Xlog:aot*=error \
+	          -Xlog:class+load$(COMMA)aot$(COMMA)aot+class=debug:file=$$($1_AOT_JDK_CONF).log  -Xlog:cds*=error -Xlog:aot*=error \
 	          -XX:AOTMode=record -XX:AOTConfiguration=$$($1_AOT_JDK_CONF) \
 	          TestSetupAOT $$($1_AOT_JDK_OUTPUT_DIR) > $$($1_AOT_JDK_LOG) \
 	  ))
@@ -782,7 +782,7 @@ define SetupAOTBody
 	  $$(call LogWarn, AOT: Generate AOT cache $$($1_AOT_JDK_CACHE) with flags: $$($1_VM_OPTIONS))
 	  $$(call ExecuteWithLog, $$($1_AOT_JDK_OUTPUT_DIR), ( \
 	      $$(FIXPATH) $(JDK_UNDER_TEST)/bin/java \
-	          $$($1_VM_OPTIONS) -Xlog:aot,aot+class=debug:file=$$($1_AOT_JDK_CACHE).log -Xlog:cds*=error -Xlog:aot*=error \
+	          $$($1_VM_OPTIONS) -Xlog:aot$(COMMA)aot+class=debug:file=$$($1_AOT_JDK_CACHE).log -Xlog:cds*=error -Xlog:aot*=error \
 	          -XX:ExtraSharedClassListFile=$(JDK_UNDER_TEST)/lib/classlist \
 	          -XX:AOTMode=create -XX:AOTConfiguration=$$($1_AOT_JDK_CONF) -XX:AOTCache=$$($1_AOT_JDK_CACHE) \
 	  ))
@@ -846,8 +846,8 @@ define SetupRunJtregTestBody
   # we may end up with a lot of JVM's
   $1_JTREG_MAX_RAM_PERCENTAGE := $$(shell $(AWK) 'BEGIN { print 25 / $$($1_JTREG_JOBS); }')
 
-  JTREG_VERBOSE ?= fail,error,summary
-  JTREG_RETAIN ?= fail,error
+  JTREG_VERBOSE ?= fail$(COMMA)error$(COMMA)summary
+  JTREG_RETAIN ?= fail$(COMMA)error
   JTREG_TEST_THREAD_FACTORY ?=
   JTREG_RUN_PROBLEM_LISTS ?= false
   JTREG_RETRY_COUNT ?= 0
@@ -1062,7 +1062,7 @@ define SetupRunJtregTestBody
           if [ "`$$(CAT) $$($1_EXITCODE)`" = "0" ]; then \
             break; \
           fi; \
-          export JTREG_STATUS="-status:error,fail"; \
+          export JTREG_STATUS="-status:error$(COMMA)fail"; \
         done
   endif
 

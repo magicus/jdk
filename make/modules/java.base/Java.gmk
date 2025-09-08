@@ -32,7 +32,7 @@
 # DISABLED_WARNINGS_java +=
 
 DOCLINT += -Xdoclint:all/protected \
-    '-Xdoclint/package:java.*,javax.*'
+    '-Xdoclint/package:java.*$(COMMA)javax.*'
 JAVAC_FLAGS += -XDstringConcat=inline
 COPY += .icu .dat .spp .nrm content-types.properties \
     hijrah-config-Hijrah-umalqura_islamic-umalqura.properties

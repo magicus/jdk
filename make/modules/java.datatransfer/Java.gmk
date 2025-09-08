@@ -28,7 +28,7 @@
 DISABLED_WARNINGS_java += this-escape
 
 DOCLINT += -Xdoclint:all/protected \
-    '-Xdoclint/package:java.*,javax.*'
+    '-Xdoclint/package:java.*$(COMMA)javax.*'
 COPY += flavormap.properties
 
 ################################################################################
