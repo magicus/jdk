@@ -157,15 +157,16 @@ $(foreach t, $(PRIMITIVE_TYPES), \
 
 ################################################################################
 
-GENSRC_VARHANDLEGUARDS := $(VARHANDLES_OUTPUT_DIR)/VarHandleGuards.java
+VARHANDLEGUARDS_INPUT := $(VARHANDLES_OUTPUT_DIR)/VarHandleGuards.java
 
-$(GENSRC_VARHANDLEGUARDS): $(BUILD_TOOLS_JDK)
-	$(call LogInfo, Generating $@)
-	$(call MakeTargetDir)
-	$(TOOL_VARHANDLEGUARDMETHODGENERATOR) \
-	    $(GENSRC_VARHANDLEGUARDS)
+$(eval $(call SetupRunBuildTool, GEN_VARHANDLEGUARDS, \
+    BUILDTOOL := methodhandle.VarHandleGuardMethodGenerator, \
+    INFO := Generating VarHandleGuards.java, \
+    OUTPUT_FILE := $(VARHANDLEGUARDS_INPUT), \
+    ARGUMENTS := $(VARHANDLEGUARDS_INPUT), \
+))
 
-TARGETS += $(GENSRC_VARHANDLEGUARDS)
+TARGETS += $(GEN_VARHANDLEGUARDS)
 
 ################################################################################
 

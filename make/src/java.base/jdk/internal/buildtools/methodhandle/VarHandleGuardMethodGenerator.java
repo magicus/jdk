@@ -23,7 +23,7 @@
  * questions.
  */
 
-package build.tools.methodhandle;
+package jdk.internal.buildtools.methodhandle;
 
 import java.io.PrintWriter;
 import java.lang.classfile.TypeKind;
