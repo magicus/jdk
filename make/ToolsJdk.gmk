@@ -126,6 +126,9 @@ TOOL_PUBLICSUFFIXLIST := $(call BuildTool, java.base, publicsuffixlist.GenerateP
 
 TOOL_FIXUPPANDOC := $(call BuildTool, jdk.internal.build, fixuppandoc.Main)
 
+TOOL_VARHANDLEGUARDMETHODGENERATOR = $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
+    build.tools.methodhandle.VarHandleGuardMethodGenerator
+
 ################################################################################
 
 # Executable javascript filter for man page generation using pandoc.
