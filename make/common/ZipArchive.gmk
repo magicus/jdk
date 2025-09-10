@@ -33,7 +33,7 @@ include $(TOPDIR)/make/ToolsJdk.gmk
 
 TOOL_MAKEZIPREPRODUCIBLE := $(JAVA_SMALL) \
     -cp $(BUILDTOOLS_OUTPUTDIR)/jdk.internal.build/classes \
-    jdk.internal.buildtools.makezipreproducible.MakeZipReproducible
+    jdk.internal.generators.makezipreproducible.MakeZipReproducible
 
 # Setup make rules for creating a zip archive.
 #

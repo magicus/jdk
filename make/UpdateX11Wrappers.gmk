@@ -53,7 +53,7 @@ WRAPPER_OUTPUT_FILE := $(GENSRC_X11WRAPPERS_DATADIR)/sizes-$(BITS).txt
 
 TOOL_WRAPPERGENERATOR := $(JAVA_SMALL) \
     -cp $(BUILDTOOLS_OUTPUTDIR)/java.desktop/classes \
-    jdk.internal.buildtools.java.desktop
+    jdk.internal.generators.java.desktop
 
 # Generate the C code for the program that will output the offset file.
 $(eval $(call SetupExecute, gensrc_generator, \

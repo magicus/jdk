@@ -76,7 +76,7 @@ $(SUPPORT_OUTPUTDIR)/symbols/ct.sym: $(COMPILE_CREATE_SYMBOLS) $(SYMBOL_FILES) \
 	$(BUILD_JAVA_SMALL) \
 	    $(COMPILECREATESYMBOLS_ADD_EXPORTS) \
 	    -classpath $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javac \
-	    jdk.internal.buildtools.symbolgenerator.CreateSymbols \
+	    jdk.internal.generators.symbolgenerator.CreateSymbols \
 	    build-ctsym \
 	    $(CT_DATA_DESCRIPTION) \
 	    $(@D)/ct.sym \

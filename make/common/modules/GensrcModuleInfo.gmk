@@ -53,7 +53,7 @@ include Modules.gmk
 TOOL_GENMODULEINFOSOURCE := $(JAVA_SMALL) \
     $(INTERIM_LANGTOOLS_ARGS) \
     -cp $(BUILDTOOLS_OUTPUTDIR)/jdk.internal.build/classes \
-    jdk.internal.buildtools.module.GenModuleInfoSource
+    jdk.internal.generators.module.GenModuleInfoSource
 
 ################################################################################
 

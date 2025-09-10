@@ -67,18 +67,18 @@ JAVADOC_TAGS := \
     -tag param \
     -tag return \
     -tag throws \
-    -taglet jdk.internal.buildtools.taglet.JSpec\$$JLS \
-    -taglet jdk.internal.buildtools.taglet.JSpec\$$JVMS \
-    -taglet jdk.internal.buildtools.taglet.ModuleGraph \
-    -taglet jdk.internal.buildtools.taglet.SealedGraph \
-    -taglet jdk.internal.buildtools.taglet.ToolGuide \
+    -taglet jdk.internal.generators.taglet.JSpec\$$JLS \
+    -taglet jdk.internal.generators.taglet.JSpec\$$JVMS \
+    -taglet jdk.internal.generators.taglet.ModuleGraph \
+    -taglet jdk.internal.generators.taglet.SealedGraph \
+    -taglet jdk.internal.generators.taglet.ToolGuide \
     -tag since \
     -tag serialData \
     -tag factory \
     -tag spec \
     -tag see \
-    -taglet jdk.internal.buildtools.taglet.ExtLink \
-    -taglet jdk.internal.buildtools.taglet.Incubating \
+    -taglet jdk.internal.generators.taglet.ExtLink \
+    -taglet jdk.internal.generators.taglet.Incubating \
     -tagletpath $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
     $(CUSTOM_JAVADOC_TAGS) \
     #
@@ -637,7 +637,7 @@ ifeq ($(ENABLE_PANDOC), true)
 
   TOOL_FIXUPPANDOC := $(JAVA_SMALL) \
       -cp $(BUILDTOOLS_OUTPUTDIR)/jdk.internal.build/classes \
-      jdk.internal.buildtools.fixuppandoc.Main
+      jdk.internal.generators.fixuppandoc.Main
 
   GLOBAL_SPECS_DEFAULT_CSS_FILE := $(DOCS_OUTPUTDIR)/resources/jdk-default.css
   # Unset the following to suppress the link to the tool guides

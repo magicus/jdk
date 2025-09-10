@@ -53,7 +53,7 @@ BUILD_TOOLS_JDK := $(foreach m, $(BUILDTOOLS_MODULES), \
 BuildTool = \
   $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/$(strip $1)/classes \
       $(BUILDTOOL_OPTS_$(strip $1)_$(strip $2)) \
-      jdk.internal.buildtools.$(1)
+      jdk.internal.generators.$(1)
 endef
 
 BUILDTOOL_OPTS_java.desktop_compilefontconfig.CompileFontConfig := \

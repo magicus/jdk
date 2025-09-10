@@ -79,7 +79,7 @@ $(CLASSLIST_FILE): $(INTERIM_IMAGE_DIR)/bin/java$(EXECUTABLE_SUFFIX) $(CLASSLIST
 	    -Xlog:aot=off \
 	    -Xlog:cds=off \
 	    -cp $(SUPPORT_OUTPUTDIR)/classlist.jar \
-	    jdk.internal.buildtools.classlist.HelloClasslist $(LOG_DEBUG)
+	    jdk.internal.generators.classlist.HelloClasslist $(LOG_DEBUG)
 	$(GREP) -v HelloClasslist $@.raw > $@.interim
 	$(FIXPATH) $(INTERIM_IMAGE_DIR)/bin/java -Xshare:dump \
 	    -Xlog:aot=off \
@@ -94,7 +94,7 @@ $(CLASSLIST_FILE): $(INTERIM_IMAGE_DIR)/bin/java$(EXECUTABLE_SUFFIX) $(CLASSLIST
 	    -Xlog:aot=off \
 	    -Xlog:cds=off \
 	    -cp $(SUPPORT_OUTPUTDIR)/classlist.jar \
-	    jdk.internal.buildtools.classlist.HelloClasslist \
+	    jdk.internal.generators.classlist.HelloClasslist \
 	    2> $(LINK_OPT_DIR)/stderr > $(JLI_TRACE_FILE) \
 	    || ( \
 	        exitcode=$$? ; \
@@ -109,7 +109,7 @@ $(CLASSLIST_FILE): $(INTERIM_IMAGE_DIR)/bin/java$(EXECUTABLE_SUFFIX) $(CLASSLIST
 	    -Xlog:aot=off \
 	    -Xlog:cds=off \
 	    -cp $(SUPPORT_OUTPUTDIR)/classlist.jar \
-	    jdk.internal.buildtools.classlist.SortClasslist $@.raw.4 > $@
+	    jdk.internal.generators.classlist.SortClasslist $@.raw.4 > $@
 
 # The jli trace is created by the same recipe as classlist. By declaring these
 # dependencies, make will correctly rebuild both jli trace and classlist

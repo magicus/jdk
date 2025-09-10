@@ -41,15 +41,15 @@ BUILD_JIGSAW_TOOLS := $(call SetupJavaCompilationCompileTarget, \
 TOOL_GENGRAPHS := $(BUILD_JAVA) -esa -ea -cp $(TOOLS_CLASSES_DIR) \
     --add-modules jdk.jdeps \
     --add-exports jdk.jdeps/com.sun.tools.jdeps=ALL-UNNAMED \
-    jdk.internal.buildtools.jigsaw.GenGraphs
+    jdk.internal.generators.jigsaw.GenGraphs
 
 TOOL_MODULESUMMARY := $(BUILD_JAVA) -esa -ea -cp $(TOOLS_CLASSES_DIR) \
-    jdk.internal.buildtools.jigsaw.ModuleSummary
+    jdk.internal.generators.jigsaw.ModuleSummary
 
 TOOL_ADD_PACKAGES_ATTRIBUTE := $(BUILD_JAVA) $(JAVA_FLAGS_SMALL_BUILDJDK) \
     -cp $(TOOLS_CLASSES_DIR) \
     --add-exports java.base/jdk.internal.module=ALL-UNNAMED \
-    jdk.internal.buildtools.jigsaw.AddPackagesAttribute
+    jdk.internal.generators.jigsaw.AddPackagesAttribute
 
 ################################################################################
 
