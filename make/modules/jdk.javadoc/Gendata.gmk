@@ -36,7 +36,30 @@ JAVADOC_MODULES := $(DOCS_MODULES)
 # Get the complete module source path:
 JAVADOC_MODULESOURCEPATH := $(call GetModuleSrcPath)
 
-CT_DATA_DESCRIPTION += $(TOPDIR)/src/jdk.compiler/share/data/symbols/symbols
+ELEMENT_LISTS_PKG := jdk/javadoc/internal/doclets/toolkit/resources/releases
+
+GENERATE_SYMBOLS_FROM_JDK_VERSION := 11
+
+# Unfortunately there is no better way to generate the list 11..(N-1) in make
+ALL_VERSION_LIST := $(call sequence, $(GENERATE_SYMBOLS_FROM_JDK_VERSION), \
+				 $(JDK_SOURCE_TARGET_VERSION))
+HISTORICAL_VERSION_LIST := $(filter-out $(lastword $(ALL_VERSION_LIST)), \
+                                 $(ALL_VERSION_LIST))
+
+ELEMENT_LISTS_INPUT_DIR := $(TOPDIR)/src/jdk.compiler/share/data/symbols
+# This might have been added to by a custom extension
+CT_DATA_DESCRIPTION += $(ELEMENT_LISTS_INPUT_DIR)/symbols
+
+ELEMENT_LISTS_INPUT := $(wildcard $(ELEMENT_LISTS_INPUT_DIR)/*)
+
+ELEMENT_LISTS_OUTPUT_DIR := $(JDK_OUTPUTDIR)/modules/jdk.javadoc/$(ELEMENT_LISTS_PKG)
+ELEMENT_LISTS_HISTORICAL_OUTPUT := $(foreach v, $(HISTORICAL_VERSION_LIST), \
+    $(ELEMENT_LISTS_OUTPUT_DIR)/element-list-$v.txt)
+ELEMENT_LISTS_CURRENT_OUTPUT := \
+    $(ELEMENT_LISTS_OUTPUT_DIR)/element-list-$(JDK_SOURCE_TARGET_VERSION).txt
+
+INTERIM_OUTPUT_DIR := $(BUILDTOOLS_OUTPUTDIR)/interim_langtools_modules/jdk.javadoc.interim
+ELEMENT_LISTS_INTERIM_OUTPUT_DIR := $(INTERIM_OUTPUT_DIR)/$(ELEMENT_LISTS_PKG)
 
 COMPILECREATESYMBOLS_ADD_EXPORTS := \
     --add-exports java.base/jdk.internal=java.compiler.interim,jdk.compiler.interim \
@@ -59,58 +82,46 @@ $(eval $(call SetupJavaCompilation, COMPILE_CREATE_SYMBOLS, \
         $(COMPILECREATESYMBOLS_ADD_EXPORTS), \
 ))
 
-GENERATE_SYMBOLS_FROM_JDK_VERSION := 11
-JDK_JAVADOC_DIR := $(JDK_OUTPUTDIR)/modules/jdk.javadoc
-ELEMENT_LISTS_PKG := jdk/javadoc/internal/doclets/toolkit/resources/releases
-ELEMENT_LISTS_DIR := $(JDK_JAVADOC_DIR)/$(ELEMENT_LISTS_PKG)
+# Generate element-list files for JDK 11 to current-1
+$(eval $(call SetupRunBuildTool, GEN_ELEMENT_LISTS_HISTORICAL, \
+    BUILDTOOL := symbolgenerator.CreateSymbols, \
+    DEPS := $(MODULE_INFOS) $(ELEMENT_LISTS_INPUT), \
+    INFO := Creating javadoc element lists for historic JDK versions, \
+    OUTPUT_DIR := $(ELEMENT_LISTS_OUTPUT_DIR), \
+    ARGUMENTS := build-javadoc-data $(CT_DATA_DESCRIPTION) \
+        $(ELEMENT_LISTS_OUTPUT_DIR) $(GENERATE_SYMBOLS_FROM_JDK_VERSION), \
+    PRE_COMMAND := $(RM) $(ELEMENT_LISTS_HISTORICAL_OUTPUT), \
+    JAVA_OPTS := $(INTERIM_LANGTOOLS_ARGS) \
+        $(COMPILECREATESYMBOLS_ADD_EXPORTS), \
+))
 
-$(JDK_JAVADOC_DIR)/_element_lists.marker: \
-    $(COMPILE_CREATE_SYMBOLS) \
-    $(wildcard $(TOPDIR)/src/jdk.compiler/share/data/symbols/*) \
-    $(MODULE_INFOS)
-	$(call MakeTargetDir)
-	$(call LogInfo, Creating javadoc element lists)
-	$(RM) $(ELEMENT_LISTS_DIR)/element-list-{$(call CommaList, \
-		$(call sequence, $(GENERATE_SYMBOLS_FROM_JDK_VERSION), \
-				 $(JDK_SOURCE_TARGET_VERSION)))}.txt
-        # Generate element-list files for JDK 11 to current-1
-	$(call ExecuteWithLog, $@_historic, \
-	    $(JAVA_SMALL) $(INTERIM_LANGTOOLS_ARGS) \
-	        $(COMPILECREATESYMBOLS_ADD_EXPORTS) \
-	        -classpath $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javadoc \
-	        jdk.internal.generators.symbolgenerator.CreateSymbols \
-	        build-javadoc-data \
-	        $(CT_DATA_DESCRIPTION) \
-	        $(ELEMENT_LISTS_DIR) \
-	        $(GENERATE_SYMBOLS_FROM_JDK_VERSION) \
-	)
-        # Generate element-list file for the current JDK version
-	$(call ExecuteWithLog, $@_current, \
-	    $(JAVA_SMALL) $(INTERIM_LANGTOOLS_ARGS) \
-	        $(COMPILECREATESYMBOLS_ADD_EXPORTS) \
-	        -classpath $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javadoc \
-	        jdk.internal.generators.symbolgenerator.JavadocElementList \
-	        $(ELEMENT_LISTS_DIR)/element-list-$(JDK_SOURCE_TARGET_VERSION).txt \
+TARGETS += $(GEN_ELEMENT_LISTS_HISTORICAL)
+
+# Generate element-list file for the current JDK version
+$(eval $(call SetupRunBuildTool, GEN_ELEMENT_LISTS_CURRENT, \
+    BUILDTOOL := symbolgenerator.JavadocElementList, \
+    DEPS := $(MODULE_INFOS) $(ELEMENT_LISTS_INPUT), \
+    INFO := Creating javadoc element lists for the current JDK version, \
+    OUTPUT_FILE := $(ELEMENT_LISTS_CURRENT_OUTPUT), \
+    ARGUMENTS := $(ELEMENT_LISTS_CURRENT_OUTPUT) \
 	        $(JAVADOC_MODULESOURCEPATH) \
-	        $(JAVADOC_MODULES) \
-	)
-	$(TOUCH) $@
+	        $(JAVADOC_MODULES), \
+    PRE_COMMAND := $(RM) $(ELEMENT_LISTS_CURRENT_OUTPUT), \
+    JAVA_OPTS := $(INTERIM_LANGTOOLS_ARGS) \
+          $(COMPILECREATESYMBOLS_ADD_EXPORTS), \
+))
+
+TARGETS += $(GEN_ELEMENT_LISTS_CURRENT)
 
 ################################################################################
 # Copy element-lists to interim langtools
 
-INTERIM_JDK_JAVADOC_DIR := $(BUILDTOOLS_OUTPUTDIR)/interim_langtools_modules/jdk.javadoc.interim
-INTERIM_ELEMENT_LISTS_DIR := $(INTERIM_JDK_JAVADOC_DIR)/$(ELEMENT_LISTS_PKG)
+$(eval $(call SetupCopyFiles, COPY_TO_INTERIM, \
+    SRC := $(ELEMENT_LISTS_OUTPUT_DIR), \
+    DEST := $(ELEMENT_LISTS_INTERIM_OUTPUT_DIR), \
+    FILES := $(wildcard $(ELEMENT_LISTS_OUTPUT_DIR)/*), \
+))
 
-$(INTERIM_JDK_JAVADOC_DIR)/_element_lists.marker: $(JDK_JAVADOC_DIR)/_element_lists.marker
-	$(call MakeDir, $(INTERIM_ELEMENT_LISTS_DIR))
-	$(RM) -r $(INTERIM_ELEMENT_LISTS_DIR)/*
-	$(CP) -R $(ELEMENT_LISTS_DIR)/* $(INTERIM_ELEMENT_LISTS_DIR)/
-	$(TOUCH) $@
-
-################################################################################
-
-TARGETS += $(JDK_JAVADOC_DIR)/_element_lists.marker \
-    $(INTERIM_JDK_JAVADOC_DIR)/_element_lists.marker
+TARGETS += $(COPY_TO_INTERIM)
 
 ################################################################################
