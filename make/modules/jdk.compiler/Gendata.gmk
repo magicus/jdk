@@ -45,6 +45,8 @@ CT_EXTRA_MODULES := jdk.unsupported
 
 SYMBOL_FILES := $(wildcard $(MODULE_SRC)/share/data/symbols/*)
 
+CT_SYM_OUTPUT := $(SUPPORT_OUTPUTDIR)/symbols/ct.sym
+
 CT_DATA_DESCRIPTION += $(MODULE_SRC)/share/data/symbols/symbols
 
 COMPILECREATESYMBOLS_ADD_EXPORTS := \
@@ -66,30 +68,27 @@ $(eval $(call SetupJavaCompilation, COMPILE_CREATE_SYMBOLS, \
     JAVAC_FLAGS := \
         $(COMPILECREATESYMBOLS_ADD_EXPORTS), \
 ))
+$(info in GENDATA $(MODULE_INFOS)) )
 
-$(SUPPORT_OUTPUTDIR)/symbols/ct.sym: $(COMPILE_CREATE_SYMBOLS) $(SYMBOL_FILES) \
-    $(MODULE_INFOS) $(CT_MODULES_API_TARGETS)
-	$(RM) -r $(@D)
-	$(MKDIR) -p $(@D)
-	$(ECHO) Creating ct.sym classes
-	$(ECHO) $(CT_MODULES) $(CT_TRANSITIVE_MODULES) $(CT_EXTRA_MODULES) >$(SUPPORT_OUTPUTDIR)/symbols/included-modules
-	$(BUILD_JAVA_SMALL) \
-	    $(COMPILECREATESYMBOLS_ADD_EXPORTS) \
-	    -classpath $(BUILDTOOLS_OUTPUTDIR)/create_symbols_javac \
-	    jdk.internal.generators.symbolgenerator.CreateSymbols \
-	    build-ctsym \
-	    $(CT_DATA_DESCRIPTION) \
-	    $(@D)/ct.sym \
-	    $(SOURCE_DATE_EPOCH) \
-	    $(JDK_SOURCE_TARGET_VERSION) \
-	    "$(VERSION_PRE)" \
-	    $(JDK_OUTPUTDIR)/modules/ \
-	    $(SUPPORT_OUTPUTDIR)/symbols/included-modules
-	$(TOUCH) $@
+$(eval $(call SetupRunBuildTool, GEN_CT_SYM, \
+    BUILDTOOL := symbolgenerator.CreateSymbols, \
+    DEPS := $(SYMBOL_FILES) $(MODULE_INFOS) $(CT_MODULES_API_TARGETS), \
+    INFO := Creating ct.sym classes, \
+    OUTPUT_FILE := $(CT_SYM_OUTPUT), \
+    ARGUMENTS := build-ctsym $(CT_DATA_DESCRIPTION) $(CT_SYM_OUTPUT) \
+        $(SOURCE_DATE_EPOCH) $(JDK_SOURCE_TARGET_VERSION) "$(VERSION_PRE)" \
+        $(JDK_OUTPUTDIR)/modules/ \
+        $(SUPPORT_OUTPUTDIR)/symbols/included-modules, \
+    PRE_COMMAND := $(ECHO) $(CT_MODULES) $(CT_TRANSITIVE_MODULES) \
+        $(CT_EXTRA_MODULES) > $(SUPPORT_OUTPUTDIR)/symbols/included-modules, \
+    JAVA_OPTS := $(COMPILECREATESYMBOLS_ADD_EXPORTS), \
+))
+
+TARGETS += $(GEN_CT_SYM)
 
 # Copy ct.sym to the modules libs dir
 $(eval $(call SetupCopyFiles, COPY_TO_LIBS, \
-    FILES := $(SUPPORT_OUTPUTDIR)/symbols/ct.sym, \
+    FILES := $(CT_SYM_OUTPUT), \
     DEST := $(SUPPORT_OUTPUTDIR)/modules_libs/jdk.compiler, \
 ))
 
