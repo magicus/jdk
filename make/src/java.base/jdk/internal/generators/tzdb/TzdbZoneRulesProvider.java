@@ -38,7 +38,7 @@ import java.time.*;
 import java.time.Year;
 import java.time.chrono.IsoChronology;
 import java.time.temporal.TemporalAdjusters;
-import jdk.internal.buildtools.tzdb.ZoneOffsetTransitionRule.TimeDefinition;
+import jdk.internal.generators.tzdb.ZoneOffsetTransitionRule.TimeDefinition;
 import java.time.zone.ZoneRulesException;
 
 /**

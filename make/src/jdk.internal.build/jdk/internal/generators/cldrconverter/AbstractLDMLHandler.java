@@ -25,7 +25,7 @@
 
 package jdk.internal.generators.cldrconverter;
 
-import jdk.internal.buildtools.cldrconverter.CLDRConverter.DraftType;
+import jdk.internal.generators.cldrconverter.CLDRConverter.DraftType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;

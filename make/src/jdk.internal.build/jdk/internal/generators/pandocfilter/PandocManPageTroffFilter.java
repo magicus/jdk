@@ -23,8 +23,8 @@
 
 package jdk.internal.generators.pandocfilter;
 
-import jdk.internal.buildtools.pandocfilter.json.JSONArray;
-import jdk.internal.buildtools.pandocfilter.json.JSONValue;
+import jdk.internal.generators.pandocfilter.json.JSONArray;
+import jdk.internal.generators.pandocfilter.json.JSONValue;
 
 import java.io.FileNotFoundException;
 
@@ -91,7 +91,7 @@ public class PandocManPageTroffFilter extends PandocFilter {
      */
     public static void main(String[] args) throws FileNotFoundException {
         JSONValue json = loadJson(args);
-        jdk.internal.buildtools.pandocfilter.PandocManPageTroffFilter filter = new jdk.internal.buildtools.pandocfilter.PandocManPageTroffFilter();
+        jdk.internal.generators.pandocfilter.PandocManPageTroffFilter filter = new jdk.internal.generators.pandocfilter.PandocManPageTroffFilter();
 
         JSONValue transformed_json = filter.traverse(json, filter::manpageFilter, false);
 

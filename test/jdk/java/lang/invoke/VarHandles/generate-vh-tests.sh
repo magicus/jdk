@@ -2,7 +2,7 @@
 
 javac -d . ../../../../../../make/src/java.base/jdk/internal/buildtools/spp/Spp.java
 
-SPP=jdk.internal.buildtools.spp.Spp
+SPP=jdk.internal.generators.spp.Spp
 
 # Generates variable handle tests for objects and all primitive types
 # This is likely to be a temporary testing approach as it may be more

@@ -25,7 +25,7 @@
 
 package jdk.internal.generators.cldrconverter;
 
-import jdk.internal.buildtools.cldrconverter.BundleGenerator.BundleType;
+import jdk.internal.generators.cldrconverter.BundleGenerator.BundleType;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;

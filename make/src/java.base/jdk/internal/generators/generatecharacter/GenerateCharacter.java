@@ -36,7 +36,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.List;
 
-import jdk.internal.buildtools.generatecharacter.CharacterName;
+import jdk.internal.generators.generatecharacter.CharacterName;
 
 /**
  * This program generates the source code for the class java.lang.Character.

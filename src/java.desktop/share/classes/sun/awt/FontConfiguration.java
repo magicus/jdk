@@ -1350,7 +1350,7 @@ public abstract class FontConfiguration {
     /**
      * Checks consistencies of complied fontconfig data. This method
      * is called only at the build-time from
-     * jdk.internal.buildtools.compilefontconfig.CompileFontConfig.
+     * jdk.internal.generators.compilefontconfig.CompileFontConfig.
      */
     private static void sanityCheck() {
         int errors = 0;

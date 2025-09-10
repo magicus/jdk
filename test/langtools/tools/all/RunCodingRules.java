@@ -146,7 +146,7 @@ public class RunCodingRules {
                 crulesDir.toUri().toURL()
             });
             Class propertiesParserClass =
-                    Class.forName("jdk.internal.buildtools.propertiesparser.PropertiesParser", false, propertiesParserLoader);
+                    Class.forName("jdk.internal.generators.propertiesparser.PropertiesParser", false, propertiesParserLoader);
             Method propertiesParserRun =
                     propertiesParserClass.getDeclaredMethod("run", String[].class, PrintStream.class);
             String compilerProperties =

@@ -23,9 +23,9 @@
 
 package jdk.internal.generators.pandocfilter;
 
-import jdk.internal.buildtools.pandocfilter.json.JSONArray;
-import jdk.internal.buildtools.pandocfilter.json.JSONObject;
-import jdk.internal.buildtools.pandocfilter.json.JSONValue;
+import jdk.internal.generators.pandocfilter.json.JSONArray;
+import jdk.internal.generators.pandocfilter.json.JSONObject;
+import jdk.internal.generators.pandocfilter.json.JSONValue;
 
 import java.io.FileNotFoundException;
 import java.util.regex.Matcher;

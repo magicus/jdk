@@ -35,7 +35,7 @@ import java.util.regex.*;
  *      sed-based spp.sh
  *
  * Usage:
- * java jdk.internal.buildtools.spp.Spp [-be] [-nel] [-Kkey] -Dvar=value ... -iin -oout
+ * java jdk.internal.generators.spp.Spp [-be] [-nel] [-Kkey] -Dvar=value ... -iin -oout
  *
  * If -nel is declared then empty lines will not be substituted for lines of
  * text in the template that do not appear in the output.
@@ -90,7 +90,7 @@ public class Spp {
             } else if ("-nel".equals(arg)) {
                 el = false;
             } else {
-                System.err.println("Usage: java jdk.internal.buildtools.spp.Spp [-be] [-nel] [-Kkey] -Dvar=value ... <in >out");
+                System.err.println("Usage: java jdk.internal.generators.spp.Spp [-be] [-nel] [-Kkey] -Dvar=value ... <in >out");
                 System.exit(-1);
             }
         }

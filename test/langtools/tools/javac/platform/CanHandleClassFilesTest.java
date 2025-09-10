@@ -103,7 +103,7 @@ public class CanHandleClassFilesTest {
                       "jdk.compiler/com.sun.tools.javac.util")
                     .forEach(p -> open(p, targetModule));
 
-            var createSymbolsClass = Class.forName("jdk.internal.buildtools.symbolgenerator.CreateSymbols", false, cl);
+            var createSymbolsClass = Class.forName("jdk.internal.generators.symbolgenerator.CreateSymbols", false, cl);
             var main = createSymbolsClass.getMethod("main", String[].class);
             var symbols = targetDir.resolve("symbols");
             var modules = targetDir.resolve("modules");

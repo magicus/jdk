@@ -27,7 +27,7 @@ JDK_SRC_HOME="./../../../../../"
 JAVA="${JAVA_HOME}/bin/java"
 JAVAC="${JAVA_HOME}/bin/javac"
 BUILDLOG_FILE="./build.log"
-SPP_CLASSNAME="jdk.internal.buildtools.spp.Spp"
+SPP_CLASSNAME="jdk.internal.generators.spp.Spp"
 # Windows: Classpath Separator is ';'
 # Linux: ':'
 SEPARATOR=":"

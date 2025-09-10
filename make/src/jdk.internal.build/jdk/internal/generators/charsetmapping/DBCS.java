@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.Formatter;
 import java.util.regex.Pattern;
-import static jdk.internal.buildtools.charsetmapping.Utils.*;
+import static jdk.internal.generators.charsetmapping.Utils.*;
 
 public class DBCS {
     // pattern used by this class to read in mapping table

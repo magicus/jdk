@@ -25,10 +25,10 @@
 
 package jdk.internal.generators.propertiesparser.parser;
 
-import jdk.internal.buildtools.propertiesparser.parser.MessageType.CompoundType;
-import jdk.internal.buildtools.propertiesparser.parser.MessageType.OrType;
-import jdk.internal.buildtools.propertiesparser.parser.MessageType.SimpleType;
-import jdk.internal.buildtools.propertiesparser.parser.MessageType.UnionType;
+import jdk.internal.generators.propertiesparser.parser.MessageType.CompoundType;
+import jdk.internal.generators.propertiesparser.parser.MessageType.OrType;
+import jdk.internal.generators.propertiesparser.parser.MessageType.SimpleType;
+import jdk.internal.generators.propertiesparser.parser.MessageType.UnionType;
 
 import java.util.ArrayList;
 import java.util.List;

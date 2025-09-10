@@ -36,7 +36,7 @@ genBin() {
         if [ "$RO" == "RO" ] ; then
           extraArgs="-KRO"
         fi
-        java jdk.internal.buildtools.spp.Spp -be -nel -K$1 -Dtype=$1 -DType=$2 -DFulltype=$3 \
+        java jdk.internal.generators.spp.Spp -be -nel -K$1 -Dtype=$1 -DType=$2 -DFulltype=$3 \
               $extraArgs \
               -Kview \
               -DMs=$MS \
@@ -54,10 +54,10 @@ genBin() {
 gen() {
     out=$2Buffers.java
     rm -f $out
-    java jdk.internal.buildtools.spp.Spp -be -nel -K$1 -Dtype=$1 -DType=$2 -DFulltype=$3 \
+    java jdk.internal.generators.spp.Spp -be -nel -K$1 -Dtype=$1 -DType=$2 -DFulltype=$3 \
           -DCarrierBW=$4 -iX-Buffers.java.template -o$out
 
-    java jdk.internal.buildtools.spp.Spp -be -nel -K$1 -Dtype=$1 -DType=$2 -DFulltype=$3 \
+    java jdk.internal.generators.spp.Spp -be -nel -K$1 -Dtype=$1 -DType=$2 -DFulltype=$3 \
           -DMs=Heap -Dms=heap -DSWAP="" -DRO="" -iX-Buffers-bin.java.template -o$out
 
     if [ "$1" == "byte" ] ; then

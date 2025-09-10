@@ -55,7 +55,7 @@ import static java.util.stream.Collectors.*;
  * in module-info.java.extra.
  * Injecting platform-specific requires is not supported.
  *
- * @see jdk.internal.buildtools.module.ModuleInfoExtraTest for basic testing
+ * @see jdk.internal.generators.module.ModuleInfoExtraTest for basic testing
  */
 public class GenModuleInfoSource {
     private final static String USAGE =

@@ -28,7 +28,7 @@ package jdk.internal.generators.charsetmapping;
 import java.io.*;
 import java.util.regex.*;
 import java.util.*;
-import static jdk.internal.buildtools.charsetmapping.Utils.*;
+import static jdk.internal.generators.charsetmapping.Utils.*;
 
 public class JIS0213 {
 

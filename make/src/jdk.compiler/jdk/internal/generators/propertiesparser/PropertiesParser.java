@@ -25,8 +25,8 @@
 
 package jdk.internal.generators.propertiesparser;
 
-import jdk.internal.buildtools.propertiesparser.parser.MessageFile;
-import jdk.internal.buildtools.propertiesparser.gen.ClassGenerator;
+import jdk.internal.generators.propertiesparser.parser.MessageFile;
+import jdk.internal.generators.propertiesparser.gen.ClassGenerator;
 
 import java.io.File;
 import java.io.PrintStream;

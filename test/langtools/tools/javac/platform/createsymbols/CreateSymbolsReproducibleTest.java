@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 /*
  * @test
  * @bug 8327466
- * @summary verifies that the ct.sym file created by jdk.internal.buildtools.symbolgenerator.CreateSymbols
+ * @summary verifies that the ct.sym file created by jdk.internal.generators.symbolgenerator.CreateSymbols
  *          is reproducible
  * @library /test/lib
  * @modules java.compiler
@@ -54,7 +54,7 @@ import org.junit.jupiter.api.Test;
 public class CreateSymbolsReproducibleTest {
 
     // the fully qualified class name of the tool that we launch to generate the ct.sym file
-    private static final String CREATE_SYMBOLS_CLASS_FQN = "jdk.internal.buildtools.symbolgenerator.CreateSymbols";
+    private static final String CREATE_SYMBOLS_CLASS_FQN = "jdk.internal.generators.symbolgenerator.CreateSymbols";
     // a reproducible timestamp (in seconds) that we pass to "CreateSymbols build-ctsym" as input
     // when generating the ct.sym file
     private static final long SOURCE_EPOCH_DATE = Instant.now().getEpochSecond();

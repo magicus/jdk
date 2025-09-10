@@ -32,7 +32,7 @@ import java.util.Scanner;
 import java.util.Formatter;
 import java.util.regex.*;
 import java.nio.charset.*;
-import static jdk.internal.buildtools.charsetmapping.Utils.*;
+import static jdk.internal.generators.charsetmapping.Utils.*;
 
 public class HKSCS {
 

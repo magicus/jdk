@@ -25,9 +25,9 @@
 
 package jdk.internal.generators.symbolgenerator;
 
-import jdk.internal.buildtools.symbolgenerator.CreateSymbols.ModuleHeaderDescription.ExportsDescription;
-import jdk.internal.buildtools.symbolgenerator.CreateSymbols.ModuleHeaderDescription.ProvidesDescription;
-import jdk.internal.buildtools.symbolgenerator.CreateSymbols.ModuleHeaderDescription.RequiresDescription;
+import jdk.internal.generators.symbolgenerator.CreateSymbols.ModuleHeaderDescription.ExportsDescription;
+import jdk.internal.generators.symbolgenerator.CreateSymbols.ModuleHeaderDescription.ProvidesDescription;
+import jdk.internal.generators.symbolgenerator.CreateSymbols.ModuleHeaderDescription.RequiresDescription;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -140,13 +140,13 @@ import static java.lang.classfile.ClassFile.ACC_PUBLIC;
  * platform "<platform-id2>", unless explicitly excluded in "<platform-id2>"'s .sym.txt files.
  *
  * To create the .sym.txt files, first run the history Probe for all the previous platforms:
- *     <jdk-N>/bin/java jdk.internal.buildtools.symbolgenerator.Probe <classes-for-N>
+ *     <jdk-N>/bin/java jdk.internal.generators.symbolgenerator.Probe <classes-for-N>
  *
  * Where <classes-for-N> is a name of a file into which the classes from the bootclasspath of <jdk-N>
  * will be written.
  *
  * Then create the <platform-description-file> file and the .sym.txt files like this:
- *     java jdk.internal.buildtools.symbolgenerator.CreateSymbols build-description <target-directory> <path-to-a-JDK-root> <include-list-file>
+ *     java jdk.internal.generators.symbolgenerator.CreateSymbols build-description <target-directory> <path-to-a-JDK-root> <include-list-file>
  *                                                    <platform-id1> <target-file-for-platform1> "<none>"
  *                                                    <platform-id2> <target-file-for-platform2> <diff-against-platform2>
  *                                                    <platform-id3> <target-file-for-platform3> <diff-against-platform3>
@@ -167,9 +167,9 @@ import static java.lang.classfile.ClassFile.ACC_PUBLIC;
  * If N is a custom/specialized sub-version of another platform N', then <diff-against-platformN> should be N'.
  *
  * To generate the .sym.txt files for OpenJDK 7 and 8:
- *     <jdk-7>/bin/java jdk.internal.buildtools.symbolgenerator.Probe OpenJDK7.classes
- *     <jdk-8>/bin/java jdk.internal.buildtools.symbolgenerator.Probe OpenJDK8.classes
- *     java jdk.internal.buildtools.symbolgenerator.CreateSymbols build-description src/jdk.compiler/share/data/symbols
+ *     <jdk-7>/bin/java jdk.internal.generators.symbolgenerator.Probe OpenJDK7.classes
+ *     <jdk-8>/bin/java jdk.internal.generators.symbolgenerator.Probe OpenJDK8.classes
+ *     java jdk.internal.generators.symbolgenerator.CreateSymbols build-description src/jdk.compiler/share/data/symbols
  *          $TOPDIR src/jdk.compiler/share/data/symbols/include.list
  *                                                    8 OpenJDK8.classes '<none>'
  *                                                    7 OpenJDK7.classes 8

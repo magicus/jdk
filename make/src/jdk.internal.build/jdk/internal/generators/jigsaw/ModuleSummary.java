@@ -49,8 +49,8 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import static java.lang.module.ModuleDescriptor.*;
-import static jdk.internal.buildtools.jigsaw.ModuleSummary.HtmlDocument.Selector.*;
-import static jdk.internal.buildtools.jigsaw.ModuleSummary.HtmlDocument.Division.*;
+import static jdk.internal.generators.jigsaw.ModuleSummary.HtmlDocument.Selector.*;
+import static jdk.internal.generators.jigsaw.ModuleSummary.HtmlDocument.Division.*;
 
 public class ModuleSummary {
     private static final String USAGE = "Usage: ModuleSummary --module-path <dir> -o <outfile> [--root mn]*";

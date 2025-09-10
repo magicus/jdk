@@ -27,16 +27,16 @@ package jdk.internal.generators.propertiesparser.gen;
 
 import static java.util.stream.Collectors.toList;
 
-import jdk.internal.buildtools.propertiesparser.parser.Message;
-import jdk.internal.buildtools.propertiesparser.parser.MessageFile;
-import jdk.internal.buildtools.propertiesparser.parser.MessageInfo;
-import jdk.internal.buildtools.propertiesparser.parser.MessageLine;
-import jdk.internal.buildtools.propertiesparser.parser.MessageType;
-import jdk.internal.buildtools.propertiesparser.parser.MessageType.CompoundType;
-import jdk.internal.buildtools.propertiesparser.parser.MessageType.CustomType;
-import jdk.internal.buildtools.propertiesparser.parser.MessageType.SimpleType;
-import jdk.internal.buildtools.propertiesparser.parser.MessageType.UnionType;
-import jdk.internal.buildtools.propertiesparser.parser.MessageType.Visitor;
+import jdk.internal.generators.propertiesparser.parser.Message;
+import jdk.internal.generators.propertiesparser.parser.MessageFile;
+import jdk.internal.generators.propertiesparser.parser.MessageInfo;
+import jdk.internal.generators.propertiesparser.parser.MessageLine;
+import jdk.internal.generators.propertiesparser.parser.MessageType;
+import jdk.internal.generators.propertiesparser.parser.MessageType.CompoundType;
+import jdk.internal.generators.propertiesparser.parser.MessageType.CustomType;
+import jdk.internal.generators.propertiesparser.parser.MessageType.SimpleType;
+import jdk.internal.generators.propertiesparser.parser.MessageType.UnionType;
+import jdk.internal.generators.propertiesparser.parser.MessageType.Visitor;
 
 import java.io.File;
 import java.io.FileWriter;

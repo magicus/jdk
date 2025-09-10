@@ -95,7 +95,7 @@ public class Main {
      * Runs the program.
      *
      * <pre>
-     *     java jdk.internal.buildtools.fixuppandoc.Main [-o output-file] [input-file]
+     *     java jdk.internal.generators.fixuppandoc.Main [-o output-file] [input-file]
      * </pre>
      *
      * If no input file is specified, the program will read from standard input.
