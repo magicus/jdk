@@ -70,8 +70,8 @@ $(eval $(call SetupJavaCompilation, COMPILE_CREATE_SYMBOLS, \
 ))
 $(info in GENDATA $(MODULE_INFOS)) )
 
-$(eval $(call SetupRunBuildTool, GEN_CT_SYM, \
-    BUILDTOOL := symbolgenerator.CreateSymbols, \
+$(eval $(call SetupRunGenerator, GEN_CT_SYM, \
+    GENERATOR := symbolgenerator.CreateSymbols, \
     DEPS := $(SYMBOL_FILES) $(MODULE_INFOS) $(CT_MODULES_API_TARGETS), \
     INFO := Creating ct.sym classes, \
     OUTPUT_FILE := $(CT_SYM_OUTPUT), \

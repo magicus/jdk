@@ -53,8 +53,8 @@ VARDEPS_FILE := $(call DependOnVariable, VARDEPS_VALUE)
 MODULE_LOADER_MAP_OUTPUT := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/module/ModuleLoaderMap.java
 MODULE_LOADER_MAP_INPUT := $(TOPDIR)/src/java.base/share/classes/jdk/internal/module/ModuleLoaderMap.java
 
-$(eval $(call SetupRunBuildTool, GEN_MODULE_LOADER_MAP, \
-    BUILDTOOL := moduleloadermap.GenModuleLoaderMap, \
+$(eval $(call SetupRunGenerator, GEN_MODULE_LOADER_MAP, \
+    GENERATOR := moduleloadermap.GenModuleLoaderMap, \
     DEPS := $(MODULE_LOADER_MAP_INPUT) $(VARDEPS_FILE), \
     INFO := Generating module loader map, \
     OUTPUT_FILE := $(MODULE_LOADER_MAP_OUTPUT), \

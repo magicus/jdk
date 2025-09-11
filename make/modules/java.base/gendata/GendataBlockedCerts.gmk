@@ -31,8 +31,8 @@ ifeq ($(INCLUDE), true)
 GENDATA_BLOCKED_CERTS_INPUT += $(MODULE_SRC)/share/data/blockedcertsconverter/blocked.certs.pem
 GENDATA_BLOCKED_CERTS_OUTPUT := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/security/blocked.certs
 
-$(eval $(call SetupRunBuildTool, GEN_BLOCKED_CERTS, \
-    BUILDTOOL := blockedcertsconverter.BlockedCertsConverter, \
+$(eval $(call SetupRunGenerator, GEN_BLOCKED_CERTS, \
+    GENERATOR := blockedcertsconverter.BlockedCertsConverter, \
     DEPS := $(GENDATA_BLOCKED_CERTS_INPUT), \
     INFO := Generating blocked certs, \
     OUTPUT_FILE := $(GENDATA_BLOCKED_CERTS_OUTPUT), \

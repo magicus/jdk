@@ -50,8 +50,8 @@ ifneq ($(wildcard $(FONTCONFIG_SRC_FILE)), )
   TARGETS += $(FONTCONFIG_OUT_FILE)
 
   # Generate binary representation
-  $(eval $(call SetupRunBuildTool, COMPILE_FONT_CONFIG, \
-      BUILDTOOL := compilefontconfig.CompileFontConfig, \
+  $(eval $(call SetupRunGenerator, COMPILE_FONT_CONFIG, \
+      GENERATOR := compilefontconfig.CompileFontConfig, \
       DEPS := $(FONTCONFIG_SRC_FILE), \
       INFO := Compiling fontconfig.properties to binary, \
       OUTPUT_FILE := $(FONTCONFIG_OUT_BIN_FILE), \

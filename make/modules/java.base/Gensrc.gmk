@@ -54,8 +54,8 @@ CLDR_INPUT_FILES := $(wildcard $(CLDR_DATA_DIR)/dtd/*.dtd) \
 
 # The `-utf8` option is used even for US English, as some names
 # may contain non-ASCII characters, such as “Türkiye”.
-$(eval $(call SetupRunBuildTool, GEN_CLDR_DATA, \
-    BUILDTOOL := cldrconverter.CLDRConverter, \
+$(eval $(call SetupRunGenerator, GEN_CLDR_DATA, \
+    GENERATOR := cldrconverter.CLDRConverter, \
     MODULE := jdk.internal.build, \
     DEPS := $(CLDR_INPUT_FILES) $(ZONENAME_TEMPLATE), \
     INFO := Processing CLDR data for java.base, \
@@ -101,8 +101,8 @@ TARGETS += $(LIST_RESOURCE_BUNDLE) $(SUN_UTIL) $(SECURITY_RESOURCES) $(KEYTOOL_R
 LSREQUIVMAPS_OUTPUT := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/util/locale/LocaleEquivalentMaps.java
 LSREQUIVMAPS_INPUT := $(MODULE_SRC)/share/data/lsrdata/language-subtag-registry.txt
 
-$(eval $(call SetupRunBuildTool, GEN_LSREQUIVMAPS, \
-    BUILDTOOL := generatelsrequivmaps.EquivMapsGenerator, \
+$(eval $(call SetupRunGenerator, GEN_LSREQUIVMAPS, \
+    GENERATOR := generatelsrequivmaps.EquivMapsGenerator, \
     DEPS := $(LSREQUIVMAPS_INPUT), \
     INFO := Generating locale LSR maps, \
     OUTPUT_FILE := $(LSREQUIVMAPS_OUTPUT), \
@@ -115,8 +115,8 @@ TARGETS += $(GEN_LSREQUIVMAPS)
 
 INTPOLY_HEADER := $(MODULE_SRC)/share/data/intpoly/header.txt
 
-$(eval $(call SetupRunBuildTool, GEN_INTPOLY, \
-    BUILDTOOL := intpoly.FieldGen, \
+$(eval $(call SetupRunGenerator, GEN_INTPOLY, \
+    GENERATOR := intpoly.FieldGen, \
     DEPS := $(INTPOLY_HEADER), \
     INFO := Generating fixed-field math classes for java.base, \
     OUTPUT_DIR := $(GENSRC_DIR), \

@@ -48,8 +48,8 @@ define SetupGensrcAWTIcon
   $1_SHORTNAME := $$(subst .,_,$$(subst -,_,$1))
   $1_DATA := $$(GENSRC_AWT_ICONS_DST)/$1.data
 
-  $$(eval $$(call SetupRunBuildTool, GEN_AWT_ICONDATA_$1, \
-      BUILDTOOL := icondataawt.ToBin, \
+  $$(eval $$(call SetupRunGenerator, GEN_AWT_ICONDATA_$1, \
+      GENERATOR := icondataawt.ToBin, \
       DEPS := $$(GENSRC_AWT_ICONS_SRC_DIR)/$1, \
       INFO := Generating AWT icon data for $1, \
       OUTPUT_FILE := $$($1_DATA), \
@@ -103,8 +103,8 @@ ifeq ($(call isTargetOs, macosx), true)
   OSX_ICONS_OUTPUT := $(SUPPORT_OUTPUTDIR)/headers/java.desktop/AWTIconData.h
   OSX_ICONS_DATA := $(OSX_ICONS_OUTPUT).data
 
-  $(eval $(call SetupRunBuildTool, GEN_OSX_ICONS_DATA, \
-      BUILDTOOL := icondataosx.ToBin, \
+  $(eval $(call SetupRunGenerator, GEN_OSX_ICONS_DATA, \
+      GENERATOR := icondataosx.ToBin, \
       DEPS := $(OSX_ICONS_INPUT), \
       INFO := Generating AWT icon data, \
       OUTPUT_FILE := $(OSX_ICONS_DATA), \

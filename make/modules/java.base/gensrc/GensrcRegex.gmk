@@ -38,8 +38,8 @@ INDICCONJUNCTBREAK_INPUT := \
 INDICCONJUNCTBREAK_OUTPUT := \
     $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/regex/IndicConjunctBreak.java
 
-$(eval $(call SetupRunBuildTool, GEN_INDICCONJUNCTBREAK, \
-    BUILDTOOL := generateextraproperties.GenerateExtraProperties, \
+$(eval $(call SetupRunGenerator, GEN_INDICCONJUNCTBREAK, \
+    GENERATOR := generateextraproperties.GenerateExtraProperties, \
     DEPS := $(INDICCONJUNCTBREAK_INPUT) $(INDICCONJUNCTBREAK_TEMPLATE), \
     INFO := Generating regex IndicConjunctBreak, \
     OUTPUT_FILE := $(INDICCONJUNCTBREAK_OUTPUT), \
@@ -57,8 +57,8 @@ CASEFOLDING_INPUT := $(MODULE_SRC)/share/data/unicodedata/CaseFolding.txt
 CASEFOLDING_OUTPUT := \
     $(SUPPORT_OUTPUTDIR)/gensrc/java.base/jdk/internal/util/regex/CaseFolding.java
 
-$(eval $(call SetupRunBuildTool, GEN_CASEFOLDING, \
-    BUILDTOOL := generatecharacter.CaseFolding, \
+$(eval $(call SetupRunGenerator, GEN_CASEFOLDING, \
+    GENERATOR := generatecharacter.CaseFolding, \
     DEPS := $(CASEFOLDING_INPUT) $(CASEFOLDING_TEMPLATE), \
     INFO := Generating regex case folding, \
     OUTPUT_FILE := $(CASEFOLDING_OUTPUT), \

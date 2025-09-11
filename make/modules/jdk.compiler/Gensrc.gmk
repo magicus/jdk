@@ -64,8 +64,8 @@ PARSEPROPERTIES_ARGS := $(foreach file, $(PARSEPROPERTIES_SRC), \
     -compile $(file) \
     $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/$(PARSEPROPERTIES_PACKAGE)/)
 
-$(eval $(call SetupRunBuildTool, PARSEPROPERTIES, \
-    BUILDTOOL := propertiesparser.PropertiesParser, \
+$(eval $(call SetupRunGenerator, PARSEPROPERTIES, \
+    GENERATOR := propertiesparser.PropertiesParser, \
     DEPS := $(PARSEPROPERTIES_SRC), \
     INFO := Generating classes for $(PARSEPROPERTIES_FILES), \
     OUTPUT_DIR := $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE), \
@@ -85,8 +85,8 @@ FLAGS_SRC := \
 FLAGS_OUT := \
     $(SUPPORT_OUTPUTDIR)/gensrc/$(MODULE)/com/sun/tools/javac/code/FlagsEnum.java
 
-$(eval $(call SetupRunBuildTool, FLAGSGENERATOR, \
-    BUILDTOOL := flagsgenerator.FlagsGenerator, \
+$(eval $(call SetupRunGenerator, FLAGSGENERATOR, \
+    GENERATOR := flagsgenerator.FlagsGenerator, \
     DEPS := $(FLAGS_SRC), \
     INFO := Generating FlagsEnum, \
     OUTPUT_FILE := $(FLAGS_OUT), \

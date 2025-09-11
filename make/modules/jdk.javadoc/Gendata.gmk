@@ -83,8 +83,8 @@ $(eval $(call SetupJavaCompilation, COMPILE_CREATE_SYMBOLS, \
 ))
 
 # Generate element-list files for JDK 11 to current-1
-$(eval $(call SetupRunBuildTool, GEN_ELEMENT_LISTS_HISTORICAL, \
-    BUILDTOOL := symbolgenerator.CreateSymbols, \
+$(eval $(call SetupRunGenerator, GEN_ELEMENT_LISTS_HISTORICAL, \
+    GENERATOR := symbolgenerator.CreateSymbols, \
     DEPS := $(MODULE_INFOS) $(ELEMENT_LISTS_INPUT), \
     INFO := Creating javadoc element lists for historic JDK versions, \
     OUTPUT_DIR := $(ELEMENT_LISTS_OUTPUT_DIR), \
@@ -98,8 +98,8 @@ $(eval $(call SetupRunBuildTool, GEN_ELEMENT_LISTS_HISTORICAL, \
 TARGETS += $(GEN_ELEMENT_LISTS_HISTORICAL)
 
 # Generate element-list file for the current JDK version
-$(eval $(call SetupRunBuildTool, GEN_ELEMENT_LISTS_CURRENT, \
-    BUILDTOOL := symbolgenerator.JavadocElementList, \
+$(eval $(call SetupRunGenerator, GEN_ELEMENT_LISTS_CURRENT, \
+    GENERATOR := symbolgenerator.JavadocElementList, \
     DEPS := $(MODULE_INFOS) $(ELEMENT_LISTS_INPUT), \
     INFO := Creating javadoc element lists for the current JDK version, \
     OUTPUT_FILE := $(ELEMENT_LISTS_CURRENT_OUTPUT), \

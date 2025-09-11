@@ -40,8 +40,8 @@ JFR_OUTPUTDIR := $(JVM_VARIANT_OUTPUTDIR)/gensrc/jfrfiles
 METADATA_XML := $(JFR_SRCDIR)/metadata.xml
 METADATA_XSD := $(JFR_SRCDIR)/metadata.xsd
 
-$(eval $(call SetupRunBuildTool, jfr_gen_headers, \
-    BUILDTOOL := jfr.GenerateJfrFiles, \
+$(eval $(call SetupRunGenerator, jfr_gen_headers, \
+    GENERATOR := jfr.GenerateJfrFiles, \
     MODULE := hotspot, \
     DEPS := $(METADATA_XML) $(METADATA_XSD), \
     INFO := Generating JFR header files, \

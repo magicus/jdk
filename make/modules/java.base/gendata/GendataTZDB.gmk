@@ -35,8 +35,8 @@ TZDATA_OUTPUT := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/tzdb.dat
 TZDATA_FILENAMES := africa antarctica asia australasia europe northamerica southamerica backward etcetera gmt jdk11_backward
 TZDATA_INPUT_FILES := $(wildcard $(TZDATA_INPUT_DIR)/*)
 
-$(eval $(call SetupRunBuildTool, GEN_TZDATA, \
-    BUILDTOOL := tzdb.TzdbZoneRulesCompiler, \
+$(eval $(call SetupRunGenerator, GEN_TZDATA, \
+    GENERATOR := tzdb.TzdbZoneRulesCompiler, \
     DEPS := $(TZDATA_INPUT_FILES), \
     INFO := Generating tzdb.dat, \
     OUTPUT_FILE := $(TZDATA_OUTPUT), \

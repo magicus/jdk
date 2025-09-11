@@ -30,8 +30,8 @@ ifeq ($(INCLUDE), true)
 
 HTML32DTD = $(JDK_OUTPUTDIR)/modules/java.desktop/javax/swing/text/html/parser/html32.bdtd
 
-$(eval $(call SetupRunBuildTool, GENERATE_HTML32DTD, \
-    BUILDTOOL := dtdbuilder.DTDBuilder, \
+$(eval $(call SetupRunGenerator, GENERATE_HTML32DTD, \
+    GENERATOR := dtdbuilder.DTDBuilder, \
     INFO :=  Generating HTML DTD file, \
     OUTPUT_FILE := $(HTML32DTD), \
     ARGUMENTS :=  html32 > $(HTML32DTD), \

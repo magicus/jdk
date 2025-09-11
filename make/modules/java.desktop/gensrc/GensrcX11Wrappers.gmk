@@ -39,8 +39,8 @@ GENSRC_X11WRAPPERS_DATADIR := $(MODULE_SRC)/unix/data/x11wrappergen
 GENSRC_X11WRAPPERS_DATA := $(GENSRC_X11WRAPPERS_DATADIR)/sizes-$(OPENJDK_TARGET_CPU_BITS).txt
 
 # Run the tool on the offset files to generate several Java classes used in awt.
-$(eval $(call SetupRunBuildTool, GEN_X11WRAPPERS, \
-    BUILDTOOL := x11wrappergen.WrapperGenerator, \
+$(eval $(call SetupRunGenerator, GEN_X11WRAPPERS, \
+    GENERATOR := x11wrappergen.WrapperGenerator, \
     DEPS := $(GENSRC_X11WRAPPERS_DATA) \
         $(GENSRC_X11WRAPPERS_DATADIR)/xlibtypes.txt, \
     INFO := Generating X11 wrapper source files, \

@@ -129,8 +129,8 @@ define SetupCompilePropertiesBody
   $$($1_CMDLINE_FILE):
 	$$(eval $$(call ListPathsSafely, $1_CMDLINE, $$($1_CMDLINE_FILE)))
 
-  $$(eval $$(call SetupRunBuildTool, COMPILE_PROPERTIES_$1, \
-      BUILDTOOL := $$($1_TOOL_PACKAGE).CompileProperties, \
+  $$(eval $$(call SetupRunGenerator, COMPILE_PROPERTIES_$1, \
+      GENERATOR := $$($1_TOOL_PACKAGE).CompileProperties, \
       MODULE := jdk.internal.build, \
       DEPS := $$($1_SRC_FILES) $$($1_JAVAS) $$($$($1_CMDLINE_FILE)), \
       INFO := Compiling $$(words $$($1_SRC_FILES)) properties into resource bundles for $(MODULE)), \

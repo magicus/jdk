@@ -42,8 +42,8 @@ CHARSET_STANDARD_JAVA_TEMPLATES := \
     $(TOPDIR)/src/java.base/share/classes/sun/nio/cs/StandardCharsets.java.template
 CHARSET_STANDARD_OS := stdcs-$(OPENJDK_TARGET_OS)
 
-$(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING, \
-    BUILDTOOL := charsetmapping.Main, \
+$(eval $(call SetupRunGenerator, GEN_CHARSET_MAPPING, \
+    GENERATOR := charsetmapping.Main, \
     MODULE := jdk.internal.build, \
     DEPS := $(CHARSET_DATA_DIR)/charsets \
         $(wildcard $(CHARSET_DATA_DIR)/$(CHARSET_STANDARD_OS)) \

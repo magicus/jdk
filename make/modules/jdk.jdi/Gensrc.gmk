@@ -43,8 +43,8 @@ HTML_FILE := $(SUPPORT_OUTPUTDIR)/gensrc/jdk.jdi/jdwp-protocol.html
 # rebuilt if either is missing
 $(HEADER_FILE): $(JDWP_SPEC_FILE)
 
-$(eval $(call SetupRunBuildTool, GEN_JDWP_JAVA_FILE, \
-    BUILDTOOL := jdwpgen.Main, \
+$(eval $(call SetupRunGenerator, GEN_JDWP_JAVA_FILE, \
+    GENERATOR := jdwpgen.Main, \
     DEPS := $(JDWP_SPEC_FILE) $(HEADER_FILE), \
     INFO := Creating JDWP.java and JDWPCommands.h from jdwp.spec, \
     OUTPUT_FILE := $(JAVA_FILE), \
@@ -52,8 +52,8 @@ $(eval $(call SetupRunBuildTool, GEN_JDWP_JAVA_FILE, \
     PRE_COMMAND := $(RM) $(JAVA_FILE) $(HEADER_FILE), \
 ))
 
-$(eval $(call SetupRunBuildTool, GEN_JDWP_HTML_FILE, \
-    BUILDTOOL := jdwpgen.Main, \
+$(eval $(call SetupRunGenerator, GEN_JDWP_HTML_FILE, \
+    GENERATOR := jdwpgen.Main, \
     DEPS := $(JDWP_SPEC_FILE), \
     INFO := Creating jdwp-protocol.html from jdwp.spec, \
     OUTPUT_FILE := $(HTML_FILE), \

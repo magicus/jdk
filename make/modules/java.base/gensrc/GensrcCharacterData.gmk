@@ -45,8 +45,8 @@ endif
 define SetupCharacterData
   $1_OUTPUT := $$(CHARACTERDATA_OUTPUT_DIR)/$1.java
 
-  $$(eval $$(call SetupRunBuildTool, CHARACTERDATA_$1, \
-      BUILDTOOL := generatecharacter.GenerateCharacter, \
+  $$(eval $$(call SetupRunGenerator, CHARACTERDATA_$1, \
+      GENERATOR := generatecharacter.GenerateCharacter, \
       DEPS := $$(CHARACTERDATA_TEMPLATE_DIR)/$1.java.template, \
       INFO := Generating $1.java, \
       OUTPUT_FILE := $$($1_OUTPUT), \

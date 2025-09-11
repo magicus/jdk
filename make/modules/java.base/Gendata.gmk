@@ -38,8 +38,8 @@ include gendata/GendataTZDB.gmk
 CHARACTERNAME_INPUT := $(MODULE_SRC)/share/data/unicodedata/UnicodeData.txt
 CHARACTERNAME_OUTPUT := $(JDK_OUTPUTDIR)/modules/java.base/java/lang/uniName.dat
 
-$(eval $(call SetupRunBuildTool, GEN_CHARACTERNAME, \
-    BUILDTOOL := generatecharacter.CharacterName, \
+$(eval $(call SetupRunGenerator, GEN_CHARACTERNAME, \
+    GENERATOR := generatecharacter.CharacterName, \
     DEPS := $(CHARACTERNAME_INPUT), \
     INFO := Generating unicode character names, \
     OUTPUT_FILE := $(CHARACTERNAME_OUTPUT), \
@@ -53,8 +53,8 @@ TARGETS += $(GEN_CHARACTERNAME)
 CURRENCYDATA_OUTPUT := $(JDK_OUTPUTDIR)/modules/$(MODULE)/java/util/currency.data
 CURRENCYDATA_INPUT := $(MODULE_SRC)/share/data/currency/CurrencyData.properties
 
-$(eval $(call SetupRunBuildTool, GEN_CURRENCYDATA, \
-    BUILDTOOL := generatecurrencydata.GenerateCurrencyData, \
+$(eval $(call SetupRunGenerator, GEN_CURRENCYDATA, \
+    GENERATOR := generatecurrencydata.GenerateCurrencyData, \
     DEPS := $(CURRENCYDATA_INPUT), \
     INFO := Generating currency data, \
     OUTPUT_FILE := $(CURRENCYDATA_OUTPUT), \
@@ -77,8 +77,8 @@ ifeq ($(CACERTS_FILE), )
   endif
   CACERTS_OUTPUT := $(SUPPORT_OUTPUTDIR)/modules_libs/java.base/security/cacerts
 
-  $(eval $(call SetupRunBuildTool, GEN_CACERTS, \
-      BUILDTOOL := generatecacerts.GenerateCacerts, \
+  $(eval $(call SetupRunGenerator, GEN_CACERTS, \
+      GENERATOR := generatecacerts.GenerateCacerts, \
       DEPS := $(wildcard $(CACERTS_INPUT_DIR)/*), \
       INFO := Generating cacerts, \
       OUTPUT_FILE := $(CACERTS_OUTPUT), \
@@ -101,8 +101,8 @@ else
   CRYPTO_POLICY := limited
 endif
 
-$(eval $(call SetupRunBuildTool, GEN_JAVA_SECURITY, \
-    BUILDTOOL := makejavasecurity.MakeJavaSecurity, \
+$(eval $(call SetupRunGenerator, GEN_JAVA_SECURITY, \
+    GENERATOR := makejavasecurity.MakeJavaSecurity, \
     DEPS := $(GENDATA_JAVA_SECURITY_INPUT), \
     INFO := Generating java.security, \
     OUTPUT_FILE := $(GENDATA_JAVA_SECURITY_OUTPUT), \

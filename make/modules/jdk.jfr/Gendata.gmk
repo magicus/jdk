@@ -38,8 +38,8 @@ JFR_DATA_SUPPORTDIR := $(SUPPORT_OUTPUTDIR)/gendata/jdk.jfr
 METADATA_XML := $(JFR_SRCDIR)/metadata.xml
 METADATA_XSD := $(JFR_SRCDIR)/metadata.xsd
 
-$(eval $(call SetupRunBuildTool, jfr_gen_metadata, \
-    BUILDTOOL := jfr.GenerateJfrFiles, \
+$(eval $(call SetupRunGenerator, jfr_gen_metadata, \
+    GENERATOR := jfr.GenerateJfrFiles, \
     MODULE := hotspot, \
     DEPS := $(METADATA_XML) $(METADATA_XSD), \
     INFO := Generating JFR metadata, \

@@ -89,8 +89,8 @@ BIFILES := $(BASE_DATA_PKG_DIR)/CharacterBreakIteratorData \
 BIFILES_TH := $(LD_DATA_PKG_DIR)/WordBreakIteratorData_th \
     $(LD_DATA_PKG_DIR)/LineBreakIteratorData_th
 
-$(eval $(call SetupRunBuildTool, GEN_BREAKITERATOR, \
-    BUILDTOOL := generatebreakiteratordata.GenerateBreakIteratorData, \
+$(eval $(call SetupRunGenerator, GEN_BREAKITERATOR, \
+    GENERATOR := generatebreakiteratordata.GenerateBreakIteratorData, \
     DEPS := $(UNICODEDATA) $(BUILD_BREAKITERATOR_BASE) \
         $(BUILD_BREAKITERATOR_LD), \
     INFO := Generating BreakIteratorData, \
@@ -106,8 +106,8 @@ $(BIFILES): $(GEN_BREAKITERATOR)
 
 # FIXME: This should move to jdk.localedata gendata
 
-$(eval $(call SetupRunBuildTool, GEN_BREAKITERATOR_TH, \
-    BUILDTOOL := generatebreakiteratordata.GenerateBreakIteratorData, \
+$(eval $(call SetupRunGenerator, GEN_BREAKITERATOR_TH, \
+    GENERATOR := generatebreakiteratordata.GenerateBreakIteratorData, \
     DEPS := $(UNICODEDATA) $(BUILD_BREAKITERATOR_BASE) \
         $(BUILD_BREAKITERATOR_LD), \
     INFO := Generating BreakIteratorData_th, \

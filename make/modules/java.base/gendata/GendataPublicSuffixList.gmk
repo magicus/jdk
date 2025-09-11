@@ -31,8 +31,8 @@ ifeq ($(INCLUDE), true)
 GENDATA_PUBLICSUFFIXLIST_SRC += $(MODULE_SRC)/share/data/publicsuffixlist/public_suffix_list.dat
 GENDATA_PUBLICSUFFIXLIST := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/security/public_suffix_list.dat
 
-$(eval $(call SetupRunBuildTool, GEN_PUBLICSUFFIXLIST, \
-    BUILDTOOL := publicsuffixlist.GeneratePublicSuffixList, \
+$(eval $(call SetupRunGenerator, GEN_PUBLICSUFFIXLIST, \
+    GENERATOR := publicsuffixlist.GeneratePublicSuffixList, \
     DEPS := $(GENDATA_PUBLICSUFFIXLIST_SRC), \
     INFO := Generating public suffix list, \
     OUTPUT_FILE := $(GENDATA_PUBLICSUFFIXLIST), \

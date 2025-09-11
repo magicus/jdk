@@ -37,8 +37,8 @@ CLDR_INPUT_FILES := $(wildcard $(CLDR_DATA_DIR)/dtd/*.dtd) \
     $(wildcard $(CLDR_DATA_DIR)/main/*.xml) \
     $(wildcard $(CLDR_DATA_DIR)/supplemental/*.xml)
 
-$(eval $(call SetupRunBuildTool, GEN_CLDR_DATA, \
-    BUILDTOOL := cldrconverter.CLDRConverter, \
+$(eval $(call SetupRunGenerator, GEN_CLDR_DATA, \
+    GENERATOR := cldrconverter.CLDRConverter, \
     MODULE := jdk.internal.build, \
     DEPS := $(CLDR_INPUT_FILES), \
     INFO := Processing CLDR data for jdk.localedata, \

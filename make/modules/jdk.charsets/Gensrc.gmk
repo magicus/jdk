@@ -46,8 +46,8 @@ CHARSET_STANDARD_OS := stdcs-$(OPENJDK_TARGET_OS)
 SJIS0213_INPUT := $(CHARSET_DATA_DIR)/sjis0213.map
 SJIS0213_OUTPUT := $(CHARSET_GENSRC_JAVA_DIR_CS)/sjis0213.dat
 
-$(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_EXTCS, \
-    BUILDTOOL := charsetmapping.Main, \
+$(eval $(call SetupRunGenerator, GEN_CHARSET_MAPPING_EXTCS, \
+    GENERATOR := charsetmapping.Main, \
     MODULE := jdk.internal.build, \
     DEPS := $(CHARSET_DATA_DIR)/charsets \
         $(wildcard $(CHARSET_DATA_DIR)/$(CHARSET_STANDARD_OS)) \
@@ -64,8 +64,8 @@ $(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_EXTCS, \
 
 TARGETS += $(GEN_CHARSET_MAPPING_EXTCS)
 
-$(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_HKSCS, \
-    BUILDTOOL := charsetmapping.Main, \
+$(eval $(call SetupRunGenerator, GEN_CHARSET_MAPPING_HKSCS, \
+    GENERATOR := charsetmapping.Main, \
     MODULE := jdk.internal.build, \
     DEPS := $(CHARSET_COPYRIGHT_HEADER)/HKSCS.java, \
     INFO := Generating jdk.charsets hkscs, \
@@ -75,8 +75,8 @@ $(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_HKSCS, \
 
 TARGETS += $(GEN_CHARSET_MAPPING_HKSCS)
 
-$(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_EUCTW, \
-    BUILDTOOL := charsetmapping.Main, \
+$(eval $(call SetupRunGenerator, GEN_CHARSET_MAPPING_EUCTW, \
+    GENERATOR := charsetmapping.Main, \
     MODULE := jdk.internal.build, \
     DEPS := $(CHARSET_COPYRIGHT_HEADER)/EUC_TW.java, \
     INFO := Generating jdk.charsets euctw, \
@@ -86,8 +86,8 @@ $(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_EUCTW, \
 
 TARGETS += $(GEN_CHARSET_MAPPING_EUCTW)
 
-$(eval $(call SetupRunBuildTool, GEN_CHARSET_MAPPING_SJIS0213, \
-    BUILDTOOL := charsetmapping.Main, \
+$(eval $(call SetupRunGenerator, GEN_CHARSET_MAPPING_SJIS0213, \
+    GENERATOR := charsetmapping.Main, \
     MODULE := jdk.internal.build, \
     DEPS := $(SJIS0213_INPUT), \
     INFO := Generating sjis0213.dat, \

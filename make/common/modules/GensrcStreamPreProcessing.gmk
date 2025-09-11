@@ -209,8 +209,8 @@ define SetupStreamPreProcessingBody
     $1_INFO := Preprocessing $$(notdir $$($1_SOURCE_FILE)) for $(MODULE)
   endif
 
-  $$(eval $$(call SetupRunBuildTool, RUN_SPP_$1, \
-      BUILDTOOL := spp.Spp, \
+  $$(eval $$(call SetupRunGenerator, RUN_SPP_$1, \
+      GENERATOR := spp.Spp, \
       MODULE := java.base, \
       DEPS := $$($1_SOURCE_FILE), \
       INFO := $$($1_INFO), \
