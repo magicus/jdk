@@ -54,6 +54,7 @@ CLDR_INPUT_FILES := $(wildcard $(CLDR_DATA_DIR)/dtd/*.dtd) \
 
 # The `-utf8` option is used even for US English, as some names
 # may contain non-ASCII characters, such as “Türkiye”.
+# # CLDRCONVERTER_EXTRA_ARGS might have been set in a custom extension
 $(eval $(call SetupRunGenerator, GEN_CLDR_DATA, \
     GENERATOR := cldrconverter.CLDRConverter, \
     MODULE := jdk.internal.build, \
@@ -67,7 +68,8 @@ $(eval $(call SetupRunGenerator, GEN_CLDR_DATA, \
         -year $(COPYRIGHT_YEAR) \
         -zntempfile $(ZONENAME_TEMPLATE) \
         -tzdatadir $(TZ_DATA_DIR) \
-        -utf8, \
+        -utf8 \
+        $(CLDRCONVERTER_EXTRA_ARGS), \
 ))
 
 TARGETS += $(GEN_CLDR_DATA)
@@ -101,12 +103,14 @@ TARGETS += $(LIST_RESOURCE_BUNDLE) $(SUN_UTIL) $(SECURITY_RESOURCES) $(KEYTOOL_R
 LSREQUIVMAPS_OUTPUT := $(SUPPORT_OUTPUTDIR)/gensrc/java.base/sun/util/locale/LocaleEquivalentMaps.java
 LSREQUIVMAPS_INPUT := $(MODULE_SRC)/share/data/lsrdata/language-subtag-registry.txt
 
+# LSREQUIVMAPS_EXTRA_ARGS might have been set in a custom extension
 $(eval $(call SetupRunGenerator, GEN_LSREQUIVMAPS, \
     GENERATOR := generatelsrequivmaps.EquivMapsGenerator, \
     DEPS := $(LSREQUIVMAPS_INPUT), \
     INFO := Generating locale LSR maps, \
     OUTPUT_FILE := $(LSREQUIVMAPS_OUTPUT), \
-    ARGUMENTS := $(LSREQUIVMAPS_INPUT) $(LSREQUIVMAPS_OUTPUT) $(COPYRIGHT_YEAR), \
+    ARGUMENTS := $(LSREQUIVMAPS_INPUT) $(LSREQUIVMAPS_OUTPUT) \
+        $(COPYRIGHT_YEAR) $(LSREQUIVMAPS_EXTRA_ARGS), \
 ))
 
 TARGETS += $(GEN_LSREQUIVMAPS)
