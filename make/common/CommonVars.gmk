@@ -289,7 +289,7 @@ RUNTIME_NAME = $(PRODUCT_NAME) $(PRODUCT_SUFFIX)
 ifneq ($(SOURCE_DATE), updated)
   # For "updated" source date value, these are set in InitSupport.gmk
   export SOURCE_DATE_EPOCH := $(SOURCE_DATE)
-  SOURCE_DATE_ISO_8601 := @SOURCE_DATE_ISO_8601@
+  SOURCE_DATE_ISO_8601 := $(SOURCE_DATE_ISO_8601_FIXED)
 endif
 
 
