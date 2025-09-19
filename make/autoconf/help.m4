@@ -305,7 +305,7 @@ AC_DEFUN_ONCE([HELP_PRINT_SUMMARY_AND_WARNINGS],
   $ECHO "* Version string: $VERSION_STRING ($VERSION_SHORT)"
 
   if test "x$SOURCE_DATE" != xupdated; then
-    source_date_info="$SOURCE_DATE ($SOURCE_DATE_ISO_8601)"
+    source_date_info="$SOURCE_DATE ($SOURCE_DATE_ISO_8601_FIXED)"
   else
     source_date_info="Determined at build time"
   fi
