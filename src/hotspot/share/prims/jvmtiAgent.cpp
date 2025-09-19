@@ -321,6 +321,9 @@ static OnLoadEntry_t lookup_On_Load_entry_point(JvmtiAgent* agent, const char* o
   if (!agent->is_loaded()) {
     if (!load_agent_from_executable(agent, on_load_symbol)) {
       void* const library = load_library(agent, vm_exit_on_error);
+     /* If vm_exit_on_error is false, the shared library may be null. The error
+         is handled by the caller(s) in that case. See
+         lookup_JVM_OnLoad_entry_point and JvmtiAgent::convert_xrun_agent.*/
       assert(library != nullptr || !vm_exit_on_error, "invariant");
       if (library != nullptr) {
         agent->set_os_lib(library);
@@ -332,7 +335,7 @@ static OnLoadEntry_t lookup_On_Load_entry_point(JvmtiAgent* agent, const char* o
       }
     }
   }
-  assert(agent->is_loaded(), "invariant");
+  assert(agent->is_loaded() || ignore_errors, "invariant");
   // Find the OnLoad function.
   return CAST_TO_FN_PTR(OnLoadEntry_t, os::find_agent_function(agent, false, on_load_symbol));
 }
@@ -353,6 +356,12 @@ void JvmtiAgent::convert_xrun_agent() {
   // Don't report any error and bail out too early in
   // lookup_JVM_OnLoad_entry_point if it does not succeed, since we want
   // to try lookup_Agent_OnLoad_entry_point for Agent_OnLoad as well.
+  // With static linking support for built-in library, if we cannot
+  // find the JVM_OnLoad_<libName> symbol and determine that the library is
+  // built-in, we also try loading the shared library. However, we don't want
+  // to report error if the requested shared library cannot be loaded.
+  // Instead we let lookup_Agent_OnLoad_entry_point  to report any error if
+  // there is any failure.
   OnLoadEntry_t on_load_entry = lookup_JVM_OnLoad_entry_point(this, /* vm exit on error */ false);
   // If there is an JVM_OnLoad function it will get called later,
   // otherwise see if there is an Agent_OnLoad.
