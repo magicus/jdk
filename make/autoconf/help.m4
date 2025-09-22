@@ -330,7 +330,7 @@ AC_DEFUN_ONCE([HELP_PRINT_SUMMARY_AND_WARNINGS],
 
   $ECHO ""
   $ECHO "Build performance summary:"
-  $ECHO "* Build jobs:     $JOBS"
+  $ECHO "* Build jobs:     $CONF_JOBS"
   $ECHO "* Memory limit:   $MEMORY_SIZE MB"
   if test "x$CCACHE_STATUS" != "x"; then
     $ECHO "* ccache status:  $CCACHE_STATUS"
