@@ -132,6 +132,21 @@ JAVA_TMP_DIR = $(SUPPORT_OUTPUTDIR)/javatmp
 
 BUILDJDK_OUTPUTDIR = $(OUTPUTDIR)/buildjdk
 
+ifneq ($(EXTERNAL_BUILDJDK_PATH), )
+  EXTERNAL_BUILDJDK := true
+  CREATE_BUILDJDK := false
+  BUILD_JDK := $(EXTERNAL_BUILDJDK_PATH)
+else
+  EXTERNAL_BUILDJDK := false
+  ifeq ($(COMPILE_TYPE), cross)
+    CREATE_BUILDJDK := true
+    BUILD_JDK := $(BUILDJDK_OUTPUTDIR)/jdk
+  else
+    CREATE_BUILDJDK := false
+    BUILD_JDK := $(JDK_OUTPUTDIR)
+  endif
+endif
+
 # Store javac server synchronization files here, and
 # the javac server log files.
 JAVAC_SERVER_DIR = $(MAKESUPPORT_OUTPUTDIR)/javacservers
