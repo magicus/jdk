@@ -153,6 +153,9 @@ BUILD_CXX := $(BUILD_ICECC) $(BUILD_CXX)
 JAVA_FLAGS_TMPDIR := -Djava.io.tmpdir=$(JAVA_TMP_DIR)
 JAVA_FLAGS := $(JAVA_FLAGS) $(JAVA_FLAGS_TMPDIR)
 
+JLINK_CMD := $(FIXPATH) $(BUILD_JDK)/bin/jlink
+JMOD_CMD := $(FIXPATH) $(BUILD_JDK)/bin/jmod
+
 # These variables are meant to be used. They are defined with = instead of := to make
 # it possible to override only the *_CMD variables.
 JAVA = $(JAVA_CMD) $(JAVA_FLAGS_BIG) $(JAVA_FLAGS)
