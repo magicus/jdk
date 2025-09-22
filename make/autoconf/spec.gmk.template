@@ -49,7 +49,6 @@ AUTOCONF := @AUTOCONF@
 # What make to use for main processing, after bootstrapping top-level Makefile.
 MAKE := @MAKE@
 
-
 OUTPUT_SYNC_SUPPORTED := @OUTPUT_SYNC_SUPPORTED@
 OUTPUT_SYNC := @OUTPUT_SYNC@
 
@@ -106,7 +105,6 @@ OPENJDK_BUILD_CPU_ENDIAN := @OPENJDK_BUILD_CPU_ENDIAN@
 
 OPENJDK_BUILD_CPU_LEGACY := @OPENJDK_BUILD_CPU_LEGACY@
 OPENJDK_BUILD_CPU_LEGACY_LIB := @OPENJDK_BUILD_CPU_LEGACY_LIB@
-
 OPENJDK_BUILD_LIBC := @OPENJDK_BUILD_LIBC@
 
 OPENJDK_BUILD_OS_INCLUDE_SUBDIR := @OPENJDK_BUILD_OS_INCLUDE_SUBDIR@
@@ -116,7 +114,7 @@ HOTSPOT_BUILD_OS_TYPE := @HOTSPOT_BUILD_OS_TYPE@
 HOTSPOT_BUILD_CPU := @HOTSPOT_BUILD_CPU@
 HOTSPOT_BUILD_CPU_ARCH := @HOTSPOT_BUILD_CPU_ARCH@
 HOTSPOT_BUILD_CPU_DEFINE := @HOTSPOT_BUILD_CPU_DEFINE@
-HOTSPOT_TARGHOTSPOT_BUILD_LIBCET_LIBC := @HOTSPOT_BUILD_LIBC@
+HOTSPOT_BUILD_LIBC := @HOTSPOT_BUILD_LIBC@
 
 OPENJDK_BUILD_CFLAGS_JDKLIB := @OPENJDK_BUILD_CFLAGS_JDKLIB@
 OPENJDK_BUILD_CXXFLAGS_JDKLIB := @OPENJDK_BUILD_CXXFLAGS_JDKLIB@
@@ -323,6 +321,7 @@ NUM_CORES := @NUM_CORES@
 MEMORY_SIZE := @MEMORY_SIZE@
 ENABLE_JAVAC_SERVER := @ENABLE_JAVAC_SERVER@
 
+# Number of parallel jobs to use for compilation
 CONF_JOBS := @CONF_JOBS@
 CONF_TEST_JOBS := @CONF_TEST_JOBS@
 
@@ -703,6 +702,14 @@ ICECC := @ICECC@
 TOOLCHAIN_PATH := @TOOLCHAIN_PATH@
 LOCALE_USED := @LOCALE_USED@
 CLASSPATH := @CLASSPATH@
+
+# This macro is called to allow inclusion of closed source counterparts.
+# Unless overridden in closed sources, it expands to nothing.
+# Usage: This function is called in an open makefile, with the following
+# argument:
+# $1 the name of the makefile
+define IncludeCustomExtension
+endef
 
 # Include the custom-spec.gmk file if it exists
 -include $(dir $(SPEC))/custom-spec.gmk
