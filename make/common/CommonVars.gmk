@@ -31,12 +31,6 @@ ifeq ($(INCLUDE), true)
 # makefiles.
 ################################################################################
 
-# SPACE and COMMA are defined in MakeBase.gmk, but they are also used here,
-# before MakeBase.gmk is included.
-X :=
-SPACE := $(X) $(X)
-COMMA := ,
-
 # Make sure all shell commands are executed with a proper locale
 export LC_ALL := $(LOCALE_USED)
 
