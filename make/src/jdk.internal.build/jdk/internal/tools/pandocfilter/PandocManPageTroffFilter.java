@@ -21,10 +21,10 @@
  * questions.
  */
 
-package jdk.internal.generators.pandocfilter;
+package jdk.internal.tools.pandocfilter;
 
-import jdk.internal.generators.pandocfilter.json.JSONArray;
-import jdk.internal.generators.pandocfilter.json.JSONValue;
+import jdk.internal.tools.pandocfilter.json.JSONArray;
+import jdk.internal.tools.pandocfilter.json.JSONValue;
 
 import java.io.FileNotFoundException;
 
@@ -91,7 +91,7 @@ public class PandocManPageTroffFilter extends PandocFilter {
      */
     public static void main(String[] args) throws FileNotFoundException {
         JSONValue json = loadJson(args);
-        jdk.internal.generators.pandocfilter.PandocManPageTroffFilter filter = new jdk.internal.generators.pandocfilter.PandocManPageTroffFilter();
+        jdk.internal.tools.pandocfilter.PandocManPageTroffFilter filter = new jdk.internal.tools.pandocfilter.PandocManPageTroffFilter();
 
         JSONValue transformed_json = filter.traverse(json, filter::manpageFilter, false);
 

@@ -23,7 +23,7 @@
  * questions.
  */
 
-package jdk.internal.generators.taglet;
+package jdk.internal.tools.taglet;
 
 import java.util.EnumSet;
 import java.util.List;

@@ -20,27 +20,42 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package jdk.internal.generators.pandocfilter.json;
+package jdk.internal.tools.pandocfilter.json;
 
-public class JSONBoolean implements JSONValue {
-    private boolean value;
-
-    public JSONBoolean(boolean value) {
-        this.value = value;
+public class JSON {
+    public static JSONValue parse(String s) {
+        return new JSONParser().parse(s);
     }
 
-    @Override
-    public boolean isBoolean() {
-        return true;
+    public static JSONValue of(int i) {
+        return JSONValue.from(i);
     }
 
-    @Override
-    public boolean asBoolean() {
-        return value;
+    public static JSONValue of(long l) {
+        return JSONValue.from(l);
     }
 
-    @Override
-    public String toString() {
-        return value ? "true" : "false";
+    public static JSONValue of(double d) {
+        return JSONValue.from(d);
+    }
+
+    public static JSONValue of(boolean b) {
+        return JSONValue.from(b);
+    }
+
+    public static JSONValue of(String s) {
+        return JSONValue.from(s);
+    }
+
+    public static JSONValue of() {
+        return JSONValue.fromNull();
+    }
+
+    public static JSONArray array() {
+        return new JSONArray();
+    }
+
+    public static JSONObject object() {
+        return new JSONObject();
     }
 }

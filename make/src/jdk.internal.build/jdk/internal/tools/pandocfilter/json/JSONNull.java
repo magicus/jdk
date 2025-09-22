@@ -20,42 +20,34 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package jdk.internal.generators.pandocfilter.json;
+package jdk.internal.tools.pandocfilter.json;
 
-public class JSON {
-    public static JSONValue parse(String s) {
-        return new JSONParser().parse(s);
+public class JSONNull implements JSONValue {
+    public JSONNull() {
     }
 
-    public static JSONValue of(int i) {
-        return JSONValue.from(i);
+    @Override
+    public boolean isNull() {
+        return true;
     }
 
-    public static JSONValue of(long l) {
-        return JSONValue.from(l);
+    @Override
+    public String asString() {
+        return null;
     }
 
-    public static JSONValue of(double d) {
-        return JSONValue.from(d);
+    @Override
+    public JSONArray asArray() {
+        return null;
     }
 
-    public static JSONValue of(boolean b) {
-        return JSONValue.from(b);
+    @Override
+    public JSONObject asObject() {
+        return null;
     }
 
-    public static JSONValue of(String s) {
-        return JSONValue.from(s);
-    }
-
-    public static JSONValue of() {
-        return JSONValue.fromNull();
-    }
-
-    public static JSONArray array() {
-        return new JSONArray();
-    }
-
-    public static JSONObject object() {
-        return new JSONObject();
+    @Override
+    public String toString() {
+        return "null";
     }
 }

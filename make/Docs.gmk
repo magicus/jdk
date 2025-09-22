@@ -67,18 +67,18 @@ JAVADOC_TAGS := \
     -tag param \
     -tag return \
     -tag throws \
-    -taglet jdk.internal.generators.taglet.JSpec\$$JLS \
-    -taglet jdk.internal.generators.taglet.JSpec\$$JVMS \
-    -taglet jdk.internal.generators.taglet.ModuleGraph \
-    -taglet jdk.internal.generators.taglet.SealedGraph \
-    -taglet jdk.internal.generators.taglet.ToolGuide \
+    -taglet jdk.internal.tools.taglet.JSpec\$$JLS \
+    -taglet jdk.internal.tools.taglet.JSpec\$$JVMS \
+    -taglet jdk.internal.tools.taglet.ModuleGraph \
+    -taglet jdk.internal.tools.taglet.SealedGraph \
+    -taglet jdk.internal.tools.taglet.ToolGuide \
     -tag since \
     -tag serialData \
     -tag factory \
     -tag spec \
     -tag see \
-    -taglet jdk.internal.generators.taglet.ExtLink \
-    -taglet jdk.internal.generators.taglet.Incubating \
+    -taglet jdk.internal.tools.taglet.ExtLink \
+    -taglet jdk.internal.tools.taglet.Incubating \
     -tagletpath $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes \
     $(CUSTOM_JAVADOC_TAGS) \
     #
@@ -677,7 +677,7 @@ ifeq ($(ENABLE_PANDOC), true)
 
   # We should also depend on the source code for the filter
   PANDOC_HTML_MANPAGE_FILTER_SOURCE := $(call FindFiles, \
-      $(TOPDIR)/make/src/jdk.internal.build/jdk/internal/buildtools/pandocfilter)
+      $(TOPDIR)/make/src/jdk.internal.build/jdk/internal/tools/pandocfilter)
 
   $(foreach m, $(ALL_MODULES), \
     $(eval MAN_$m := $(call ApplySpecFilter, $(filter %.md, $(call FindFiles, \

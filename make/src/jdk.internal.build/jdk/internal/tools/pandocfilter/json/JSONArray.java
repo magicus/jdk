@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package jdk.internal.generators.pandocfilter.json;
+package jdk.internal.tools.pandocfilter.json;
 
 import java.util.*;
 import java.util.stream.Stream;

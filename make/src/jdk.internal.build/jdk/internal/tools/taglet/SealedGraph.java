@@ -23,7 +23,7 @@
  * questions.
  */
 
-package jdk.internal.generators.taglet;
+package jdk.internal.tools.taglet;
 
 import com.sun.source.doctree.DocTree;
 import jdk.javadoc.doclet.Doclet;

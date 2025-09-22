@@ -21,7 +21,7 @@
  * questions.
  */
 
-package jdk.internal.generators.makezipreproducible;
+package jdk.internal.tools.makezipreproducible;
 
 import java.io.*;
 import java.nio.file.*;

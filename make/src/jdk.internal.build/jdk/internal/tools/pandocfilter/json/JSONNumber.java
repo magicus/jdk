@@ -20,34 +20,41 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package jdk.internal.generators.pandocfilter.json;
+package jdk.internal.tools.pandocfilter.json;
 
-public class JSONNull implements JSONValue {
-    public JSONNull() {
+public class JSONNumber implements JSONValue {
+    private long value;
+
+    public JSONNumber(int value) {
+        this.value = value;
+    }
+
+    public JSONNumber(long value) {
+        this.value = value;
     }
 
     @Override
-    public boolean isNull() {
+    public boolean isInt() {
         return true;
     }
 
     @Override
-    public String asString() {
-        return null;
+    public boolean isLong() {
+        return true;
     }
 
     @Override
-    public JSONArray asArray() {
-        return null;
+    public int asInt() {
+        return Math.toIntExact(value);
     }
 
     @Override
-    public JSONObject asObject() {
-        return null;
+    public long asLong() {
+        return value;
     }
 
     @Override
     public String toString() {
-        return "null";
+        return Long.toString(value);
     }
 }
