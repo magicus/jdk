@@ -35,17 +35,6 @@ ifeq ($(INCLUDE), true)
 JOBS ?= $(CONF_JOBS)
 TEST_JOBS ?= $(CONF_TEST_JOBS)
 
-# Options to linker to specify the library name.
-# (Note absence of := assignment, because we do not want to evaluate the macro body here)
-# FIXME
-SET_SHARED_LIBRARY_NAME = @SET_SHARED_LIBRARY_NAME@
-
-# Set origin using the linker, ie use the relative path to the dependent library to find the dependencies.
-# (Note absence of := assignment, because we do not want to evaluate the macro body here)
-# FIXME
-SET_SHARED_LIBRARY_ORIGIN = @SET_SHARED_LIBRARY_ORIGIN@
-SET_EXECUTABLE_ORIGIN = @SET_EXECUTABLE_ORIGIN@
-
 # These variables are meant to be used. They are defined with = instead of := to make
 # it possible to override only the *_CMD variables.
 JAVA = $(JAVA_CMD) $(JAVA_FLAGS_BIG) $(JAVA_FLAGS)
@@ -63,7 +52,6 @@ BUILD_JAVA = $(FIXPATH) $(BUILD_JDK)/bin/java $(BUILD_JAVA_FLAGS)
 BUILD_JAVA_SMALL = $(FIXPATH) $(BUILD_JDK)/bin/java $(BUILD_JAVA_FLAGS_SMALL)
 BUILD_JAVAC = $(FIXPATH) $(BUILD_JDK)/bin/javac
 BUILD_JAR = $(FIXPATH) $(BUILD_JDK)/bin/jar
-
 
 # CD is going away, but remains to cater for legacy makefiles.
 CD := cd
@@ -92,7 +80,6 @@ MAKE_ARGS = $(MAKE_LOG_FLAGS) -r -R -I $(TOPDIR)/make/common SPEC=$(SPEC) \
 
 SHELL := $(BASH) $(BASH_ARGS)
 
-# FIXME: bootcycle
 # Colon left out to be able to override IMAGES_OUTPUTDIR for bootcycle-images
 SUPPORT_OUTPUTDIR = $(OUTPUTDIR)/support
 BUILDTOOLS_OUTPUTDIR = $(OUTPUTDIR)/buildtools
@@ -103,14 +90,6 @@ IMAGES_OUTPUTDIR = $(OUTPUTDIR)/images
 BUNDLES_OUTPUTDIR = $(OUTPUTDIR)/bundles
 TESTMAKE_OUTPUTDIR = $(OUTPUTDIR)/test-make
 MAKESUPPORT_OUTPUTDIR = $(OUTPUTDIR)/make-support
-
-if (is build jdk)
-  HOTSPOT_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(HOTSPOT_OUTPUTDIR))
-  BUILDTOOLS_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(BUILDTOOLS_OUTPUTDIR))
-  SUPPORT_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(SUPPORT_OUTPUTDIR))
-  JDK_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(JDK_OUTPUTDIR))
-  IMAGES_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(IMAGES_OUTPUTDIR))
-endif
 
 # Images directory definitions
 JDK_IMAGE_SUBDIR := jdk
@@ -252,8 +231,6 @@ VERSION_CFLAGS = \
     -DVERSION_CLASSFILE_MINOR=$(VERSION_CLASSFILE_MINOR) \
     #
 
-
-
 ifneq ($(COMPANY_NAME), )
   # COMPANY_NAME is set to "N/A" in make/conf/branding.conf by default,
   # but can be customized with the '--with-vendor-name' configure option.
@@ -266,7 +243,6 @@ ifneq ($(COMPANY_NAME), )
     VERSION_CFLAGS += -DVENDOR='"$(COMPANY_NAME)"'
   endif
 endif
-
 
 # Only export VENDOR_URL, VENDOR_URL_BUG and VENDOR_VM_URL_BUG to the build if
 # they are not empty. Otherwise, default values which are defined in the sources
@@ -284,16 +260,12 @@ endif
 # Different naming strings generated from the above information.
 RUNTIME_NAME = $(PRODUCT_NAME) $(PRODUCT_SUFFIX)
 
-#### FIXME
-
 ifneq ($(SOURCE_DATE), updated)
   # For "updated" source date value, these are set in InitSupport.gmk
   export SOURCE_DATE_EPOCH := $(SOURCE_DATE)
   SOURCE_DATE_ISO_8601 := $(SOURCE_DATE_ISO_8601_FIXED)
 endif
 
-
-### FIXME
 ifneq ($(findstring windows.wsl, $(OPENJDK_BUILD_OS_ENV)), )
   # Tell WSL to convert PATH between linux and windows
   export WSLENV := PATH/l
@@ -426,6 +398,12 @@ ifeq ($(IS_BUILD_JDK_SPEC), true)
 endif
 
 ifeq ($(IS_BOOTCYCLE_JDK_SPEC), true)
+  HOTSPOT_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(HOTSPOT_OUTPUTDIR))
+  BUILDTOOLS_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(BUILDTOOLS_OUTPUTDIR))
+  SUPPORT_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(SUPPORT_OUTPUTDIR))
+  JDK_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(JDK_OUTPUTDIR))
+  IMAGES_OUTPUTDIR := $(patsubst $(OUTPUTDIR)%,$(BUILDJDK_OUTPUTDIR)%,$(IMAGES_OUTPUTDIR))
+
   # Override specific values to do a boot cycle build
 
   # Use a different Boot JDK
@@ -456,9 +434,6 @@ endif
 # $1 the name of the makefile
 define IncludeCustomExtension
 endef
-
-# Include the custom-spec.gmk file if it exists
--include $(dir $(SPEC))/custom-spec.gmk
 
 ################################################################################
 
