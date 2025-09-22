@@ -23,7 +23,7 @@
  * questions.
  */
 
-package jdk.internal.generators.fixuppandoc;
+package jdk.internal.tools.fixuppandoc;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

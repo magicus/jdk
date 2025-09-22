@@ -23,7 +23,7 @@
  * questions.
  */
 
-package jdk.internal.generators.module;
+package jdk.internal.tools.module;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -38,7 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jdk.internal.generators.module.GenModuleInfoSource.Statement;
+import jdk.internal.tools.module.GenModuleInfoSource.Statement;
 
 /**
  * Sanity test for GenModuleInfoSource tool

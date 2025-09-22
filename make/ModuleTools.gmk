@@ -38,19 +38,6 @@ TOOLS_CLASSES_DIR := $(BUILDTOOLS_OUTPUTDIR)/tools_jigsaw_classes
 BUILD_JIGSAW_TOOLS := $(call SetupJavaCompilationCompileTarget, \
     BUILD_JIGSAW_TOOLS, $(TOOLS_CLASSES_DIR))
 
-TOOL_GENGRAPHS := $(BUILD_JAVA) -esa -ea -cp $(TOOLS_CLASSES_DIR) \
-    --add-modules jdk.jdeps \
-    --add-exports jdk.jdeps/com.sun.tools.jdeps=ALL-UNNAMED \
-    jdk.internal.generators.jigsaw.GenGraphs
-
-TOOL_MODULESUMMARY := $(BUILD_JAVA) -esa -ea -cp $(TOOLS_CLASSES_DIR) \
-    jdk.internal.generators.jigsaw.ModuleSummary
-
-TOOL_ADD_PACKAGES_ATTRIBUTE := $(BUILD_JAVA) $(JAVA_FLAGS_SMALL_BUILDJDK) \
-    -cp $(TOOLS_CLASSES_DIR) \
-    --add-exports java.base/jdk.internal.module=ALL-UNNAMED \
-    jdk.internal.generators.jigsaw.AddPackagesAttribute
-
 ################################################################################
 
 endif # include guard

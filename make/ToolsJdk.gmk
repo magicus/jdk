@@ -50,20 +50,5 @@ BUILD_TOOLS_JDK := $(foreach m, $(BUILDTOOLS_MODULES), \
 
 ################################################################################
 
-BuildTool = \
-  $(JAVA_SMALL) -cp $(BUILDTOOLS_OUTPUTDIR)/$(strip $1)/classes \
-      $(BUILDTOOL_OPTS_$(strip $1)_$(strip $2)) \
-      jdk.internal.generators.$(1)
-endef
-
-################################################################################
-
-# Executable javascript filter for man page generation using pandoc.
-
-PANDOC_TROFF_MANPAGE_FILTER := $(BUILDTOOLS_OUTPUTDIR)/manpages/pandoc-troff-manpage-filter
-PANDOC_HTML_MANPAGE_FILTER := $(BUILDTOOLS_OUTPUTDIR)/manpages/pandoc-html-manpage-filter
-
-################################################################################
-
 endif # include guard
 include MakeIncludeEnd.gmk

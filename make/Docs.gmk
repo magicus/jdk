@@ -57,6 +57,14 @@ include $(TOPDIR)/make/conf/javadoc.conf
 
 MODULES_SOURCE_PATH := $(call PathList, $(call GetModuleSrcPath) )
 
+TOOL_FIXUPPANDOC := $(JAVA_SMALL) \
+    -cp $(BUILDTOOLS_OUTPUTDIR)/jdk.internal.build/classes \
+    jdk.internal.tools.fixuppandoc.Main
+
+TOOL_GENGRAPHS := $(BUILD_JAVA) -esa -ea -cp $(TOOLS_CLASSES_DIR) \
+    --add-modules jdk.jdeps \
+    --add-exports jdk.jdeps/com.sun.tools.jdeps=ALL-UNNAMED \
+    jdk.internal.generators.jigsaw.GenGraphs
 
 # In order to get a specific ordering it's necessary to specify the total
 # ordering of tags as the tags are otherwise ordered in order of definition.
@@ -634,10 +642,6 @@ $(foreach m, $(ALL_MODULES), \
 ifeq ($(ENABLE_PANDOC), true)
   # For all markdown files in $module/share/specs directories, convert them to
   # html, if we have pandoc (otherwise we'll just skip this).
-
-  TOOL_FIXUPPANDOC := $(JAVA_SMALL) \
-      -cp $(BUILDTOOLS_OUTPUTDIR)/jdk.internal.build/classes \
-      jdk.internal.generators.fixuppandoc.Main
 
   GLOBAL_SPECS_DEFAULT_CSS_FILE := $(DOCS_OUTPUTDIR)/resources/jdk-default.css
   # Unset the following to suppress the link to the tool guides

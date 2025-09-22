@@ -33,6 +33,14 @@ GENGRAPHS_DIR := $(IMAGES_OUTPUTDIR)/gengraphs
 SPEC_DOTFILES_DIR := $(GENGRAPHS_DIR)/spec-dotfiles
 TOOLS_MODULE_SRCDIR := $(TOPDIR)/make/src/jdk.internal.build/jdk/internal/buildtools/jigsaw
 
+TOOL_MODULESUMMARY := $(BUILD_JAVA) -esa -ea -cp $(TOOLS_CLASSES_DIR) \
+    jdk.internal.generators.jigsaw.ModuleSummary
+
+TOOL_GENGRAPHS := $(BUILD_JAVA) -esa -ea -cp $(TOOLS_CLASSES_DIR) \
+    --add-modules jdk.jdeps \
+    --add-exports jdk.jdeps/com.sun.tools.jdeps=ALL-UNNAMED \
+    jdk.internal.generators.jigsaw.GenGraphs
+
 $(GENGRAPHS_DIR)/jdk.dot: $(BUILD_JIGSAW_TOOLS)
 	$(call MakeTargetDir)
 	$(TOOL_GENGRAPHS) --output $(GENGRAPHS_DIR)

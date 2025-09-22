@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package jdk.internal.generators.module;
+package jdk.internal.tools.module;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
