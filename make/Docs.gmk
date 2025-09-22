@@ -418,7 +418,7 @@ define SetupApiDocsGenerationBody
     # First we run the GenGraph tool. It will query the module structure of the
     # running JVM and output .dot files for all existing modules.
     MODULE_GRAPHS_PROPS := \
-        $$(TOPDIR)/make/src/jdk.internal.build/jdk/internal/buildtools/jigsaw/javadoc-graphs.properties
+        $$(TOPDIR)/make/src/jdk.internal.build/jdk/internal/generators/jigsaw/javadoc-graphs.properties
 
     $1_MODULE_GRAPHS_DIR := $$(SUPPORT_OUTPUTDIR)/docs/$1-module-graphs
 

@@ -68,7 +68,6 @@ $(eval $(call SetupJavaCompilation, COMPILE_CREATE_SYMBOLS, \
     JAVAC_FLAGS := \
         $(COMPILECREATESYMBOLS_ADD_EXPORTS), \
 ))
-$(info in GENDATA $(MODULE_INFOS)) )
 
 $(eval $(call SetupRunGenerator, GEN_CT_SYM, \
     GENERATOR := symbolgenerator.CreateSymbols, \
