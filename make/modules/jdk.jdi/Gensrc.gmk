@@ -46,7 +46,6 @@ $(HEADER_FILE): $(JDWP_SPEC_FILE) $(BUILD_TOOLS_JDK)
 $(JAVA_FILE): $(JDWP_SPEC_FILE) $(BUILD_TOOLS_JDK) $(HEADER_FILE)
 	$(call LogInfo, Creating JDWP.java and JDWPCommands.h from jdwp.spec)
 	$(call MakeDir, $(@D) $(SUPPORT_OUTPUTDIR)/headers/jdk.jdwp.agent)
-	$(RM) $@ $(SUPPORT_OUTPUTDIR)/headers/jdk.jdwp.agent/JDWPCommands.h
 	$(TOOL_JDWPGEN) $< -jdi $@ -include \
 	    $(SUPPORT_OUTPUTDIR)/headers/jdk.jdwp.agent/JDWPCommands.h
 	$(TOUCH) $@
@@ -55,7 +54,6 @@ $(HTML_FILE): $(JDWP_SPEC_FILE) \
     $(BUILD_TOOLS_JDK)
 	$(call LogInfo, Creating $(@F) from jdwp.spec)
 	$(call MakeDir, $(@D))
-	$(RM) $@
 	$(TOOL_JDWPGEN) $< -doc $@
 
 TARGETS += $(JAVA_FILE) $(HEADER_FILE) $(HTML_FILE)
