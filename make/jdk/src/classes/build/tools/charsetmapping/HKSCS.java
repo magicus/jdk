@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -70,16 +70,16 @@ public class HKSCS {
                   getCopyright(copyright));
     }
 
-    static void genClass2001(String args[]) throws Exception {
+    static void genClass2001(String srcDir, String dstDir, String charsets) throws Exception {
         // hkscs2001
-        genClass0(new FileInputStream(new File(args[0], "HKSCS2001.map")),
-                  new FileInputStream(new File(args[0], "HKSCS2001.c2b")),
-                  new PrintStream(new File(args[1], "HKSCS2001Mapping.java"),
+        genClass0(new FileInputStream(new File(srcDir, "HKSCS2001.map")),
+                  new FileInputStream(new File(srcDir, "HKSCS2001.c2b")),
+                  new PrintStream(new File(dstDir, "HKSCS2001Mapping.java"),
                                   "ISO-8859-1"),
                   "sun.nio.cs.ext",
                   "HKSCS2001Mapping",
                   false,
-                  getCopyright(new File(args[3])));
+                  getCopyright(new File(charsets)));
     }
 
     static void genClass0(InputStream isB2C,

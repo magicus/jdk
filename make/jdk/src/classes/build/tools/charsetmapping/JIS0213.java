@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,10 +35,10 @@ public class JIS0213 {
     // regex pattern to parse the "jis0213.map" file
     static Pattern sjis0213 = Pattern.compile("0x(\\p{XDigit}++)\\s++U\\+(\\p{XDigit}++)(?:\\+(\\p{XDigit}++))?\\s++#.*");
 
-    static void genClass(String argv[]) throws IOException
+    static void genClass(String srcDir, String dstDir) throws IOException
     {
-        InputStream in = new FileInputStream(argv[0]) ;
-        OutputStream out = new FileOutputStream(argv[1]);
+        InputStream in = new FileInputStream(srcDir) ;
+        OutputStream out = new FileOutputStream(dstDir);
 
         int[] sb = new int[0x100];                         // singlebyte
         int[] db = new int[0x10000];                       // doublebyte

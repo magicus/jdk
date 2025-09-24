@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,12 +80,12 @@ public class EUC_TW {
 
     private static Pattern euctw = Pattern.compile("(?:8ea)?(\\p{XDigit}++)\\s++(\\p{XDigit}++)?\\s*+.*");
 
-    static void genClass(String pkg, String args[]) throws Exception
+    static void genClass(String pkg, String srcDir, String dstDir, String copyrightSource) throws Exception
     {
-        InputStream is = new FileInputStream(new File(args[0], "EUC_TW.map"));
-        PrintStream ps = new PrintStream(new File(args[1], "EUC_TWMapping.java"),
+        InputStream is = new FileInputStream(new File(srcDir, "EUC_TW.map"));
+        PrintStream ps = new PrintStream(new File(dstDir, "EUC_TWMapping.java"),
                                          "ISO-8859-1");
-        String copyright = getCopyright(new File(args[7], "EUC_TW.java"));
+        String copyright = getCopyright(new File(copyrightSource, "EUC_TW.java"));
 
 
         // ranges of byte1 and byte2, something should come from a "config" file

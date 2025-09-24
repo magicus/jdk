@@ -43,17 +43,22 @@ CHARSET_STANDARD_JAVA_TEMPLATES := \
     $(TOPDIR)/src/java.base/share/classes/sun/nio/cs/StandardCharsets.java.template
 CHARSET_STANDARD_OS := stdcs-$(OPENJDK_TARGET_OS)
 
+ifeq ($(findstring $(LOG_LEVEL), debug trace), )
+  CHARSETMAPPING_VERBOSE_FLAG := -q
+else
+  CHARSETMAPPING_VERBOSE_FLAG := -v
+endif
+
 $(CHARSET_DONE_BASE)-stdcs: $(CHARSET_DATA_DIR)/charsets \
     $(wildcard $(CHARSET_DATA_DIR)/$(CHARSET_STANDARD_OS)) \
     $(CHARSET_TEMPLATES) $(CHARSET_STANDARD_JAVA_TEMPLATES) \
     $(BUILD_TOOLS_JDK)
 	$(call LogInfo, Generating java.base charset mapping)
 	$(call MakeDir, $(@D))
-	$(TOOL_CHARSETMAPPING) $(CHARSET_DATA_DIR) $(CHARSET_GENSRC_JAVA_DIR_BASE) \
+	$(TOOL_CHARSETMAPPING) $(CHARSETMAPPING_VERBOSE_FLAG) $(CHARSET_DATA_DIR) $(CHARSET_GENSRC_JAVA_DIR_BASE) \
 	    stdcs charsets $(CHARSET_STANDARD_OS) \
 	    $(CHARSET_STANDARD_JAVA_TEMPLATES) $(CHARSET_EXTSRC_DIR) \
-	    $(CHARSET_COPYRIGHT_HEADER) \
-            $(LOG_DEBUG)
+	    $(CHARSET_COPYRIGHT_HEADER)
 	$(TOUCH) '$@'
 
 TARGETS += $(CHARSET_DONE_BASE)-stdcs

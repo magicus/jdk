@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,17 +34,18 @@ import java.util.Locale;
 public class Main {
 
     public static void main(String args[]) throws Throwable {
-        int SRC_DIR  = 0;
-        int DST_DIR  = 1;
-        int TYPE     = 2;
-        int CHARSETS = 3;
-        int OS       = 4;
-        int TEMPLATE = 5;
-        int EXT_SRC  = 6;
-        int COPYRIGHT_SRC  = 7;
+        int VERBOSE  = 0;
+        int SRC_DIR  = 1;
+        int DST_DIR  = 2;
+        int TYPE     = 3;
+        int CHARSETS = 4;
+        int OS       = 5;
+        int TEMPLATE = 6;
+        int EXT_SRC  = 7;
+        int COPYRIGHT_SRC = 8;
 
         if (args.length < 3 ) {
-            System.out.println("Usage: java -jar charsetmapping.jar src dst spiType charsets os [template]");
+            System.out.println("Usage: java -jar charsetmapping.jar <-v/-q> src dst spiType charsets os [template]");
             System.exit(1);
         }
         boolean isStandard = "stdcs".equals(args[TYPE]);
@@ -77,7 +78,9 @@ public class Main {
                     isExtended && cs.pkgName.equals("sun.nio.cs")) {
                     continue;
                 }
-                verbose(cs);
+                if (args[VERBOSE].equals("-v")) {
+                    verbose(cs);
+                }
                 switch (cs.type) {
                 case "template":
                     SRC.genClass(cs, args[EXT_SRC], args[DST_DIR]);
@@ -116,15 +119,15 @@ public class Main {
                                  new File(args[COPYRIGHT_SRC], "HKSCS.java"));
             }
             if (isStandard && hasEUC_TW) {
-                EUC_TW.genClass("sun.nio.cs", args);
+                EUC_TW.genClass("sun.nio.cs", args[SRC_DIR], args[DST_DIR], args[COPYRIGHT_SRC]);
             }
             if (!isStandard && !hasEUC_TW) {
-                EUC_TW.genClass("sun.nio.cs.ext", args);
+                EUC_TW.genClass("sun.nio.cs.ext", args[SRC_DIR], args[DST_DIR], args[COPYRIGHT_SRC]);
             }
         } else if ("sjis0213".equals(args[TYPE])) {
-            JIS0213.genClass(args);
+            JIS0213.genClass(args[SRC_DIR], args[DST_DIR]);
         } else if ("hkscs".equals(args[TYPE])) {
-            HKSCS.genClass2001(args);
+            HKSCS.genClass2001(args[SRC_DIR], args[DST_DIR], args[CHARSETS]);
         }
     }
 
