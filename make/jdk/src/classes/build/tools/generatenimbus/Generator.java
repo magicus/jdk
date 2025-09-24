@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,6 +54,7 @@ public class Generator {
     private String packageNamePrefix;
     private String lafName;
     private SynthModel model;
+    private boolean verbose;
 
     /**
      * MAIN APPLICATION
@@ -73,9 +74,11 @@ public class Generator {
                     "    -resourcesDir <value>  The resources directory containing templates and images.\n" +
                     "    -packagePrefix <value> The package name associated with this synth look and feel. For example,\n" +
                     "                           \"org.mypackage.mylaf\"\n" +
-                    "    -lafName <value>       The name of the laf, such as \"MyLAF\".\n");
+                    "    -lafName <value>       The name of the laf, such as \"MyLAF\".\n" +
+                    "    -verbose <true|false>  Output information about the generation.\n");
         } else {
             boolean full = false;
+            boolean verbose = false;
             File skinFile = new File(System.getProperty("user.dir"));
             File buildDir = new File(System.getProperty("user.dir"));
             File resourcesDir = new File(System.getProperty("user.dir"));
@@ -96,15 +99,19 @@ public class Generator {
                     packagePrefix = value;
                 } else if ("-lafname".equals(key)) {
                     lafName = value;
+                } else if ("-verbose".equals(key)) {
+                    verbose = Boolean.parseBoolean(value);
                 }
             }
-            System.out.println("### GENERATING LAF CODE ################################");
-            System.out.println("   full          :" + full);
-            System.out.println("   skinFile      :" + skinFile.getAbsolutePath());
-            System.out.println("   buildDir      :" + buildDir.getAbsolutePath());
-            System.out.println("   resourcesDir  :" + resourcesDir.getAbsolutePath());
-            System.out.println("   packagePrefix :" +packagePrefix);
-            System.out.println("   lafName       :" +lafName);
+            if (verbose) {
+                System.out.println("### GENERATING LAF CODE ################################");
+                System.out.println("   full          :" + full);
+                System.out.println("   skinFile      :" + skinFile.getAbsolutePath());
+                System.out.println("   buildDir      :" + buildDir.getAbsolutePath());
+                System.out.println("   resourcesDir  :" + resourcesDir.getAbsolutePath());
+                System.out.println("   packagePrefix :" +packagePrefix);
+                System.out.println("   lafName       :" +lafName);
+            }
 
             SynthModel model;
             XMLInputFactory inputFactory = XMLInputFactory.newInstance();
@@ -114,7 +121,7 @@ public class Generator {
                 reader = inputFactory.createXMLStreamReader(is);
                 model = new SynthModel(reader);
             }
-            Generator.init(full, buildDir, packagePrefix, lafName, model);
+            Generator.init(full, buildDir, packagePrefix, lafName, model, verbose);
             Generator.getInstance().generate();
         }
     }
@@ -136,7 +143,8 @@ public class Generator {
      * @param model             The actual SynthModel to base these generated files on.
      */
     private Generator(boolean full, File buildDir,
-            String packageNamePrefix, String lafName, SynthModel model) {
+            String packageNamePrefix, String lafName, SynthModel model,
+            boolean verbose) {
         this.full = full;
         //validate the input variables
         if (packageNamePrefix == null) {
@@ -168,11 +176,13 @@ public class Generator {
         this.packageNamePrefix = packageNamePrefix;
         this.lafName = lafName;
         this.model = model;
+        this.verbose = verbose;
     }
 
     public static void init(boolean full, File buildDir,
-            String packageNamePrefix, String lafName, SynthModel model) {
-        instance = new Generator(full, buildDir, packageNamePrefix, lafName, model);
+            String packageNamePrefix, String lafName, SynthModel model,
+            boolean verbose) {
+        instance = new Generator(full, buildDir, packageNamePrefix, lafName, model, verbose);
         model.initStyles();
     }
 
@@ -182,6 +192,10 @@ public class Generator {
 
     public static Map<String, String> getVariables() {
         return new HashMap<String, String>(instance.variables);
+    }
+
+    public boolean isVerbose() {
+        return verbose;
     }
 
     public void generate() {

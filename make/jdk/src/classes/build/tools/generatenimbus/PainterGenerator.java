@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -621,7 +621,9 @@ public class PainterGenerator {
         //since this method will be called for each of those (and they go in their own file, anyway).
         //The only subregion that we compound into this is the one for icons.
         PainterGenerator gen = new PainterGenerator(r);
-        System.out.println("Generating source file: " + painterName + ".java");
+        if (Generator.getInstance().isVerbose()) {
+            System.out.println("Generating source file: " + painterName + ".java");
+        }
 
         Map<String, String> variables = Generator.getVariables();
         variables.put("PAINTER_NAME", painterName);
