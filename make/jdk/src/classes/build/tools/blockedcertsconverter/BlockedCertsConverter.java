@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,11 @@
 
 package build.tools.blockedcertsconverter;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.PublicKey;
@@ -52,12 +56,21 @@ import sun.security.util.DerValue;
 public class BlockedCertsConverter {
 
     public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: BlockedCertsConverter input_file output_file");
+            return;
+        }
+        String inputFile = args[0];
+        String outputFile = args[1];
+
+        FileInputStream inputStream = new FileInputStream(inputFile);
+        PrintStream outputStream = new PrintStream(new FileOutputStream(outputFile));
 
         byte[] pattern = "#! java BlockedCertsConverter ".getBytes();
         String mdAlg = "";
 
         for (int i=0; ; i++) {
-            int n = System.in.read();
+            int n = inputStream.read();
             if (n < 0) {
                 throw new Exception("Unexpected EOF");
             }
@@ -76,11 +89,11 @@ public class BlockedCertsConverter {
         }
 
         mdAlg = mdAlg.trim();
-        System.out.println("Algorithm=" + mdAlg);
+        outputStream.println("Algorithm=" + mdAlg);
 
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
         Collection<? extends Certificate> certs
-                = cf.generateCertificates(System.in);
+                = cf.generateCertificates(inputStream);
 
         // Output sorted so that it's easy to locate an entry.
         Set<String> fingerprints = new TreeSet<>();
@@ -90,8 +103,11 @@ public class BlockedCertsConverter {
         }
 
         for (String s: fingerprints) {
-            System.out.println(s);
+            outputStream.println(s);
         }
+
+        inputStream.close();
+        outputStream.close();
     }
 
     /**
