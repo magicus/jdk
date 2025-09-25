@@ -34,8 +34,7 @@ HTML32DTD = $(JDK_OUTPUTDIR)/modules/java.desktop/javax/swing/text/html/parser/h
 $(HTML32DTD): $(BUILD_TOOLS_JDK)
 	$(call LogInfo, Generating HTML DTD file)
 	$(call MakeTargetDir)
-	$(RM) $@
-	($(TOOL_DTDBUILDER) html32 > $@) || exit 1
+	$(TOOL_DTDBUILDER) $(TOPDIR)/src/java.desktop/share/data/dtdbuilder $@
 
 TARGETS += $(HTML32DTD)
 

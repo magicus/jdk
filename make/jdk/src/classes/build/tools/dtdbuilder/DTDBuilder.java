@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,8 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Enumeration;
@@ -272,28 +274,29 @@ public class DTDBuilder extends DTD {
      */
 
     public static void main(String argv[]) {
-
-        String dtd_home = System.getProperty("dtd_home");
-        if (dtd_home == null) {
-            System.err.println("Must set property 'dtd_home'");
+        if (argv.length != 2) {
+            System.err.println("Usage: DTDBuilder dtd_home output_file");
             return;
         }
+        String dtd_home = argv[0];
+        String outputFile = argv[1];
+        String dtdName = "html32";
 
         DTDBuilder dtd = null;
         try {
-            dtd = new DTDBuilder(argv[0]);
+            dtd = new DTDBuilder(dtdName);
             mapping = new PublicMapping(dtd_home + File.separator, "public.map");
-            String path = mapping.get(argv[0]);
+            String path = mapping.get(dtdName);
             new DTDParser().parse(new FileInputStream(path), dtd);
 
         } catch (IOException e) {
-            System.err.println("Could not open DTD file " + argv[0]);
+            System.err.println("Could not open DTD file " + dtdName);
             e.printStackTrace(System.err);
             System.exit(1);
         }
         try {
-            DataOutputStream str = new DataOutputStream(System.out);
-            dtd.save(str, argv[0]);
+            DataOutputStream str = new DataOutputStream(Files.newOutputStream(Path.of(outputFile)));
+            dtd.save(str, dtdName);
             str.close();
         } catch (IOException ex) {
             ex.printStackTrace();
