@@ -34,9 +34,7 @@ GENDATA_PUBLICSUFFIXLIST := $(SUPPORT_OUTPUTDIR)/modules_libs/$(MODULE)/security
 $(GENDATA_PUBLICSUFFIXLIST): $(GENDATA_PUBLICSUFFIXLIST_SRC) $(BUILD_TOOLS_JDK)
 	$(call LogInfo, Generating public suffix list)
 	$(call MakeDir, $(@D))
-	$(RM) $@
 	$(TOOL_PUBLICSUFFIXLIST) $< $@
-	$(CHMOD) 444 $@
 
 TARGETS += $(GENDATA_PUBLICSUFFIXLIST)
 
