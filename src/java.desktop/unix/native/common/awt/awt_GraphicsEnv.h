@@ -28,9 +28,7 @@
 
 #include <jni_util.h>
 
-#ifndef HEADLESS
 #define MITSHM
-#endif /* !HEADLESS */
 
 #define UNSET_MITSHM (-2)
 #define NOEXT_MITSHM (-1)

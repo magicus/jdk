@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include "OGLFuncs.h"
 
 OGL_EXPRESS_ALL_FUNCS(DECLARE)
@@ -120,5 +118,3 @@ OGLFuncs_InitExtFuncs()
 
     return JNI_TRUE;
 }
-
-#endif /* !HEADLESS */

@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <stdlib.h>
 #include <jlong.h>
 
@@ -89,5 +87,3 @@ OGLMaskBlit_MaskBlit(JNIEnv *env, OGLContext *oglc,
     j2d_glTexCoord2f(tx1, ty2); j2d_glVertex2i(dstx, dsty + height);
     j2d_glEnd();
 }
-
-#endif /* !HEADLESS */

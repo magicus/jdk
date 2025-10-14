@@ -39,18 +39,10 @@
 #include <jni_util.h>
 #include <jvm_md.h>
 #include <sizecalc.h>
-#ifndef HEADLESS
 #include <X11/Xlib.h>
 #include <awt.h>
-#else
-/* locks ought to be included from awt.h */
-#define AWT_LOCK()
-#define AWT_UNLOCK()
-#endif /* !HEADLESS */
 
-#ifndef HEADLESS
 extern Display *awt_display;
-#endif /* !HEADLESS */
 
 #define FONTCONFIG_DLL_VERSIONED VERSIONED_JNI_LIB_NAME("fontconfig", "1")
 #define FONTCONFIG_DLL JNI_LIB_NAME("fontconfig")
@@ -91,8 +83,6 @@ typedef struct {
     const char *name[MAXFDIRS];
     int  num;
 } fDirRecord, *fDirRecordPtr;
-
-#ifndef HEADLESS
 
 /*
  * Returns True if display is local, False of it's remote.
@@ -187,9 +177,6 @@ static char **getX11FontPath ()
     }
     return fontdirs;
 }
-
-
-#endif /* !HEADLESS */
 
 #if defined(__linux__)
 /* from awt_LoadLibrary.c */

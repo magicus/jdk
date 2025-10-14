@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <stdlib.h>
 
 #include "sun_java2d_opengl_OGLSurfaceData.h"
@@ -639,5 +637,3 @@ OGLSD_Unlock(JNIEnv *env,
 {
     JNU_ThrowInternalError(env, "OGLSD_Unlock not implemented!");
 }
-
-#endif /* !HEADLESS */

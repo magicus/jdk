@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <jni.h>
 #include <jlong.h>
 
@@ -913,5 +911,3 @@ OGLBlitLoops_CopyArea(JNIEnv *env,
 #endif
     }
 }
-
-#endif /* !HEADLESS */

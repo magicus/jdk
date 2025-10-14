@@ -28,9 +28,7 @@
 
 #include "gdefs.h"
 
-#ifndef HEADLESS
 #include <X11/Xlib.h>
-#endif
 
 #define SHIFTFACTOR 16
 #define NO_POINTSIZE -1.0

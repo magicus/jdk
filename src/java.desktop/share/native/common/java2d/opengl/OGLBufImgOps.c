@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <jlong.h>
 
 #include "OGLBufImgOps.h"
@@ -749,5 +747,3 @@ OGLBufImgOps_DisableLookupOp(OGLContext *oglc)
     j2d_glDisable(GL_TEXTURE_2D);
     j2d_glActiveTextureARB(GL_TEXTURE0_ARB);
 }
-
-#endif /* !HEADLESS */

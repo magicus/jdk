@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -286,5 +284,3 @@ OGLVertexCache_AddGlyphQuad(OGLContext *oglc,
                    dx1, dy1, dx2, dy2,
                    oglc->r, oglc->g, oglc->b, oglc->a);
 }
-
-#endif /* !HEADLESS */

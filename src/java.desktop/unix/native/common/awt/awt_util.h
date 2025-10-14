@@ -26,7 +26,6 @@
 #ifndef _AWT_UTIL_H_
 #define _AWT_UTIL_H_
 
-#ifndef HEADLESS
 #include "gdefs.h"
 
 #define WITH_XERROR_HANDLER(f) do {             \
@@ -53,8 +52,6 @@
 extern XErrorHandler current_native_xerror_handler;
 
 Window get_xawt_root_shell(JNIEnv *env);
-
-#endif /* !HEADLESS */
 
 #ifndef INTERSECTS
 #define INTERSECTS(r1_x1,r1_x2,r1_y1,r1_y2,r2_x1,r2_x2,r2_y1,r2_y2) \

@@ -34,11 +34,11 @@
 #include "jni_util.h"
 #include "debug_util.h"
 
-#if !defined(HEADLESS) && !defined(MACOSX)
+#if !defined(MACOSX)
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 typedef char Boolean;
-#endif /* !HEADLESS && !MACOSX */
+#endif /* !MACOSX */
 
 
 /* The JVM instance: defined in awt_LoadLibrary.c */
@@ -125,9 +125,9 @@ extern void awt_output_flush();
 #define AWT_NOTIFY()         AWT_NOTIFY_IMPL()
 #define AWT_NOTIFY_ALL()     AWT_NOTIFY_ALL_IMPL()
 
-#if !defined(HEADLESS) && !defined(MACOSX)
+#if !defined(MACOSX)
 extern Display         *awt_display; /* awt_GraphicsEnv.c */
 extern Boolean          awt_ModLockIsShiftLock; /* XToolkit.c */
-#endif /* !HEADLESS && !MACOSX */
+#endif /* !MACOSX */
 
 #endif /* ! _AWT_ */

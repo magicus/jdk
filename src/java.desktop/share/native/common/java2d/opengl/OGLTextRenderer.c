@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <stdlib.h>
 #include <math.h>
 #include <jlong.h>
@@ -1186,5 +1184,3 @@ Java_sun_java2d_opengl_OGLTextRenderer_drawGlyphList
                                               images, JNI_ABORT);
     }
 }
-
-#endif /* !HEADLESS */

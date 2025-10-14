@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <jlong.h>
 #include <jni_util.h>
 #include <math.h>
@@ -808,5 +806,3 @@ OGLRenderer_DisableAAParallelogramProgram()
 
     j2d_glUseProgramObjectARB(0);
 }
-
-#endif /* !HEADLESS */

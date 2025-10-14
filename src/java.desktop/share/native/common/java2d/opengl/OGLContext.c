@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -1072,5 +1070,3 @@ JNIEXPORT jstring JNICALL Java_sun_java2d_opengl_OGLContext_getOGLIdString
 
     return ret;
 }
-
-#endif /* !HEADLESS */

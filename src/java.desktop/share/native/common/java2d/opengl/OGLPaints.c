@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <jlong.h>
 #include <string.h>
 
@@ -919,5 +917,3 @@ OGLPaints_SetRadialGradientPaint(OGLContext *oglc, OGLSDOps *dstOps,
     oglc->useMask = useMask;
     oglc->paintState = sun_java2d_SunGraphics2D_PAINT_RAD_GRADIENT;
 }
-
-#endif /* !HEADLESS */

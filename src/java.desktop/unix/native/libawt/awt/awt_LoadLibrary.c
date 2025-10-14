@@ -151,6 +151,13 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
                                    jbuf);
 
         awtHandle = dlopen(buf, RTLD_LAZY | RTLD_GLOBAL);
+        if (awtHandle == NULL) {
+            fprintf(stderr, "Failed to dlopen library %s\n", buf);
+            fprintf(stderr, "dlerror is: %s\n", dlerror());
+            return JNI_ERR;
+        } else {
+            fprintf(stderr, "Loaded library %s at %p\n", buf, awtHandle);
+        }
 
         int (*initX11Symbols)(void) = dlsym(awtHandle, "initX11Symbols");
         if (initX11Symbols == NULL) {

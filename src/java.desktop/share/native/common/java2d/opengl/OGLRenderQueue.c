@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include <stdlib.h>
 
 #include "sun_java2d_pipe_BufferedOpCodes.h"
@@ -832,5 +830,3 @@ OGLRenderQueue_CheckPreviousOp(jint op)
 
     previousOp = op;
 }
-
-#endif /* !HEADLESS */

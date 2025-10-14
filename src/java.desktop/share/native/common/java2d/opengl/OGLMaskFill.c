@@ -23,8 +23,6 @@
  * questions.
  */
 
-#ifndef HEADLESS
-
 #include "sun_java2d_opengl_OGLMaskFill.h"
 
 #include "OGLMaskFill.h"
@@ -159,5 +157,3 @@ Java_sun_java2d_opengl_OGLMaskFill_maskFill
         (*env)->ReleasePrimitiveArrayCritical(env, maskArray, mask, JNI_ABORT);
     }
 }
-
-#endif /* !HEADLESS */

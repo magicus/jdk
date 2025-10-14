@@ -33,11 +33,9 @@
 #include <math.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#ifndef HEADLESS
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
-#endif /* !HEADLESS */
 #include "awt_p.h"
 #include "java_awt_SystemColor.h"
 #include "java_awt_color_ColorSpace.h"
@@ -117,7 +115,6 @@ ImgConvertFcn OrdColorDcmOpqUnsImageConvert;
 
 #endif /* NEED_IMAGE_CONVERT */
 
-#ifndef HEADLESS
 /*
  * Find the best color.
  */
@@ -283,7 +280,6 @@ alloc_col(Display *dpy, Colormap cm, int r, int g, int b, int pixel,
 
     return awt_color_match(r, g, b, awt_data);
 }
-#endif /* !HEADLESS */
 
 void
 awt_fill_imgcv(ImgConvertFcn **array, int mask, int value, ImgConvertFcn fcn)
@@ -297,7 +293,6 @@ awt_fill_imgcv(ImgConvertFcn **array, int mask, int value, ImgConvertFcn fcn)
     }
 }
 
-#ifndef HEADLESS
 void cleanup_graphics_config_data(AwtGraphicsConfigDataPtr awt_data) {
     if (awt_data->awtImage != NULL) {
         free(awt_data->awtImage);
@@ -868,13 +863,10 @@ awt_allocate_colors(AwtGraphicsConfigDataPtr awt_data)
     }
     return 1;
 }
-#endif /* !HEADLESS */
 
 #define red(v)          (((v) >> 16) & 0xFF)
 #define green(v)        (((v) >>  8) & 0xFF)
 #define blue(v)         (((v) >>  0) & 0xFF)
-
-#ifndef HEADLESS
 
 jobject getColorSpace(JNIEnv* env, jint csID) {
     jclass clazz;
@@ -1225,9 +1217,7 @@ jobject awtJNI_GetColorModel(JNIEnv *env, AwtGraphicsConfigDataPtr aData)
 
     return (*env)->PopLocalFrame(env, awt_colormodel);
 }
-#endif /* !HEADLESS */
 
-#ifndef HEADLESS
 void
 awt_allocate_systemrgbcolors (jint *rgbColors, int num_colors,
                               AwtGraphicsConfigDataPtr awtData) {
@@ -1349,5 +1339,3 @@ awtJNI_CreateColorData(JNIEnv *env, AwtGraphicsConfigDataPtr adata,
         AWT_UNLOCK ();
     }
 }
-
-#endif /* !HEADLESS */

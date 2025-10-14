@@ -35,27 +35,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#ifndef HEADLESS
 #include <X11/extensions/Xrender.h>
-#endif /* !HEADLESS */
 #include "awt.h"
 #include "awt_util.h"
 #include "color.h"
 #include "colordata.h"
 #include "gdefs.h"
 
-#ifndef HEADLESS
 #ifndef min
 #define min(a,b) ((a) <= (b)? (a):(b))
 #endif
 #ifndef max
 #define max(a,b) ((a) >= (b)? (a):(b))
 #endif
-#endif /* !HEADLESS */
 
 #define LOOKUPSIZE 32
-
-#ifndef HEADLESS
 
 typedef XRenderPictFormat *
 XRenderFindVisualFormatFunc (Display *dpy, _Xconst Visual *visual);
@@ -94,12 +88,9 @@ typedef struct _AwtScreenData {
 typedef AwtScreenData* AwtScreenDataPtr;
 
 extern AwtGraphicsConfigDataPtr getDefaultConfig(int screen);
-#endif /* !HEADLESS */
 
 /* allocated and initialize a structure */
 #define ZALLOC(T)       ((struct T *)calloc(1, sizeof(struct T)))
-
-#ifndef HEADLESS
 
 extern int awt_allocate_colors(AwtGraphicsConfigDataPtr);
 extern void awt_allocate_systemrgbcolors(jint *, int, AwtGraphicsConfigDataPtr);
@@ -107,5 +98,4 @@ extern void awt_allocate_systemrgbcolors(jint *, int, AwtGraphicsConfigDataPtr);
 extern jobject awtJNI_GetColorModel(JNIEnv *, AwtGraphicsConfigDataPtr);
 extern void awtJNI_CreateColorData (JNIEnv *, AwtGraphicsConfigDataPtr, int lock);
 
-#endif /* !HEADLESS */
 #endif           /* _AWT_P_H_ */

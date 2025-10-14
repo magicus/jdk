@@ -26,7 +26,7 @@
 #include "jni.h"
 #include "color.h"
 
-#if !defined(HEADLESS) && !defined(MACOSX)
+#if !defined(MACOSX)
 typedef struct {
     ImgConvertData cvdata;      /* The data needed by ImgConvertFcn's */
     struct Hsun_awt_image_ImageRepresentation *hJavaObject;     /* backptr */
@@ -69,7 +69,7 @@ extern void *image_InitMask(IRData *ird, int x1, int y1, int x2, int y2);
 #define MaskScan(cvdata)                                        \
         ((((IRData *)cvdata)->maskim->bytes_per_line) >> 2)
 
-#endif /* !HEADLESS && !MACOSX */
+#endif /* !MACOSX */
 
 #define MaskOffset(x)           ((x) >> 5)
 
